@@ -5,6 +5,7 @@ import { FileReference, FileResolver } from "../spaces/files/FileResolver";
 import { AppConfig, ThreadMessage } from "../models";
 import { Agent, AgentInput, AgentOutput } from "./Agent";
 import type { AppConfigForChat } from "./SimpleChatAgent";
+import { AgentServices } from "./AgentServices";
 
 // AppConfigForChat is already exported from SimpleChatAgent
 
