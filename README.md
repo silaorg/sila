@@ -1,68 +1,80 @@
-# Open Alternative to ChatGPT
-
 <p align="center">
-  <img src="docs/assets/icons/Square310x310Logo.png" style="width: 25%; height: auto;">
+  <p align="center">
+   <img src="docs/assets/icons/Square310x310Logo.png" style="width: 150px; height: auto;" alt="Sila Logo" />
+  </p>
+	<h1 align="center"><b>Sila</b></h1>
+	<p align="center">
+		Own your AI workspaces
+    <br />
+    <a href="https://silain.com"><strong>SilaIn.com »</strong></a>
+    <br />
+    <br />
+    <b>Downloads for </b>
+		<a href="https://silain.com/download">macOS, Linux & Windows</a>
+    <br />
+  </p>
 </p>
+<br/>
 
-Sila is an open alternative to ChatGPT. It allows you to use the best AI models from different providers, keeps data private, and doesn't require a subscription.
+Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data.
 
 ![Sila screenshot](docs/assets/screenshot.png)
-
-> 🚧 Work in progress towards v1.
-
-## Getting Started
-
-**Download Sila:**
-- [Download for macOS](#) 
-- [Download for Windows](#)
-
-**For developers:** Want to build from source? Check out our [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md).
 
 ## Features
 
 ### Workspaces
 
-Organize your conversations and assistants into separate workspaces
+Organize your chats and assistants into separate workspaces. Each workspace can have its own main language, folder layout, and theme. Create multiple workspaces for different purposes and switch quickly.
 
 ### Local first
 
-You can use Sila without relying on Sila servers
-
-### Tabs like in VSCode
-
-Create and switch between tabs, and split windows
+Workspaces are stored locally by default. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control.
+No accounts required. Sila works offline if the AI model runs on your device.
 
 ### Any AI
 
-From OpenAI and Anthropic to Ollama and any OpenAI-compatible API; bring your own keys
-
-### Many themes
-
-Use different themes for your workspaces; from colorful to boring
+From OpenAI, Google to Anthropic to Ollama and any OpenAI-compatible APIs. Bring your own keys.
 
 ### Assistants
 
-Create your own assistants with their own prompts and models
+Create your own assistants with their prompts, AI models, and tools.
+
+### Tabs like in VSCode
+
+Create and switch between tabs, and split windows. It works almost like VSCode. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly switch between conversations.
+
+### Many themes
+
+Use different themes for your workspaces; from colorful to boring. A simple way to distinguish workspaces.
 
 ### No subscriptions
 
 Pay as you go, either for API costs from AI providers or the actual compute if you run models yourself.
 
+## Download the app
+
+**Download Sila:**
+- [Download for macOS](#) 
+- [Download for Windows](#)
+- [Download for Linux](#)
+
 ## Documentation
 
 ### Product
-Learn about Sila's features and how to use them effectively. Check out our [product documentation](docs/product/README.md) for user guides, feature overviews, and troubleshooting.
+
+Learn more about Sila's features in the [product documentation](docs/product/README.md).
 
 ### Development
-For developers and contributors, we have comprehensive [development documentation](docs/dev/README.md) covering the codebase, architecture, testing, and contribution guidelines.
+
+Want to build from source? Check out our [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the codebase, architecture, testing, and contribution guidelines.
 
 ## Related projects
 Sila is built alongside several companion projects that enable its features:
 
-- **AI inference** - [aiwrapper](https://github.com/mitkury/aiwrapper)
-- **Info about AI models** - [aimodels](https://github.com/mitkury/aimodels)
-- **Tiling tabs** - [ttabs](https://github.com/mitkury/ttabs)
-- **Sync** - [reptree](https://github.com/mitkury/reptree)
-- **AI context** - [airul](https://github.com/mitkury/airul)
+- **AI inference** - [AIWrapper](https://github.com/mitkury/aiwrapper)
+- **Info about AI models** - [AIModels](https://github.com/mitkury/aimodels)
+- **Tiling tabs** - [TTabs](https://github.com/mitkury/ttabs)
+- **Sync** - [RepTree](https://github.com/mitkury/reptree)
+- **AI context** - [Airul](https://github.com/mitkury/airul)
 
 All projects are maintained by Sila's author.
