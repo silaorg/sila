@@ -6,11 +6,8 @@
 	<p align="center">
 		Own your AI workspaces
     <br />
-    <a href="https://silain.com"><strong>SilaIn.com »</strong></a>
-    <br />
-    <br />
-    <b>Downloads for </b>
-		<a href="https://silain.com/download">macOS, Linux & Windows</a>
+    Download for 
+		<a href="https://silain.com/download">macOS, Linux or Windows</a>
     <br />
   </p>
 </p>
@@ -18,26 +15,28 @@
 
 Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data.
 
+As you use AI more, it connects to the tools you use and learns your projects and preferences. That data becomes more valuable over time - so it makes sense to own that stuff!
+
 ![Sila screenshot](docs/assets/screenshot.png)
 
 ## Features
 
 ### Workspaces
 
-Organize your chats and assistants into separate workspaces. Each workspace can have its own main language, folder layout, and theme. Create multiple workspaces for different purposes and switch quickly.
+Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, folders, theme, and language. Create multiple workspaces for different purposes and switch quickly.
 
 ### Local first
 
-Workspaces are stored locally by default. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control.
+Workspaces are stored locally. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control.
 No accounts required. Sila works offline if the AI model runs on your device.
 
-### Any AI
+### Any AI models
 
-From OpenAI, Google to Anthropic to Ollama and any OpenAI-compatible APIs. Bring your own keys.
+From OpenAI, Google, and Anthropic to Ollama — plus any OpenAI-compatible APIs. Bring your own keys.
 
 ### Assistants
 
-Create your own assistants with their prompts, AI models, and tools.
+Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, one assistant can always search a specific source, reference a document, and create conversations into a chosen folder in your workspace.
 
 ### Tabs like in VSCode
 
@@ -45,7 +44,7 @@ Create and switch between tabs, and split windows. It works almost like VSCode. 
 
 ### Many themes
 
-Use different themes for your workspaces; from colorful to boring. A simple way to distinguish workspaces.
+Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell them apart.
 
 ### No subscriptions
 
@@ -69,6 +68,7 @@ Learn more about Sila's features in the [product documentation](docs/product/REA
 Want to build from source? Check out our [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the codebase, architecture, testing, and contribution guidelines.
 
 ## Related projects
+
 Sila is built alongside several companion projects that enable its features:
 
 - **AI inference** - [AIWrapper](https://github.com/mitkury/aiwrapper)
