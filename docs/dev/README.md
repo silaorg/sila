@@ -1,6 +1,40 @@
 # Sila Development Documentation
 
-This guide will help you understand the different features and components of Sila from a development perspective.
+## Project structure 
+
+We have a package.json in the root of the repository that unites all the packages (from the /packages dir) in the npm workspace. We run `npm install`, `npm run dev` and `npm build` from the root directory.
+
+This should be enough to get started after cloning the repository:
+`npm install && npm run dev`
+
+See [Quick Start](./quick-start.md) for the instructions on running, debugging, and building.
+
+### Packages
+- **packages/core** is the core functionality shared with other packages.
+- **packages/client** is the client code with UI components written in Svelte.
+- **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
+- **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
+- **packages/demo** is a tool to create demo workspaces out of a JSON
+- **packages/tests** is a test suit for the most important systems of Sila
+
+### Quick facts about the tech stack
+
+- Standalone application (desktop + mobile)
+- Desktop app runs on Electron  
+- Mobile app runs on Capacitor
+- Built with TypeScript
+- Frontend uses Svelte 5 + SvelteKit
+- Everything runs locally (no server yet) plus external APIs
+- Styling via Tailwind CSS
+- Components from Skeleton design system
+- Inference with AI is done through AIWrapper
+- Sync handled by RepTree
+- Tiling tabs like in VSCode are built with TTabs
+- Context for AI agent generated with Airul
+
+### How it ties together and builds
+
+Neither the core nor client gets their own dist/build. Rather than building - we import them to our dedicated Vite projects in the desktop and mobile packages. Desktop and mobile packages import <SilaApp> Svelte component from the client. They init <SilaApp> with a config that has integrations for Electron and Capacitor to work with their file systems and native dialogs.
 
 ## Core Features
 
@@ -34,38 +68,15 @@ Testing infrastructure and practices in Sila:
 - Local assets for deterministic tests
 - Running tests and development workflow
 
-## Development
-
-### [Project Structure](./project-structure.md)
-Overview of the monorepo structure and packages:
-- Core, client, desktop, mobile packages
-- Build system and workspace setup
-- Tech stack overview
-
-### [Quick Start](./quick-start.md)
-Get started with development:
-- Prerequisites and setup
-- Running the development environment
-- Building from source
-
 ### [Space Management](./space-management.md)
 Managing workspaces and data:
 - Creating and organizing spaces
 - Data persistence and sync
 - Workspace configuration
 
-## Platform-Specific
-
-### [macOS Notarization Setup](./macos-notarization-setup.md)
-Setting up code signing and notarization for macOS builds
-
 ## AI Development Guidelines
 
-### [For AI Agents](./for-ai/)
-Guidelines and rules for AI-assisted development:
-- [Rules](./for-ai/rules.md) - Basic guidelines for AI agents
-- [Svelte](./for-ai/svelte.md) - Svelte 5 runes and patterns
-- [Skeleton](./for-ai/skeleton.md) - UI component system
+Everything in [For AI Agents](./for-ai/) is addressed to AI agents - basic rules for commiting, using particular tools, documenting, etc.
 
 ## Proposals
 

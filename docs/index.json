@@ -1,0 +1,134 @@
+{
+  "#comment": "This is the index file for the docs. It's used to generate the sidebar in the docs app.",
+  "structure": {
+    "type": "root",
+    "items": [
+      {
+        "type": "section",
+        "label": "Product",
+        "collapsed": true,
+        "items": [
+          {
+            "type": "section",
+            "label": "Features",
+            "items": [
+              {
+                "type": "page",
+                "label": "Workspaces",
+                "path": "product/features/workspaces"
+              },
+              {
+                "type": "page",
+                "label": "Assistants",
+                "path": "product/features/assistants"
+              },
+              {
+                "type": "page",
+                "label": "Chat",
+                "path": "product/features/chat"
+              },
+              {
+                "type": "page",
+                "label": "Tabs & Tiles",
+                "path": "product/features/tabs-and-tiles"
+              },
+              {
+                "type": "page",
+                "label": "Themes",
+                "path": "product/features/themes"
+              },
+              {
+                "type": "page",
+                "label": "Local First",
+                "path": "product/features/local-first"
+              },
+              {
+                "type": "page",
+                "label": "Any AI",
+                "path": "product/features/any-ai"
+              },
+              {
+                "type": "page",
+                "label": "Search",
+                "path": "product/features/search"
+              },
+              {
+                "type": "page",
+                "label": "Import from ChatGPT",
+                "path": "product/features/import-from-chatgpt"
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "label": "How To",
+            "items": [
+              {
+                "type": "page",
+                "label": "Setup Providers",
+                "path": "product/how-to/setup-providers"
+              },
+              {
+                "type": "page",
+                "label": "Sync",
+                "path": "product/how-to/sync"
+              }
+            ]
+          },
+          {
+            "type": "page",
+            "label": "Pricing",
+            "path": "product/pricing"
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "label": "Developers",
+        "collapsed": true,
+        "items": [
+          {
+            "type": "page",
+            "label": "Quick Start",
+            "path": "dev/quick-start"
+          },
+          {
+            "type": "page",
+            "label": "Project Structure",
+            "path": "dev/project-structure"
+          },
+          {
+            "type": "page",
+            "label": "Spaces",
+            "path": "dev/spaces"
+          },
+          {
+            "type": "page",
+            "label": "Files in Spaces",
+            "path": "dev/files-in-spaces"
+          },
+          {
+            "type": "page",
+            "label": "Electron File Protocol",
+            "path": "dev/electron-file-protocol"
+          },
+          {
+            "type": "page",
+            "label": "Testing",
+            "path": "dev/testing"
+          },
+          {
+            "type": "page",
+            "label": "Space Management",
+            "path": "dev/space-management"
+          },
+          {
+            "type": "page",
+            "label": "macOS Notarization",
+            "path": "dev/macos-notarization-setup"
+          }
+        ]
+      }
+    ]
+  }
+}

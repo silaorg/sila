@@ -1,23 +1,22 @@
 <p align="center">
   <p align="center">
-   <img src="docs/assets/icons/Square310x310Logo.png" style="width: 150px; height: auto;" alt="Sila Logo" />
+   <img src="docs/assets/icons/Square310x310Logo.png" style="width: 100px; height: auto;" alt="Sila Logo" />
   </p>
-	<h1 align="center"><b>Sila</b></h1>
+	<h1 align="center">Sila</h1>
 	<p align="center">
-		Own your AI workspaces
-    <br />
+		<b>Own your AI chats and data</b>
+    <br /><br />
     Download for 
 		<a href="https://silain.com/download">macOS, Linux or Windows</a>
-    <br />
   </p>
 </p>
 <br/>
 
-Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data.
-
-As you use AI more, it connects to the tools you use and learns your projects and preferences. That data becomes more valuable over time - so it makes sense to own that stuff!
+Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data. As you use AI more, as it learns more about you and your preferences - that data becomes more valuable over time - so it makes sense to own it!
 
 ![Sila screenshot](docs/assets/screenshot.png)
+
+Unlike most similar projects, you don't need to host a server or register an account to use Sila. Even though your data is stored locally as plain files, it can be synced effectively across multiple devices. Later, you can even host your workspace on a server and invite team members. We combine the power of local-first with collaborative capabilities.
 
 ## Features
 
@@ -25,7 +24,7 @@ As you use AI more, it connects to the tools you use and learns your projects an
 
 Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, folders, theme, and language. Create multiple workspaces for different purposes and switch quickly.
 
-### Local first
+### Local-first & syncs well
 
 Workspaces are stored locally. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control.
 No accounts required. Sila works offline if the AI model runs on your device.
@@ -40,11 +39,11 @@ Create your own assistants with their instructions, AI models, and tools. Assist
 
 ### Tabs like in VSCode
 
-Create and switch between tabs, and split windows. It works almost like VSCode. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly switch between conversations.
+Create and switch between tabs, and split windows. It works almost like VSCode. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly reference or switch from one chat to another.
 
 ### Many themes
 
-Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell them apart.
+Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell your workspaces apart.
 
 ### No subscriptions
 
@@ -65,7 +64,7 @@ Learn more about Sila's features in the [product documentation](docs/product/REA
 
 ### Development
 
-Want to build from source? Check out our [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the codebase, architecture, testing, and contribution guidelines.
+Want to build from source? Check out the [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the architecture, codebase, testing, and contribution guidelines.
 
 ## Related projects
 
