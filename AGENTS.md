@@ -2,81 +2,168 @@ This is a context for AI editor/agent about the project. It's generated with a t
 
 # From README.md:
 
-# Open Alternative to ChatGPT
-
 <p align="center">
-  <img src="docs/assets/icons/Square310x310Logo.png" style="width: 25%; height: auto;">
+  <p align="center">
+   <img src="docs/assets/icons/Square310x310Logo.png" style="width: 100px; height: auto;" alt="Sila Logo" />
+  </p>
+	<h1 align="center">Sila</h1>
+	<p align="center">
+		<b>Own your AI chats and data</b>
+    <br /><br />
+    Download for 
+		<a href="https://silain.com/download">macOS, Linux or Windows</a>
+  </p>
 </p>
+<br/>
 
-Sila is an open alternative to ChatGPT. It allows you to use the best AI models from different providers, keeps data private, and doesn't require a subscription.
+Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data. As you use AI more, as it learns more about you and your preferences - that data becomes more valuable over time - so it makes sense to own it!
 
 ![Sila screenshot](docs/assets/screenshot.png)
 
-> 🚧 Work in progress towards v1.
-
-## Getting Started
-
-**Download Sila:**
-- [Download for macOS](#) 
-- [Download for Windows](#)
-
-**For developers:** Want to build from source? Check out our [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md).
+Unlike most similar projects, you don't need to host a server or register an account to use Sila. Even though your data is stored locally as plain files, it can be synced effectively across multiple devices. Later, you can even host your workspace on a server and invite team members. We combine the power of local-first with collaborative capabilities.
 
 ## Features
 
 ### Workspaces
 
-Organize your conversations and assistants into separate workspaces
+Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, folders, theme, and language. Create multiple workspaces for different purposes and switch quickly.
 
-### Local first
+### Local-first & syncs well
 
-You can use Sila without relying on Sila servers
+Workspaces are stored locally. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control.
+No accounts required. Sila works offline if the AI model runs on your device.
 
-### Tabs like in VSCode
+### Any AI models
 
-Create and switch between tabs, and split windows
-
-### Any AI
-
-From OpenAI and Anthropic to Ollama and any OpenAI-compatible API; bring your own keys
-
-### Many themes
-
-Use different themes for your workspaces; from colorful to boring
+From OpenAI, Google, and Anthropic to Ollama — plus any OpenAI-compatible APIs. Bring your own keys.
 
 ### Assistants
 
-Create your own assistants with their own prompts and models
+Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, one assistant can always search a specific source, reference a document, and create conversations into a chosen folder in your workspace.
+
+### Tabs like in VSCode
+
+Create and switch between tabs, and split windows. It works almost like VSCode. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly reference or switch from one chat to another.
+
+### Many themes
+
+Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell your workspaces apart.
 
 ### No subscriptions
 
 Pay as you go, either for API costs from AI providers or the actual compute if you run models yourself.
 
+## Download the app
+
+**Download Sila:**
+- [Download for macOS](#) 
+- [Download for Windows](#)
+- [Download for Linux](#)
+
 ## Documentation
 
 ### Product
-Learn about Sila's features and how to use them effectively. Check out our [product documentation](docs/product/README.md) for user guides, feature overviews, and troubleshooting.
+
+Learn more about Sila's features in the [product documentation](docs/product/README.md).
 
 ### Development
-For developers and contributors, we have comprehensive [development documentation](docs/dev/README.md) covering the codebase, architecture, testing, and contribution guidelines.
+
+Want to build from source? Check out the [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the architecture, codebase, testing, and contribution guidelines.
 
 ## Related projects
+
 Sila is built alongside several companion projects that enable its features:
 
-- **AI inference** - [aiwrapper](https://github.com/mitkury/aiwrapper)
-- **Info about AI models** - [aimodels](https://github.com/mitkury/aimodels)
-- **Tiling tabs** - [ttabs](https://github.com/mitkury/ttabs)
-- **Sync** - [reptree](https://github.com/mitkury/reptree)
-- **AI context** - [airul](https://github.com/mitkury/airul)
+- **AI inference** - [AIWrapper](https://github.com/mitkury/aiwrapper)
+- **Info about AI models** - [AIModels](https://github.com/mitkury/aimodels)
+- **Tiling tabs** - [TTabs](https://github.com/mitkury/ttabs)
+- **Sync** - [RepTree](https://github.com/mitkury/reptree)
+- **AI context** - [Airul](https://github.com/mitkury/airul)
 
 All projects are maintained by Sila's author.
+---
+
+# From docs/README.md:
+
+# Features of Sila
+
+## Workspaces
+
+Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, folders, theme, and language. Create multiple workspaces for different purposes and switch quickly.
+
+## Local-first but syncs
+
+Workspaces are stored locally. You can sync them with iCloud, Dropbox, etc., to use across devices. Your assistants, chats, and generated data remain under your control. Sync conflicts will get resolved automatically.
+No accounts required. Sila works offline if the AI model runs on your device.
+
+## Any AI models
+
+From OpenAI, Google, and Anthropic to Ollama — plus any OpenAI-compatible APIs. Bring your own keys.
+
+## Assistants
+
+Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, one assistant can always search a specific source, reference a document, and create conversations into a chosen folder in your workspace.
+
+## Chats
+
+When you chat - you can switch between assistants, branch conversations and edit messages created both by you and the AI.
+
+## Tabs like in VSCode
+
+Switch between tabs, and split windows. It works almost like VSCode. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly reference or switch from one chat to another.
+
+## Many themes
+
+Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell your workspaces apart.
+
+## No subscriptions
+
+Pay as you go, either for API costs from AI providers or the actual compute if you run models yourself.
+
+## Development
+
+For developers and contributors, explore the [development section](dev/README.md) covering architecture, codebase, testing, and contribution guidelines.
 ---
 
 # From docs/dev/README.md:
 
 # Sila Development Documentation
 
-This guide will help you understand the different features and components of Sila from a development perspective.
+## Project structure 
+
+We have a package.json in the root of the repository that unites all the packages (from the /packages dir) in the npm workspace. We run `npm install`, `npm run dev` and `npm build` from the root directory.
+
+This should be enough to get started after cloning the repository:
+`npm install && npm run dev`
+
+See [Quick Start](./quick-start.md) for the instructions on running, debugging, and building.
+
+### Packages
+- **packages/core** is the core functionality shared with other packages.
+- **packages/client** is the client code with UI components written in Svelte.
+- **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
+- **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
+- **packages/demo** is a tool to create demo workspaces out of a JSON
+- **packages/tests** is a test suit for the most important systems of Sila
+
+### Quick facts about the tech stack
+
+- Standalone application (desktop + mobile)
+- Desktop app runs on Electron  
+- Mobile app runs on Capacitor
+- Built with TypeScript
+- Frontend uses Svelte 5 + SvelteKit
+- Everything runs locally (no server yet) plus external APIs
+- Styling via Tailwind CSS
+- Components from Skeleton design system
+- Inference with AI is done through AIWrapper
+- Sync handled by RepTree
+- Tiling tabs like in VSCode are built with TTabs
+- Context for AI agent generated with Airul
+
+### How it ties together and builds
+
+Neither the core nor client gets their own dist/build. Rather than building - we import them to our dedicated Vite projects in the desktop and mobile packages. Desktop and mobile packages import <SilaApp> Svelte component from the client. They init <SilaApp> with a config that has integrations for Electron and Capacitor to work with their file systems and native dialogs.
 
 ## Core Features
 
@@ -110,38 +197,15 @@ Testing infrastructure and practices in Sila:
 - Local assets for deterministic tests
 - Running tests and development workflow
 
-## Development
-
-### [Project Structure](./project-structure.md)
-Overview of the monorepo structure and packages:
-- Core, client, desktop, mobile packages
-- Build system and workspace setup
-- Tech stack overview
-
-### [Quick Start](./quick-start.md)
-Get started with development:
-- Prerequisites and setup
-- Running the development environment
-- Building from source
-
 ### [Space Management](./space-management.md)
 Managing workspaces and data:
 - Creating and organizing spaces
 - Data persistence and sync
 - Workspace configuration
 
-## Platform-Specific
-
-### [macOS Notarization Setup](./macos-notarization-setup.md)
-Setting up code signing and notarization for macOS builds
-
 ## AI Development Guidelines
 
-### [For AI Agents](./for-ai/)
-Guidelines and rules for AI-assisted development:
-- [Rules](./for-ai/rules.md) - Basic guidelines for AI agents
-- [Svelte](./for-ai/svelte.md) - Svelte 5 runes and patterns
-- [Skeleton](./for-ai/skeleton.md) - UI component system
+Everything in [For AI Agents](./for-ai/) is addressed to AI agents - basic rules for commiting, using particular tools, documenting, etc.
 
 ## Proposals
 
@@ -157,43 +221,6 @@ Sila is built alongside several companion projects:
 - **AI context** - [airul](https://github.com/mitkury/airul)
 
 All projects are maintained by Sila's author.
----
-
-# From docs/dev/project-structure.md:
-
-# Project structure 
-
-We have a package.json in the root of our repository that unites our packages in the npm workspace. We run `npm install`, `npm run dev` and `npm build` from the root.
-
-This should be enough to get started after cloning the repository:
-`npm install && npm run dev`
-
-## Packages
-- **packages/core** is the core functionality shared with other packages.
-- **packages/client** is the client code with UI components written in Svelte.
-- **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
-- **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
-- **packages/demo** is a tool to create demo workspaces out of a JSON
-- **packages/tests** is a test suit for the most important systems of Sila
-
-## How it ties together and builds
-
-Neither the core nor client gets their own dist/build. Rather than building - we import them to our dedicated Vite projects in the desktop and mobile packages. Each of those uses <SilaApp> Svelte component from the client with a config that has integrations for Electron and Capacitor to work with their file systems and native dialogs.
-
-## Quick facts about our tech stack
-
-- Standalone application (desktop + mobile)
-- Desktop app runs on Electron  
-- Mobile app runs on Capacitor
-- Built with TypeScript
-- Frontend uses Svelte 5 + SvelteKit
-- Everything runs locally (no server yet) plus external APIs
-- Styling via Tailwind CSS
-- Components from Skeleton design system
-- Inference with AI is done through AIWrapper
-- Sync handled by RepTree
-- Tiling tabs like in VSCode are built with TTabs
-- Context for AI agent generated with Airul
 ---
 
 # From package.json:
