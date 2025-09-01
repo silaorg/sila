@@ -1,0 +1,6 @@
+{
+  "items": [
+    { "name": "setup-providers", "type": "page", "label": "Setup Providers" },
+    { "name": "sync", "type": "page", "label": "Sync" }
+  ]
+}

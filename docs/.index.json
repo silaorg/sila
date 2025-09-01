@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "name": "README",
+      "type": "page",
+      "label": "Overview"
+    },
+    {
+      "name": "own",
+      "type": "page",
+      "label": "Own"
+    },
+    {
+      "name": "pricing",
+      "type": "page",
+      "label": "Pricing"
+    },
+    {
+      "name": "features",
+      "type": "section",
+      "label": "Features"
+    },
+    {
+      "name": "how-to",
+      "type": "section",
+      "label": "How To"
+    },
+    {
+      "name": "dev",
+      "type": "section",
+      "label": "Developers"
+    }
+  ]
+}
