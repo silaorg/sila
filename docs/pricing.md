@@ -1,6 +1,6 @@
 # Sila is free for anyone, for any use
 
-It's fully open source, so the app is free. You can use it at work, school, or home. No restrictions.
+It's fully open source, so the app is free. You can use it at work or school. No restrictions.
 
 ## Price of using AI models
 
@@ -29,33 +29,28 @@ To estimate cost for a message: `(input_tokens × input_rate) + (output_tokens �
 - Vision: You pay per image and/or per processed tokens depending on provider.
 - Audio: You pay per minute for transcription or TTS.
 
-### Example monthly costs (ballpark)
+### Example monthly costs (rough)
 
-These are rough examples to help you plan. Actual prices vary by model and provider.
+These examples help with planning. Actual prices vary by model and provider.
 
-- Starter (casual use)
+- Starter (casual)
   - 10 chats/day × 30 days = 300 chats
-  - ~700 tokens input + ~500 tokens output per chat = ~1,200 tokens/chat
-  - Total tokens: ~360k tokens/month
-  - If a model costs ~$5 per 1M input tokens and ~$15 per 1M output tokens, this lands around **$3–$6/month**
+  - ~1,200 tokens/chat total
+  - ≈ 360k tokens/month
+  - Typical mid‑range models: **$1–$3/month**
 
-- Pro (daily deep work)
+- Pro (deep work)
   - 30 chats/day × 30 days = 900 chats
-  - ~2k tokens input + ~1k tokens output per chat = ~3k tokens/chat
-  - Total tokens: ~2.7M tokens/month
-  - With mid‑tier model pricing, expect roughly **$20–$60/month**
+  - ~3k tokens/chat total
+  - ≈ 2.7M tokens/month
+  - Typical mid‑range models: **$10–$30/month**
 
-- Team (shared workspace)
-  - 5 people × 30 chats/day × 30 days = 4,500 chats
-  - ~2k input + ~1k output = ~3k tokens/chat
-  - Total tokens: ~13.5M tokens/month
-  - With efficient models and good prompts, expect roughly **$100–$300/month**
+- Team (5 people)
+  - 5 × 30 chats/day × 30 days = 4,500 chats
+  - ~3k tokens/chat total
+  - ≈ 13.5M tokens/month
+  - Typical mid‑range models: **$70–$200/month**
 
-Tips to control cost:
+Assumptions: balanced input/output tokens, moderate context sizes, and mid‑range models.
 
-- **Use the right model** for the task (cheaper models for simple asks).
-- **Trim context** and files to what’s needed.
-- **Prefer short replies** when you only need a summary.
-- **Run locally** for private or frequent tasks (if your device allows it).
-
-Sila shows the selected model per assistant and chat, so you can switch models quickly and keep costs predictable.
+Sila helps manage costs automatically (efficient defaults, smart context). You can always see the selected model per assistant and chat.
