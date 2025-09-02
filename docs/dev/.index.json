@@ -1,11 +1,6 @@
 {
   "items": [
     {
-      "name": "README",
-      "type": "page",
-      "label": "Overview"
-    },
-    {
       "name": "quick-start",
       "type": "page",
       "label": "Quick Start"
@@ -14,6 +9,21 @@
       "name": "testing",
       "type": "page",
       "label": "Testing"
+    },
+    {
+      "name": "files",
+      "type": "section",
+      "label": "Files"
+    },
+    {
+      "name": "platforms",
+      "type": "section",
+      "label": "Platforms"
+    },
+    {
+      "name": "spaces",
+      "type": "section",
+      "label": "Spaces"
     }
   ]
 }

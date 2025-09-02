@@ -1,5 +1,3 @@
-@TODO: implement
-
 # Search in Sila
 
 You can use Sila to both search the internet by asking AI questions and search within your workspaces also with the help of AI assistants or using a search button.

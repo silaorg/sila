@@ -1,0 +1,3 @@
+# The problem with ChatGPT
+
+OpenAI - the creator of ChatGPT owns all your data and conversations. They realize that they can hook you by making ChatGPT more and more useful for you while upselling you the more expensive tiers and locking you with their AI models. With Sila we try to create a counter balance - a similar offering of ChatGPT but where you (or your business) owns the data and can use any AI models.

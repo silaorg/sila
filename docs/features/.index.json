@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "name": "workspaces",
+      "type": "page",
+      "label": "Workspaces"
+    },
+    {
+      "name": "assistants",
+      "type": "page",
+      "label": "Assistants"
+    },
+    {
+      "name": "chat",
+      "type": "page",
+      "label": "Chats"
+    },
+    {
+      "name": "any-ai",
+      "type": "page",
+      "label": "Any AI"
+    },
+    {
+      "name": "local-first",
+      "type": "page",
+      "label": "Local-first"
+    },
+    {
+      "name": "search",
+      "type": "page",
+      "label": "Search"
+    },
+    {
+      "name": "shortcuts",
+      "type": "page",
+      "label": "Shortcuts"
+    },
+    {
+      "name": "tabs-and-tiles",
+      "type": "page",
+      "label": "Tabs and Tiles"
+    },
+    {
+      "name": "themes",
+      "type": "page",
+      "label": "Themes"
+    },
+    {
+      "name": "import-from-chatgpt",
+      "type": "page",
+      "label": "Import from ChatGPT"
+    }
+  ]
+}

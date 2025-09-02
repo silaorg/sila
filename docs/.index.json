@@ -1,14 +1,14 @@
 {
   "items": [
     {
-      "name": "README",
+      "name": "the-problem-with-chatgpt",
       "type": "page",
-      "label": "Overview"
+      "label": "What is wrong with ChatGPT?"
     },
     {
       "name": "own",
       "type": "page",
-      "label": "Own"
+      "label": "Own your AI"
     },
     {
       "name": "pricing",
@@ -21,6 +21,11 @@
       "label": "Features"
     },
     {
+      "name": "compare",
+      "type": "section",
+      "label": "Compare Sila"
+    },
+    {
       "name": "how-to",
       "type": "section",
       "label": "How To"
@@ -28,7 +33,7 @@
     {
       "name": "dev",
       "type": "section",
-      "label": "Developers"
+      "label": "For Developers"
     }
   ]
 }
