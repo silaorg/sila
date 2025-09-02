@@ -1,19 +1,19 @@
-# Powerful chat
+# Chat
 
-Sila's chat is designed for deep work and flexible exploration.
+Sila’s chat works like ChatGPT.
 
-## Chat with your files
+## Attach files
 
-Drag images or documents into a conversation and Sila keeps them inside your workspace. The assistant can reference these files so you can discuss screenshots, notes or research without leaving the app.
+Drag images or documents into a chat. They stay in your workspace, and the assistant can reference them.
 
-## Branch your ideas
+## Branch replies
 
-Every reply in Sila can branch into a different direction. Try alternate prompts, compare multiple answers or explore a tangent without losing the original flow. Branches are easy to switch between and to merge later.
+Start a new branch from any message to try alternatives. Switch or merge branches later.
 
-## Edit anything
+## Edit messages
 
-Need to tweak a question or fix a typo? Edit any message in place. Sila updates the conversation instantly, keeping the thread tidy and saving you from starting over.
+Fix or rewrite any message. The conversation updates in place.
 
-## More than ChatGPT
+## Faster workflows
 
-ChatGPT offers a linear history that can't be easily edited. Sila gives you a workspace where conversations evolve—attach files, iterate on branches and refine your messages whenever you like.
+Start new chats faster with an assistant’s defaults, and switch assistants quickly during a thread. See also: [Assistants](./assistants.md).
