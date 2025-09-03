@@ -1,6 +1,7 @@
 {
   "items": [
     { "name": "setup-providers", "type": "page", "label": "Setup Providers" },
-    { "name": "sync", "type": "page", "label": "Sync" }
+    { "name": "sync", "type": "page", "label": "Sync" },
+    { "name": "estimate-inference-price", "type": "page", "label": "Estimate AI Inference Costs" }
   ]
 }
