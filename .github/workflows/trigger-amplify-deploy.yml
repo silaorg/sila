@@ -1,0 +1,14 @@
+name: Trigger Amplify Deploy via Webhook
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Amplify deployment
+        run: |
+          curl -X POST -d {} "${{ secrets.AMPLIFY_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json"
