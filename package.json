@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "devDependencies": {
-    "airul": "^0.1.36"
+    "airul": "^0.1.37"
   },
   "scripts": {
     "postinstall": "airul gen",

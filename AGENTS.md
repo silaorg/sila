@@ -1,4 +1,4 @@
-This is a context for AI editor/agent about the project. It's generated with a tool Airul (https://github.com/mitkury/airul) out of 10 sources. Feel free to edit .airul.json to change the sources and configure editors. Run `airul gen` to update the context after making changes to .airul.json or the sources. Remember to update TODO-AI.md after major changes in the project, keeping track of completed tasks and new developments.
+This is a context for AI editor/agent about the project. It's generated with a tool Airul (https://github.com/mitkury/airul) out of 10 sources. Edit .airul.json to change sources or enabled outputs. After any change to sources or .airul.json, run `airul gen` to regenerate the context.
 
 # From README.md:
 
@@ -199,7 +199,7 @@ All projects are maintained by Sila's author.
     "packages/*"
   ],
   "devDependencies": {
-    "airul": "^0.1.36"
+    "airul": "^0.1.37"
   },
   "scripts": {
     "postinstall": "airul gen",
