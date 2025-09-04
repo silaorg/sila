@@ -37,9 +37,23 @@ export class ThreadTitleAgent extends Agent<AppConfigForChat> {
     const result = await lang.askForObject(prompt, schema);
 
     const answerObj = (result.object as { title: string } | null);
-    const finalTitle = answerObj?.title ?? result.answer?.trim() ?? title;
+    let finalTitle = answerObj?.title ?? result.answer?.trim() ?? title;
+
+    // Post-process to ensure title follows conventions
+    finalTitle = this.normalizeTitle(finalTitle);
 
     return { text: finalTitle };
+  }
+
+  private normalizeTitle(title: string): string {
+    if (!title) return title;
+    
+    // Truncate if too long (max 30 characters)
+    if (title.length > 30) {
+      return title.substring(0, 27) + '...';
+    }
+    
+    return title;
   }
 
   stop(): void {
