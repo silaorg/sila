@@ -13,3 +13,5 @@ If you want to keep workspaces on multiple devices, simply store them in a folde
 ## A different philosophy from ChatGPT
 
 ChatGPT relies on central servers to store and process everything. Sila lets you own the entire environment. You get the convenience of modern AI tools without giving up control of your information.
+
+This local-first approach addresses the fundamental issues with centralized AI platforms. Learn more about [the problems with ChatGPT](../the-problem-with-chatgpt.md) and why [owning your data](../own.md) matters.
