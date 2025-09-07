@@ -31,6 +31,11 @@
       "label": "Search"
     },
     {
+      "name": "research",
+      "type": "page",
+      "label": "Research"
+    },
+    {
       "name": "shortcuts",
       "type": "page",
       "label": "Shortcuts"

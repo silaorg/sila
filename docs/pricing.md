@@ -11,16 +11,11 @@ Sila itself costs nothing. You only pay for:
 
 ## AI model costs
 
-You pay AI providers directly for inference (the model's compute). Sila adds no fees.
+You pay AI providers directly for inference (the model's compute).
 
 - **You bring your own keys**: OpenAI, Google, Anthropic, or your own server (OpenAI‑compatible APIs)
 - **Pay as you go**: Providers bill for tokens (text), images, and audio minutes
 - **Local models**: With Ollama or similar, inference is free to use, but you pay with your hardware resources and electricity
 
+[How to setup AI providers](./how-to/setup-providers/README.md).
 [How to estimate AI inference costs](how-to/estimate-inference-price.md)
-
-## Why Sila is free
-
-Sila is open source software built for users who want to own their AI data and conversations. We believe AI tools should be accessible to everyone without subscription fees or vendor lock-in.
-
-You control your data, choose your AI providers, and pay only for what you use.

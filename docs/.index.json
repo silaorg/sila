@@ -16,6 +16,11 @@
       "label": "Pricing"
     },
     {
+      "name": "getting-started",
+      "type": "page",
+      "label": "Getting started"
+    },
+    {
       "name": "features",
       "type": "section",
       "label": "Features"

@@ -1,8 +1,29 @@
 {
   "items": [
-    { "name": "learn-what-chatgpt-knows-about-me", "type": "page", "label": "Learn what ChatGPT knows about you" },
-    { "name": "setup-providers", "type": "page", "label": "Setup Providers" },
-    { "name": "sync", "type": "page", "label": "Sync" },
-    { "name": "estimate-inference-price", "type": "page", "label": "Estimate AI Inference Costs" }
+    {
+      "name": "use-ai",
+      "type": "page",
+      "label": "How to use AI"
+    },
+    {
+      "name": "learn-what-chatgpt-knows-about-me",
+      "type": "page",
+      "label": "Learn what ChatGPT knows about you"
+    },
+    {
+      "name": "sync",
+      "type": "page",
+      "label": "Sync"
+    },
+    {
+      "name": "estimate-inference-price",
+      "type": "page",
+      "label": "Estimate AI Inference Costs"
+    },
+    {
+      "name": "setup-providers",
+      "type": "section",
+      "label": "Setup Providers"
+    }
   ]
 }

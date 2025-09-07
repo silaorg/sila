@@ -1,6 +1,6 @@
 # Chat
 
-Sila’s chat works like ChatGPT.
+If you alredy used ChatGPT you know how to chat in Sila. Also, chat in Sila is very flexible - from switching assistants in the same conversation to editing any messages and branching.
 
 ## Attach files
 
