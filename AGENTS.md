@@ -248,6 +248,9 @@ All projects are maintained by Sila's author.
     "test:chat": "npm -w packages/tests run test:chat",
     "test:previews": "npm -w packages/tests run test:previews",
     "test:ai": "npm -w packages/tests run test:ai"
+  },
+  "dependencies": {
+    "markpage": "^0.4.0"
   }
 }
 ---
