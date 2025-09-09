@@ -3,7 +3,7 @@
 Sila is not tied to a single model or provider. You decide which AI services to use and can change them at any time.
 
 ## Bring your own keys
-Keys are long unique passwords providers give (instead of the need to log-in with email, password every time you want to use the service) @TODO: use it in tips?
+Keys are long unique passwords providers give (instead of the need to log-in with email, password every time you want to use the service)
 
 Connect OpenAI, Anthropic, or any other compatible API by supplying your own keys. Prefer running models yourself? Point Sila to a local server or to an open‑source model and keep everything on your hardware.
 

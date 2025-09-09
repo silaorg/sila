@@ -5,4 +5,4 @@ Here's the the most unpleasant or complicated part about Sila. Sila doesn't have
 The whole list:
 - [OpenRouter](./openrouter.md) (recommended first)
 - [OpenAI](./openai.md)
-@TODO: add others
+<TODO>Other providers</TODO>

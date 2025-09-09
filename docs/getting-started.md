@@ -5,7 +5,7 @@
 - Create a new [workspace](./features/workspaces.md)
 - Setup an [AI model provider](./features/any-ai.md)
 
-@TODO: video
+<TODO>Video</TODO>
 
 Optionally - [import your data from OpenAI](./features/import-from-chatgpt.md).
 

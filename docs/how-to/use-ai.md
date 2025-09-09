@@ -2,7 +2,7 @@
 
 Here we have practical, short guides on how to use AI in Sila.
 
-@TODO: give examples for each
+<TODO>Examples for each</TODO>
 
 ## Instead of Google with follow up questions
 
@@ -22,5 +22,8 @@ Ask assistants to do a research. It's a more powerful case of using search where
 
 ## Generate and edit images
 
-Ask the assistant that has access to image generation to make images for you and ask to edit them. @TODO: why
+Ask the assistant that has access to image generation to make images for you and ask to edit them.
 
+## Learn and study
+
+Have an assistant that is helping you to learn new topics rather than doing work for you and giving you all of the asnwers upfront.
