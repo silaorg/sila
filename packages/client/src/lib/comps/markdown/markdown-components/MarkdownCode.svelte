@@ -1,6 +1,6 @@
 <script lang="ts" module>
   import { codeToHtml } from "shiki";
-  import type { Tokens } from "marked";
+  import type { Tokens } from "@markpage/svelte";
   import { Copy, Check } from "lucide-svelte";
   import { timeout } from "@sila/core";
   import { clientState } from "@sila/client/state/clientState.svelte";

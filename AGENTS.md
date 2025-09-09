@@ -115,6 +115,14 @@ Switch between tabs, and split windows. It works almost like VSCode. You can hav
 ## Many themes
 
 Use different themes for your workspaces — from colorful to boring. It's a simple way to set a mood or tell your workspaces apart.
+
+## No subscriptions
+
+Pay as you go, either for API costs from AI providers or the actual compute if you run models yourself.
+
+## Development
+
+For developers and contributors, explore the [development section](dev/README.md) covering architecture, codebase, testing, and contribution guidelines.
 ---
 
 # From docs/dev/README.md:

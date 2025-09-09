@@ -52,7 +52,7 @@ body {
   user-select: text;
 }
 
-.markdown {
+.markpage {
   @apply space-y-4;
 
   h1 {
