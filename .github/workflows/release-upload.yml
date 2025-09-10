@@ -38,10 +38,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build desktop (no publish)
+      - name: Package Linux artifacts
+        if: runner.os == 'Linux'
         run: |
           cd packages/desktop
-          npm run build
+          npm run package:linux
+
+      - name: Package Windows artifacts
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cd packages/desktop
+          npm run package:win
 
       - name: Ensure draft release exists
         if: runner.os == 'Linux'
