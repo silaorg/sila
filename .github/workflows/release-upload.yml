@@ -38,12 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare Linux icon
-        if: runner.os == 'Linux'
-        run: |
-          cd packages/desktop
-          mkdir -p build
-          cp ../../docs/assets/icons/icon.png build/icon.png || true
+      # No icon prep needed; linux.icon points to build/favicon.png committed in repo
 
       - name: Package Linux artifacts
         if: runner.os == 'Linux'
