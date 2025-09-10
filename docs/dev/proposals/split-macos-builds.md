@@ -51,3 +51,35 @@ gh release edit vX.Y.Z --draft=false
 4) Confirm CI assets attach to the draft.
 5) Run local mac publish and verify DMGs attach.
 6) Run `release-finalize.yml` (or `gh release edit ... --draft=false`) to publish.
+
+## CI workflows
+- Create draft: `Release - Create Draft` (trigger: push tag `v*`).
+- Upload Win/Linux: `Release - Upload Win/Linux to Draft` (manual: input `tag`).
+- Finalize: `Release - Finalize (Publish)` (manual: input `tag`).
+
+### Quick test (GitHub)
+1) Create a test tag and push:
+```bash
+git tag v0.0.0-test
+git push origin v0.0.0-test
+```
+This triggers "Release - Create Draft" and should create a draft release `v0.0.0-test`.
+
+2) Manually run upload (Win/Linux):
+```bash
+gh workflow run "Release - Upload Win/Linux to Draft" -f tag=v0.0.0-test
+```
+
+3) Build macOS locally and upload DMGs to the same draft (from repo root):
+```bash
+( set -a; [ -f packages/desktop/.env ] && source packages/desktop/.env; set +a; ) \
+  && npm -w packages/desktop run build \
+  && gh release upload v0.0.0-test packages/desktop/dist/*.dmg --clobber
+```
+
+4) Finalize the release (publish):
+```bash
+gh workflow run "Release - Finalize (Publish)" -f tag=v0.0.0-test
+# or
+gh release edit v0.0.0-test --draft=false
+```

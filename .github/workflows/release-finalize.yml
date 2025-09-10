@@ -1,0 +1,24 @@
+name: Release - Finalize (Publish)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to publish (e.g., v1.2.3)
+        required: true
+
+jobs:
+  publish_release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish release (set draft=false)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ inputs.tag }}"
+          gh release edit "$TAG_NAME" --draft=false --prerelease=false
+

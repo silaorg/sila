@@ -1,0 +1,29 @@
+name: Release - Create Draft
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create_draft_release:
+    name: Create draft GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create or ensure draft release exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          # Try to create a draft release; if it exists, ensure it stays a draft
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists; ensuring it is draft"
+            gh release edit "$TAG_NAME" --draft=true --prerelease=false --verify-tag
+          else
+            echo "Creating draft release $TAG_NAME"
+            gh release create "$TAG_NAME" --draft --verify-tag --generate-notes
+          fi
+
