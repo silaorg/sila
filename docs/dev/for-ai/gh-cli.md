@@ -1,12 +1,6 @@
 # GitHub CLI (gh) quick guide for AI agents
 
-Use `gh` to inspect and operate GitHub Actions and Releases in this repo.
-
-## Setup
-- Install (macOS): `brew install gh`
-- Login: `gh auth login`
-  - GitHub.com → HTTPS → paste token or follow web flow
-- Verify: `gh auth status`
+Use `gh` (if already installed and authenticated) to inspect and operate GitHub Actions and Releases in this repo.
 
 ## See workflow runs
 - List runs: `gh run list --limit 20`
@@ -32,6 +26,6 @@ Use `gh` to inspect and operate GitHub Actions and Releases in this repo.
   - `gh release edit v0.0.0-test2 --draft=false`
 
 ## Notes
-- Workflows grant `contents: write`; local `gh` must be authenticated to edit releases.
+- Workflows grant `contents: write`; local `gh` must be authenticated (already set up) to edit releases.
 - Always pass the exact tag (e.g., `vX.Y.Z`) so builds and uploads attach to the correct draft.
 
