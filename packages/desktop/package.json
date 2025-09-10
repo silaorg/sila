@@ -47,7 +47,7 @@
       ]
     },
     "linux": {
-      "icon": "docs/assets/icons/icon.png",
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "AppImage",
@@ -57,7 +57,7 @@
     }
   },
   "scripts": {
-    "prepare-static-files": "cpy '../client/static/**' './static-compiled' && cpy './static-desktop/**' './static-compiled'",
+    "prepare-static-files": "cpy '../client/static/**' './static-compiled' && cpy './static-desktop/**' './static-compiled' && cpy '../../docs/assets/icons/icon.png' './build'",
     "dev": "npm run prepare-static-files && concurrently \"npm run dev:client\" \"npm run dev:sveltekit\" \"npm run dev:electron\"",
     "dev:without-starting-electron": "npm run prepare-static-files && concurrently \"npm run dev:sveltekit\" \"npm run dev:client\"",
     "dev:sveltekit": "vite dev --port 6969",
