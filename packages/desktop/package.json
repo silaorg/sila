@@ -47,7 +47,7 @@
       ]
     },
     "linux": {
-      "icon": "build/favicon.png",
+      "icon": "docs/assets/icons/icon.png",
       "target": [
         {
           "target": "AppImage",
