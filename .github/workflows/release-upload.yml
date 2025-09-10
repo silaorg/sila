@@ -91,9 +91,10 @@ jobs:
           echo "Ensuring no conflicting Linux assets on $TAG_NAME"
           for f in "${FILES[@]}"; do
             name=$(basename "$f")
-            if gh release view "$TAG_NAME" --json assets --jq ".assets[].name" | grep -Fxq "$name"; then
-              echo "Deleting existing asset: $name"
-              gh release delete-asset "$TAG_NAME" "$name" --yes || true
+            id=$(gh release view "$TAG_NAME" --json assets --jq ".assets[] | select(.name==\"$name\") | .id")
+            if [ -n "$id" ]; then
+              echo "Deleting existing asset by id: $id ($name)"
+              gh api repos/$GITHUB_REPOSITORY/releases/assets/$id -X DELETE >/dev/null 2>&1 || true
             fi
           done
           echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
@@ -120,12 +121,12 @@ jobs:
             exit 0
           }
           Write-Host "Ensuring no conflicting Windows assets on $tagName"
-          $existing = gh release view $tagName --json assets --jq ".assets[].name" | Out-String
           foreach ($f in $files) {
             $name = [System.IO.Path]::GetFileName($f)
-            if ($existing -split "`n" | Where-Object { $_ -eq $name }) {
-              Write-Host "Deleting existing asset: $name"
-              gh release delete-asset $tagName $name --yes | Out-Null
+            $id = gh release view $tagName --json assets --jq ".assets[] | select(.name==\"$name\") | .id"
+            if ($id) {
+              Write-Host "Deleting existing asset by id: $id ($name)"
+              gh api "repos/$env:GITHUB_REPOSITORY/releases/assets/$id" -X DELETE | Out-Null
             }
           }
           Write-Host ("Uploading {0} Windows artifacts to {1}" -f $files.Count, $tagName)
