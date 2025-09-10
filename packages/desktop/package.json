@@ -66,7 +66,7 @@
     "build": "npm run prepare-static-files && npm run build -w @sila/client && npm run build:vite",
     "build:vite": "vite build",
     "prepackage:mac": "npm run build",
-    "package:mac": ". .env && export APPLE_APP_SPECIFIC_PASSWORD=\"${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_ID_PASSWORD}\" && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
+    "package:mac": ". .env && export APPLE_ID=\"$APPLE_ID\" APPLE_TEAM_ID=\"$APPLE_TEAM_ID\" APPLE_APP_SPECIFIC_PASSWORD=\"${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_ID_PASSWORD}\" && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
     "prepackage:win": "npm run build",
     "package:win": "electron-builder --win",
     "prepackage:win:signed": "npm run build",
