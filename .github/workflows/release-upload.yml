@@ -89,12 +89,13 @@ jobs:
             exit 0
           fi
           echo "Ensuring no conflicting Linux assets on $TAG_NAME"
+          assets_json=$(gh release view "$TAG_NAME" --json assets)
           for f in "${FILES[@]}"; do
             name=$(basename "$f")
-            id=$(gh release view "$TAG_NAME" --json assets --jq ".assets[] | select(.name==\"$name\") | .id")
-            if [ -n "$id" ]; then
+            id=$(echo "$assets_json" | jq -r --arg n "$name" '.assets[] | select(.name==$n) | .id')
+            if [ -n "$id" ] && [ "$id" != "null" ]; then
               echo "Deleting existing asset by id: $id ($name)"
-              gh api repos/$GITHUB_REPOSITORY/releases/assets/$id -X DELETE >/dev/null 2>&1 || true
+              gh api "repos/$GITHUB_REPOSITORY/releases/assets/$id" -X DELETE >/dev/null 2>&1 || true
             fi
           done
           echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
@@ -121,10 +122,11 @@ jobs:
             exit 0
           }
           Write-Host "Ensuring no conflicting Windows assets on $tagName"
+          $assetsJson = gh release view $tagName --json assets | Out-String
           foreach ($f in $files) {
             $name = [System.IO.Path]::GetFileName($f)
-            $id = gh release view $tagName --json assets --jq ".assets[] | select(.name==\"$name\") | .id"
-            if ($id) {
+            $id = echo $assetsJson | jq -r ".assets[] | select(.name==\"$name\") | .id"
+            if ($id -and $id -ne 'null' -and $id -ne '') {
               Write-Host "Deleting existing asset by id: $id ($name)"
               gh api "repos/$env:GITHUB_REPOSITORY/releases/assets/$id" -X DELETE | Out-Null
             }
