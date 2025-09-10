@@ -57,21 +57,46 @@ jobs:
             gh release create "$TAG_NAME" --draft --verify-tag --generate-notes
           fi
 
-      - name: Upload artifacts to draft release
+      - name: Upload Linux artifacts to draft release
+        if: runner.os == 'Linux'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           TAG_NAME="${{ inputs.tag }}"
-          ASSET_GLOBS="packages/desktop/dist/*.exe packages/desktop/dist/*.msi packages/desktop/dist/*.AppImage packages/desktop/dist/*.deb packages/desktop/dist/*.rpm packages/desktop/dist/*latest*.yml packages/desktop/dist/*-linux*.yml packages/desktop/dist/*-win*.yml"
+          ASSET_GLOBS="packages/desktop/dist/*.AppImage packages/desktop/dist/*.deb packages/desktop/dist/*.rpm packages/desktop/dist/*latest*.yml packages/desktop/dist/*-linux*.yml"
           shopt -s nullglob
           FILES=()
           for g in $ASSET_GLOBS; do
             for f in $g; do FILES+=("$f"); done
           done
           if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No matching artifacts to upload" >&2
-            exit 1
+            echo "No Linux artifacts to upload" >&2
+            exit 0
           fi
-          echo "Uploading ${#FILES[@]} artifacts to $TAG_NAME"
+          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
           gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
+
+      - name: Upload Windows artifacts to draft release
+        if: runner.os == 'Windows'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tagName = '${{ inputs.tag }}'
+          $patterns = @(
+            'packages/desktop/dist/*.exe',
+            'packages/desktop/dist/*.msi',
+            'packages/desktop/dist/*latest*.yml',
+            'packages/desktop/dist/*-win*.yml'
+          )
+          $files = @()
+          foreach ($p in $patterns) { $files += Get-ChildItem -Path $p -ErrorAction SilentlyContinue | Select-Object -Expand FullName }
+          if ($files.Count -eq 0) {
+            Write-Host 'No Windows artifacts to upload'
+            exit 0
+          }
+          Write-Host ("Uploading {0} Windows artifacts to {1}" -f $files.Count, $tagName)
+          gh release upload $tagName $files --clobber
 
