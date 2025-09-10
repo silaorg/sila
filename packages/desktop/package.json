@@ -38,6 +38,7 @@
       ]
     },
     "win": {
+      "icon": "build/favicon.ico",
       "target": [
         {
           "target": "nsis",
@@ -46,6 +47,7 @@
       ]
     },
     "linux": {
+      "icon": "docs/assets/icons/icon.png",
       "target": [
         {
           "target": "AppImage",
