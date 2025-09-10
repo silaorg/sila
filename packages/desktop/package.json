@@ -67,7 +67,7 @@
     "build:vite": "vite build",
     "build:electron": "source .env 2>/dev/null || true && electron-builder",
     "build:electron:mac": "electron-builder --mac",
-    "build:electron:mac-signed": "CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
+    "build:electron:mac-signed": "source .env 2>/dev/null || true && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
     "build:publish": "npm run build && electron-builder --publish=always",
     "build:publish-draft": "npm run build && electron-builder --publish=draft",
     "preview": "vite preview",
