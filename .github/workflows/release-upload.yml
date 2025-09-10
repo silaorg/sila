@@ -38,8 +38,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare Linux icon
+        if: runner.os == 'Linux'
+        run: |
+          cd packages/desktop
+          mkdir -p build
+          cp ../../docs/assets/icons/icon.png build/icon.png || true
+
       - name: Package Linux artifacts
         if: runner.os == 'Linux'
+        env:
+          ELECTRON_BUILDER_DISABLE_PUBLISH: true
         run: |
           cd packages/desktop
           npx electron-builder --linux AppImage --publish=never
@@ -47,6 +56,8 @@ jobs:
       - name: Package Windows artifacts
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          ELECTRON_BUILDER_DISABLE_PUBLISH: true
         run: |
           cd packages/desktop
           npx electron-builder --win nsis --publish=never
