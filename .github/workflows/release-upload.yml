@@ -93,6 +93,14 @@ jobs:
             echo "No Linux artifacts to upload" >&2
             exit 0
           fi
+          echo "Ensuring no conflicting Linux assets on $TAG_NAME"
+          for f in "${FILES[@]}"; do
+            name=$(basename "$f")
+            if gh release view "$TAG_NAME" --json assets --jq ".assets[].name" | grep -Fxq "$name"; then
+              echo "Deleting existing asset: $name"
+              gh release delete-asset "$TAG_NAME" "$name" --yes || true
+            fi
+          done
           echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
           gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
 
@@ -115,6 +123,15 @@ jobs:
           if ($files.Count -eq 0) {
             Write-Host 'No Windows artifacts to upload'
             exit 0
+          }
+          Write-Host "Ensuring no conflicting Windows assets on $tagName"
+          $existing = gh release view $tagName --json assets --jq ".assets[].name" | Out-String
+          foreach ($f in $files) {
+            $name = [System.IO.Path]::GetFileName($f)
+            if ($existing -split "`n" | Where-Object { $_ -eq $name }) {
+              Write-Host "Deleting existing asset: $name"
+              gh release delete-asset $tagName $name --yes | Out-Null
+            }
           }
           Write-Host ("Uploading {0} Windows artifacts to {1}" -f $files.Count, $tagName)
           gh release upload $tagName $files --clobber
