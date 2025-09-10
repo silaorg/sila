@@ -1,25 +1,25 @@
-import type { TokenizerAndRendererExtension } from "marked";
+import type { MarkdownExtension } from "@markpage/svelte";
 
 const inlineRule =
   /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
 const blockRule = /^(\${2})(?:\n|)((?:\\[^]|[^\\])+?)(?:\n|)\$\$(?:\n|$)/;
 
-export const inlineLatexMarkedExtension: TokenizerAndRendererExtension = {
+export const createInlineLatexExtension = (component: any): MarkdownExtension => ({
   name: "texInline",
   level: "inline",
-  start(src: string) {
+  component,
+  start(src: string): number | undefined {
     let index;
     let indexSrc = src;
 
     while (indexSrc) {
       index = indexSrc.indexOf("$");
       if (index === -1) {
-        return;
+        return undefined;
       }
 
       if (index === 0 || indexSrc.charAt(index - 1) === " ") {
         const possibleKatex = indexSrc.substring(index);
-
         if (possibleKatex.match(inlineRule)) {
           return index;
         }
@@ -39,19 +39,20 @@ export const inlineLatexMarkedExtension: TokenizerAndRendererExtension = {
       };
     }
   },
-};
+});
 
-export const blockLatexMarkedExtension: TokenizerAndRendererExtension = {
+export const createBlockLatexExtension = (component: any): MarkdownExtension => ({
   name: "texBlock",
   level: "block",
-  start(src: string) {
+  component,
+  start(src: string): number | undefined {
     let index;
     let indexSrc = src;
 
     while (indexSrc) {
       index = indexSrc.indexOf("$$");
       if (index === -1) {
-        return;
+        return undefined;
       }
       
       if (index === 0 || indexSrc.charAt(index - 1) === "\n") {
@@ -75,4 +76,4 @@ export const blockLatexMarkedExtension: TokenizerAndRendererExtension = {
       };
     }
   },
-};
+});

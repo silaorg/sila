@@ -1,23 +1,27 @@
 <script module lang="ts">
-  import { newMarked } from "@markpage/svelte";
   import {
-    inlineLatexMarkedExtension,
-    blockLatexMarkedExtension,
+    createInlineLatexExtension,
+    createBlockLatexExtension,
   } from "../markdown/markdown-extensions/latexInMarkdown";
 
-  // @TODO: have "setup" for markpage that can contain a custom marked instance and components
+  import MarkdownTeX from "../markdown/markdown-components/MarkdownTeX.svelte";
+  import MarkdownTeXBlock from "../markdown/markdown-components/MarkdownTeXBlock.svelte";
+  import MarkdownCode from "../markdown/markdown-components/MarkdownCode.svelte";
+  import MarkdownCodeSpan from "../markdown/markdown-components/MarkdownCodeSpan.svelte";
 
-  const marked = newMarked();
-  const extensionComponents = new Map<string, any>([
-    ["texInline", MarkdownTeX],
-    ["texBlock", MarkdownTeXBlock],
-    ["code", MarkdownCode],
-    ["codespan", MarkdownCodeSpan],
-  ]);
-
-  marked.use({
-    extensions: [inlineLatexMarkedExtension, blockLatexMarkedExtension],
-  });
+  // Configure Markpage options for markdown rendering
+  const markpageOptions = new MarkpageOptions()
+    // Override builtin tokens with our components
+    .overrideBuiltinToken("code", MarkdownCode as any)
+    .overrideBuiltinToken("codespan", MarkdownCodeSpan as any)
+    .overrideBuiltinToken("texInline", MarkdownTeX as any)
+    .overrideBuiltinToken("texBlock", MarkdownTeXBlock as any)
+    .extendMarkdown({
+      extensions: [
+        createInlineLatexExtension(MarkdownTeX),
+        createBlockLatexExtension(MarkdownTeXBlock),
+      ],
+    });
 </script>
 
 <script lang="ts">
@@ -40,20 +44,6 @@
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../files/FilePreview.svelte";
-  import MarkdownTeX from "../markdown/markdown-components/MarkdownTeX.svelte";
-  import MarkdownTeXBlock from "../markdown/markdown-components/MarkdownTeXBlock.svelte";
-  import MarkdownCode from "../markdown/markdown-components/MarkdownCode.svelte";
-  import MarkdownCodeSpan from "../markdown/markdown-components/MarkdownCodeSpan.svelte";
-
-  // Configure Markpage options for markdown rendering
-  const markpageOptions = new MarkpageOptions()
-    // Override builtin tokens with our components
-    .overrideBuiltinToken("code", MarkdownCode as any)
-    .overrideBuiltinToken("codespan", MarkdownCodeSpan as any)
-    .overrideBuiltinToken("texInline", MarkdownTeX as any)
-    .overrideBuiltinToken("texBlock", MarkdownTeXBlock as any)
-    // Use the marked instance with component extension enabled
-    .useMarkedInstance(marked as any);
 
   // @TODO: try to use reactives ThreadMessage that will wrap the vertex data under the hood
   let { vertex, data }: { vertex: Vertex; data: ChatAppData } = $props();
@@ -364,12 +354,18 @@
                 <div
                   class="pt-1.5 pb-1 pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
                 >
-                  <Markdown source={message.thinking || ""} options={markpageOptions} />
+                  <Markdown
+                    source={message.thinking || ""}
+                    options={markpageOptions}
+                  />
                 </div>
               {/if}
             </div>
           {/if}
-          <Markdown source={message.text ? message.text : ""} options={markpageOptions} />
+          <Markdown
+            source={message.text ? message.text : ""}
+            options={markpageOptions}
+          />
           <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
           <div
             class="mt-1 h-6 flex items-center justify-start gap-2"
