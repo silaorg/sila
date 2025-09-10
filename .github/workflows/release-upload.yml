@@ -95,7 +95,7 @@ jobs:
             id=$(echo "$assets_json" | jq -r --arg n "$name" '.assets[] | select(.name==$n) | .id')
             if [ -n "$id" ] && [ "$id" != "null" ]; then
               echo "Deleting existing asset by id: $id ($name)"
-              gh api "repos/$GITHUB_REPOSITORY/releases/assets/$id" -X DELETE >/dev/null 2>&1 || true
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$id" >/dev/null 2>&1 || true
             fi
           done
           echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
