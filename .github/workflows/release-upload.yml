@@ -42,14 +42,14 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd packages/desktop
-          npx electron-builder --linux AppImage
+          npx electron-builder --linux AppImage --publish=never
 
       - name: Package Windows artifacts
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           cd packages/desktop
-          npx electron-builder --win nsis
+          npx electron-builder --win nsis --publish=never
 
       - name: Ensure draft release exists
         if: runner.os == 'Linux'
