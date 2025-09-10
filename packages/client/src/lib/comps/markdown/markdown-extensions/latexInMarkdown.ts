@@ -1,10 +1,11 @@
 import type { MarkdownExtension } from "@markpage/svelte";
+import { Component } from "svelte";
 
 const inlineRule =
   /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
 const blockRule = /^(\${2})(?:\n|)((?:\\[^]|[^\\])+?)(?:\n|)\$\$(?:\n|$)/;
 
-export const createInlineLatexExtension = (component: any): MarkdownExtension => ({
+export const createInlineLatexExtension = (component: Component): MarkdownExtension => ({
   name: "texInline",
   level: "inline",
   component,

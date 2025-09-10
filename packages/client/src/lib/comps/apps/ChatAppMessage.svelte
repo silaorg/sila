@@ -12,10 +12,10 @@
   // Configure Markpage options for markdown rendering
   const markpageOptions = new MarkpageOptions()
     // Override builtin tokens with our components
-    .overrideBuiltinToken("code", MarkdownCode as any)
-    .overrideBuiltinToken("codespan", MarkdownCodeSpan as any)
-    .overrideBuiltinToken("texInline", MarkdownTeX as any)
-    .overrideBuiltinToken("texBlock", MarkdownTeXBlock as any)
+    .overrideBuiltinToken("code", MarkdownCode as Component)
+    .overrideBuiltinToken("codespan", MarkdownCodeSpan as Component)
+    .overrideBuiltinToken("texInline", MarkdownTeX as Component)
+    .overrideBuiltinToken("texBlock", MarkdownTeXBlock as Component)
     .extendMarkdown({
       extensions: [
         createInlineLatexExtension(MarkdownTeX),
@@ -34,7 +34,7 @@
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import type { Vertex } from "@sila/core";
-  import { onMount } from "svelte";
+  import { Component, onMount } from "svelte";
   import { Markdown, MarkpageOptions } from "@markpage/svelte";
   import { clientState } from "@sila/client/state/clientState.svelte";
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
