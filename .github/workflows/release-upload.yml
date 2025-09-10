@@ -42,7 +42,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           cd packages/desktop
-          npx electron-builder --linux AppImage -c.linux.icon=../../docs/assets/icons/icon.png
+          npx electron-builder --linux AppImage
 
       - name: Package Windows artifacts
         if: runner.os == 'Windows'
