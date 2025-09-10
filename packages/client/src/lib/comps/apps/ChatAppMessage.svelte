@@ -3,6 +3,7 @@
     createInlineLatexExtension,
     createBlockLatexExtension,
   } from "../markdown/markdown-extensions/latexInMarkdown";
+  import type { Component } from "svelte";
 
   import MarkdownTeX from "../markdown/markdown-components/MarkdownTeX.svelte";
   import MarkdownTeXBlock from "../markdown/markdown-components/MarkdownTeXBlock.svelte";
@@ -34,7 +35,7 @@
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import type { Vertex } from "@sila/core";
-  import { Component, onMount } from "svelte";
+  import { onMount } from "svelte";
   import { Markdown, MarkpageOptions } from "@markpage/svelte";
   import { clientState } from "@sila/client/state/clientState.svelte";
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
