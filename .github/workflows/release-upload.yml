@@ -88,8 +88,20 @@ jobs:
             echo "No Linux artifacts to upload" >&2
             exit 0
           fi
-          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME (using --clobber to handle conflicts)"
-          gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
+          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
+          # Delete any existing assets with the same names to avoid conflicts
+          for f in "${FILES[@]}"; do
+            name=$(basename "$f")
+            echo "Checking for existing asset: $name"
+            # Get asset ID if it exists
+            asset_id=$(gh release view "$TAG_NAME" --json assets --jq --arg n "$name" '.assets[] | select(.name==$n) | .id')
+            if [ -n "$asset_id" ] && [ "$asset_id" != "null" ]; then
+              echo "Deleting existing asset: $name (ID: $asset_id)"
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id" >/dev/null 2>&1 || true
+            fi
+          done
+          # Upload the new assets
+          gh release upload "$TAG_NAME" "${FILES[@]}"
 
       - name: Upload Windows artifacts to draft release
         if: runner.os == 'Windows'
