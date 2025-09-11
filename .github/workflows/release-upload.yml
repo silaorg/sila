@@ -9,7 +9,7 @@ on:
       enable_macos:
         description: Enable macOS build with signing & notarization (requires secrets)
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
