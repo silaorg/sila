@@ -7,7 +7,7 @@ on:
         description: Tag to build and upload to (e.g., v1.2.3)
         required: true
       enable_macos:
-        description: Enable macOS build with notarization (requires secrets)
+        description: Enable macOS build (unsigned in CI, signed locally)
         type: boolean
         default: true
 
@@ -62,14 +62,11 @@ jobs:
           cd packages/desktop
           npx electron-builder --win nsis --publish=never
 
-      - name: Package macOS artifacts
+      - name: Package macOS artifacts (unsigned)
         if: runner.os == 'macOS'
         env:
           ELECTRON_BUILDER_DISABLE_PUBLISH: true
-          APPLE_ID: ${{ vars.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: true
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           cd packages/desktop
           npx electron-builder --mac --publish=never
