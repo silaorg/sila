@@ -98,6 +98,12 @@ jobs:
               gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$id" >/dev/null 2>&1 || true
             fi
           done
+          # Also delete any existing latest-linux.yml files that might conflict
+          latest_id=$(echo "$assets_json" | jq -r '.assets[] | select(.name | contains("latest-linux.yml")) | .id')
+          if [ -n "$latest_id" ] && [ "$latest_id" != "null" ]; then
+            echo "Deleting existing latest-linux.yml asset by id: $latest_id"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$latest_id" >/dev/null 2>&1 || true
+          fi
           echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
           gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
 
