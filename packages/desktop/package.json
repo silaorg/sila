@@ -30,6 +30,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": true,
+      "artifactName": "Sila-${version}-macos-universal.${ext}",
       "target": [
         {
           "target": "dmg",
@@ -39,6 +40,7 @@
     },
     "win": {
       "icon": "build/favicon.ico",
+      "artifactName": "Sila-${version}-windows-x64.${ext}",
       "target": [
         {
           "target": "nsis",
@@ -48,6 +50,7 @@
     },
     "linux": {
       "icon": "docs/assets/icons/icon.png",
+      "artifactName": "Sila-${version}-linux-x64.${ext}",
       "target": [
         {
           "target": "AppImage",
