@@ -84,6 +84,8 @@ jobs:
           for g in $ASSET_GLOBS; do
             for f in $g; do FILES+=("$f"); done
           done
+          # Remove duplicates from FILES array
+          FILES=($(printf '%s\n' "${FILES[@]}" | sort -u))
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No Linux artifacts to upload" >&2
             exit 0
