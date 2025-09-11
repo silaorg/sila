@@ -5,6 +5,7 @@
     "README.md",
     "docs/features/README.md",
     "docs/dev/README.md",
+    "docs/dev/releases.md",
     "package.json",
     "tsconfig.json",
     "docs/dev/for-ai/*"
