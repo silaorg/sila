@@ -89,7 +89,11 @@ jobs:
             exit 0
           fi
           echo "Ensuring no conflicting Linux assets on $TAG_NAME"
-          assets_json=$(gh release view "$TAG_NAME" --json assets)
+          # Get release info including ID
+          release_info=$(gh release view "$TAG_NAME" --json id,assets)
+          release_id=$(echo "$release_info" | jq -r '.id')
+          assets_json=$(echo "$release_info" | jq -r '.assets')
+          
           for f in "${FILES[@]}"; do
             name=$(basename "$f")
             id=$(echo "$assets_json" | jq -r --arg n "$name" '.assets[] | select(.name==$n) | .id')
