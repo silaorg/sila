@@ -88,27 +88,7 @@ jobs:
             echo "No Linux artifacts to upload" >&2
             exit 0
           fi
-          echo "Ensuring no conflicting Linux assets on $TAG_NAME"
-          # Get release info including ID
-          release_info=$(gh release view "$TAG_NAME" --json id,assets)
-          release_id=$(echo "$release_info" | jq -r '.id')
-          assets_json=$(echo "$release_info" | jq -r '.assets')
-          
-          for f in "${FILES[@]}"; do
-            name=$(basename "$f")
-            id=$(echo "$assets_json" | jq -r --arg n "$name" '.assets[] | select(.name==$n) | .id')
-            if [ -n "$id" ] && [ "$id" != "null" ]; then
-              echo "Deleting existing asset by id: $id ($name)"
-              gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$id" >/dev/null 2>&1 || true
-            fi
-          done
-          # Also delete any existing latest-linux.yml files that might conflict
-          latest_id=$(echo "$assets_json" | jq -r '.assets[] | select(.name | contains("latest-linux.yml")) | .id')
-          if [ -n "$latest_id" ] && [ "$latest_id" != "null" ]; then
-            echo "Deleting existing latest-linux.yml asset by id: $latest_id"
-            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$latest_id" >/dev/null 2>&1 || true
-          fi
-          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
+          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME (using --clobber to handle conflicts)"
           gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
 
       - name: Upload Windows artifacts to draft release
@@ -131,16 +111,6 @@ jobs:
             Write-Host 'No Windows artifacts to upload'
             exit 0
           }
-          Write-Host "Ensuring no conflicting Windows assets on $tagName"
-          $assetsJson = gh release view $tagName --json assets | Out-String
-          foreach ($f in $files) {
-            $name = [System.IO.Path]::GetFileName($f)
-            $id = echo $assetsJson | jq -r ".assets[] | select(.name==\"$name\") | .id"
-            if ($id -and $id -ne 'null' -and $id -ne '') {
-              Write-Host "Deleting existing asset by id: $id ($name)"
-              gh api "repos/$env:GITHUB_REPOSITORY/releases/assets/$id" -X DELETE | Out-Null
-            }
-          }
-          Write-Host ("Uploading {0} Windows artifacts to {1}" -f $files.Count, $tagName)
+          Write-Host "Uploading $($files.Count) Windows artifacts to $tagName (using --clobber to handle conflicts)"
           gh release upload $tagName $files --clobber
 
