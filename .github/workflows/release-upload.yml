@@ -1,4 +1,4 @@
-name: Release - Upload Win/Linux to Draft
+name: release-2-build-upload
 
 on:
   workflow_dispatch:
@@ -6,22 +6,29 @@ on:
       tag:
         description: Tag to build and upload to (e.g., v1.2.3)
         required: true
+      enable_macos:
+        description: Enable macOS build with notarization (requires secrets)
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 jobs:
   upload_assets:
-    name: Build and upload Windows/Linux assets to draft release
+    name: Build and upload ${{ matrix.platform }} assets to draft release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux
+            platform: Linux
           - os: windows-latest
-            platform: win32
+            platform: Windows
+          - os: macos-latest
+            platform: macOS
+            condition: ${{ inputs.enable_macos }}
 
     steps:
       - name: Checkout at tag
@@ -37,8 +44,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # No icon prep needed; linux.icon points to build/favicon.png committed in repo
 
       - name: Package Linux artifacts
         if: runner.os == 'Linux'
@@ -56,6 +61,18 @@ jobs:
         run: |
           cd packages/desktop
           npx electron-builder --win nsis --publish=never
+
+      - name: Package macOS artifacts
+        if: runner.os == 'macOS'
+        env:
+          ELECTRON_BUILDER_DISABLE_PUBLISH: true
+          APPLE_ID: ${{ vars.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: true
+        run: |
+          cd packages/desktop
+          npx electron-builder --mac --publish=never
 
       - name: Ensure draft release exists
         if: runner.os == 'Linux'
@@ -117,3 +134,25 @@ jobs:
           Write-Host "Uploading $($files.Count) Windows artifacts to $tagName (using --clobber to handle conflicts)"
           gh release upload $tagName $files --clobber
 
+      - name: Upload macOS artifacts to draft release
+        if: runner.os == 'macOS'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG_NAME="${{ inputs.tag }}"
+          ASSET_GLOBS="packages/desktop/dist/*.dmg packages/desktop/dist/*latest*.yml packages/desktop/dist/*-mac*.yml"
+          shopt -s nullglob
+          FILES=()
+          for g in $ASSET_GLOBS; do
+            for f in $g; do FILES+=("$f"); done
+          done
+          # Remove duplicates from FILES array
+          FILES=($(printf '%s\n' "${FILES[@]}" | sort -u))
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No macOS artifacts to upload" >&2
+            exit 0
+          fi
+          echo "Uploading ${#FILES[@]} macOS artifacts to $TAG_NAME"
+          # Upload with --clobber to handle conflicts automatically
+          gh release upload "$TAG_NAME" "${FILES[@]}" --clobber

@@ -1,4 +1,4 @@
-name: Release - Finalize (Publish)
+name: release-3-finalize
 
 on:
   workflow_dispatch:

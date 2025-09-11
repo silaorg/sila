@@ -53,9 +53,9 @@ gh release edit vX.Y.Z --draft=false
 6) Run `release-finalize.yml` (or `gh release edit ... --draft=false`) to publish.
 
 ## CI workflows
-- Create draft: `Release - Create Draft` (trigger: push tag `v*`).
-- Upload Win/Linux: `Release - Upload Win/Linux to Draft` (manual: input `tag`).
-- Finalize: `Release - Finalize (Publish)` (manual: input `tag`).
+- Create draft: `release-1-draft` (trigger: push tag `v*`).
+- Upload Win/Linux: `release-2-build-upload` (manual: input `tag`).
+- Finalize: `release-3-finalize` (manual: input `tag`).
 
 ### Quick test (GitHub)
 1) Create a test tag and push:
@@ -63,11 +63,11 @@ gh release edit vX.Y.Z --draft=false
 git tag v0.0.0-test
 git push origin v0.0.0-test
 ```
-This triggers "Release - Create Draft" and should create a draft release `v0.0.0-test`.
+This triggers "release-1-draft" and should create a draft release `v0.0.0-test`.
 
 2) Manually run upload (Win/Linux):
 ```bash
-gh workflow run "Release - Upload Win/Linux to Draft" -f tag=v0.0.0-test
+gh workflow run "release-2-build-upload" -f tag=v0.0.0-test
 ```
 
 3) Build macOS locally and upload DMGs to the same draft (from repo root):
@@ -79,7 +79,7 @@ gh workflow run "Release - Upload Win/Linux to Draft" -f tag=v0.0.0-test
 
 4) Finalize the release (publish):
 ```bash
-gh workflow run "Release - Finalize (Publish)" -f tag=v0.0.0-test
+gh workflow run "release-3-finalize" -f tag=v0.0.0-test
 # or
 gh release edit v0.0.0-test --draft=false
 ```

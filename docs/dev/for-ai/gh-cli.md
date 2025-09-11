@@ -5,17 +5,17 @@ Use `gh` (if already installed and authenticated) to inspect and operate GitHub 
 ## See workflow runs
 - List runs: `gh run list --limit 20`
 - By workflow:
-  - `gh run list --workflow "Release - Create Draft"`
-- `gh run list --workflow "Release - Upload Win/Linux to Draft"`
-- `gh run list --workflow "Release - Finalize (Publish)"`
-- Watch latest run: `gh run watch --workflow "Release - Upload Win/Linux to Draft" --exit-status`
-- View latest logs: `gh run view --workflow "Release - Upload Win/Linux to Draft" --latest --log`
+  - `gh run list --workflow "release-1-draft"`
+- `gh run list --workflow "release-2-build-upload"`
+- `gh run list --workflow "release-3-finalize"`
+- Watch latest run: `gh run watch --workflow "release-2-build-upload" --exit-status`
+- View latest logs: `gh run view --workflow "release-2-build-upload" --latest --log`
 
 ## Trigger workflows (manual)
 - Upload Win/Linux to a draft (requires existing tag):
-  - `gh workflow run "Release - Upload Win/Linux to Draft" -f tag=v0.0.0-test2`
+  - `gh workflow run "release-2-build-upload" -f tag=v0.0.0-test2`
 - Finalize/publish a release:
-  - `gh workflow run "Release - Finalize (Publish)" -f tag=v0.0.0-test2`
+  - `gh workflow run "release-3-finalize" -f tag=v0.0.0-test2`
 
 ## Releases
 - List: `gh release list`
