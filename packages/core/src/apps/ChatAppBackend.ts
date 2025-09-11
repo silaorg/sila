@@ -1,7 +1,7 @@
 import { type AppConfig, type ThreadMessage } from "../models";
 import { Space } from "../spaces/Space";
 import { AgentServices } from "../agents/AgentServices";
-import { SimpleChatAgent } from "../agents/SimpleChatAgent";
+import { ChatAgent } from "../agents/ChatAgent";
 import { ThreadTitleAgent } from "../agents/ThreadTitleAgent";
 import { ChatAppData } from "../spaces/ChatAppData";
 import { AppTree } from "../spaces/AppTree";
@@ -9,7 +9,7 @@ import { splitModelString } from "../utils/modelUtils";
 
 export default class ChatAppBackend {
   private data: ChatAppData;
-  private activeAgent: SimpleChatAgent | null = null;
+  private activeAgent: ChatAgent | null = null;
 
   get appTreeId(): string {
     return this.appTree.tree.root!.id;
@@ -92,8 +92,8 @@ export default class ChatAppBackend {
     }
 
     const agentServices = new AgentServices(this.space);
-    const simpleChatAgent = new SimpleChatAgent(agentServices, config);
-    this.activeAgent = simpleChatAgent;
+    const chatAgent = new ChatAgent(agentServices, config);
+    this.activeAgent = chatAgent;
     const threadTitleAgent = new ThreadTitleAgent(agentServices, config);
 
     // Check if the last message is an error that we can reuse
@@ -138,7 +138,7 @@ export default class ChatAppBackend {
       ];
 
       let modelSaved = false;
-      const initialResponse = await simpleChatAgent.input(messagesForLang, (resp) => {
+      const initialResponse = await chatAgent.input(messagesForLang, (resp) => {
         this.appTree.tree.setTransientVertexProperty(messageToUse.id, "text", resp.text);
         if (resp.thinking && resp.thinking.trim().length > 0) {
           this.appTree.tree.setTransientVertexProperty(messageToUse.id, "thinking", resp.thinking);
@@ -230,8 +230,8 @@ export default class ChatAppBackend {
     if (!config) throw new Error('No config found');
 
     const agentServices = new AgentServices(this.space);
-    const simpleChatAgent = new SimpleChatAgent(agentServices, config);
-    this.activeAgent = simpleChatAgent;
+    const chatAgent = new ChatAgent(agentServices, config);
+    this.activeAgent = chatAgent;
 
     // Create a new assistant message under the parent user as a sibling branch
     const parentVertexId = vertices[targetIdx - 1].id; // user vertex id
@@ -264,7 +264,7 @@ export default class ChatAppBackend {
 
     try {
       let modelSaved = false;
-      const initialResponse = await simpleChatAgent.input(messagesForLang, (resp) => {
+      const initialResponse = await chatAgent.input(messagesForLang, (resp) => {
         this.appTree.tree.setTransientVertexProperty(newAssistant.id, 'text', resp.text);
         if (resp.thinking && resp.thinking.trim().length > 0) {
           this.appTree.tree.setTransientVertexProperty(newAssistant.id, 'thinking', resp.thinking);
