@@ -23,6 +23,10 @@ We release in three steps:
 See `.github/workflows/` in the root
 Use `gh` cli tool to inspect workflows if needed
 
+## Manual macOS Build
+
+For local macOS builds (signed + notarized), see [Manual macOS Build Guide](manual-macos-build.md).
+
 ## Notes
 - macOS builds are done locally (signed + notarized). Windows/Linux are built on CI.
 - We produce a single universal macOS DMG (Intel + Apple Silicon).
