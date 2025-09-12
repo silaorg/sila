@@ -6,79 +6,75 @@ on:
       tag:
         description: Tag to build and upload to (e.g., v1.2.3)
         required: true
-      enable_macos:
-        description: Enable macOS build with signing & notarization (requires secrets)
+      linux:
+        description: Linux - build and upload
         type: boolean
-        default: false
+        default: true
+      windows:
+        description: Windows - build and upload
+        type: boolean
+        default: true
+      macos:
+        description: macOS - build and upload
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 jobs:
-  upload_assets:
-    name: Build and upload ${{ matrix.platform }} assets to draft release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: Linux
-          - os: windows-latest
-            platform: Windows
-          - os: macos-latest
-            platform: macOS
-            condition: ${{ inputs.enable_macos }}
-
+  linux:
+    if: ${{ inputs.linux }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout at tag
-        uses: actions/checkout@v4
+      - name: Setup and build
+        uses: ./.github/actions/setup-build
         with:
-          ref: ${{ inputs.tag }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build desktop application
-        run: |
-          cd packages/desktop
-          npm run build
+          tag: ${{ inputs.tag }}
 
       - name: Package Linux artifacts
-        if: runner.os == 'Linux'
         env:
-          ELECTRON_BUILDER_DISABLE_PUBLISH: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd packages/desktop
-          npx electron-builder --linux --publish=never
+          export TAG="${{ inputs.tag }}"
+          export PLATFORM=linux
+          node .github/scripts/release-upload.mjs
+
+  windows:
+    if: ${{ inputs.windows }}
+    runs-on: windows-latest
+    steps:
+      - name: Setup and build
+        uses: ./.github/actions/setup-build
+        with:
+          tag: ${{ inputs.tag }}
 
       - name: Package Windows artifacts
-        if: runner.os == 'Windows'
-        shell: pwsh
         env:
-          ELECTRON_BUILDER_DISABLE_PUBLISH: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
         run: |
-          cd packages/desktop
-          npx electron-builder --win --publish=never
+          $env:TAG='${{ inputs.tag }}'
+          $env:PLATFORM='windows'
+          node .github/scripts/release-upload.mjs
+
+  macos:
+    if: ${{ inputs.macos }}
+    runs-on: macos-latest
+    steps:
+      - name: Setup and build
+        uses: ./.github/actions/setup-build
+        with:
+          tag: ${{ inputs.tag }}
 
       - name: Setup macOS certificate
-        if: runner.os == 'macOS'
         env:
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
           MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
         run: |
-          # Convert base64 certificate back to .p12 file
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
-          
-          # Create new keychain for CI (prevents UI dialogs)
           security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
@@ -86,96 +82,15 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
       - name: Package macOS artifacts (signed & notarized)
-        if: runner.os == 'macOS'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_BUILDER_DISABLE_PUBLISH: true
           APPLE_ID: ${{ vars.APPLE_ID }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true
-        run: |
-          cd packages/desktop
-          npx electron-builder --mac --publish=never
-
-      - name: Ensure draft release exists
-        if: runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG_NAME="${{ inputs.tag }}"
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Release $TAG_NAME exists; keeping draft=true"
-            gh release edit "$TAG_NAME" --draft=true --prerelease=false --verify-tag
-          else
-            echo "Draft release $TAG_NAME does not exist; creating"
-            gh release create "$TAG_NAME" --draft --verify-tag --generate-notes
-          fi
-
-      - name: Upload Linux artifacts to draft release
-        if: runner.os == 'Linux'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          TAG_NAME="${{ inputs.tag }}"
-          ASSET_GLOBS="packages/desktop/dist/*.AppImage packages/desktop/dist/*.deb packages/desktop/dist/*.rpm packages/desktop/dist/*latest*.yml packages/desktop/dist/*-linux-*.yml"
-          shopt -s nullglob
-          FILES=()
-          for g in $ASSET_GLOBS; do
-            for f in $g; do FILES+=("$f"); done
-          done
-          # Remove duplicates from FILES array
-          FILES=($(printf '%s\n' "${FILES[@]}" | sort -u))
-          if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No Linux artifacts to upload" >&2
-            exit 0
-          fi
-          echo "Uploading ${#FILES[@]} Linux artifacts to $TAG_NAME"
-          # Upload with --clobber to handle conflicts automatically
-          gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
-
-      - name: Upload Windows artifacts to draft release
-        if: runner.os == 'Windows'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $tagName = '${{ inputs.tag }}'
-          $patterns = @(
-            'packages/desktop/dist/*.exe',
-            'packages/desktop/dist/*.msi',
-            'packages/desktop/dist/*latest*.yml',
-            'packages/desktop/dist/*-windows-*.yml'
-          )
-          $files = @()
-          foreach ($p in $patterns) { $files += Get-ChildItem -Path $p -ErrorAction SilentlyContinue | Select-Object -Expand FullName }
-          if ($files.Count -eq 0) {
-            Write-Host 'No Windows artifacts to upload'
-            exit 0
-          }
-          Write-Host "Uploading $($files.Count) Windows artifacts to $tagName (using --clobber to handle conflicts)"
-          gh release upload $tagName $files --clobber
-
-      - name: Upload macOS artifacts to draft release
-        if: runner.os == 'macOS'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          TAG_NAME="${{ inputs.tag }}"
-          ASSET_GLOBS="packages/desktop/dist/*.dmg packages/desktop/dist/*latest*.yml packages/desktop/dist/*-mac*.yml"
-          shopt -s nullglob
-          FILES=()
-          for g in $ASSET_GLOBS; do
-            for f in $g; do FILES+=("$f"); done
-          done
-          # Remove duplicates from FILES array
-          FILES=($(printf '%s\n' "${FILES[@]}" | sort -u))
-          if [ ${#FILES[@]} -eq 0 ]; then
-            echo "No macOS artifacts to upload" >&2
-            exit 0
-          fi
-          echo "Uploading ${#FILES[@]} macOS artifacts to $TAG_NAME"
-          # Upload with --clobber to handle conflicts automatically
-          gh release upload "$TAG_NAME" "${FILES[@]}" --clobber
+          export TAG="${{ inputs.tag }}"
+          export PLATFORM=macos
+          node .github/scripts/release-upload.mjs
