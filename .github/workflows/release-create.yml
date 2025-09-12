@@ -41,5 +41,7 @@ jobs:
           gh workflow run "release-2-build-upload" \
             --ref "$TAG_NAME" \
             --field tag="$TAG_NAME" \
-            --field enable_macos=true
+            --field linux=true \
+            --field windows=true \
+            --field macos=true
 
