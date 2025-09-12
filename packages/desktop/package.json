@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src-electron/main.js",
   "build": {
-    "appId": "com.silaintelligence.app",
+    "appId": "com.silain.desktop",
     "productName": "Sila",
     "directories": {
       "output": "dist"
@@ -39,7 +39,6 @@
       ]
     },
     "win": {
-      "icon": "build/favicon.ico",
       "artifactName": "Sila-${version}-windows-x64.${ext}",
       "target": [
         {
@@ -49,7 +48,6 @@
       ]
     },
     "linux": {
-      "icon": "docs/assets/icons/icon.png",
       "artifactName": "Sila-${version}-linux-x64.${ext}",
       "target": [
         {
@@ -60,7 +58,7 @@
     }
   },
   "scripts": {
-    "prepare-static-files": "cpy '../client/static/**' './static-compiled' && cpy './static-desktop/**' './static-compiled' && cpy '../../docs/assets/icons/icon.png' './build'",
+    "prepare-static-files": "cpy '../client/static/**' './static-compiled' && cpy './static-desktop/**' './static-compiled'",
     "dev": "npm run prepare-static-files && concurrently \"npm run dev:client\" \"npm run dev:sveltekit\" \"npm run dev:electron\"",
     "dev:without-starting-electron": "npm run prepare-static-files && concurrently \"npm run dev:sveltekit\" \"npm run dev:client\"",
     "dev:sveltekit": "vite dev --port 6969",
