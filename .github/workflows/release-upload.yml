@@ -27,6 +27,10 @@ jobs:
     if: ${{ inputs.linux }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Setup and build
         uses: ./.github/actions/setup-build
         with:
@@ -44,6 +48,10 @@ jobs:
     if: ${{ inputs.windows }}
     runs-on: windows-latest
     steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Setup and build
         uses: ./.github/actions/setup-build
         with:
@@ -62,6 +70,10 @@ jobs:
     if: ${{ inputs.macos }}
     runs-on: macos-latest
     steps:
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
       - name: Setup and build
         uses: ./.github/actions/setup-build
         with:

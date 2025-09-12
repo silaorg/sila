@@ -1,17 +1,12 @@
 name: Setup Node and build desktop app
-description: Checks out at tag, sets up Node, installs deps, and builds the desktop app
+description: Sets up Node, installs deps, and builds the desktop app
 inputs:
   tag:
-    description: Git tag to check out
-    required: true
+    description: Git tag to check out (unused; kept for compatibility)
+    required: false
 runs:
   using: composite
   steps:
-    - name: Checkout at tag
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.tag }}
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
