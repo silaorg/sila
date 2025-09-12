@@ -49,13 +49,14 @@ runs:
         set -euo pipefail
         cd packages/desktop/dist
         shopt -s nullglob
+        files=()
         case "$PLATFORM" in
           linux)   files=( *.AppImage *-linux-*.yml *latest*.yml *.deb *.rpm ) ;;
           macos)   files=( *.dmg *.zip *-mac*.yml *latest*.yml ) ;;
           windows) files=( *.exe *.msi *-win-*.yml *latest*.yml ) ;;
         esac
         echo "Uploading files to $TAG:"; printf ' - %s\n' "${files[@]:-}"
-        if [ ${#files[@]:-0} -eq 0 ]; then
+        if [ ${#files[@]} -eq 0 ]; then
           echo "No files to upload for $PLATFORM"; exit 0
         fi
         for f in "${files[@]}"; do
