@@ -51,7 +51,7 @@ jobs:
           ELECTRON_BUILDER_DISABLE_PUBLISH: true
         run: |
           cd packages/desktop
-          npx electron-builder --linux AppImage --publish=never
+          npx electron-builder --linux --publish=never
 
       - name: Package Windows artifacts
         if: runner.os == 'Windows'
@@ -60,7 +60,7 @@ jobs:
           ELECTRON_BUILDER_DISABLE_PUBLISH: true
         run: |
           cd packages/desktop
-          npx electron-builder --win nsis --publish=never
+          npx electron-builder --win --publish=never
 
       - name: Package macOS artifacts (signed & notarized)
         if: runner.os == 'macOS'
