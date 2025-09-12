@@ -10,6 +10,20 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Ensure draft release exists
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        if ! gh release view "$TAG" >/dev/null 2>&1; then
+          echo "Creating draft release for $TAG"
+          gh release create "$TAG" --draft --verify-tag --generate-notes
+        else
+          echo "Release $TAG already exists"
+        fi
+
     - name: Package with electron-builder
       shell: bash
       env:

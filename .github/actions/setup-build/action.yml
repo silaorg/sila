@@ -1,9 +1,5 @@
 name: Setup Node and build desktop app
 description: Sets up Node, installs deps, and builds the desktop app
-inputs:
-  tag:
-    description: Git tag to check out (unused; kept for compatibility)
-    required: false
 runs:
   using: composite
   steps:

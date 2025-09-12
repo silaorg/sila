@@ -34,8 +34,6 @@ jobs:
           lfs: true
       - name: Setup and build
         uses: ./.github/actions/setup-build
-        with:
-          tag: ${{ inputs.tag }}
       - name: Package + upload (linux)
         uses: ./.github/actions/package-upload
         env:
@@ -55,8 +53,6 @@ jobs:
           lfs: true
       - name: Setup and build
         uses: ./.github/actions/setup-build
-        with:
-          tag: ${{ inputs.tag }}
       - name: Package + upload (windows)
         uses: ./.github/actions/package-upload
         env:
@@ -76,8 +72,6 @@ jobs:
           lfs: true
       - name: Setup and build
         uses: ./.github/actions/setup-build
-        with:
-          tag: ${{ inputs.tag }}
 
       - name: Setup macOS certificate
         env:
