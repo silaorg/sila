@@ -1,0 +1,51 @@
+name: Package and upload
+description: electron-builder package + upload to GitHub Release
+inputs:
+  tag:
+    description: Git tag to upload assets to
+    required: true
+  platform:
+    description: Platform to build (linux|windows|macos)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Package with electron-builder
+      shell: bash
+      env:
+        PLATFORM: ${{ inputs.platform }}
+      run: |
+        set -euo pipefail
+        cd packages/desktop
+        export ELECTRON_BUILDER_DISABLE_PUBLISH=true
+        case "$PLATFORM" in
+          linux)   npx electron-builder --linux --publish=never ;;
+          macos)   npx electron-builder --mac   --publish=never ;;
+          windows) npx electron-builder --win   --publish=never ;;
+          *) echo "Unknown platform: $PLATFORM" >&2; exit 1 ;;
+        esac
+
+    - name: Upload artifacts to draft release
+      shell: bash
+      env:
+        TAG: ${{ inputs.tag }}
+        PLATFORM: ${{ inputs.platform }}
+        GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+      run: |
+        set -euo pipefail
+        cd packages/desktop/dist
+        shopt -s nullglob
+        case "$PLATFORM" in
+          linux)   files=( *.AppImage *-linux-*.yml *latest*.yml *.deb *.rpm ) ;;
+          macos)   files=( *.dmg *.zip *-mac*.yml *latest*.yml ) ;;
+          windows) files=( *.exe *.msi *-win-*.yml *latest*.yml ) ;;
+        esac
+        echo "Uploading files to $TAG:"; printf ' - %s\n' "${files[@]:-}"
+        if [ ${#files[@]:-0} -eq 0 ]; then
+          echo "No files to upload for $PLATFORM"; exit 0
+        fi
+        for f in "${files[@]}"; do
+          gh release upload "$TAG" "$f" --clobber
+        done
+
+

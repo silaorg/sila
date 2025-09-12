@@ -36,14 +36,13 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           tag: ${{ inputs.tag }}
-
-      - name: Package Linux artifacts
+      - name: Package + upload (linux)
+        uses: ./.github/actions/package-upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          export TAG="${{ inputs.tag }}"
-          export PLATFORM=linux
-          node .github/scripts/release-upload.mjs
+        with:
+          tag: ${{ inputs.tag }}
+          platform: linux
 
   windows:
     if: ${{ inputs.windows }}
@@ -58,15 +57,13 @@ jobs:
         uses: ./.github/actions/setup-build
         with:
           tag: ${{ inputs.tag }}
-
-      - name: Package Windows artifacts
+      - name: Package + upload (windows)
+        uses: ./.github/actions/package-upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $env:TAG='${{ inputs.tag }}'
-          $env:PLATFORM='windows'
-          node .github/scripts/release-upload.mjs
+        with:
+          tag: ${{ inputs.tag }}
+          platform: windows
 
   macos:
     if: ${{ inputs.macos }}
@@ -96,16 +93,14 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
-      - name: Package macOS artifacts (signed & notarized)
+      - name: Package + upload (macos)
+        uses: ./.github/actions/package-upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ELECTRON_BUILDER_DISABLE_PUBLISH: true
           APPLE_ID: ${{ vars.APPLE_ID }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true
-        shell: bash
-        run: |
-          export TAG="${{ inputs.tag }}"
-          export PLATFORM=macos
-          node .github/scripts/release-upload.mjs
+        with:
+          tag: ${{ inputs.tag }}
+          platform: macos
