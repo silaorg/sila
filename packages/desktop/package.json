@@ -39,20 +39,20 @@
       ]
     },
     "win": {
-      "artifactName": "Sila-${version}-windows-x64.${ext}",
+      "artifactName": "Sila-${version}-windows-${arch}.${ext}",
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": ["x64", "arm64"]
         }
       ]
     },
     "linux": {
-      "artifactName": "Sila-${version}-linux-x64.${ext}",
+      "artifactName": "Sila-${version}-linux-${arch}.${ext}",
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": ["x64", "arm64"]
         }
       ]
     }
