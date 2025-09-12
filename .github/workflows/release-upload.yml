@@ -45,6 +45,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build desktop application
+        run: |
+          cd packages/desktop
+          npm run build
+
       - name: Package Linux artifacts
         if: runner.os == 'Linux'
         env:
@@ -97,7 +102,7 @@ jobs:
         shell: bash
         run: |
           TAG_NAME="${{ inputs.tag }}"
-          ASSET_GLOBS="packages/desktop/dist/*.AppImage packages/desktop/dist/*.deb packages/desktop/dist/*.rpm packages/desktop/dist/*latest*.yml packages/desktop/dist/*-linux*.yml"
+          ASSET_GLOBS="packages/desktop/dist/*.AppImage packages/desktop/dist/*.deb packages/desktop/dist/*.rpm packages/desktop/dist/*latest*.yml packages/desktop/dist/*-linux-*.yml"
           shopt -s nullglob
           FILES=()
           for g in $ASSET_GLOBS; do
@@ -125,7 +130,7 @@ jobs:
             'packages/desktop/dist/*.exe',
             'packages/desktop/dist/*.msi',
             'packages/desktop/dist/*latest*.yml',
-            'packages/desktop/dist/*-win*.yml'
+            'packages/desktop/dist/*-windows-*.yml'
           )
           $files = @()
           foreach ($p in $patterns) { $files += Get-ChildItem -Path $p -ErrorAction SilentlyContinue | Select-Object -Expand FullName }
