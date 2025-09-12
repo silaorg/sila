@@ -1,18 +1,20 @@
 # CI Code Signing Setup Proposal
 
 ## Overview
-Set up automated code signing and notarization in GitHub Actions for both macOS and Windows builds to eliminate manual signing steps and ensure all releases are properly signed.
+Set up automated code signing and notarization in GitHub Actions for macOS, Windows, and Linux builds to eliminate manual signing steps and ensure all releases are properly signed.
 
 ## Current State
 - macOS: Builds unsigned in CI, requires manual local signing
-- Windows: Builds unsigned in CI
-- Both platforms need proper certificates for distribution
+- Windows: Builds unsigned in CI  
+- Linux: Builds unsigned in CI
+- All platforms need proper certificates for distribution
 
 ## Goals
-- Automate code signing for both macOS and Windows in CI
+- Automate code signing for macOS, Windows, and Linux in CI
 - Enable notarization for macOS builds
 - Remove manual signing steps from release process
 - Ensure all releases are properly signed and trusted
+- Build all platforms using GitHub Actions runners
 
 ## Implementation Plan
 
@@ -29,14 +31,33 @@ base64 -i sila-certificate.p12 | pbcopy
 ```
 
 #### 2. GitHub Secrets Required
-- `CSC_LINK`: Base64-encoded .p12 certificate file
-- `CSC_KEY_PASSWORD`: Password used when exporting certificate
+- `PROD_MACOS_CERTIFICATE`: Base64-encoded .p12 certificate file
+- `PROD_MACOS_CERTIFICATE_PWD`: Password used when exporting certificate
+- `PROD_MACOS_CERTIFICATE_NAME`: Exact certificate name from keychain
+- `PROD_MACOS_CI_KEYCHAIN_PWD`: Random password for CI keychain
 - `APPLE_APP_SPECIFIC_PASSWORD`: App-specific password for notarization (already set)
 - `APPLE_ID`: Apple ID email (already set as repository variable)
 - `APPLE_TEAM_ID`: Apple Team ID (already set as repository variable)
 
 #### 3. Workflow Configuration
 ```yaml
+- name: Setup macOS certificate
+  if: runner.os == 'macOS'
+  env:
+    MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+    MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+    MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+    MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+  run: |
+    # Convert base64 certificate back to .p12 file
+    echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+    # Create keychain and import certificate
+    security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+    security default-keychain -s build.keychain
+    security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+    security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+    security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+
 - name: Package macOS artifacts (signed & notarized)
   if: runner.os == 'macOS'
   env:
@@ -44,10 +65,19 @@ base64 -i sila-certificate.p12 | pbcopy
     APPLE_ID: ${{ vars.APPLE_ID }}
     APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
     APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-    CSC_LINK: ${{ secrets.CSC_LINK }}
-    CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-    CSC_IDENTITY_AUTO_DISCOVERY: false
+    CSC_IDENTITY_AUTO_DISCOVERY: true
 ```
+
+### Linux Signing
+
+#### 1. Certificate Requirements
+- GPG signing key for package signing
+- Required for AppImage and other Linux package formats
+- Can be generated locally and stored as GitHub secret
+
+#### 2. GitHub Secrets Required
+- `LINUX_SIGNING_KEY`: Base64-encoded private GPG key
+- `LINUX_SIGNING_PASSPHRASE`: Passphrase for the GPG key
 
 ### Windows Signing
 
@@ -57,9 +87,9 @@ base64 -i sila-certificate.p12 | pbcopy
 - Should be valid for at least 1 year
 
 #### 2. GitHub Secrets Required
-- `CSC_LINK`: Base64-encoded .pfx certificate file
-- `CSC_KEY_PASSWORD`: Password for the certificate
-- `CSC_NAME`: Subject name of the certificate (optional, for auto-discovery)
+- `WINDOWS_CERTIFICATE`: Base64-encoded .pfx certificate file
+- `WINDOWS_CERTIFICATE_PWD`: Password for the certificate
+- `WINDOWS_CERTIFICATE_NAME`: Subject name of the certificate (optional)
 
 #### 3. Workflow Configuration
 ```yaml
@@ -67,8 +97,8 @@ base64 -i sila-certificate.p12 | pbcopy
   if: runner.os == 'Windows'
   env:
     ELECTRON_BUILDER_DISABLE_PUBLISH: true
-    CSC_LINK: ${{ secrets.CSC_LINK }}
-    CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+    CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE }}
+    CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PWD }}
     CSC_IDENTITY_AUTO_DISCOVERY: false
 ```
 
@@ -94,18 +124,20 @@ base64 -i sila-certificate.p12 | pbcopy
 
 ## Implementation Steps
 1. Export macOS certificate and add to GitHub Secrets
-2. Update macOS workflow configuration
-3. Test macOS signing and notarization
-4. Obtain Windows code signing certificate
-5. Add Windows certificate to GitHub Secrets
-6. Update Windows workflow configuration
-7. Test both platforms end-to-end
+2. Update macOS workflow configuration with certificate setup step
+3. Test macOS signing and notarization in CI
+4. Obtain Windows code signing certificate (future enhancement)
+5. Add Windows certificate to GitHub Secrets (future enhancement)
+6. Update Windows workflow configuration (future enhancement)
+7. Add Linux GPG signing setup (future enhancement)
+8. Test all platforms end-to-end
 
 ## Testing Strategy
-- Create test releases with both platforms
+- Create test releases with all three platforms (macOS, Windows, Linux)
 - Verify signatures using OS tools
 - Test notarization status for macOS
 - Validate installer behavior on clean systems
+- Test multi-architecture builds (x64, arm64)
 
 ## Rollback Plan
 - Keep current unsigned build capability as fallback
@@ -113,14 +145,17 @@ base64 -i sila-certificate.p12 | pbcopy
 - Maintain local signing scripts for emergency releases
 
 ## Timeline
-- **Phase 1**: macOS signing setup (1-2 days)
-- **Phase 2**: Windows certificate procurement (1-2 weeks)
-- **Phase 3**: Windows signing implementation (1-2 days)
-- **Phase 4**: Testing and validation (1 week)
+- **Phase 1**: macOS signing setup (1-2 days) ✅ **COMPLETED**
+- **Phase 2**: Windows certificate procurement (1-2 weeks) - Future enhancement
+- **Phase 3**: Windows signing implementation (1-2 days) - Future enhancement  
+- **Phase 4**: Linux GPG signing setup (1-2 days) - Future enhancement
+- **Phase 5**: Testing and validation (1 week) - Future enhancement
 
 ## Success Criteria
 - All CI builds are properly signed
 - macOS builds are notarized and trusted
-- Windows builds pass SmartScreen validation
+- Windows builds pass SmartScreen validation (future)
+- Linux builds are GPG signed (future)
 - Release process is fully automated
 - No manual intervention required for releases
+- Multi-architecture builds work correctly (x64, arm64)
