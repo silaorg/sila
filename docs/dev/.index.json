@@ -16,6 +16,11 @@
       "label": "Files"
     },
     {
+      "name": "releases",
+      "type": "section",
+      "label": "Releases"
+    },
+    {
       "name": "platforms",
       "type": "section",
       "label": "Platforms"

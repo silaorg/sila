@@ -21,16 +21,11 @@ For notarization to work, you need to set these environment variables:
 export APPLE_ID="your-apple-id@example.com"
 
 # App-specific password (not your regular Apple ID password)
-export APPLE_ID_PASSWORD="your-app-specific-password"
+# Preferred name used across the repo and CI
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
 
 # Optional but recommended if you are in multiple teams
 export APPLE_TEAM_ID="UY76UFAS3C"
-
-# Code signing certificate (for CI/CD)
-export CSC_LINK="path-to-certificate.p12"
-
-# Certificate password
-export CSC_KEY_PASSWORD="certificate-password"
 ```
 
 ## Setting Up App-Specific Password
@@ -51,7 +46,7 @@ Create a `.env` file in the `packages/desktop` directory:
 ```bash
 # packages/desktop/.env
 APPLE_ID=your-apple-id@example.com
-APPLE_ID_PASSWORD=your-app-specific-password
+APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password
 # Optional if you belong to multiple teams
 # APPLE_TEAM_ID=UY76UFAS3C
 ```
@@ -63,13 +58,13 @@ Then modify the build script to load these variables:
 "build:electron": "source .env 2>/dev/null || true && electron-builder"
 ```
 
-### Option 2: Direct Export
+### Option 2: Direct export
 
 Export the variables before building:
 
 ```bash
 export APPLE_ID="your-apple-id@example.com"
-export APPLE_ID_PASSWORD="your-app-specific-password"
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
 # Optional
 # export APPLE_TEAM_ID="UY76UFAS3C"
 npm run build
@@ -92,12 +87,17 @@ If you don't need notarization during development, you can temporarily disable i
 
 ## CI/CD Setup (GitHub Actions)
 
-The project already has GitHub Actions configured for notarization. The workflow uses these secrets:
+The project is configured for signing and notarization in CI. Configure these:
 
-- `APPLE_ID`: Your Apple Developer account email
-- `APPLE_ID_PASSWORD`: Your app-specific password
-- `MACOS_CERTIFICATE_P12`: Base64-encoded code signing certificate
-- `MACOS_CERTIFICATE_PASSWORD`: Certificate password
+- Repository variables:
+  - `APPLE_ID`: Apple Developer account email
+  - `APPLE_TEAM_ID`: Apple Team ID (if applicable)
+- Repository secrets:
+  - `APPLE_APP_SPECIFIC_PASSWORD`: App-specific password (not your Apple ID password)
+  - `PROD_MACOS_CERTIFICATE`: Base64 of .p12 (Developer ID Application cert + private key)
+  - `PROD_MACOS_CERTIFICATE_PWD`: Password used when exporting the .p12
+  - `PROD_MACOS_CERTIFICATE_NAME`: Exact certificate name from Keychain (e.g., "Developer ID Application: Dmitrii Kurilchenko (UY76UFAS3C)")
+  - `PROD_MACOS_CI_KEYCHAIN_PWD`: Random password used to create/unlock the temporary CI keychain
 
 ## Testing Notarization
 
@@ -106,7 +106,7 @@ The project already has GitHub Actions configured for notarization. The workflow
 ```bash
 cd packages/desktop
 export APPLE_ID="your-apple-id@example.com"
-export APPLE_ID_PASS="your-app-specific-password"
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
 npm run build
 ```
 
@@ -115,11 +115,11 @@ npm run build
 After building, you can check if notarization was successful:
 
 ```bash
-# Check the notarization status (legacy altool)
-xcrun altool --notarization-info <UUID> -u "$APPLE_ID" -p "$APPLE_ID_PASSWORD"
+# Using notarytool (recommended)
+xcrun notarytool history --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID"
 
-# Or using notarytool if configured
-xcrun notarytool history --apple-id "$APPLE_ID" --password "$APPLE_ID_PASSWORD" --team-id "$APPLE_TEAM_ID"
+# Legacy altool (if needed)
+xcrun altool --notarization-info <UUID> -u "$APPLE_ID" -p "$APPLE_APP_SPECIFIC_PASSWORD"
 ```
 
 ### 3. Verify the App
@@ -135,13 +135,12 @@ spctl --assess --verbose --type exec dist/mac/Sila.app
 ### Common Issues
 
 1. **"notarize options were unable to be generated"**
-   - Missing `APPLE_ID` or `APPLE_ID_PASS` environment variables
+   - Missing `APPLE_ID` or `APPLE_APP_SPECIFIC_PASSWORD`
    - Solution: Set the required environment variables
 
 2. **"Invalid credentials"**
-   - Wrong Apple ID or password
-   - Using regular password instead of app-specific password
-   - Solution: Generate a new app-specific password
+   - Wrong Apple ID or using regular password instead of app-specific
+   - Solution: Generate a new app-specific password and set `APPLE_APP_SPECIFIC_PASSWORD`
 
 3. **"No identity found"**
    - Missing code signing certificate
