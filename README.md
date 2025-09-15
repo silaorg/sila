@@ -1,14 +1,16 @@
+<h1 align="center">
+  <img src="docs/assets/icons/Square310x310Logo.png" alt="Sila Logo" width="100">
+  <br />
+Sila
+</h1>
 <p align="center">
-  <p align="center">
-   <img src="docs/assets/icons/Square310x310Logo.png" style="width: 100px; height: auto;" alt="Sila Logo" />
-  </p>
-	<h1 align="center">Sila</h1>
-	<p align="center">
-		<b>Own your AI chats and data</b>
-    <br /><br />
-    Download for 
-		<a href="https://silain.com/download">macOS, Linux or Windows</a>
-  </p>
+  Own your AI chats and data
+  <br />
+  <a href="https://silain.com/download">Download</a>
+  ·
+  <a href="https://silain.com/v1/features">Features</a>
+  ·
+  <a href="https://silain.com/v1/how-to/use-ai">How to use AI</a>
 </p>
 <br/>
 
@@ -52,19 +54,20 @@ Pay as you go, either for API costs from AI providers or the actual compute if y
 ## Download the app
 
 **Download Sila:**
-- [Download for macOS](#) 
-- [Download for Windows](#)
-- [Download for Linux](#)
+
+- [Download for macOS](https://silain.com/download#platforms)
+- [Download for Windows](https://silain.com/download#platforms)
+- [Download for Linux](https://silain.com/download#platforms)
 
 ## Documentation
 
 ### Product
 
-Learn more about Sila's features in the [product documentation](docs/product/README.md).
+Learn more about Sila's features in the [product documentation](https://silain.com/v1/features/).
 
 ### Development
 
-Want to build from source? Check out the [quick start guide](docs/dev/quick-start.md) and [development documentation](docs/dev/README.md) covering the architecture, codebase, testing, and contribution guidelines.
+Want to build from source? Check out the [quick start guide](https://silain.com/v1/dev/quick-start) and [development documentation](https://silain.com/v1/dev/) covering the architecture, codebase, testing, and contribution guidelines.
 
 ## Related projects
 
