@@ -313,7 +313,242 @@ export class DemoAppFactory {
 }
 ```
 
-### 6. Website Integration
+### 6. Automated Screenshot Generation
+
+Create an automation system that generates screenshots for documentation and marketing:
+
+```typescript
+// packages/demo-app/src/ScreenshotAutomation.ts
+import { chromium } from 'playwright';
+import { DemoAppFactory } from './DemoAppFactory';
+import type { DemoAppConfig } from './DemoAppConfig';
+
+export interface ScreenshotConfig {
+  outputDir: string;
+  viewport: { width: number; height: number };
+  themes: ('light' | 'dark')[];
+  demos: {
+    name: string;
+    config: DemoAppConfig;
+    interactions?: string[]; // List of interactions to perform before screenshot
+  }[];
+}
+
+export class ScreenshotAutomation {
+  private browser: any;
+  
+  async generateScreenshots(config: ScreenshotConfig): Promise<void> {
+    this.browser = await chromium.launch({ headless: true });
+    
+    for (const demo of config.demos) {
+      for (const theme of config.themes) {
+        await this.captureDemo(demo, theme, config);
+      }
+    }
+    
+    await this.browser.close();
+  }
+  
+  private async captureDemo(
+    demo: ScreenshotConfig['demos'][0], 
+    theme: string, 
+    config: ScreenshotConfig
+  ): Promise<void> {
+    const page = await this.browser.newPage();
+    
+    // Set viewport
+    await page.setViewportSize(config.viewport);
+    
+    // Load demo page with theme
+    await page.goto(`file://${process.cwd()}/packages/demo-app/examples/${demo.name}.html?theme=${theme}`);
+    
+    // Wait for demo to load
+    await page.waitForSelector('#sila-demo', { timeout: 10000 });
+    
+    // Perform interactions if specified
+    if (demo.interactions) {
+      await this.performInteractions(page, demo.interactions);
+    }
+    
+    // Take screenshot
+    const filename = `${demo.name}-${theme}-${config.viewport.width}x${config.viewport.height}.png`;
+    await page.screenshot({ 
+      path: `${config.outputDir}/${filename}`,
+      fullPage: false, // Only capture the demo area
+      clip: await this.getDemoBounds(page)
+    });
+    
+    await page.close();
+  }
+  
+  private async performInteractions(page: any, interactions: string[]): Promise<void> {
+    for (const interaction of interactions) {
+      switch (interaction) {
+        case 'send-message':
+          await page.fill('[data-testid="message-input"]', 'Hello, SIla!');
+          await page.click('[data-testid="send-button"]');
+          await page.waitForTimeout(2000); // Wait for response
+          break;
+          
+        case 'upload-file':
+          // Upload a demo image
+          const fileInput = await page.$('[data-testid="file-input"]');
+          if (fileInput) {
+            await fileInput.setInputFiles('./packages/demo-app/fixtures/demo-image.png');
+            await page.waitForTimeout(1000);
+          }
+          break;
+          
+        case 'open-settings':
+          await page.click('[data-testid="settings-button"]');
+          await page.waitForTimeout(500);
+          break;
+          
+        case 'switch-model':
+          await page.click('[data-testid="model-selector"]');
+          await page.click('[data-testid="model-option-claude"]');
+          await page.waitForTimeout(500);
+          break;
+      }
+    }
+  }
+  
+  private async getDemoBounds(page: any): Promise<{ x: number; y: number; width: number; height: number }> {
+    const demoElement = await page.$('#sila-demo');
+    const bounds = await demoElement.boundingBox();
+    return bounds;
+  }
+}
+```
+
+### 7. Screenshot Configuration & Automation
+
+Create configuration files for different screenshot scenarios:
+
+```yaml
+# packages/demo-app/screenshots/config.yml
+outputDir: "./screenshots"
+viewport:
+  width: 1200
+  height: 800
+themes: ["light", "dark"]
+
+demos:
+  - name: "chat-demo"
+    config:
+      mode: "chat-demo"
+      mockAI: true
+      initialMessages:
+        - role: "user"
+          text: "Hello! Can you help me understand SIla?"
+        - role: "assistant"
+          text: "Hello! I'd be happy to help you explore SIla. It's a powerful AI workspace that combines chat, file management, and AI assistants."
+    interactions: ["send-message"]
+    
+  - name: "chat-demo-with-file"
+    config:
+      mode: "chat-demo"
+      mockAI: true
+      allowFileUpload: true
+    interactions: ["upload-file", "send-message"]
+    
+  - name: "settings-demo"
+    config:
+      mode: "settings-demo"
+      settingsOpen: true
+    interactions: ["switch-model"]
+    
+  - name: "full-demo"
+    config:
+      mode: "full-demo"
+      mockAI: true
+    interactions: []
+```
+
+### 8. CI/CD Integration
+
+Automate screenshot generation in CI/CD pipeline:
+
+```json
+// packages/demo-app/package.json
+{
+  "scripts": {
+    "screenshots": "node scripts/generate-screenshots.js",
+    "screenshots:ci": "node scripts/generate-screenshots.js --ci",
+    "screenshots:watch": "node scripts/generate-screenshots.js --watch"
+  }
+}
+```
+
+```javascript
+// packages/demo-app/scripts/generate-screenshots.js
+#!/usr/bin/env node
+
+import { ScreenshotAutomation } from '../src/ScreenshotAutomation.js';
+import yaml from 'js-yaml';
+import fs from 'fs';
+import path from 'path';
+
+async function main() {
+  const args = process.argv.slice(2);
+  const isCI = args.includes('--ci');
+  const watch = args.includes('--watch');
+  
+  // Load configuration
+  const configPath = path.join(process.cwd(), 'screenshots', 'config.yml');
+  const config = yaml.load(fs.readFileSync(configPath, 'utf8'));
+  
+  // Adjust for CI environment
+  if (isCI) {
+    config.outputDir = './dist/screenshots';
+    config.viewport.width = 1280;
+    config.viewport.height = 720;
+  }
+  
+  const automation = new ScreenshotAutomation();
+  
+  if (watch) {
+    // Watch for changes and regenerate screenshots
+    console.log('👀 Watching for changes...');
+    fs.watchFile('packages/client/src/lib/comps', { interval: 1000 }, () => {
+      console.log('🔄 Regenerating screenshots...');
+      automation.generateScreenshots(config);
+    });
+  } else {
+    console.log('📸 Generating screenshots...');
+    await automation.generateScreenshots(config);
+    console.log(`✅ Screenshots saved to ${config.outputDir}`);
+  }
+}
+
+main().catch(console.error);
+```
+
+### 9. Documentation Integration
+
+Automatically update documentation with fresh screenshots:
+
+```markdown
+<!-- docs/user-guide/chat-interface.md -->
+# Chat Interface
+
+SIla's chat interface provides a clean, distraction-free environment for AI conversations.
+
+<!-- Auto-generated screenshots -->
+![Chat Demo - Light Theme](./screenshots/chat-demo-light-1200x800.png)
+![Chat Demo - Dark Theme](./screenshots/chat-demo-dark-1200x800.png)
+
+## Features
+
+- **Real-time messaging** with typing indicators
+- **File attachments** for images and documents  
+- **Model switching** between different AI providers
+- **Conversation branching** for exploring ideas
+
+![Chat with File Upload](./screenshots/chat-demo-with-file-light-1200x800.png)
+```
+
+### 10. Website Integration
 
 Simple HTML integration for different demo scenarios:
 
@@ -603,23 +838,30 @@ Create standalone HTML pages for different demo scenarios:
    - Add contextual responses based on user input
    - Implement realistic response timing
 
-### Phase 3: Website Integration & Examples (Week 5-6)
+### Phase 3: Website Integration & Screenshot Automation (Week 5-6)
 
 1. **Create Demo Examples**:
    - Standalone HTML pages for different scenarios
    - Embeddable demo widgets
    - Full-screen demo experiences
 
-2. **Website Integration**:
+2. **Screenshot Automation**:
+   - Implement `ScreenshotAutomation` class with Playwright
+   - Create YAML configuration for different screenshot scenarios
+   - Add CI/CD integration for automatic screenshot generation
+   - Set up watch mode for development
+
+3. **Website Integration**:
    - Add demo pages to sila.org
    - Implement responsive design for mobile/desktop
    - Add call-to-action elements
+   - Integrate automated screenshots into documentation
 
-3. **Documentation & Testing**:
+4. **Documentation & Testing**:
    - Write integration guides
    - Create API documentation
    - Add unit tests for demo components
-   - Create video demonstrations
+   - Set up automated screenshot updates in CI/CD
 
 ## Technical Implementation Details
 
@@ -961,6 +1203,9 @@ export const DarkMode: Story = {
 - **Tutorial Integration**: Embed demos in learning materials
 - **API Examples**: Demonstrate component usage
 - **Best Practices**: Show recommended implementation patterns
+- **🚀 Automated Screenshots**: Documentation images update automatically when UI changes
+- **📸 Visual Consistency**: Ensure all docs use current styling
+- **⚡ Fast Updates**: No manual screenshot editing required
 
 ### 4. Community and Ecosystem
 
