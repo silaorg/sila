@@ -550,6 +550,167 @@ SIla's chat interface provides a clean, distraction-free environment for AI conv
 
 ### 10. Website Integration
 
+### 6. Development Workflow Integration
+
+Create development-specific demo configurations for rapid iteration:
+
+```typescript
+// packages/demo-app/src/DevDemoConfigs.ts
+export const DevDemoConfigs = {
+  // Test chat with specific conversation state
+  chatWithLongConversation: {
+    mode: 'chat-demo',
+    initialMessages: generateLongConversation(50), // 50 messages
+    lockedTabs: ['main-chat'],
+    hiddenUI: ['sidebar', 'settings']
+  },
+  
+  // Test file upload interface
+  fileUploadFlow: {
+    mode: 'chat-demo',
+    allowFileUpload: true,
+    initialMessages: [
+      { role: 'user', text: 'Can you analyze this document?', attachments: [mockDocument] }
+    ],
+    interactions: ['upload-file']
+  },
+  
+  // Test settings panel
+  settingsPanel: {
+    mode: 'settings-demo',
+    settingsOpen: true,
+    hiddenUI: ['sidebar', 'chat-tabs']
+  },
+  
+  // Test specific UI state
+  chatWithTyping: {
+    mode: 'chat-demo',
+    initialMessages: [
+      { role: 'user', text: 'Hello!' }
+    ],
+    simulateTyping: true, // AI is "typing"
+    lockedTabs: ['main-chat']
+  },
+  
+  // Test error states
+  chatWithError: {
+    mode: 'chat-demo',
+    initialMessages: [
+      { role: 'user', text: 'This will cause an error' },
+      { role: 'error', text: 'Connection failed. Please try again.' }
+    ],
+    mockErrors: true
+  }
+};
+
+// Development helper functions
+export class DevDemoHelper {
+  static createCustomDemo(config: Partial<DemoAppConfig>): DemoAppConfig {
+    return {
+      mode: 'chat-demo',
+      theme: 'light',
+      mockAI: true,
+      ...config
+    };
+  }
+  
+  static async launchDevDemo(configName: keyof typeof DevDemoConfigs): Promise<void> {
+    const config = DevDemoConfigs[configName];
+    const container = document.getElementById('dev-demo') || createDevContainer();
+    
+    // Hot reload for development
+    if (window.devDemoApp) {
+      window.devDemoApp.destroy();
+    }
+    
+    window.devDemoApp = DemoAppFactory.createFullDemo(container, config);
+  }
+  
+  static watchForChanges(): void {
+    // Watch for file changes and auto-reload demo
+    if (import.meta.hot) {
+      import.meta.hot.accept(() => {
+        console.log('🔄 Hot reloading demo...');
+        // Reload current demo state
+      });
+    }
+  }
+}
+
+function createDevContainer(): HTMLElement {
+  const container = document.createElement('div');
+  container.id = 'dev-demo';
+  container.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background: white;
+  `;
+  document.body.appendChild(container);
+  return container;
+}
+```
+
+### 7. Development Scripts
+
+Add convenient development commands:
+
+```json
+// packages/demo-app/package.json
+{
+  "scripts": {
+    "dev:chat": "node scripts/dev-demo.js chatWithLongConversation",
+    "dev:upload": "node scripts/dev-demo.js fileUploadFlow", 
+    "dev:settings": "node scripts/dev-demo.js settingsPanel",
+    "dev:typing": "node scripts/dev-demo.js chatWithTyping",
+    "dev:error": "node scripts/dev-demo.js chatWithError",
+    "dev:custom": "node scripts/dev-demo.js --config='{ \"mode\": \"chat-demo\", \"initialMessages\": [...] }'"
+  }
+}
+```
+
+```javascript
+// packages/demo-app/scripts/dev-demo.js
+#!/usr/bin/env node
+
+import { DevDemoHelper, DevDemoConfigs } from '../src/DevDemoConfigs.js';
+import { serve } from 'esbuild';
+
+const args = process.argv.slice(2);
+const configName = args[0];
+
+async function startDevDemo() {
+  // Start dev server
+  const server = await serve({
+    servedir: './examples',
+    port: 3000
+  });
+  
+  console.log(`🚀 Dev demo server running at http://localhost:${server.port}`);
+  
+  if (configName && configName !== '--config') {
+    const config = DevDemoConfigs[configName];
+    if (!config) {
+      console.error(`❌ Unknown demo config: ${configName}`);
+      process.exit(1);
+    }
+    
+    console.log(`📱 Opening demo: ${configName}`);
+    console.log(`🔗 http://localhost:${server.port}/dev-demo.html?config=${configName}`);
+  }
+  
+  // Watch for changes
+  DevDemoHelper.watchForChanges();
+}
+
+startDevDemo().catch(console.error);
+```
+
+### 8. Website Integration
+
 Simple HTML integration for different demo scenarios:
 
 ```html
@@ -1196,6 +1357,9 @@ export const DarkMode: Story = {
 - **UI/UX Testing**: Gather feedback on interface design
 - **Integration Testing**: Test component integration scenarios
 - **Performance Testing**: Benchmark component performance
+- **🚀 Instant State Testing**: Jump directly to specific app states during development
+- **⚡ Rapid UI Iteration**: Test changes without navigating through the full app flow
+- **🎯 Focused Development**: Work on specific features without distractions
 
 ### 3. Documentation and Education
 
