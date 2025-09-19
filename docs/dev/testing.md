@@ -67,6 +67,8 @@ npm -w packages/tests run test
 - **Write/read roundtrip**: Tests that files can be written to CAS and retrieved correctly
 - **Hash-based addressing**: Verifies files are stored and retrieved using SHA-256 hashes
 - **Files AppTree linking**: Tests that file metadata is properly linked in the Files AppTree
+- **Mutable storage**: Tests UUID-addressed mutable blobs for document editing workflows
+- **Protocol support**: Verifies both SHA256 and UUID identifiers work in file protocol
 
 ### 4. Chat Attachments
 - **Image persistence**: Tests that chat message attachments are saved to CAS

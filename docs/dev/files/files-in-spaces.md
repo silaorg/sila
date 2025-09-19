@@ -177,20 +177,21 @@ FilesTreeData.saveFileInfoFromAttachment(folder, attachment, hash)
 Files are served via the `sila://` protocol:
 
 ```
-sila://spaces/{spaceId}/files/{hash}?type={mimeType}&name={fileName}
+sila://spaces/{spaceId}/files/{hash|uuid}?type={mimeType}&name={fileName}
 ```
 
 **Components:**
 - `spaceId`: Workspace identifier
-- `hash`: SHA-256 hash of file content
+- `hash`: SHA-256 hash of file content (for immutable files)
+- `uuid`: UUID of the file (for mutable files)
 - `mimeType`: Content type for proper headers
 - `name`: Original filename for downloads
 
 ### Electron Implementation
 
 The protocol handler in Electron:
-1. Validates the URL format and hash
-2. Resolves the file path from CAS structure
+1. Validates the URL format and identifier (hash or UUID)
+2. Resolves the file path from CAS structure (static for hashes, var for UUIDs)
 3. Serves the file with proper content-type headers
 4. Supports range requests for large files
 5. Handles download requests with Content-Disposition
