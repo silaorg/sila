@@ -496,4 +496,59 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		// Test getting non-existent mutable blob
 		await expect(fileStore!.getMutable(nonExistentUuid)).rejects.toThrow();
 	});
+
+	it('demonstrates URL format for both SHA and UUID files', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'URL Format Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		// Test immutable file (SHA256 hash)
+		const immutableData = new TextEncoder().encode('Immutable content');
+		const immutableResult = await fileStore!.putBytes(immutableData);
+		
+		// Test mutable file (UUID)
+		const mutableUuid = crypto.randomUUID();
+		const mutableData = new TextEncoder().encode('Mutable content');
+		await fileStore!.putMutable(mutableUuid, mutableData);
+
+		// Demonstrate URL formats
+		console.log('\n=== URL Format Examples ===');
+		console.log(`Space ID: ${spaceId}`);
+		console.log(`\nImmutable file (SHA256):`);
+		console.log(`  Hash: ${immutableResult.hash}`);
+		console.log(`  URL: sila://spaces/${spaceId}/files/${immutableResult.hash}?type=text/plain&name=immutable.txt`);
+		console.log(`  Path: ${tempDir}/space-v1/files/static/sha256/${immutableResult.hash.slice(0, 2)}/${immutableResult.hash.slice(2)}`);
+		
+		console.log(`\nMutable file (UUID):`);
+		console.log(`  UUID: ${mutableUuid}`);
+		console.log(`  URL: sila://spaces/${spaceId}/files/${mutableUuid}?type=application/octet-stream&name=mutable.bin`);
+		console.log(`  Path: ${tempDir}/space-v1/files/var/uuid/${mutableUuid.slice(0, 2)}/${mutableUuid.slice(2)}`);
+		console.log('========================\n');
+
+		// Verify both files exist and can be retrieved
+		expect(await fileStore!.exists(immutableResult.hash)).toBe(true);
+		expect(await fileStore!.existsMutable(mutableUuid)).toBe(true);
+		
+		const retrievedImmutable = await fileStore!.getBytes(immutableResult.hash);
+		const retrievedMutable = await fileStore!.getMutable(mutableUuid);
+		
+		expect(new TextDecoder().decode(retrievedImmutable)).toBe('Immutable content');
+		expect(new TextDecoder().decode(retrievedMutable)).toBe('Mutable content');
+	});
 });

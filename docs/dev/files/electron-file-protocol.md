@@ -15,30 +15,52 @@ The custom protocol allows Sila to serve files (images, PDFs, videos, etc.) dire
 
 ### URL Format
 ```
-sila://spaces/{spaceId}/files/{hash}?type={mimeType}&name={fileName}
+sila://spaces/{spaceId}/files/{hash|uuid}?type={mimeType}&name={fileName}
 ```
 
 **Components:**
 - `spaceId`: Unique identifier for the workspace
-- `hash`: SHA256 hash of the file content
+- `hash`: SHA256 hash of the file content (for immutable files)
+- `uuid`: UUID of the file (for mutable files)
 - `mimeType`: Optional MIME type for proper content-type headers
 - `name`: Optional original filename used to hint downloads (set via `Content-Disposition`)
 
-**Example:**
+**Examples:**
+
+**Immutable file (SHA256 hash):**
 ```
 sila://spaces/f1ba226099084e4db17d1d3c27dcfc2a/files/c8670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08?type=image%2Fjpeg&name=photo.jpg
 ```
 
+**Mutable file (UUID):**
+```
+sila://spaces/f1ba226099084e4db17d1d3c27dcfc2a/files/a1b2c3d4-e5f6-7890-abcd-ef1234567890?type=application%2Foctet-stream&name=secret.bundle
+```
+
 ### File Path Resolution
 
-Files are resolved using the CAS structure:
+Files are resolved using different structures based on the identifier type:
+
+**Immutable files (SHA256 hash):**
 ```
 {spaceRoot}/space-v1/files/static/sha256/{hash[0:2]}/{hash[2:]}
 ```
 
-**Example:**
+**Mutable files (UUID):**
+```
+{spaceRoot}/space-v1/files/var/uuid/{uuid[0:2]}/{uuid[2:]}
+```
+
+**Examples:**
+
+**Immutable file:**
 - Hash: `c8670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`
 - Path: `/Users/dk/Documents/sila-spaces/test/space-v1/files/static/sha256/c8/670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`
+
+**Mutable file:**
+- UUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+- Clean UUID: `a1b2c3d4e5f67890abcdef1234567890`
+- Path: `/Users/dk/Documents/sila-spaces/test/space-v1/files/var/uuid/a1/b2c3d4e5f67890abcdef1234567890`
 
 ## Implementation
 
@@ -70,10 +92,16 @@ protocol.handle('sila', async (request) => {
 
 **Key Features:**
 - URL validation and parsing
+- Automatic identifier type detection (SHA256 hash vs UUID)
 - Space lookup via SpaceManager
 - File existence checking
 - Proper MIME type handling
 - Error responses with appropriate HTTP status codes
+
+**Identifier Detection:**
+The protocol automatically detects whether the identifier is a SHA256 hash or UUID:
+- **SHA256 Hash**: 64 character hexadecimal string (e.g., `c8670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`)
+- **UUID**: Standard UUID format with or without hyphens (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890` or `a1b2c3d4e5f67890abcdef1234567890`)
 
 ### 3. Space Management
 
