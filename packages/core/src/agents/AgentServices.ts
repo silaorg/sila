@@ -169,6 +169,10 @@ export class AgentServices {
         }
       } catch (error) {
         // Fall back to static provider config
+      }
+      
+      // Special case for OpenRouter - use static provider config since models are entered manually
+      if (provider === "openrouter") {
         const staticProvider = providers.find(p => p.id === provider);
         if (staticProvider?.defaultModel) {
           return {
@@ -176,6 +180,15 @@ export class AgentServices {
             model: staticProvider.defaultModel
           };
         }
+      }
+      
+      // Fall back to static provider config for other providers
+      const staticProvider = providers.find(p => p.id === provider);
+      if (staticProvider?.defaultModel) {
+        return {
+          provider,
+          model: staticProvider.defaultModel
+        };
       }
     }
 
@@ -195,6 +208,15 @@ export class AgentServices {
   }
 
   private async resolveAutoModel(provider: string): Promise<string> {
+    // Special case for OpenRouter - use static provider config since models are entered manually
+    if (provider === "openrouter") {
+      const providerConfig = providers.find(p => p.id === provider);
+      if (providerConfig?.defaultModel) {
+        return providerConfig.defaultModel;
+      }
+      throw new Error(`No default model configured for OpenRouter`);
+    }
+
     // Try to use Lang.models first for cloud providers
     if (provider !== "ollama" && provider !== "local") {
       try {
