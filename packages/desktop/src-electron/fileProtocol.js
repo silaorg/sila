@@ -83,7 +83,7 @@ export async function setupFileProtocol() {
 function makeBytesPath(spaceRoot, hash) {
   const prefix = hash.slice(0, 2);
   const rest = hash.slice(2);
-  return path.join(spaceRoot, 'space-v1', 'files', 'sha256', prefix, rest);
+  return path.join(spaceRoot, 'space-v1', 'files', 'static', 'sha256', prefix, rest);
 }
 
 /**

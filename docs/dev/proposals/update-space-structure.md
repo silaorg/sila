@@ -237,12 +237,12 @@ On disk under the space root:
 ```
 space-v1/
   files/
-    sha256/{hash[0:2]}/{hash[2:]}     # existing CAS structure
-    mutable/uuid/{uuid}               # new mutable storage
+    static/sha256/{hash[0:2]}/{hash[2:]}     # immutable CAS structure
+    var/uuid/{uuid[0:2]}/{uuid[2:]}          # mutable storage with UUID splitting
 ```
 
-- **sha256/**: content‑addressed, immutable, deduplicated (current CAS behavior via FileStore).
-- **mutable/uuid/**: uuid‑addressed blobs intended for values that may be rotated/overwritten (e.g., encrypted secret bundles, thumbnail caches, temporary data).
+- **static/sha256/**: content‑addressed, immutable, deduplicated (current CAS behavior via FileStore).
+- **var/uuid/**: uuid‑addressed blobs intended for values that may be rotated/overwritten (e.g., encrypted secret bundles, thumbnail caches, temporary data).
 
 #### Integration with existing FileStore
 
@@ -275,7 +275,7 @@ interface FileStore {
 Building on the existing secrets system in SpaceManager and FileSystemPersistenceLayer:
 
 - Keep encryption outside CRDT ops. Store only references and minimal metadata in the tree.
-- Write encrypted payloads to `space-v1/files/mutable/uuid/{secretBundleId}`.
+- Write encrypted payloads to `space-v1/files/var/uuid/{secretBundleId[0:2]}/{secretBundleId[2:]}`.
 - Provide `space.setSecret(key, value)` and `space.getSecret(key)` backed by the secrets app instance.
 - Piggyback on existing per‑space key material (already handled by FileSystemPersistenceLayer).
 

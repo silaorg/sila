@@ -33,12 +33,12 @@ sila://spaces/f1ba226099084e4db17d1d3c27dcfc2a/files/c8670ca7ac518d8350206e897e6
 
 Files are resolved using the CAS structure:
 ```
-{spaceRoot}/space-v1/files/sha256/{hash[0:2]}/{hash[2:]}
+{spaceRoot}/space-v1/files/static/sha256/{hash[0:2]}/{hash[2:]}
 ```
 
 **Example:**
 - Hash: `c8670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`
-- Path: `/Users/dk/Documents/sila-spaces/test/space-v1/files/sha256/c8/670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`
+- Path: `/Users/dk/Documents/sila-spaces/test/space-v1/files/static/sha256/c8/670ca7ac518d8350206e897e61488210d3dcf963828ea8b90d23d3f8e04d08`
 
 ## Implementation
 
