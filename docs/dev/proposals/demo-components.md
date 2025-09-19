@@ -4,6 +4,62 @@
 
 This proposal outlines a system for rendering key SIla components outside of the main application, enabling interactive demonstrations on our website and isolated testing environments. The system will provide embeddable, in-memory versions of core UI components like the chat interface and settings screens without requiring persistent data storage.
 
+## 🎯 Main Use Cases
+
+### 1. 🚀 **Isolated Development Testing Environment**
+
+**Problem**: During development, you need to test specific UI states but navigating to them is time-consuming and distracting.
+
+**Solution**: Jump instantly to any app state for focused development and testing.
+
+```bash
+# Test a long conversation without manually creating 50 messages
+npm run dev:chat
+
+# Test file upload interface without navigating through the app
+npm run dev:upload  
+
+# Test settings panel without opening/closing modals
+npm run dev:settings
+```
+
+**Benefits**:
+- **⚡ Instant State Testing**: Skip navigation, jump directly to target state
+- **🎯 Focused Development**: Work on specific features without distractions  
+- **🔄 Hot Reload**: Changes render immediately in the target state
+- **🎨 Edge Case Testing**: Test long conversations, error states, loading states
+
+### 2. 📸 **Always Up-to-Date Website Screenshots**
+
+**Problem**: Documentation and marketing screenshots become outdated every time the UI changes.
+
+**Solution**: Automated screenshot generation that updates all images when UI changes.
+
+```bash
+# Generate all screenshots for docs/marketing
+npm run screenshots
+
+# Watch for changes and auto-regenerate
+npm run screenshots:watch
+```
+
+**Benefits**:
+- **🚀 Automated Updates**: Screenshots refresh automatically when UI changes
+- **📸 Visual Consistency**: All images use current styling and themes
+- **⚡ Perfect Demos**: Show real interactions (file uploads, AI responses, etc.)
+- **🎯 CI/CD Integration**: Screenshots update in build pipeline
+
+### 3. 🌐 **Interactive Website Demos**
+
+**Problem**: Users want to experience SIla without installing the app.
+
+**Solution**: Embeddable demos that show real SIla functionality in any browser.
+
+**Benefits**:
+- **🎯 Lead Generation**: Capture interest without requiring installation
+- **📱 Marketing Tool**: Showcase capabilities directly on website
+- **🎨 Authentic Experience**: Users see exactly what they'll get
+
 ## Current State Analysis
 
 ### Existing Demo Infrastructure
