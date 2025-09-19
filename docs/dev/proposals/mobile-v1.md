@@ -81,83 +81,272 @@ packages/mobile/
 ├── src/
 │   ├── main.ts              # Entry point
 │   ├── MobileApp.svelte     # Main app component
-│   ├── mobileFsWrapper.ts   # Mobile file system implementation
-│   └── mobileDialogsWrapper.ts # Mobile dialogs implementation
+│   ├── capacitorFsWrapper.ts   # Capacitor file system implementation
+│   ├── capacitorDialogsWrapper.ts # Capacitor dialogs implementation
+│   └── capacitorStorageWrapper.ts # Capacitor storage implementation
 ├── capacitor.config.ts
 └── package.json
 ```
 
-### 2. Mobile File System Implementation
+### 2. Capacitor-First File System Implementation
 
-Create `MobileFsWrapper` implementing `AppFileSystem` interface:
+Create `CapacitorFsWrapper` implementing `AppFileSystem` interface using Capacitor's native capabilities:
 
 ```typescript
-export class MobileFsWrapper implements AppFileSystem {
-  // Use Capacitor Filesystem plugin for file operations
-  // Implement all required methods:
-  // - readDir, exists, readTextFile, writeTextFile
-  // - create, open, mkdir, watch, readBinaryFile
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
+
+export class CapacitorFsWrapper implements AppFileSystem {
+  private baseDir = Directory.Data; // App-specific data directory
+  
+  async readDir(path: string): Promise<FileEntry[]> {
+    const result = await Filesystem.readdir({
+      path: path,
+      directory: this.baseDir
+    });
+    return result.files.map(file => ({
+      name: file.name,
+      isDirectory: file.type === 'directory',
+      isFile: file.type === 'file'
+    }));
+  }
+
+  async readTextFile(path: string): Promise<string> {
+    const result = await Filesystem.readFile({
+      path: path,
+      directory: this.baseDir,
+      encoding: Encoding.UTF8
+    });
+    return result.data as string;
+  }
+
+  async writeTextFile(path: string, content: string): Promise<void> {
+    await Filesystem.writeFile({
+      path: path,
+      data: content,
+      directory: this.baseDir,
+      encoding: Encoding.UTF8
+    });
+  }
+
+  // Implement all other AppFileSystem methods using Capacitor APIs
 }
 ```
 
-**Capacitor Plugins Needed**:
-- `@capacitor/filesystem` - File system access
-- `@capacitor/preferences` - Key-value storage
-- `@capacitor/share` - File sharing capabilities
-- `@capacitor/camera` - Camera integration for file capture
+### 3. Capacitor Native Dialogs & Storage
 
-### 3. Mobile Persistence Strategy
-
-**Hybrid Approach**:
-1. **IndexedDB Only**: For local-only spaces (primary mobile approach)
-2. **Cloud Storage**: For file-based workspaces (future enhancement)
-3. **Capacitor Storage**: For app preferences and configuration
-
-**Persistence Layer Selection**:
+**Capacitor Dialogs Implementation**:
 ```typescript
-export function createMobilePersistenceLayers(spaceId: string, uri: string): PersistenceLayer[] {
-  if (uri.startsWith("local://")) {
-    // Local-only spaces: IndexedDB only
-    return [new IndexedDBPersistenceLayer(spaceId)];
-  } else if (uri.startsWith("cloud://")) {
-    // Future: Cloud-synced spaces
-    return [new IndexedDBPersistenceLayer(spaceId), new CloudPersistenceLayer(spaceId, uri)];
-  } else {
-    // File system paths: IndexedDB only (mobile limitation)
-    return [new IndexedDBPersistenceLayer(spaceId)];
+import { Dialog } from '@capacitor/dialog';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+
+export class CapacitorDialogsWrapper implements AppDialogs {
+  async openDialog(opts: OpenDialogOptions): Promise<string | string[] | null> {
+    // Use native file picker or custom implementation
+    // For mobile, we'll implement a custom file browser
+    return await this.showFilePicker(opts);
+  }
+
+  async saveDialog(opts: SaveDialogOptions): Promise<string | null> {
+    // Use native save dialog or custom implementation
+    return await this.showSaveDialog(opts);
+  }
+
+  async showInfo(opts: MessageDialogOptions): Promise<MessageDialogResult> {
+    await Dialog.alert({
+      title: opts.title || 'Information',
+      message: opts.message,
+      buttonTitle: 'OK'
+    });
+    return { response: 0 };
+  }
+
+  // Implement all other dialog methods using Capacitor Dialog API
+}
+```
+
+**Capacitor Storage for Preferences**:
+```typescript
+import { Preferences } from '@capacitor/preferences';
+
+export class CapacitorStorageWrapper {
+  async get(key: string): Promise<string | null> {
+    const result = await Preferences.get({ key });
+    return result.value;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    await Preferences.set({ key, value });
+  }
+
+  async remove(key: string): Promise<void> {
+    await Preferences.remove({ key });
   }
 }
 ```
 
-### 4. Mobile Dialog Implementation
+**Required Capacitor Plugins**:
+- `@capacitor/filesystem` - Native file system access
+- `@capacitor/preferences` - Key-value storage (replaces localStorage)
+- `@capacitor/dialog` - Native alert/confirm dialogs
+- `@capacitor/share` - Native file sharing
+- `@capacitor/camera` - Camera integration for file capture
+- `@capacitor/device` - Device information
+- `@capacitor/network` - Network status monitoring
 
-Create `MobileDialogsWrapper` implementing `AppDialogs` interface:
+### 4. Capacitor-Based Persistence Strategy
 
+**Capacitor-Native Approach**:
+1. **Capacitor Filesystem**: For workspace data and files (primary storage)
+2. **Capacitor Preferences**: For app configuration and user preferences
+3. **IndexedDB**: For complex data structures and caching
+4. **Cloud Storage**: For cross-device sync (future enhancement)
+
+**Capacitor Persistence Layer**:
 ```typescript
-export class MobileDialogsWrapper implements AppDialogs {
-  // Use Capacitor plugins for native dialogs
-  // - File picker for open/save dialogs
-  // - Native alert dialogs for messages
-  // - Camera integration for file capture
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+
+export class CapacitorPersistenceLayer extends ConnectedPersistenceLayer {
+  private baseDir = Directory.Data;
+  private spacePath: string;
+
+  constructor(private spaceId: string, private fs: CapacitorFsWrapper) {
+    super();
+    this.spacePath = `spaces/${spaceId}`;
+  }
+
+  async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
+    const opsPath = `${this.spacePath}/ops/${treeId}.json`;
+    const opsData = JSON.stringify(ops);
+    
+    await this.fs.writeTextFile(opsPath, opsData);
+  }
+
+  async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
+    const opsPath = `${this.spacePath}/ops/${treeId}.json`;
+    
+    if (!await this.fs.exists(opsPath)) {
+      return [];
+    }
+    
+    const opsData = await this.fs.readTextFile(opsPath);
+    return JSON.parse(opsData);
+  }
+
+  // Implement all persistence methods using Capacitor Filesystem
 }
 ```
 
-### 5. Workspace Management for Mobile
+**Mobile Persistence Layer Selection**:
+```typescript
+export function createMobilePersistenceLayers(spaceId: string, uri: string): PersistenceLayer[] {
+  const layers: PersistenceLayer[] = [];
+  
+  if (uri.startsWith("local://")) {
+    // Local-only spaces: Capacitor Filesystem + IndexedDB for caching
+    layers.push(new CapacitorPersistenceLayer(spaceId, capacitorFsWrapper));
+    layers.push(new IndexedDBPersistenceLayer(spaceId)); // For caching
+  } else if (uri.startsWith("cloud://")) {
+    // Future: Cloud-synced spaces
+    layers.push(new CapacitorPersistenceLayer(spaceId, capacitorFsWrapper));
+    layers.push(new IndexedDBPersistenceLayer(spaceId));
+    // layers.push(new CloudPersistenceLayer(spaceId, uri));
+  } else {
+    // File system paths: Capacitor Filesystem only
+    layers.push(new CapacitorPersistenceLayer(spaceId, capacitorFsWrapper));
+  }
+  
+  return layers;
+}
+```
+
+### 5. Mobile-Specific Features with Capacitor
+
+**File Sharing & Import/Export**:
+```typescript
+import { Share } from '@capacitor/share';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+
+export class CapacitorFileManager {
+  async shareFile(filePath: string, title: string): Promise<void> {
+    const fileUri = await Filesystem.getUri({
+      directory: Directory.Data,
+      path: filePath
+    });
+    
+    await Share.share({
+      title: title,
+      url: fileUri.uri,
+      dialogTitle: 'Share Sila Workspace'
+    });
+  }
+
+  async capturePhoto(): Promise<string> {
+    const image = await Camera.getPhoto({
+      quality: 90,
+      allowEditing: false,
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Camera
+    });
+    
+    return image.webPath!;
+  }
+
+  async importFromGallery(): Promise<string> {
+    const image = await Camera.getPhoto({
+      quality: 90,
+      allowEditing: false,
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Photos
+    });
+    
+    return image.webPath!;
+  }
+}
+```
+
+**Device & Network Monitoring**:
+```typescript
+import { Device } from '@capacitor/device';
+import { Network } from '@capacitor/network';
+
+export class CapacitorDeviceManager {
+  async getDeviceInfo() {
+    const info = await Device.getInfo();
+    return {
+      platform: info.platform,
+      model: info.model,
+      osVersion: info.osVersion,
+      isVirtual: info.isVirtual
+    };
+  }
+
+  async monitorNetworkStatus() {
+    const status = await Network.getStatus();
+    return {
+      connected: status.connected,
+      connectionType: status.connectionType
+    };
+  }
+}
+```
+
+### 6. Workspace Management for Mobile
 
 **Mobile-Specific Workspace Types**:
-1. **Local Workspaces**: Stored entirely in IndexedDB
+1. **Capacitor Workspaces**: Stored in Capacitor Filesystem with IndexedDB caching
 2. **Cloud Workspaces**: Synced with cloud storage (future)
-3. **Import/Export**: Allow importing desktop workspaces
+3. **Import/Export**: Native file sharing for workspace transfer
 
-**Workspace Creation Flow**:
+**Capacitor Workspace Creation Flow**:
 ```typescript
-// Mobile workspace creation
+// Mobile workspace creation using Capacitor
 async createMobileSpace(name?: string): Promise<string> {
   const space = Space.newSpace(uuid());
   const spaceId = space.getId();
   
-  // Use local:// URI for mobile spaces
-  const uri = "local://" + spaceId;
+  // Use capacitor:// URI for mobile spaces
+  const uri = "capacitor://" + spaceId;
   
   // Create pointer
   const pointer: SpacePointer = {
@@ -168,66 +357,101 @@ async createMobileSpace(name?: string): Promise<string> {
     userId: this.auth.user?.id || null,
   };
   
-  // Use IndexedDB-only persistence
-  const persistenceLayers = [new IndexedDBPersistenceLayer(spaceId)];
+  // Use Capacitor-based persistence
+  const persistenceLayers = createMobilePersistenceLayers(spaceId, uri);
   
   // Add to space manager and client state
   await this._spaceManager.addNewSpace(space, persistenceLayers);
-  // ... rest of implementation
+  
+  // Store workspace metadata in Capacitor Preferences
+  await this.capacitorStorage.set(`workspace_${spaceId}`, JSON.stringify(pointer));
+  
+  return spaceId;
+}
+
+// Workspace import/export using Capacitor Share
+async exportWorkspace(spaceId: string): Promise<void> {
+  const workspacePath = `spaces/${spaceId}`;
+  const exportData = await this.capacitorFs.readTextFile(`${workspacePath}/export.json`);
+  
+  await this.capacitorFileManager.shareFile(
+    `${workspacePath}/export.json`,
+    `Sila Workspace: ${this.getSpaceName(spaceId)}`
+  );
+}
+
+async importWorkspace(): Promise<string> {
+  // Use Capacitor file picker or share to import workspace
+  const importedData = await this.showImportDialog();
+  const spaceId = await this.createSpaceFromImport(importedData);
+  return spaceId;
 }
 ```
 
 ## Implementation Plan
 
-### Phase 1: Core Infrastructure (Week 1-2)
+### Phase 1: Capacitor Core Infrastructure (Week 1-2)
 
 1. **Simplify Mobile Structure**:
    - Remove SvelteKit, use simple Svelte like desktop
    - Create `MobileApp.svelte` component
-   - Set up proper build configuration
+   - Set up proper Capacitor build configuration
 
-2. **Implement Mobile File System**:
-   - Install required Capacitor plugins
-   - Create `MobileFsWrapper` class
-   - Implement all `AppFileSystem` methods using Capacitor APIs
+2. **Install & Configure Capacitor Plugins**:
+   ```bash
+   npm install @capacitor/filesystem @capacitor/preferences @capacitor/dialog
+   npm install @capacitor/share @capacitor/camera @capacitor/device @capacitor/network
+   npx cap sync
+   ```
 
-3. **Implement Mobile Dialogs**:
-   - Create `MobileDialogsWrapper` class
-   - Implement all `AppDialogs` methods using Capacitor APIs
-   - Add file picker and camera integration
+3. **Implement Capacitor File System**:
+   - Create `CapacitorFsWrapper` class
+   - Implement all `AppFileSystem` methods using Capacitor Filesystem API
+   - Test file operations in app-specific directories
 
-### Phase 2: Workspace Management (Week 3-4)
+4. **Implement Capacitor Dialogs**:
+   - Create `CapacitorDialogsWrapper` class
+   - Implement all `AppDialogs` methods using Capacitor Dialog API
+   - Add native file picker and camera integration
 
-1. **Mobile Persistence**:
+### Phase 2: Capacitor Persistence & Workspace Management (Week 3-4)
+
+1. **Capacitor Persistence Layer**:
+   - Create `CapacitorPersistenceLayer` class
    - Modify `createPersistenceLayersForURI` for mobile
-   - Ensure IndexedDB-only persistence works correctly
-   - Test workspace creation and loading
+   - Implement Capacitor Filesystem-based storage
+   - Test workspace creation and loading with native storage
 
-2. **Workspace Operations**:
-   - Implement mobile workspace creation
+2. **Capacitor Workspace Operations**:
+   - Implement mobile workspace creation using Capacitor storage
    - Add workspace switching functionality
-   - Implement workspace import/export
+   - Implement native workspace import/export using Capacitor Share
+   - Store workspace metadata in Capacitor Preferences
 
-3. **File Operations**:
-   - Test file reading/writing through mobile file system
-   - Implement file sharing capabilities
-   - Add camera integration for file capture
+3. **Capacitor File Operations**:
+   - Test file reading/writing through Capacitor Filesystem
+   - Implement native file sharing using Capacitor Share
+   - Add camera integration using Capacitor Camera
+   - Implement photo import from gallery
 
-### Phase 3: UI/UX Adaptation (Week 5-6)
+### Phase 3: Mobile UI/UX & Native Features (Week 5-6)
 
 1. **Mobile UI Components**:
    - Adapt existing components for mobile screens
    - Implement touch-friendly interactions
    - Add mobile-specific navigation patterns
+   - Integrate Capacitor device info for platform-specific UI
 
-2. **Performance Optimization**:
+2. **Capacitor Native Features**:
+   - Implement device-specific optimizations using Capacitor Device API
+   - Add network status monitoring using Capacitor Network API
+   - Implement native file sharing workflows
+   - Add camera integration for file capture and import
+
+3. **Performance & Testing**:
    - Optimize for mobile hardware constraints
-   - Implement lazy loading where appropriate
-   - Test on various mobile devices
-
-3. **Testing & Polish**:
-   - Test on iOS and Android devices
-   - Fix mobile-specific bugs
+   - Test Capacitor plugins on iOS and Android devices
+   - Implement proper error handling for native APIs
    - Optimize app size and performance
 
 ## Technical Considerations
@@ -237,49 +461,80 @@ async createMobileSpace(name?: string): Promise<string> {
 ```json
 {
   "dependencies": {
+    "@capacitor/core": "^7.0.0",
     "@capacitor/filesystem": "^7.0.0",
     "@capacitor/preferences": "^7.0.0", 
+    "@capacitor/dialog": "^7.0.0",
     "@capacitor/share": "^7.0.0",
     "@capacitor/camera": "^7.0.0",
-    "@capacitor/device": "^7.0.0"
+    "@capacitor/device": "^7.0.0",
+    "@capacitor/network": "^7.0.0"
   }
 }
 ```
 
+### Capacitor-Specific Advantages
+
+1. **Native File System Access**: Full access to app-specific directories
+2. **Native Dialogs**: Platform-specific dialog implementations
+3. **File Sharing**: Native sharing capabilities across apps
+4. **Camera Integration**: Direct camera access for file capture
+5. **Device Information**: Access to device capabilities and status
+6. **Network Monitoring**: Real-time network status updates
+
 ### Mobile-Specific Limitations
 
-1. **No File System Watching**: Mobile apps cannot watch file system changes
-2. **Limited File Access**: Only app-specific directories accessible
+1. **No File System Watching**: Capacitor doesn't support file watching (use polling)
+2. **Sandboxed Storage**: Only app-specific directories accessible
 3. **Storage Constraints**: Must be mindful of device storage limits
 4. **Background Limitations**: Limited background processing capabilities
+5. **Platform Differences**: iOS vs Android have different file system behaviors
 
 ### Security Considerations
 
-1. **Data Encryption**: Encrypt sensitive data in IndexedDB
-2. **Secure Storage**: Use Capacitor's secure storage for secrets
-3. **File Access**: Implement proper file access controls
+1. **Data Encryption**: Encrypt sensitive data in Capacitor Filesystem
+2. **Secure Storage**: Use Capacitor Preferences for secure key-value storage
+3. **File Access**: Implement proper file access controls in app directories
 4. **Network Security**: Secure any cloud storage integration
+5. **Native Security**: Leverage platform-specific security features through Capacitor
 
 ## Success Metrics
 
-1. **Functional Parity**: Core Sila features work on mobile
-2. **Performance**: App loads and responds quickly on mobile devices
-3. **Storage Efficiency**: Efficient use of mobile storage
-4. **User Experience**: Intuitive mobile interface
-5. **Cross-Platform**: Works consistently on iOS and Android
+1. **Functional Parity**: Core Sila features work on mobile using Capacitor
+2. **Native Performance**: App leverages native capabilities for optimal performance
+3. **Storage Efficiency**: Efficient use of Capacitor Filesystem and device storage
+4. **User Experience**: Intuitive mobile interface with native feel
+5. **Cross-Platform**: Works consistently on iOS and Android using Capacitor
+6. **Native Integration**: Seamless integration with device features (camera, sharing, etc.)
 
 ## Future Enhancements
 
-1. **Cloud Storage Integration**: Sync workspaces across devices
-2. **Offline-First**: Robust offline functionality
-3. **Mobile-Specific Features**: Camera integration, voice input, etc.
-4. **Desktop-Mobile Sync**: Seamless workspace sharing between platforms
-5. **Progressive Web App**: Web-based mobile version
+1. **Cloud Storage Integration**: Sync workspaces across devices using Capacitor
+2. **Offline-First**: Robust offline functionality with Capacitor storage
+3. **Advanced Native Features**: 
+   - Voice input using Capacitor plugins
+   - Biometric authentication
+   - Push notifications
+   - Background sync
+4. **Desktop-Mobile Sync**: Seamless workspace sharing using Capacitor Share
+5. **Progressive Web App**: Web-based mobile version with Capacitor fallbacks
+6. **Platform-Specific Features**: 
+   - iOS Shortcuts integration
+   - Android widgets
+   - Platform-specific UI adaptations
 
 ## Conclusion
 
-This proposal provides a comprehensive plan for bringing Sila to mobile devices while maintaining the core functionality that makes it powerful on desktop. The phased approach ensures we can deliver a working mobile app quickly while building toward a more sophisticated mobile experience.
+This proposal provides a comprehensive plan for bringing Sila to mobile devices using Capacitor's native capabilities while maintaining the core functionality that makes it powerful on desktop. The Capacitor-first approach ensures we can deliver a truly native mobile experience.
 
-The key insight is that mobile Sila will primarily use IndexedDB-only persistence for local workspaces, with future cloud integration for cross-device synchronization. This approach maintains the local-first philosophy while adapting to mobile platform constraints.
+The key insight is that mobile Sila will leverage Capacitor's native APIs for:
+- **File System**: Using Capacitor Filesystem for app-specific storage
+- **Dialogs**: Using Capacitor Dialog for native platform dialogs  
+- **Storage**: Using Capacitor Preferences for secure key-value storage
+- **Sharing**: Using Capacitor Share for native file sharing
+- **Camera**: Using Capacitor Camera for file capture and import
+- **Device Info**: Using Capacitor Device for platform-specific optimizations
 
-By following this plan, we can deliver a mobile version of Sila that provides the core workspace and file management capabilities users expect, while laying the groundwork for future enhancements like cloud sync and mobile-specific features.
+This approach maintains the local-first philosophy while providing a truly native mobile experience that feels integrated with the platform. By using Capacitor's comprehensive plugin ecosystem, we can deliver mobile-specific features that go beyond what a simple web app could provide.
+
+By following this plan, we can deliver a mobile version of Sila that not only provides the core workspace and file management capabilities users expect, but also leverages native mobile features for an enhanced user experience. The Capacitor-based architecture provides a solid foundation for future enhancements like cloud sync, advanced native features, and platform-specific optimizations.
