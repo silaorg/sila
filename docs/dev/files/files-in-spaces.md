@@ -373,6 +373,7 @@ The mutable storage system is designed for data that needs to be updated or rota
 - **Temporary Data**: Session data, temporary files, or working directories
 - **Configuration Blobs**: Large configuration objects that may be updated
 - **Session State**: User session data that changes over time
+- **Document Editing**: Agent-edited copies of user documents
 
 **Key Differences from CAS:**
 - **No Deduplication**: Each UUID maps to exactly one blob
@@ -380,12 +381,35 @@ The mutable storage system is designed for data that needs to be updated or rota
 - **UUID-Addressed**: Access by UUID rather than content hash
 - **Mutable**: Content can be updated, rotated, or deleted
 
+**Protection Mechanisms:**
+
+- **SHA256 Protection**: SHA256 hashes cannot be used as UUIDs (prevents accidental mutation of immutable files)
+- **Format Validation**: Strict UUID format validation (with or without hyphens)
+- **Automatic UUID Cleaning**: Hyphens are automatically removed for storage paths
+- **Clear Error Messages**: Helpful error messages guide developers to correct usage
+
+**Document Editing Workflow:**
+
+A common use case is when a user uploads a document and an agent needs to edit it:
+
+1. **User uploads document** → stored as immutable SHA256 file
+2. **Agent creates editable copy** → `createMutableCopyFromHash()` creates UUID-based copy
+3. **Agent edits document** → overwrites the mutable copy
+4. **Both versions preserved** → original immutable, edited mutable
+
+This ensures the original is never modified while allowing agent processing.
+
 **Example Usage:**
 ```typescript
 // Store encrypted secret bundle
 const secretUuid = crypto.randomUUID();
 const encryptedSecret = await encrypt(secretData);
 await fileStore.putMutable(secretUuid, encryptedSecret);
+
+// Document editing workflow
+const originalHash = await fileStore.putBytes(userDocument);
+const editableUuid = await fileStore.createMutableCopyFromHash(originalHash);
+await fileStore.putMutable(editableUuid.uuid, editedDocument);
 
 // Later, update the secret (re-encrypt with new key)
 const newEncryptedSecret = await encrypt(secretData, newKey);

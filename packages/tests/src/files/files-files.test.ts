@@ -372,11 +372,12 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(new TextDecoder().decode(retrievedData)).toBe('Hello, mutable storage!');
 		expect(retrievedData).toEqual(testData);
 		
-		// Verify mutable path structure exists
-		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', testUuid.slice(0, 2), testUuid.slice(2));
-		await access(mutablePath);
-		const raw = await readFile(mutablePath);
-		expect(raw).toEqual(Buffer.from(testData));
+	// Verify mutable path structure exists (UUID is cleaned of hyphens)
+	const cleanUuid = testUuid.replace(/-/g, '');
+	const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', cleanUuid.slice(0, 2), cleanUuid.slice(2));
+	await access(mutablePath);
+	const raw = await readFile(mutablePath);
+	expect(raw).toEqual(Buffer.from(testData));
 		
 		// Test overwriting (mutable behavior)
 		const newData = new TextEncoder().encode('Updated mutable data!');
@@ -434,7 +435,8 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 
 		// Verify path structures
 		const immutablePath = path.join(tempDir, 'space-v1', 'files', 'static', 'sha256', immutableResult.hash.slice(0, 2), immutableResult.hash.slice(2));
-		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', mutableUuid.slice(0, 2), mutableUuid.slice(2));
+		const cleanUuid = mutableUuid.replace(/-/g, '');
+		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', cleanUuid.slice(0, 2), cleanUuid.slice(2));
 
 		await access(immutablePath);
 		await access(mutablePath);
@@ -550,5 +552,159 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		
 		expect(new TextDecoder().decode(retrievedImmutable)).toBe('Immutable content');
 		expect(new TextDecoder().decode(retrievedMutable)).toBe('Mutable content');
+	});
+
+	it('prevents SHA256 hashes from being stored as mutable files', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'SHA Protection Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		// Store a file as immutable first
+		const testData = new TextEncoder().encode('Test document content');
+		const immutableResult = await fileStore!.putBytes(testData);
+		const hash = immutableResult.hash;
+
+		// Try to store the same hash as a mutable file - this should fail
+		await expect(fileStore!.putMutable(hash, testData)).rejects.toThrow(
+			`Cannot store SHA256 hash '${hash}' as mutable file. SHA256 files are immutable. Use putBytes() for immutable storage or generate a new UUID for mutable storage.`
+		);
+
+		// Verify the original immutable file still exists and is unchanged
+		expect(await fileStore!.exists(hash)).toBe(true);
+		const retrievedData = await fileStore!.getBytes(hash);
+		expect(new TextDecoder().decode(retrievedData)).toBe('Test document content');
+	});
+
+	it('demonstrates the document editing use case', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'Document Editing Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		console.log('\n=== Document Editing Use Case ===');
+		
+		// Step 1: User uploads a document (stored as immutable)
+		const originalDocument = new TextEncoder().encode('Original document content');
+		const immutableResult = await fileStore!.putBytes(originalDocument);
+		const originalHash = immutableResult.hash;
+		
+		console.log(`1. User uploads document:`);
+		console.log(`   Hash: ${originalHash}`);
+		console.log(`   URL: sila://spaces/${spaceId}/files/${originalHash}?type=text/plain&name=document.txt`);
+		console.log(`   Path: ${tempDir}/space-v1/files/static/sha256/${originalHash.slice(0, 2)}/${originalHash.slice(2)}`);
+		
+		// Step 2: Agent creates a mutable copy for editing
+		const mutableCopyResult = await fileStore!.createMutableCopyFromHash(originalHash);
+		const editableUuid = mutableCopyResult.uuid;
+		
+		console.log(`\n2. Agent creates editable copy:`);
+		console.log(`   UUID: ${editableUuid}`);
+		console.log(`   URL: sila://spaces/${spaceId}/files/${editableUuid}?type=text/plain&name=document-editable.txt`);
+		console.log(`   Path: ${tempDir}/space-v1/files/var/uuid/${editableUuid.slice(0, 2)}/${editableUuid.slice(2)}`);
+		
+		// Step 3: Agent edits the document (overwrites the mutable copy)
+		const editedDocument = new TextEncoder().encode('Edited document content with agent modifications');
+		await fileStore!.putMutable(editableUuid, editedDocument);
+		
+		console.log(`\n3. Agent edits the document (overwrites mutable copy)`);
+		console.log(`   Original immutable file remains unchanged`);
+		console.log(`   Editable copy is updated with new content`);
+		
+		// Step 4: Verify both versions exist and are correct
+		const originalContent = await fileStore!.getBytes(originalHash);
+		const editedContent = await fileStore!.getMutable(editableUuid);
+		
+		expect(new TextDecoder().decode(originalContent)).toBe('Original document content');
+		expect(new TextDecoder().decode(editedContent)).toBe('Edited document content with agent modifications');
+		
+		console.log(`\n4. Verification:`);
+		console.log(`   Original (immutable): "${new TextDecoder().decode(originalContent)}"`);
+		console.log(`   Edited (mutable): "${new TextDecoder().decode(editedContent)}"`);
+		console.log(`   Both files exist independently`);
+		console.log('================================\n');
+	});
+
+	it('validates UUID format requirements', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'UUID Validation Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		const testData = new TextEncoder().encode('Test data');
+
+		// Test valid UUID formats
+		const validUuids = [
+			'12345678-1234-1234-1234-123456789abc', // With hyphens
+			'12345678123412341234123456789abc',  // Without hyphens (32 chars)
+			'ABCDEF12-3456-7890-ABCD-EF1234567890', // Uppercase
+			'abcdef12-3456-7890-abcd-ef1234567890'  // Lowercase
+		];
+
+		for (const uuid of validUuids) {
+			await expect(fileStore!.putMutable(uuid, testData)).resolves.not.toThrow();
+			expect(await fileStore!.existsMutable(uuid)).toBe(true);
+			await fileStore!.deleteMutable(uuid);
+		}
+
+		// Test invalid formats
+		const invalidIdentifiers = [
+			'not-a-uuid',                    // Invalid format
+			'12345678-1234-1234-1234',      // Too short
+			'12345678-1234-1234-1234-123456789abc-extra', // Too long
+			'12345678-1234-1234-1234-123456789abg',       // Invalid character
+			'',                              // Empty string
+			'12345678_1234_1234_1234_123456789abc'        // Wrong separator
+		];
+
+		for (const invalidId of invalidIdentifiers) {
+			await expect(fileStore!.putMutable(invalidId, testData)).rejects.toThrow();
+			expect(await fileStore!.existsMutable(invalidId)).toBe(false);
+		}
 	});
 });
