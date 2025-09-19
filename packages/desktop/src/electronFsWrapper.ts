@@ -62,6 +62,10 @@ export class ElectronFsWrapper implements AppFileSystem {
   ): Promise<UnwatchFn> {
     return this.api.watch(path, callback, options);
   }
+
+  async delete(path: string): Promise<void> {
+    return this.api.delete(path);
+  }
 }
 
 export const electronFsWrapper = new ElectronFsWrapper(); 

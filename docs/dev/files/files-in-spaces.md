@@ -25,13 +25,19 @@ Files are stored on disk using their SHA-256 hash as the address:
       sha256/
         ab/
           cdef...89      # full hash split as 2+rest, binary content
+      mutable/
+        uuid/
+          {uuid}         # uuid-addressed mutable blobs
     secrets              # encrypted secrets
     space.json           # metadata with space id
 ```
 
-- **Path Structure**: `space-v1/files/sha256/<hash[0..1]>/<hash[2..]>`
-- **Deduplication**: Identical files map to the same path automatically
+- **Path Structure**: 
+  - Immutable: `space-v1/files/sha256/<hash[0..1]>/<hash[2..]>`
+  - Mutable: `space-v1/files/mutable/uuid/<uuid>`
+- **Deduplication**: Identical files map to the same path automatically (immutable only)
 - **Hash Collision**: SHA-256 provides excellent collision resistance for practical use
+- **Mutable Storage**: UUID-addressed blobs for values that may be rotated/overwritten
 
 ### Files AppTree (Logical Organization)
 
@@ -120,12 +126,19 @@ interface FileReference {
 
 ```typescript
 interface FileStore {
+  // Immutable CAS methods (content-addressed)
   putDataUrl(dataUrl: string): Promise<{ hash: string; mimeType?: string; size: number }>;
   putBytes(bytes: Uint8Array, mimeType?: string): Promise<{ hash: string; size: number }>;
   exists(hash: string): Promise<boolean>;
   getBytes(hash: string): Promise<Uint8Array>;
   getDataUrl(hash: string): Promise<string>;
   delete(hash: string): Promise<void>; // No-op in current implementation
+  
+  // Mutable storage methods (uuid-addressed)
+  putMutable(uuid: string, bytes: Uint8Array): Promise<void>;
+  getMutable(uuid: string): Promise<Uint8Array>;
+  existsMutable(uuid: string): Promise<boolean>;
+  deleteMutable(uuid: string): Promise<void>;
 }
 ```
 
@@ -344,9 +357,42 @@ interface FilePreviewConfig {
 
 ### Storage Efficiency
 
-- **Content Addressing**: Automatic deduplication by hash
+- **Content Addressing**: Automatic deduplication by hash (immutable storage)
 - **Metadata Separation**: File metadata separate from content
 - **Garbage Collection**: Future support for unreferenced file cleanup
+- **Mutable Storage**: UUID-addressed blobs for values that may be rotated/overwritten
+
+### Mutable Storage Use Cases
+
+The mutable storage system is designed for data that needs to be updated or rotated:
+
+- **Encrypted Secret Bundles**: Secrets that may be re-encrypted with new keys
+- **Thumbnail Caches**: Generated thumbnails that may be regenerated with different settings
+- **Temporary Data**: Session data, temporary files, or working directories
+- **Configuration Blobs**: Large configuration objects that may be updated
+- **Session State**: User session data that changes over time
+
+**Key Differences from CAS:**
+- **No Deduplication**: Each UUID maps to exactly one blob
+- **Overwritable**: Content can be replaced without changing the UUID
+- **UUID-Addressed**: Access by UUID rather than content hash
+- **Mutable**: Content can be updated, rotated, or deleted
+
+**Example Usage:**
+```typescript
+// Store encrypted secret bundle
+const secretUuid = crypto.randomUUID();
+const encryptedSecret = await encrypt(secretData);
+await fileStore.putMutable(secretUuid, encryptedSecret);
+
+// Later, update the secret (re-encrypt with new key)
+const newEncryptedSecret = await encrypt(secretData, newKey);
+await fileStore.putMutable(secretUuid, newEncryptedSecret); // Same UUID, new content
+
+// Retrieve the secret
+const currentSecret = await fileStore.getMutable(secretUuid);
+const decrypted = await decrypt(currentSecret);
+```
 
 ## Security
 

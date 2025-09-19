@@ -1,10 +1,17 @@
 export interface FileStore {
+	// Existing CAS methods (immutable, content-addressed)
 	putDataUrl(dataUrl: string): Promise<{ hash: string; size: number }>;
 	putBytes(bytes: Uint8Array): Promise<{ hash: string; size: number }>;
 	exists(hash: string): Promise<boolean>;
 	getBytes(hash: string): Promise<Uint8Array>;
 	getDataUrl(hash: string): Promise<string>;
 	delete(hash: string): Promise<void>;
+	
+	// New mutable storage methods (uuid-addressed)
+	putMutable(uuid: string, bytes: Uint8Array): Promise<void>;
+	getMutable(uuid: string): Promise<Uint8Array>;
+	existsMutable(uuid: string): Promise<boolean>;
+	deleteMutable(uuid: string): Promise<void>;
 }
 
 import type { AppFileSystem } from "../../appFs";
@@ -60,6 +67,10 @@ function makeBytesPath(spaceRoot: string, hash: string): string {
 	return `${spaceRoot}/space-v1/files/sha256/${prefix}/${rest}`;
 }
 
+function makeMutablePath(spaceRoot: string, uuid: string): string {
+	return `${spaceRoot}/space-v1/files/mutable/uuid/${uuid}`;
+}
+
 class FileSystemFileStore implements FileStore {
 	constructor(private spaceRoot: string, private fs: AppFileSystem) {}
 
@@ -99,5 +110,30 @@ class FileSystemFileStore implements FileStore {
 
 	async delete(hash: string): Promise<void> {
 		// GC is out of scope for Phase 1; no-op
+	}
+
+	// Mutable storage methods
+	async putMutable(uuid: string, bytes: Uint8Array): Promise<void> {
+		const path = makeMutablePath(this.spaceRoot, uuid);
+		const handle = await this.fs.create(path);
+		await handle.write(bytes);
+		await handle.close();
+	}
+
+	async getMutable(uuid: string): Promise<Uint8Array> {
+		const path = makeMutablePath(this.spaceRoot, uuid);
+		return await this.fs.readBinaryFile(path);
+	}
+
+	async existsMutable(uuid: string): Promise<boolean> {
+		const path = makeMutablePath(this.spaceRoot, uuid);
+		return await this.fs.exists(path);
+	}
+
+	async deleteMutable(uuid: string): Promise<void> {
+		const path = makeMutablePath(this.spaceRoot, uuid);
+		if (await this.fs.exists(path)) {
+			await this.fs.delete(path);
+		}
 	}
 }

@@ -332,4 +332,168 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(appTreeLoaded).toBeDefined();
 		expect(appTreeLoaded!.getAppId()).toBe('default-chat');
 	});
+
+	it('supports mutable blob storage with UUID addressing', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'Mutable Storage Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		// Test mutable storage operations
+		const testUuid = crypto.randomUUID();
+		const testData = new TextEncoder().encode('Hello, mutable storage!');
+		
+		// Initially should not exist
+		expect(await fileStore!.existsMutable(testUuid)).toBe(false);
+		
+		// Store mutable data
+		await fileStore!.putMutable(testUuid, testData);
+		
+		// Should now exist
+		expect(await fileStore!.existsMutable(testUuid)).toBe(true);
+		
+		// Retrieve and verify data
+		const retrievedData = await fileStore!.getMutable(testUuid);
+		expect(new TextDecoder().decode(retrievedData)).toBe('Hello, mutable storage!');
+		expect(retrievedData).toEqual(testData);
+		
+		// Verify mutable path structure exists
+		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'mutable', 'uuid', testUuid);
+		await access(mutablePath);
+		const raw = await readFile(mutablePath);
+		expect(raw).toEqual(Buffer.from(testData));
+		
+		// Test overwriting (mutable behavior)
+		const newData = new TextEncoder().encode('Updated mutable data!');
+		await fileStore!.putMutable(testUuid, newData);
+		
+		const updatedData = await fileStore!.getMutable(testUuid);
+		expect(new TextDecoder().decode(updatedData)).toBe('Updated mutable data!');
+		expect(updatedData).toEqual(newData);
+		
+		// Test deletion
+		await fileStore!.deleteMutable(testUuid);
+		expect(await fileStore!.existsMutable(testUuid)).toBe(false);
+	});
+
+	it('supports both immutable CAS and mutable storage simultaneously', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'Dual Storage Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		// Test data
+		const immutableData = new TextEncoder().encode('Immutable content');
+		const mutableUuid = crypto.randomUUID();
+		const mutableData = new TextEncoder().encode('Mutable content');
+
+		// Store in both systems
+		const immutableResult = await fileStore!.putBytes(immutableData);
+		await fileStore!.putMutable(mutableUuid, mutableData);
+
+		// Verify both exist
+		expect(await fileStore!.exists(immutableResult.hash)).toBe(true);
+		expect(await fileStore!.existsMutable(mutableUuid)).toBe(true);
+
+		// Verify both can be retrieved
+		const retrievedImmutable = await fileStore!.getBytes(immutableResult.hash);
+		const retrievedMutable = await fileStore!.getMutable(mutableUuid);
+
+		expect(retrievedImmutable).toEqual(immutableData);
+		expect(retrievedMutable).toEqual(mutableData);
+
+		// Verify path structures
+		const immutablePath = path.join(tempDir, 'space-v1', 'files', 'sha256', immutableResult.hash.slice(0, 2), immutableResult.hash.slice(2));
+		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'mutable', 'uuid', mutableUuid);
+
+		await access(immutablePath);
+		await access(mutablePath);
+
+		// Test that identical immutable content gets deduplicated
+		const duplicateResult = await fileStore!.putBytes(immutableData);
+		expect(duplicateResult.hash).toBe(immutableResult.hash);
+
+		// Test that mutable content can be overwritten (no deduplication)
+		const newMutableData = new TextEncoder().encode('New mutable content');
+		await fileStore!.putMutable(mutableUuid, newMutableData);
+		const finalMutableData = await fileStore!.getMutable(mutableUuid);
+		expect(new TextDecoder().decode(finalMutableData)).toBe('New mutable content');
+	});
+
+	it('handles mutable storage edge cases', async () => {
+		const fs = new NodeFileSystem();
+
+		const space = Space.newSpace(crypto.randomUUID());
+		const spaceId = space.getId();
+		space.name = 'Mutable Edge Cases Test Space';
+
+		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+		const manager = new SpaceManager();
+		await manager.addNewSpace(space, [layer]);
+
+		// Give time to ensure base structure is on disk
+		await wait(600);
+
+		// Create file store bound to this workspace path
+		const fileStore = createFileStore({
+			getSpaceRootPath: () => tempDir,
+			getFs: () => fs
+		});
+		expect(fileStore).toBeTruthy();
+
+		// Test empty data
+		const emptyUuid = crypto.randomUUID();
+		await fileStore!.putMutable(emptyUuid, new Uint8Array(0));
+		expect(await fileStore!.existsMutable(emptyUuid)).toBe(true);
+		const emptyData = await fileStore!.getMutable(emptyUuid);
+		expect(emptyData.length).toBe(0);
+
+		// Test large data
+		const largeUuid = crypto.randomUUID();
+		const largeData = new Uint8Array(1024 * 1024); // 1MB
+		for (let i = 0; i < largeData.length; i++) {
+			largeData[i] = i % 256;
+		}
+		await fileStore!.putMutable(largeUuid, largeData);
+		const retrievedLargeData = await fileStore!.getMutable(largeUuid);
+		expect(retrievedLargeData).toEqual(largeData);
+
+		// Test deleting non-existent mutable blob
+		const nonExistentUuid = crypto.randomUUID();
+		await expect(fileStore!.deleteMutable(nonExistentUuid)).resolves.not.toThrow();
+		expect(await fileStore!.existsMutable(nonExistentUuid)).toBe(false);
+
+		// Test getting non-existent mutable blob
+		await expect(fileStore!.getMutable(nonExistentUuid)).rejects.toThrow();
+	});
 });
