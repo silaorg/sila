@@ -76,291 +76,293 @@ Based on codebase analysis, the most valuable components for standalone demos ar
 
 ## Proposed Architecture
 
-### 1. Svelte Demo Component System
+### 1. Full SIla App in Demo Mode
 
-Create a Svelte-based demo system that can render SIla components in isolation:
+Run the complete SIla application in a special "demo mode" that:
+
+- **Uses real SIla components** - `SilaApp.svelte`, `Space.svelte`, `ChatApp.svelte`, etc.
+- **No persistence** - all data in-memory only
+- **Mock AI responses** - simulated API calls
+- **Pre-configured state** - specific screens/tabs locked open
+- **Simplified navigation** - remove elements not relevant for demo
 
 ```typescript
-// packages/demo-components/src/DemoWrapper.ts
-export interface DemoConfig {
-  component: 'chat' | 'chat-message' | 'message-form' | 'full-space';
+// packages/demo-app/src/DemoAppConfig.ts
+export interface DemoAppConfig {
+  mode: 'chat-demo' | 'settings-demo' | 'full-demo';
   theme?: 'light' | 'dark' | 'auto';
-  mockData?: MockDataConfig;
-  interactions?: InteractionConfig;
-  layout?: 'standalone' | 'embedded' | 'fullscreen';
+  initialMessages?: ThreadMessage[];
+  lockedTabs?: string[]; // Tab IDs that can't be closed
+  hiddenUI?: string[]; // UI elements to hide (sidebar, settings, etc.)
+  mockAI?: boolean;
 }
 
-export interface MockDataConfig {
-  messages?: ThreadMessage[];
-  assistants?: AppConfig[];
-  providers?: ModelProviderConfig[];
-  attachments?: AttachmentPreview[];
-  spaceConfig?: {
-    name?: string;
-    onboarding?: boolean;
-  };
-}
-
-export interface InteractionConfig {
-  allowSending?: boolean;
-  allowFileUpload?: boolean;
-  allowConfigChange?: boolean;
-  mockResponses?: boolean;
-  allowMessageEdit?: boolean;
-  allowBranching?: boolean;
-}
-
-export class SvelteDemoWrapper {
-  private app: any; // Svelte app instance
-  private demoBuilder: DemoSpaceBuilder;
-  
-  constructor(private config: DemoConfig) {
-    this.demoBuilder = new DemoSpaceBuilder(config);
-  }
-  
-  async render(targetElement: HTMLElement): Promise<void> {
-    // Create and mount Svelte app with demo components
-    // Set up demo space and real SIla components
-    // Apply theme and styling
-    // Handle interactions based on config
-  }
-  
-  destroy(): void {
-    // Unmount Svelte app and cleanup
-    this.app?.$destroy?.();
-  }
+export interface DemoState {
+  config: DemoAppConfig;
+  spaceId: string;
+  chatTreeId?: string;
+  settingsOpen?: boolean;
 }
 ```
 
-### 2. Real SIla Components with Demo Data
+### 2. Demo Mode Implementation
 
-Use actual SIla components with properly configured demo spaces:
+Create a demo-specific version of SIla's main app:
 
 ```typescript
-// packages/demo-components/src/demo/DemoSpaceBuilder.ts
-import { RepTree } from "reptree";
-import { Space } from "@sila/core";
-import { ChatAppData } from "@sila/core";
-import type { DemoConfig } from "../DemoWrapper";
-
-export class DemoSpaceBuilder {
-  private space: Space;
-  private chatData: ChatAppData;
-  
-  constructor(private config: DemoConfig) {
-    this.initializeDemoSpace();
-  }
-  
-  private initializeDemoSpace(): void {
-    // Create a real space with RepTree - just like SIla does
-    const tree = new RepTree('demo-peer-id');
-    const rootId = tree.createRoot().id;
-    
-    // Set up space structure exactly like SIla
-    tree.setVertexProperties(rootId, {
-      '_c': new Date().toISOString(),
-      'version': '0',
-      'onboarding': false
-    });
-    
-    // Add app configs
-    const apps = tree.newNamedVertex(rootId, 'app-configs');
-    const defaultConfig = this.createDemoAppConfig();
-    tree.newVertex(apps.id, defaultConfig);
-    
-    // Add providers (empty for demo)
-    tree.newNamedVertex(rootId, 'providers');
-    
-    // Add app forest
-    tree.newNamedVertex(rootId, 'app-forest');
-    
-    this.space = new Space(tree);
-    
-    // Create real chat data
-    const appTree = ChatAppData.createNewChatTree(this.space, "demo-chat");
-    this.chatData = new ChatAppData(this.space, appTree);
-    
-    // Add initial demo messages if configured
-    this.addInitialDemoMessages();
-  }
-  
-  private createDemoAppConfig() {
-    return {
-      id: "demo-chat",
-      name: "Demo Assistant",
-      button: "New query",
-      visible: true,
-      description: "A demo AI assistant",
-      instructions: "You are a helpful AI assistant in demo mode. Be friendly and informative.",
-    };
-  }
-  
-  private async addInitialDemoMessages(): Promise<void> {
-    if (!this.config.mockData?.messages) return;
-    
-    // Add the configured demo messages to the chat
-    for (const message of this.config.mockData.messages) {
-      await this.chatData.newMessage(message.role, message.text, message.attachments);
-    }
-  }
-  
-  get space(): Space {
-    return this.space;
-  }
-  
-  get chatAppData(): ChatAppData {
-    return this.chatData;
-  }
-  
-  async simulateAIResponse(userMessage: string): Promise<void> {
-    if (!this.config.interactions?.mockResponses) return;
-    
-    const responses = [
-      `Thanks for your message: "${userMessage}". This is a demo response!`,
-      "I'm a demo AI assistant. How can I help you explore SIla's features?",
-      "This demo shows how SIla's chat interface works. Pretty cool, right?",
-      "In the real SIla app, I would connect to actual AI models like GPT-4 or Claude.",
-    ];
-    
-    const response = responses[Math.floor(Math.random() * responses.length)];
-    
-    // Simulate typing delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-    
-    // Add assistant response using real ChatAppData
-    await this.chatData.newMessage('assistant', response);
-  }
-}
-```
-
-### 3. Svelte Demo Components
-
-Create standalone Svelte components that can work without the full SIla infrastructure:
-
-```svelte
-<!-- packages/demo-components/src/components/DemoChatApp.svelte -->
+// packages/demo-app/src/DemoSilaApp.svelte
 <script lang="ts">
   import { onMount } from 'svelte';
-  import ChatApp from '@sila/client/comps/apps/ChatApp.svelte';
-  import SendMessageForm from '@sila/client/comps/forms/SendMessageForm.svelte';
-  import type { DemoSpaceBuilder } from '../demo/DemoSpaceBuilder';
-  import type { DemoConfig } from '../DemoWrapper';
+  import SilaApp from '@sila/client/comps/SilaApp.svelte';
+  import { clientState } from '@sila/client/state/clientState.svelte';
+  import type { DemoAppConfig } from './DemoAppConfig';
 
-  let { config, demoBuilder }: { config: DemoConfig; demoBuilder: DemoSpaceBuilder } = $props();
+  let { config }: { config: DemoAppConfig } = $props();
   
-  let chatAppData = $state(demoBuilder.chatAppData);
-  let formStatus = $state<'can-send-message' | 'ai-message-in-progress' | 'disabled'>('can-send-message');
-  
-  // Handle message sending with demo responses
-  async function handleSendMessage(message: string, attachments?: any[]) {
-    // Add user message using real ChatAppData
-    await chatAppData.newMessage('user', message, attachments);
+  // Override clientState for demo mode
+  const demoClientConfig = {
+    fs: null, // No file system
+    dialog: null // No native dialogs
+  };
+
+  onMount(async () => {
+    // Initialize client state in demo mode
+    await clientState.init(demoClientConfig);
     
-    // Update form status
-    formStatus = 'ai-message-in-progress';
+    // Create demo space with pre-configured data
+    const spaceId = await createDemoSpace();
     
-    // Simulate AI response
-    await demoBuilder.simulateAIResponse(message);
+    // Set up demo-specific state
+    setupDemoState(spaceId);
+  });
+
+  async function createDemoSpace(): Promise<string> {
+    // Create space with no persistence
+    const spaceId = await clientState.createSpace('demo://in-memory');
     
-    // Reset form status
-    formStatus = 'can-send-message';
+    // Add initial demo messages if configured
+    if (config.initialMessages) {
+      await addDemoMessages(spaceId, config.initialMessages);
+    }
+    
+    return spaceId;
   }
-  
-  function handleStopMessage() {
-    // In demo mode, just reset status
-    formStatus = 'can-send-message';
+
+  function setupDemoState(spaceId: string): void {
+    // Lock specific tabs if configured
+    if (config.lockedTabs) {
+      // Prevent closing of specified tabs
+    }
+    
+    // Hide UI elements if configured
+    if (config.hiddenUI) {
+      // Hide sidebar, settings, etc.
+    }
   }
 </script>
 
-<div class="demo-chat-container">
-  <ChatApp data={chatAppData} />
-  <div class="demo-message-form">
-    <SendMessageForm
-      onSend={handleSendMessage}
-      onStop={handleStopMessage}
-      status={formStatus}
-      draftId={chatAppData.threadId}
-      maxLines={10}
-      data={chatAppData}
-      attachEnabled={config.interactions?.allowFileUpload}
-      showConfigSelector={config.interactions?.allowConfigChange}
-    />
-  </div>
-</div>
+<!-- Use real SilaApp component with demo config -->
+<SilaApp config={demoClientConfig} />
 
 <style>
-  .demo-chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    max-height: 600px;
-    border: 1px solid var(--surface-300-700);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .demo-message-form {
-    border-top: 1px solid var(--surface-300-700);
-    padding: 1rem;
-    background: var(--surface-50-950);
+  /* Demo-specific styling */
+  .demo-mode {
+    /* Hide elements based on config.hiddenUI */
   }
 </style>
 ```
 
-```svelte
-<!-- packages/demo-components/src/components/DemoMessageForm.svelte -->
-<script lang="ts">
-  import SendMessageForm from '@sila/client/comps/forms/SendMessageForm.svelte';
-  import type { DemoSpaceBuilder } from '../demo/DemoSpaceBuilder';
-  import type { DemoConfig } from '../DemoWrapper';
+### 3. Demo-Specific Persistence Layer
 
-  let { config, demoBuilder }: { config: DemoConfig; demoBuilder: DemoSpaceBuilder } = $props();
+Create an in-memory persistence layer that simulates real behavior:
+
+```typescript
+// packages/demo-app/src/DemoPersistenceLayer.ts
+import { PersistenceLayer } from '@sila/core';
+
+export class DemoPersistenceLayer implements PersistenceLayer {
+  id = 'demo-in-memory';
+  private data: Map<string, any> = new Map();
   
-  let chatAppData = $state(demoBuilder.chatAppData);
-  let formStatus = $state<'can-send-message' | 'ai-message-in-progress' | 'disabled'>('can-send-message');
+  async connect(): Promise<void> {
+    // Always connected in demo mode
+  }
   
-  async function handleSendMessage(message: string, attachments?: any[]) {
-    console.log('Demo message sent:', message);
+  async disconnect(): Promise<void> {
+    // Clear all demo data
+    this.data.clear();
+  }
+  
+  async saveTreeOps(treeId: string, ops: any[]): Promise<void> {
+    // Store operations in memory
+    this.data.set(`tree-ops-${treeId}`, ops);
+  }
+  
+  async loadTreeOps(treeId: string): Promise<any[]> {
+    // Return stored operations or empty array
+    return this.data.get(`tree-ops-${treeId}`) || [];
+  }
+  
+  async loadSpaceTreeOps(): Promise<any[]> {
+    return this.data.get('space-tree-ops') || [];
+  }
+  
+  async saveSecrets(secrets: Record<string, string>): Promise<void> {
+    this.data.set('secrets', secrets);
+  }
+  
+  async loadSecrets(): Promise<Record<string, string> | undefined> {
+    return this.data.get('secrets');
+  }
+}
+```
+
+### 4. Mock AI Provider
+
+Create a mock AI provider that responds to chat requests:
+
+```typescript
+// packages/demo-app/src/MockAIProvider.ts
+export class MockAIProvider {
+  private responses = [
+    "This is a demo response from SIla's AI assistant!",
+    "I'm here to help you explore SIla's capabilities.",
+    "This demo shows how the chat interface works with real AI responses.",
+    "In the full SIla app, I connect to models like GPT-4, Claude, or your own API.",
+  ];
+  
+  async generateResponse(messages: ThreadMessage[]): Promise<string> {
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop();
     
-    if (config.interactions?.mockResponses) {
-      formStatus = 'ai-message-in-progress';
-      
-      // Simulate processing
-      setTimeout(() => {
-        formStatus = 'can-send-message';
-      }, 2000);
+    // Contextual responses
+    if (lastUserMessage?.text.toLowerCase().includes('hello')) {
+      return "Hello! I'm your demo AI assistant. How can I help you explore SIla today?";
     }
+    
+    if (lastUserMessage?.text.toLowerCase().includes('help')) {
+      return "I'm here to help! This is a live demo of SIla's chat interface. Try asking me anything or uploading a file!";
+    }
+    
+    if (lastUserMessage?.text.toLowerCase().includes('features')) {
+      return "SIla offers powerful features like file uploads, multiple AI models, conversation branching, and local-first storage. This demo shows the chat interface!";
+    }
+    
+    // Simulate realistic response time
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+    
+    // Return contextual response
+    return this.responses[Math.floor(Math.random() * this.responses.length)];
+  }
+}
+```
+
+### 5. Demo App Integration
+
+Create different demo modes for different use cases:
+
+```typescript
+// packages/demo-app/src/DemoAppFactory.ts
+export class DemoAppFactory {
+  static createChatDemo(container: HTMLElement, config: DemoAppConfig): void {
+    const chatConfig: DemoAppConfig = {
+      ...config,
+      mode: 'chat-demo',
+      hiddenUI: ['sidebar', 'settings', 'space-switcher'],
+      lockedTabs: ['main-chat'],
+      initialMessages: [
+        {
+          role: 'user',
+          text: 'Hello! Can you help me understand SIla?',
+          createdAt: Date.now() - 30000
+        },
+        {
+          role: 'assistant', 
+          text: 'Hello! I\'d be happy to help you explore SIla. SIla is a powerful AI workspace that combines chat, file management, and AI assistants in one integrated environment.',
+          createdAt: Date.now() - 25000
+        }
+      ]
+    };
+    
+    mount(DemoSilaApp, {
+      target: container,
+      props: { config: chatConfig }
+    });
   }
   
-  function handleStopMessage() {
-    formStatus = 'can-send-message';
+  static createSettingsDemo(container: HTMLElement, config: DemoAppConfig): void {
+    const settingsConfig: DemoAppConfig = {
+      ...config,
+      mode: 'settings-demo',
+      hiddenUI: ['sidebar', 'chat-tabs'],
+      settingsOpen: true
+    };
+    
+    mount(DemoSilaApp, {
+      target: container,
+      props: { config: settingsConfig }
+    });
   }
-</script>
-
-<div class="demo-message-form-container">
-  <SendMessageForm
-    onSend={handleSendMessage}
-    onStop={handleStopMessage}
-    status={formStatus}
-    draftId={chatAppData.threadId}
-    maxLines={10}
-    data={chatAppData}
-    attachEnabled={config.interactions?.allowFileUpload}
-    showConfigSelector={config.interactions?.allowConfigChange}
-  />
-</div>
-
-<style>
-  .demo-message-form-container {
-    width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 1rem;
-    border: 1px solid var(--surface-300-700);
-    border-radius: 8px;
-    background: var(--surface-50-950);
+  
+  static createFullDemo(container: HTMLElement, config: DemoAppConfig): void {
+    // Full SIla experience with demo data
+    mount(DemoSilaApp, {
+      target: container,
+      props: { config }
+    });
   }
-</style>
+}
+```
+
+### 6. Website Integration
+
+Simple HTML integration for different demo scenarios:
+
+```html
+<!-- packages/demo-app/examples/chat-demo.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIla Chat Demo</title>
+    <script type="module" src="../dist/sila-demo-app.js"></script>
+    <style>
+        body { margin: 0; padding: 20px; font-family: system-ui; }
+        .demo-container { max-width: 1200px; margin: 0 auto; }
+        .demo-header { text-align: center; margin-bottom: 30px; }
+        .demo-footer { text-align: center; margin-top: 30px; padding: 20px; border-top: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>SIla Chat Interface Demo</h1>
+            <p>Experience SIla's chat capabilities without installing the app</p>
+            <p><small>This is a live demo with mock AI responses</small></p>
+        </div>
+        
+        <div id="sila-demo"></div>
+        
+        <div class="demo-footer">
+            <p>Try asking: "Hello!", "Help me understand SIla", or upload an image</p>
+            <p><a href="https://sila.org" target="_blank">Get the full SIla app →</a></p>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { DemoAppFactory } from '../dist/sila-demo-app.js';
+        
+        // Initialize chat demo
+        DemoAppFactory.createChatDemo(
+            document.getElementById('sila-demo'),
+            {
+                theme: 'auto',
+                mockAI: true
+            }
+        );
+    </script>
+</body>
+</html>
 ```
 
 ### 4. Svelte Demo Integration
@@ -542,88 +544,81 @@ Create standalone HTML pages for different demo scenarios:
 
 ## Implementation Plan
 
-### Phase 1: Core Demo Infrastructure (Week 1-2)
+### Phase 1: Demo App Foundation (Week 1-2)
 
-1. **Create Demo Components Package**:
+1. **Create Demo App Package**:
    ```bash
-   mkdir packages/demo-components
-   cd packages/demo-components
+   mkdir packages/demo-app
+   cd packages/demo-app
    npm init -y
    ```
 
 2. **Set up Package Structure**:
    ```
-   packages/demo-components/
+   packages/demo-app/
    ├── src/
-   │   ├── DemoWrapper.ts
-   │   ├── mocks/
-   │   │   ├── MockChatAppData.ts
-   │   │   ├── MockModelProvider.ts
-   │   │   └── MockClientState.ts
-   │   ├── components/
-   │   │   ├── ChatDemo.svelte
-   │   │   ├── MessageFormDemo.svelte
-   │   │   └── SettingsDemo.svelte
-   │   └── web-components/
-   │       ├── SilaChatDemo.ts
-   │       └── SilaMessageFormDemo.ts
+   │   ├── DemoSilaApp.svelte          # Main demo app component
+   │   ├── DemoAppConfig.ts            # Configuration interfaces
+   │   ├── DemoAppFactory.ts           # Factory for different demo modes
+   │   ├── DemoPersistenceLayer.ts     # In-memory persistence
+   │   ├── MockAIProvider.ts           # Mock AI responses
+   │   └── index.ts                    # Main entry point
    ├── examples/
-   │   ├── chat-demo.html
-   │   ├── message-form-demo.html
-   │   └── settings-demo.html
+   │   ├── chat-demo.html              # Chat-focused demo
+   │   ├── settings-demo.html          # Settings demo
+   │   └── full-demo.html              # Complete app demo
    ├── dist/
    └── package.json
    ```
 
-3. **Implement Mock State Management**:
-   - Create `MockChatAppData` class
-   - Implement `MockModelProvider` for AI responses
-   - Create `MockClientState` for app-level state
+3. **Implement Demo Infrastructure**:
+   - Create `DemoPersistenceLayer` for in-memory storage
+   - Implement `MockAIProvider` for realistic AI responses
+   - Set up `DemoAppConfig` for different demo modes
 
 4. **Build System Setup**:
-   - Configure Vite for component bundling
+   - Configure Vite for Svelte bundling
    - Set up TypeScript compilation
-   - Create web component builds
+   - Create optimized production builds
 
-### Phase 2: Component Extraction & Wrapping (Week 3-4)
+### Phase 2: Demo App Integration (Week 3-4)
 
-1. **Extract and Adapt Components**:
-   - Create standalone versions of `ChatApp.svelte`
-   - Extract `SendMessageForm.svelte` for independent use
-   - Adapt UI components for demo context
+1. **Create Demo App Component**:
+   - Build `DemoSilaApp.svelte` using real SIla components
+   - Implement demo-specific UI hiding/showing
+   - Add locked tabs and pre-configured state
 
-2. **Create Demo Wrappers**:
-   - Implement `DemoWrapper` class
-   - Create component-specific wrappers
-   - Add theme and interaction configuration
+2. **Implement Demo Modes**:
+   - Chat demo: Focus on chat interface only
+   - Settings demo: Show configuration screens
+   - Full demo: Complete SIla experience with demo data
 
-3. **Web Component Integration**:
-   - Create custom HTML elements
-   - Implement attribute-based configuration
-   - Add proper lifecycle management
+3. **Demo App Factory**:
+   - Create `DemoAppFactory` for easy initialization
+   - Add configuration presets for common use cases
+   - Implement theme and interaction customization
 
-4. **Mock Data System**:
-   - Create realistic demo conversations
-   - Implement file attachment simulation
-   - Add assistant and provider mock data
+4. **Mock AI Integration**:
+   - Connect mock AI provider to real chat system
+   - Add contextual responses based on user input
+   - Implement realistic response timing
 
-### Phase 3: Demo Examples & Documentation (Week 5-6)
+### Phase 3: Website Integration & Examples (Week 5-6)
 
 1. **Create Demo Examples**:
-   - Standalone HTML pages
-   - React integration examples
-   - Vue integration examples
-   - Vanilla JS integration examples
+   - Standalone HTML pages for different scenarios
+   - Embeddable demo widgets
+   - Full-screen demo experiences
 
 2. **Website Integration**:
-   - Create demo pages for sila.org
-   - Implement responsive design
-   - Add interactive features
+   - Add demo pages to sila.org
+   - Implement responsive design for mobile/desktop
+   - Add call-to-action elements
 
 3. **Documentation & Testing**:
    - Write integration guides
    - Create API documentation
-   - Add unit and integration tests
+   - Add unit tests for demo components
    - Create video demonstrations
 
 ## Technical Implementation Details
