@@ -112,15 +112,15 @@ export interface InteractionConfig {
 
 export class SvelteDemoWrapper {
   private app: any; // Svelte app instance
-  private mockState: MockDemoState;
+  private demoBuilder: DemoSpaceBuilder;
   
   constructor(private config: DemoConfig) {
-    this.mockState = new MockDemoState(config);
+    this.demoBuilder = new DemoSpaceBuilder(config);
   }
   
   async render(targetElement: HTMLElement): Promise<void> {
     // Create and mount Svelte app with demo components
-    // Set up mock state and data
+    // Set up demo space and real SIla components
     // Apply theme and styling
     // Handle interactions based on config
   }
@@ -132,32 +132,31 @@ export class SvelteDemoWrapper {
 }
 ```
 
-### 2. In-Memory Svelte State Management
+### 2. Real SIla Components with Demo Data
 
-Create mock state managers that simulate real SIla behavior using Svelte 5 patterns:
+Use actual SIla components with properly configured demo spaces:
 
 ```typescript
-// packages/demo-components/src/mocks/MockDemoState.ts
+// packages/demo-components/src/demo/DemoSpaceBuilder.ts
 import { RepTree } from "reptree";
 import { Space } from "@sila/core";
 import { ChatAppData } from "@sila/core";
+import type { DemoConfig } from "../DemoWrapper";
 
-export class MockDemoState {
+export class DemoSpaceBuilder {
   private space: Space;
   private chatData: ChatAppData;
-  private mockProviders: MockModelProvider[] = [];
   
   constructor(private config: DemoConfig) {
-    this.initializeMockSpace();
-    this.setupMockProviders();
+    this.initializeDemoSpace();
   }
   
-  private initializeMockSpace(): void {
-    // Create a mock space with RepTree
+  private initializeDemoSpace(): void {
+    // Create a real space with RepTree - just like SIla does
     const tree = new RepTree('demo-peer-id');
     const rootId = tree.createRoot().id;
     
-    // Set up basic space structure
+    // Set up space structure exactly like SIla
     tree.setVertexProperties(rootId, {
       '_c': new Date().toISOString(),
       'version': '0',
@@ -166,10 +165,10 @@ export class MockDemoState {
     
     // Add app configs
     const apps = tree.newNamedVertex(rootId, 'app-configs');
-    const defaultConfig = this.createMockAppConfig();
+    const defaultConfig = this.createDemoAppConfig();
     tree.newVertex(apps.id, defaultConfig);
     
-    // Add providers
+    // Add providers (empty for demo)
     tree.newNamedVertex(rootId, 'providers');
     
     // Add app forest
@@ -177,12 +176,15 @@ export class MockDemoState {
     
     this.space = new Space(tree);
     
-    // Create mock chat data
-    const appTree = this.createMockChatTree();
+    // Create real chat data
+    const appTree = ChatAppData.createNewChatTree(this.space, "demo-chat");
     this.chatData = new ChatAppData(this.space, appTree);
+    
+    // Add initial demo messages if configured
+    this.addInitialDemoMessages();
   }
   
-  private createMockAppConfig() {
+  private createDemoAppConfig() {
     return {
       id: "demo-chat",
       name: "Demo Assistant",
@@ -193,8 +195,13 @@ export class MockDemoState {
     };
   }
   
-  private createMockChatTree() {
-    return ChatAppData.createNewChatTree(this.space, "demo-chat");
+  private async addInitialDemoMessages(): Promise<void> {
+    if (!this.config.mockData?.messages) return;
+    
+    // Add the configured demo messages to the chat
+    for (const message of this.config.mockData.messages) {
+      await this.chatData.newMessage(message.role, message.text, message.attachments);
+    }
   }
   
   get space(): Space {
@@ -220,36 +227,8 @@ export class MockDemoState {
     // Simulate typing delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
     
-    // Add assistant response
+    // Add assistant response using real ChatAppData
     await this.chatData.newMessage('assistant', response);
-  }
-}
-```
-
-```typescript
-// packages/demo-components/src/mocks/MockModelProvider.ts
-export class MockModelProvider {
-  private responses: string[] = [
-    "This is a demo response from the mock AI assistant.",
-    "I'm here to help you explore SIla's capabilities.",
-    "This demo shows how the chat interface works.",
-    "You can interact with me just like in the real app!"
-  ];
-  
-  async generateResponse(messages: ThreadMessage[]): Promise<string> {
-    // Return contextual responses based on message history
-    const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-    
-    if (lastUserMessage?.text.toLowerCase().includes('hello')) {
-      return "Hello! I'm your demo AI assistant. How can I help you today?";
-    }
-    
-    if (lastUserMessage?.text.toLowerCase().includes('help')) {
-      return "I'm here to help! This is a demo of SIla's chat interface. Try asking me anything!";
-    }
-    
-    // Return random response
-    return this.responses[Math.floor(Math.random() * this.responses.length)];
   }
 }
 ```
@@ -264,24 +243,24 @@ Create standalone Svelte components that can work without the full SIla infrastr
   import { onMount } from 'svelte';
   import ChatApp from '@sila/client/comps/apps/ChatApp.svelte';
   import SendMessageForm from '@sila/client/comps/forms/SendMessageForm.svelte';
-  import type { MockDemoState } from '../mocks/MockDemoState';
+  import type { DemoSpaceBuilder } from '../demo/DemoSpaceBuilder';
   import type { DemoConfig } from '../DemoWrapper';
 
-  let { config, mockState }: { config: DemoConfig; mockState: MockDemoState } = $props();
+  let { config, demoBuilder }: { config: DemoConfig; demoBuilder: DemoSpaceBuilder } = $props();
   
-  let chatAppData = $state(mockState.chatAppData);
+  let chatAppData = $state(demoBuilder.chatAppData);
   let formStatus = $state<'can-send-message' | 'ai-message-in-progress' | 'disabled'>('can-send-message');
   
-  // Handle message sending with mock responses
+  // Handle message sending with demo responses
   async function handleSendMessage(message: string, attachments?: any[]) {
-    // Add user message
+    // Add user message using real ChatAppData
     await chatAppData.newMessage('user', message, attachments);
     
     // Update form status
     formStatus = 'ai-message-in-progress';
     
     // Simulate AI response
-    await mockState.simulateAIResponse(message);
+    await demoBuilder.simulateAIResponse(message);
     
     // Reset form status
     formStatus = 'can-send-message';
@@ -332,12 +311,12 @@ Create standalone Svelte components that can work without the full SIla infrastr
 <!-- packages/demo-components/src/components/DemoMessageForm.svelte -->
 <script lang="ts">
   import SendMessageForm from '@sila/client/comps/forms/SendMessageForm.svelte';
-  import type { MockDemoState } from '../mocks/MockDemoState';
+  import type { DemoSpaceBuilder } from '../demo/DemoSpaceBuilder';
   import type { DemoConfig } from '../DemoWrapper';
 
-  let { config, mockState }: { config: DemoConfig; mockState: MockDemoState } = $props();
+  let { config, demoBuilder }: { config: DemoConfig; demoBuilder: DemoSpaceBuilder } = $props();
   
-  let chatAppData = $state(mockState.chatAppData);
+  let chatAppData = $state(demoBuilder.chatAppData);
   let formStatus = $state<'can-send-message' | 'ai-message-in-progress' | 'disabled'>('can-send-message');
   
   async function handleSendMessage(message: string, attachments?: any[]) {
@@ -393,15 +372,15 @@ Create integration patterns for embedding Svelte demos:
 import { mount, unmount } from 'svelte';
 import DemoChatApp from '../components/DemoChatApp.svelte';
 import DemoMessageForm from '../components/DemoMessageForm.svelte';
-import { MockDemoState } from '../mocks/MockDemoState';
+import { DemoSpaceBuilder } from '../demo/DemoSpaceBuilder';
 import type { DemoConfig } from '../DemoWrapper';
 
 export class SvelteDemoIntegration {
   private app: any;
-  private mockState: MockDemoState;
+  private demoBuilder: DemoSpaceBuilder;
   
   constructor(private config: DemoConfig) {
-    this.mockState = new MockDemoState(config);
+    this.demoBuilder = new DemoSpaceBuilder(config);
   }
   
   async mount(targetElement: HTMLElement): Promise<void> {
@@ -422,7 +401,7 @@ export class SvelteDemoIntegration {
       target: targetElement,
       props: {
         config: this.config,
-        mockState: this.mockState
+        demoBuilder: this.demoBuilder
       }
     });
   }
