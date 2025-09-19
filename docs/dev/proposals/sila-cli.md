@@ -25,16 +25,16 @@ This proposal outlines the design and implementation of a command-line interface
 
 ## Core Functionality
 
-### Workspace Management
-- List available workspaces
-- Switch between workspaces
-- Create new workspaces
-- Inspect workspace metadata and settings
+### Project Management
+- List available projects (workspaces)
+- Switch between projects
+- Create new projects
+- Inspect project metadata and settings
 
-### Space Navigation
-- Browse space structure (trees, app instances, files)
-- Navigate spaces like a filesystem
-- View space metadata and configuration
+### Content Navigation
+- Browse project structure (trees, app instances, files)
+- Navigate project content like a filesystem
+- View content metadata and configuration
 - List public/private app instances
 
 ### Conversation Management
@@ -69,18 +69,18 @@ This proposal outlines the design and implementation of a command-line interface
 This approach follows git's command structure with subcommands for different operations.
 
 ```bash
-# Workspace management
-sila workspace list
-sila workspace create <name>
-sila workspace switch <name>
-sila workspace info
+# Project management
+sila project list
+sila project create <name>
+sila project switch <name>
+sila project info
 
-# Space navigation
-sila space list
-sila space tree [<path>]
-sila space ls [<path>]
-sila space cat <path>
-sila space info
+# Content navigation
+sila browse list
+sila browse tree [<path>]
+sila browse ls [<path>]
+sila browse cat <path>
+sila browse info
 
 # Conversation management
 sila chat list
@@ -121,17 +121,17 @@ sila file info <id>
 This approach uses a single `sila` command with flags and positional arguments.
 
 ```bash
-# Workspace management
-sila --workspace list
-sila --workspace create <name>
-sila --workspace switch <name>
-sila --workspace info
+# Project management
+sila --project list
+sila --project create <name>
+sila --project switch <name>
+sila --project info
 
-# Space navigation
-sila --space list
-sila --space tree [<path>]
-sila --space ls [<path>]
-sila --space cat <path>
+# Content navigation
+sila --browse list
+sila --browse tree [<path>]
+sila --browse ls [<path>]
+sila --browse cat <path>
 
 # Conversation management
 sila --chat list
@@ -165,15 +165,15 @@ sila --file download <id>
 This approach combines both patterns, using subcommands for major operations and flags for common options.
 
 ```bash
-# Workspace management
-sila workspace list
-sila workspace create <name>
-sila workspace switch <name>
+# Project management
+sila project list
+sila project create <name>
+sila project switch <name>
 
-# Space navigation
-sila space tree [<path>]
-sila space ls [<path>]
-sila space cat <path>
+# Content navigation
+sila browse tree [<path>]
+sila browse ls [<path>]
+sila browse cat <path>
 
 # Conversation management
 sila chat list
@@ -191,8 +191,8 @@ sila file upload <path>
 sila file download <id>
 
 # Global flags
-sila --workspace <name> <command>  # specify workspace
-sila --space <id> <command>        # specify space
+sila --project <name> <command>    # specify project
+sila --content <id> <command>      # specify content/space
 sila --assistant <name> <command>  # specify assistant
 ```
 
@@ -207,58 +207,58 @@ sila --assistant <name> <command>  # specify assistant
 
 ## Detailed Command Specifications
 
-### Workspace Commands
+### Project Commands
 
 ```bash
-sila workspace list
-# Lists all available workspaces with metadata
+sila project list
+# Lists all available projects (workspaces) with metadata
 # Output: name, path, last_modified, size
 
-sila workspace create <name> [--path <path>] [--template <template>]
-# Creates a new workspace
-# Options: --path (custom location), --template (workspace template)
+sila project create <name> [--path <path>] [--template <template>]
+# Creates a new project
+# Options: --path (custom location), --template (project template)
 
-sila workspace switch <name>
-# Switches to the specified workspace
+sila project switch <name>
+# Switches to the specified project
 # Updates current working directory and environment
 
-sila workspace info [<name>]
-# Shows detailed information about a workspace
+sila project info [<name>]
+# Shows detailed information about a project
 # Output: path, size, spaces, assistants, conversations count
 ```
 
-### Space Commands
+### Content Navigation Commands
 
 ```bash
-sila space list
-# Lists all spaces in the current workspace
+sila browse list
+# Lists all spaces in the current project
 # Output: id, name, type, visibility, last_modified
 
-sila space tree [<path>]
-# Shows the tree structure of a space
+sila browse tree [<path>]
+# Shows the tree structure of project content
 # Similar to 'tree' command for filesystems
 # Options: --depth <n>, --show-files, --show-metadata
 
-sila space ls [<path>]
-# Lists contents of a space path
+sila browse ls [<path>]
+# Lists contents of a project path
 # Similar to 'ls' command
 # Options: -l (long format), -a (all), -h (human readable)
 
-sila space cat <path>
-# Displays content of a space object
+sila browse cat <path>
+# Displays content of a project object
 # Works with files, conversations, metadata
 
-sila space info [<path>]
-# Shows metadata about a space or object
+sila browse info [<path>]
+# Shows metadata about project content
 # Output: type, size, created, modified, permissions
 ```
 
 ### Chat Commands
 
 ```bash
-sila chat list [--space <id>] [--assistant <name>]
+sila chat list [--content <id>] [--assistant <name>]
 # Lists conversations
-# Options: --space (filter by space), --assistant (filter by assistant)
+# Options: --content (filter by space), --assistant (filter by assistant)
 # Output: id, title, assistant, created, last_message
 
 sila chat create [--assistant <name>] [--folder <path>] [--title <title>]
@@ -291,9 +291,9 @@ sila chat edit <id> <message-id> [--text <text>]
 ### Assistant Commands
 
 ```bash
-sila assistant list [--space <id>]
+sila assistant list [--content <id>]
 # Lists available assistants
-# Options: --space (filter by space)
+# Options: --content (filter by space)
 # Output: name, model, description, created
 
 sila assistant create <name> [--model <model>] [--instructions <text>]
@@ -317,28 +317,28 @@ sila assistant edit <name> [--model <model>] [--instructions <text>]
 ### File Commands
 
 ```bash
-sila file list [<path>] [--space <id>]
-# Lists files in a space
-# Options: --space (target space), --recursive
+sila file list [<path>] [--content <id>]
+# Lists files in project content
+# Options: --content (target space), --recursive
 # Output: id, name, size, type, created
 
-sila file upload <path> [--space <id>] [--folder <path>]
-# Uploads a file to a space
-# Options: --space (target space), --folder (target folder)
+sila file upload <path> [--content <id>] [--folder <path>]
+# Uploads a file to project content
+# Options: --content (target space), --folder (target folder)
 # Output: file id and metadata
 
-sila file download <id> [<output>] [--space <id>]
-# Downloads a file from a space
-# Options: --space (source space), output (destination path)
+sila file download <id> [<output>] [--content <id>]
+# Downloads a file from project content
+# Options: --content (source space), output (destination path)
 # Default: downloads to current directory with original name
 
-sila file info <id> [--space <id>]
+sila file info <id> [--content <id>]
 # Shows file metadata
 # Output: id, name, size, type, hash, created, modified
 
-sila file attach <id> <conversation-id> [--space <id>]
+sila file attach <id> <conversation-id> [--content <id>]
 # Attaches a file to a conversation
-# Options: --space (source space)
+# Options: --content (source space)
 ```
 
 ## Interactive Features
@@ -361,8 +361,8 @@ sila chat <id>
 ### Tab Completion
 
 Comprehensive tab completion for:
-- Workspace names
-- Space IDs and paths
+- Project names
+- Content IDs and paths
 - Assistant names
 - Conversation IDs
 - File paths and IDs
@@ -373,11 +373,11 @@ Comprehensive tab completion for:
 ```bash
 sila config list
 # Shows current configuration
-# Output: workspace, default assistant, output format, etc.
+# Output: project, default assistant, output format, etc.
 
 sila config set <key> <value>
 # Sets configuration values
-# Keys: workspace, assistant, format, editor, etc.
+# Keys: project, assistant, format, editor, etc.
 
 sila config get <key>
 # Gets configuration value
@@ -405,8 +405,8 @@ Plain text output without colors or formatting for piping to other tools.
 - `0`: Success
 - `1`: General error
 - `2`: Invalid command or arguments
-- `3`: Workspace not found
-- `4`: Space not found
+- `3`: Project not found
+- `4`: Content not found
 - `5`: Conversation not found
 - `6`: Assistant not found
 - `7`: File not found
@@ -427,13 +427,13 @@ Available conversations:
 
 ### Phase 1: Core Infrastructure
 1. **CLI Framework**: Set up command-line parsing and routing
-2. **Workspace Management**: Basic workspace operations
+2. **Project Management**: Basic project operations
 3. **Configuration**: User configuration and settings
 4. **Error Handling**: Error codes and message formatting
 
-### Phase 2: Space Navigation
-1. **Space Commands**: List, tree, ls, cat, info
-2. **Path Resolution**: Space path parsing and navigation
+### Phase 2: Content Navigation
+1. **Browse Commands**: List, tree, ls, cat, info
+2. **Path Resolution**: Content path parsing and navigation
 3. **Metadata Display**: Object information and formatting
 
 ### Phase 3: Chat Interface
@@ -457,22 +457,22 @@ Available conversations:
 
 ```typescript
 interface SilaCLI {
-  workspace: WorkspaceManager;
-  space: SpaceManager;
+  project: ProjectManager;
+  browse: BrowseManager;
   chat: ChatManager;
   assistant: AssistantManager;
   file: FileManager;
   config: ConfigManager;
 }
 
-interface WorkspaceManager {
-  list(): Promise<Workspace[]>;
-  create(name: string, options: CreateOptions): Promise<Workspace>;
+interface ProjectManager {
+  list(): Promise<Project[]>;
+  create(name: string, options: CreateOptions): Promise<Project>;
   switch(name: string): Promise<void>;
-  info(name?: string): Promise<WorkspaceInfo>;
+  info(name?: string): Promise<ProjectInfo>;
 }
 
-interface SpaceManager {
+interface BrowseManager {
   list(): Promise<Space[]>;
   tree(path?: string): Promise<TreeStructure>;
   ls(path?: string): Promise<SpaceItem[]>;
@@ -510,7 +510,7 @@ interface FileManager {
 
 The CLI will integrate with Sila's existing core systems:
 
-- **SpaceManager**: Access to workspace and space management
+- **SpaceManager**: Access to project and space management
 - **AppTree**: Navigation and manipulation of space trees
 - **ChatAppBackend**: Conversation management and chat functionality
 - **AssistantManager**: Assistant creation and management
@@ -536,13 +536,13 @@ The CLI will integrate with Sila's existing core systems:
 
 ### Integration Tests
 - End-to-end command execution
-- Workspace and space operations
+- Project and content operations
 - Chat and assistant interactions
 - File operations and management
 
 ### AI Agent Tests
 - Automated testing by AI agents
-- Workspace exploration and navigation
+- Project exploration and navigation
 - Conversation creation and management
 - Assistant testing and validation
 
@@ -569,12 +569,12 @@ The CLI will integrate with Sila's existing core systems:
 ## Security Considerations
 
 ### Authentication
-- No authentication required for local workspaces
-- Optional authentication for remote workspaces
+- No authentication required for local projects
+- Optional authentication for remote projects
 - Secure credential storage
 
 ### Permissions
-- Respect workspace and space permissions
+- Respect project and space permissions
 - File system access controls
 - Network access restrictions
 
@@ -586,8 +586,8 @@ The CLI will integrate with Sila's existing core systems:
 ## Future Enhancements
 
 ### Advanced Features
-- **Remote Workspaces**: SSH-based access to remote Sila installations
-- **Workspace Sync**: CLI-based workspace synchronization
+- **Remote Projects**: SSH-based access to remote Sila installations
+- **Project Sync**: CLI-based project synchronization
 - **Batch Operations**: Bulk operations on multiple objects
 - **Plugin System**: Extensible command system
 
@@ -598,14 +598,14 @@ The CLI will integrate with Sila's existing core systems:
 - **Monitoring**: Workspace health and usage monitoring
 
 ### Performance
-- **Caching**: Intelligent caching of workspace data
+- **Caching**: Intelligent caching of project data
 - **Lazy Loading**: On-demand loading of large datasets
 - **Parallel Operations**: Concurrent execution of independent operations
 - **Streaming**: Real-time streaming of large outputs
 
 ## Conclusion
 
-The Sila CLI will provide a powerful, flexible interface for interacting with Sila workspaces from the command line. By following established patterns from tools like git and providing multiple interface options, the CLI will serve both interactive users and automated systems like AI agents.
+The Sila CLI will provide a powerful, flexible interface for interacting with Sila projects from the command line. By following established patterns from tools like git and providing multiple interface options, the CLI will serve both interactive users and automated systems like AI agents.
 
 The proposed design balances simplicity with power, providing easy-to-use commands for common operations while supporting complex workflows and automation. The implementation plan ensures a solid foundation that can be extended with advanced features over time.
 
