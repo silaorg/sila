@@ -18,7 +18,7 @@ export async function setupFileProtocol() {
     try {
       const url = new URL(request.url);
       
-      // sila://spaces/{spaceId}/files/{hash}?type={mimeType}
+      // sila://spaces/{spaceId}/files/{hash|uuid}?type={mimeType}
       if (url.hostname !== 'spaces') {
         return new Response('Invalid URL format - expected hostname "spaces"', { status: 400 });
       }
@@ -26,18 +26,13 @@ export async function setupFileProtocol() {
       const pathParts = url.pathname.split('/').filter(Boolean);
       
       if (pathParts.length !== 3 || pathParts[1] !== 'files') {
-        return new Response('Invalid URL format - expected path "/{spaceId}/files/{hash}"', { status: 400 });
+        return new Response('Invalid URL format - expected path "/{spaceId}/files/{hash|uuid}"', { status: 400 });
       }
       
       const spaceId = pathParts[0];
-      const hash = pathParts[2];
+      const identifier = pathParts[2];
       const mimeType = url.searchParams.get('type');
       const downloadName = url.searchParams.get('name');
-      
-      // Validate hash format (64 character hex string)
-      if (!/^[a-f0-9]{64}$/.test(hash)) {
-        return new Response('Invalid hash format', { status: 400 });
-      }
       
       // Get space root path
       const spaceRoot = spaceManager.getSpaceRootPath(spaceId);
@@ -45,7 +40,11 @@ export async function setupFileProtocol() {
         return new Response('Space not found', { status: 404 });
       }
       
-      const filePath = makeBytesPath(spaceRoot, hash);
+      // Determine if this is a SHA256 hash or UUID and get the appropriate file path
+      const filePath = getFilePath(spaceRoot, identifier);
+      if (!filePath) {
+        return new Response('Invalid identifier format - expected SHA256 hash or UUID', { status: 400 });
+      }
       
       // Check if file exists
       const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
@@ -75,6 +74,29 @@ export async function setupFileProtocol() {
 }
 
 /**
+ * Get the file path for a given identifier (SHA256 hash or UUID)
+ * @param {string} spaceRoot - Root path of the space
+ * @param {string} identifier - SHA256 hash or UUID
+ * @returns {string|null} Full path to the file, or null if invalid format
+ */
+function getFilePath(spaceRoot, identifier) {
+  // Check if it's a SHA256 hash (64 character hex string)
+  if (/^[a-f0-9]{64}$/.test(identifier)) {
+    return makeBytesPath(spaceRoot, identifier);
+  }
+  
+  // Check if it's a UUID (with or without hyphens)
+  const uuidRegex = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+  if (uuidRegex.test(identifier)) {
+    // Remove hyphens if present
+    const cleanUuid = identifier.replace(/-/g, '');
+    return makeMutablePath(spaceRoot, cleanUuid);
+  }
+  
+  return null;
+}
+
+/**
  * Construct the file path for a given hash in CAS
  * @param {string} spaceRoot - Root path of the space
  * @param {string} hash - SHA256 hash of the file
@@ -83,7 +105,20 @@ export async function setupFileProtocol() {
 function makeBytesPath(spaceRoot, hash) {
   const prefix = hash.slice(0, 2);
   const rest = hash.slice(2);
-  return path.join(spaceRoot, 'space-v1', 'files', 'sha256', prefix, rest);
+  return path.join(spaceRoot, 'space-v1', 'files', 'static', 'sha256', prefix, rest);
+}
+
+/**
+ * Construct the file path for a given UUID in mutable storage
+ * @param {string} spaceRoot - Root path of the space
+ * @param {string} uuid - UUID of the file (without hyphens)
+ * @returns {string} Full path to the file
+ */
+function makeMutablePath(spaceRoot, uuid) {
+  // Split UUID like we do for tree storage: first 2 chars, then the rest
+  const prefix = uuid.substring(0, 2);
+  const suffix = uuid.substring(2);
+  return path.join(spaceRoot, 'space-v1', 'files', 'var', 'uuid', prefix, suffix);
 }
 
 /**

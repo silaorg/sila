@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile, readdir, access } from 'fs/promises';
+import { mkdir, writeFile, readFile, readdir, access, unlink } from 'fs/promises';
 import type { AppFileSystem, FileEntry, FileHandle, WatchEvent, UnwatchFn } from "@sila/core";
 
 export class NodeFileSystem implements AppFileSystem {
@@ -70,5 +70,9 @@ export class NodeFileSystem implements AppFileSystem {
   async readBinaryFile(path: string): Promise<Uint8Array> {
     const buf = await readFile(path);
     return new Uint8Array(buf);
+  }
+
+  async delete(path: string): Promise<void> {
+    await unlink(path);
   }
 }

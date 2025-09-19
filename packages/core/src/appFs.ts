@@ -29,4 +29,5 @@ export interface AppFileSystem {
   mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
   watch(path: string, callback: (event: WatchEvent) => void, options?: { recursive?: boolean }): Promise<UnwatchFn>;
   readBinaryFile(path: string): Promise<Uint8Array>;
+  delete(path: string): Promise<void>;
 } 

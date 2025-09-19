@@ -174,7 +174,7 @@ describe('HEIC Conversion Pipeline', () => {
     expect(loadedDataUrl.startsWith('data:')).toBe(true);
 
     // Verify CAS path exists
-    const casPath = path.join(tempDir, 'space-v1', 'files', 'sha256', put.hash.slice(0, 2), put.hash.slice(2));
+    const casPath = path.join(tempDir, 'space-v1', 'files', 'static', 'sha256', put.hash.slice(0, 2), put.hash.slice(2));
     await access(casPath);
     const raw = await readFile(casPath);
     expect(raw.byteLength).toBeGreaterThan(0);
