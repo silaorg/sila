@@ -66,7 +66,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(Buffer.from(loadedBytes)).toEqual(Buffer.from(origBytes));
 
 		// Verify CAS path exists and readable
-		const casPath = path.join(tempDir, 'space-v1', 'files', 'sha256', put.hash.slice(0, 2), put.hash.slice(2));
+		const casPath = path.join(tempDir, 'space-v1', 'files', 'static', 'sha256', put.hash.slice(0, 2), put.hash.slice(2));
 		await access(casPath);
 		const raw = await readFile(casPath);
 		expect(raw.byteLength).toBeGreaterThan(0);
@@ -373,7 +373,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(retrievedData).toEqual(testData);
 		
 		// Verify mutable path structure exists
-		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'mutable', 'uuid', testUuid);
+		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', testUuid.slice(0, 2), testUuid.slice(2));
 		await access(mutablePath);
 		const raw = await readFile(mutablePath);
 		expect(raw).toEqual(Buffer.from(testData));
@@ -433,8 +433,8 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(retrievedMutable).toEqual(mutableData);
 
 		// Verify path structures
-		const immutablePath = path.join(tempDir, 'space-v1', 'files', 'sha256', immutableResult.hash.slice(0, 2), immutableResult.hash.slice(2));
-		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'mutable', 'uuid', mutableUuid);
+		const immutablePath = path.join(tempDir, 'space-v1', 'files', 'static', 'sha256', immutableResult.hash.slice(0, 2), immutableResult.hash.slice(2));
+		const mutablePath = path.join(tempDir, 'space-v1', 'files', 'var', 'uuid', mutableUuid.slice(0, 2), mutableUuid.slice(2));
 
 		await access(immutablePath);
 		await access(mutablePath);

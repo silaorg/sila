@@ -173,8 +173,9 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     // Create ops directory
     await this.fs.mkdir(versionedPath + '/ops', { recursive: true });
 
-    // Create files CAS base directory
-    await this.fs.mkdir(versionedPath + '/files/sha256', { recursive: true });
+    // Create files storage directories
+    await this.fs.mkdir(versionedPath + '/files/static/sha256', { recursive: true });
+    await this.fs.mkdir(versionedPath + '/files/var/uuid', { recursive: true });
 
     // Create sila.md file if it doesn't exist
     const readmeFile = this.spacePath + '/' + LOCAL_SPACE_MD_FILE;

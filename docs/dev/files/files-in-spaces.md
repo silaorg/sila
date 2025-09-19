@@ -22,19 +22,21 @@ Files are stored on disk using their SHA-256 hash as the address:
   space-v1/
     ops/                 # CRDT ops (jsonl)
     files/
-      sha256/
-        ab/
-          cdef...89      # full hash split as 2+rest, binary content
-      mutable/
+      static/
+        sha256/
+          ab/
+            cdef...89    # full hash split as 2+rest, binary content
+      var/
         uuid/
-          {uuid}         # uuid-addressed mutable blobs
+          ab/
+            cdef...89    # uuid split as 2+rest, mutable blobs
     secrets              # encrypted secrets
     space.json           # metadata with space id
 ```
 
 - **Path Structure**: 
-  - Immutable: `space-v1/files/sha256/<hash[0..1]>/<hash[2..]>`
-  - Mutable: `space-v1/files/mutable/uuid/<uuid>`
+  - Immutable: `space-v1/files/static/sha256/<hash[0..1]>/<hash[2..]>`
+  - Mutable: `space-v1/files/var/uuid/<uuid[0..1]>/<uuid[2..]>`
 - **Deduplication**: Identical files map to the same path automatically (immutable only)
 - **Hash Collision**: SHA-256 provides excellent collision resistance for practical use
 - **Mutable Storage**: UUID-addressed blobs for values that may be rotated/overwritten

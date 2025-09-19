@@ -64,11 +64,14 @@ function parseDataUrl(dataUrl: string): Uint8Array {
 function makeBytesPath(spaceRoot: string, hash: string): string {
 	const prefix = hash.slice(0, 2);
 	const rest = hash.slice(2);
-	return `${spaceRoot}/space-v1/files/sha256/${prefix}/${rest}`;
+	return `${spaceRoot}/space-v1/files/static/sha256/${prefix}/${rest}`;
 }
 
 function makeMutablePath(spaceRoot: string, uuid: string): string {
-	return `${spaceRoot}/space-v1/files/mutable/uuid/${uuid}`;
+	// Split UUID like we do for tree storage: first 2 chars, then the rest
+	const prefix = uuid.substring(0, 2);
+	const suffix = uuid.substring(2);
+	return `${spaceRoot}/space-v1/files/var/uuid/${prefix}/${suffix}`;
 }
 
 class FileSystemFileStore implements FileStore {
