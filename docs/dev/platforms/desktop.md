@@ -14,23 +14,18 @@ The Sila desktop app is built using:
 ### Required Tools
 - **Node.js** (v18+)
 - **Electron Builder** - Included in dependencies
-- **Platform-specific tools** for code signing and notarization
 
 ### Platform-Specific Requirements
 
 #### macOS
 - macOS for building macOS apps
 - Xcode command line tools
-- Apple Developer account (for notarization)
-- Certificate for code signing
 
 #### Windows
 - Windows for building Windows apps
-- Code signing certificate (optional but recommended)
 
 #### Linux
 - Linux for building Linux apps
-- AppImage or other distribution format support
 
 ## Project Structure
 
@@ -61,12 +56,10 @@ Electron Builder packages the web assets with the Electron runtime for each plat
 #### macOS Build
 - Creates `.dmg` installer for macOS
 - Supports universal builds (Intel + Apple Silicon)
-- Requires code signing and notarization for distribution
 
 #### Windows Build
 - Creates `.exe` installer using NSIS
 - Supports x64 and ARM64 architectures
-- Code signing recommended for distribution
 
 #### Linux Build
 - Creates AppImage for universal Linux compatibility
@@ -85,60 +78,20 @@ Electron Builder packages the web assets with the Electron runtime for each plat
 - **Auto-updater**: Built-in update mechanism for production apps
 - **Menu System**: Native application menus and shortcuts
 
-## Distribution
+## Automated Builds
 
-### macOS Distribution
-- **Mac App Store**: Archive and upload through App Store Connect
-- **Direct Download**: DMG installer with notarization
-- **Auto-updates**: Built-in updater with GitHub releases
+We use GitHub Actions for automated building and packaging across all platforms. The build system automatically:
 
-### Windows Distribution
-- **Microsoft Store**: Package and upload through Partner Center
-- **Direct Download**: NSIS installer with code signing
-- **Auto-updates**: Built-in updater with GitHub releases
+- Builds the web assets using Vite
+- Packages for macOS, Windows, and Linux using Electron Builder
+- Creates installers and distributables
+- Publishes releases with platform-specific assets
 
-### Linux Distribution
-- **App Stores**: Upload AppImage to various Linux app stores
-- **Direct Download**: AppImage for universal compatibility
-- **Package Managers**: Potential future support for snap/flatpak
-
-## Code Signing & Security
-
-### macOS
-- Apple Developer certificate for code signing
-- Notarization through Apple for security verification
-- Hardened runtime for enhanced security
-
-### Windows
-- Code signing certificate (DigiCert, Sectigo, etc.)
-- Windows Defender SmartScreen compatibility
-- Authenticode signing for installer trust
-
-## Troubleshooting
-
-### Common Issues
-- **Build failures**: Check Electron and platform-specific dependencies
-- **Signing errors**: Verify certificates and provisioning profiles
-- **Notarization failures**: Check Apple Developer account status
-- **Update issues**: Verify GitHub release configuration
+For detailed information about the build system, see [GitHub Actions Build Documentation](../../../.github/workflows/README.md).
 
 ### Debug Commands
 - `npm run dev:without-starting-electron` - Web dev without Electron
 - `npm run preview` - Preview built web assets
-
-## Future Enhancements
-
-### Planned Features
-- Enhanced file system integration
-- Native desktop notifications
-- System tray integration
-- Advanced auto-update mechanisms
-- Platform-specific optimizations
-
-### Platform-Specific Features
-- macOS: Touch Bar support, native macOS integrations
-- Windows: Windows-specific UI adaptations
-- Linux: Desktop environment integrations
 
 ## Resources
 
