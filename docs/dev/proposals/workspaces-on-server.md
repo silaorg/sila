@@ -132,18 +132,16 @@ CREATE INDEX idx_file_metadata_created ON file_metadata(created_at);
 Binary files are stored directly on S3 with the following structure:
 
 ```
-s3://sila-workspaces/
-  <userId>/
-    <spaceId>/
-      workspace.db           # SQLite database (operations only)
-      files/
-        static/
-          <hash[0..1]>/
-            <hash[2..]>      # Immutable files by content hash
-        var/
-          <uuid[0..1]>/
-            <uuid[2..]>      # Mutable files by UUID
-      metadata.json          # Workspace metadata
+s3://sila-spaces/
+  <space-id>/
+    space.db                 # SQLite database (operations only)
+    files/
+      static/
+        <hash[0..1]>/
+          <hash[2..]>        # Immutable files by content hash
+      var/
+        <uuid[0..1]>/
+          <uuid[2..]>        # Mutable files by UUID
 ```
 
 ### Server Storage Characteristics
@@ -356,7 +354,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
   
   // File operations (S3)
   async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
-    const s3Key = `${this.serverConfig.userId}/${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    const s3Key = `${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
     
     // Upload to S3
     await this.s3Client.putObject({
@@ -568,7 +566,7 @@ const serverSpace = await spaceManager.loadSpace(
     new IndexedDBPersistenceLayer('space2'),  // Still keep local cache
     new ServerPersistenceLayer('space2', {
       s3Client: s3Client,
-      bucketName: 'sila-workspaces',
+      bucketName: 'sila-spaces',
       userId: 'user123'
     })
   ]
@@ -591,7 +589,7 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string): Per
     layers.push(new IndexedDBPersistenceLayer(spaceId));
     layers.push(new ServerPersistenceLayer(spaceId, {
       s3Client: getS3Client(),
-      bucketName: 'sila-workspaces',
+      bucketName: 'sila-spaces',
       userId: getCurrentUserId()
     }));
   } else {
