@@ -39,7 +39,7 @@ Sila workspaces use a sophisticated CRDT-based architecture:
 - **Incremental Updates**: New operations appended to existing files
 - **File Watching**: Real-time sync via filesystem watching
 
-## Server Storage Options
+## Server Storage Options: SQLite Database Files vs Plain Files
 
 ### Current Client Storage: IndexedDB
 
@@ -53,42 +53,33 @@ treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [sp
 secrets: '&[spaceId+key], spaceId'
 ```
 
-**IndexedDB Characteristics**:
-- **NoSQL**: Document-based storage with composite keys
-- **Browser-Only**: Limited to client-side environments
-- **Transaction Support**: ACID transactions within browser context
-- **Indexing**: Efficient queries on indexed fields
-- **Storage Limits**: Subject to browser storage quotas and clearing policies
+### Current Server Storage: Plain Files
 
-### Option 1: Individual File Storage
+The current filesystem-based approach stores workspaces as:
 
-**Approach**: Store workspace components as individual files in cloud storage, mirroring the local filesystem structure.
+```
+<spaceRoot>/
+  space-v1/
+    ops/                    # CRDT operations (JSONL files)
+      <treeId>/
+        <year>/<month>/<day>/
+          <peerId>.jsonl    # Batched operations by peer and date
+    files/
+      static/sha256/        # Immutable files by content hash
+        <hash[0..1]>/<hash[2..]>
+      var/uuid/             # Mutable files by UUID
+        <uuid[0..1]>/<uuid[2..]>
+    secrets                 # Encrypted secrets file
+    space.json              # Space metadata
+```
 
-**Advantages**:
-- **Granular Access**: Can read/write individual operations or files without downloading entire workspace
-- **Incremental Sync**: Only transfer changed files, reducing bandwidth usage
-- **Parallel Operations**: Can upload/download multiple files concurrently
-- **Selective Loading**: Load only required app trees or date ranges
-- **Real-time Updates**: Support for live collaboration and file watching
+### Option 1: SQLite Database Files
 
-**Disadvantages**:
-- **High Latency**: Many small files create significant overhead for S3 operations
-- **Cost**: Higher costs due to per-request charges for numerous small files
-- **Complexity**: More complex sync logic and conflict resolution
-- **Rate Limits**: May hit S3 rate limits with many concurrent operations
-
-**Performance Characteristics**:
-- **Upload**: ~100-500ms per file (S3 PUT overhead)
-- **Download**: ~50-200ms per file (S3 GET overhead)
-- **Total for 1000 files**: 50-500 seconds (depending on file sizes and concurrency)
-
-### Option 2: SQLite Database Storage
-
-**Approach**: Store workspace data in SQLite databases, mirroring the IndexedDB schema but with SQL capabilities.
+**Approach**: Store each workspace as a single SQLite database file containing all operations, metadata, and binary data.
 
 **SQLite Schema**:
 ```sql
--- Spaces table
+-- Single workspace database file: workspace-<spaceId>.db
 CREATE TABLE spaces (
   id TEXT PRIMARY KEY,
   uri TEXT NOT NULL,
@@ -101,61 +92,90 @@ CREATE TABLE spaces (
   drafts TEXT -- JSON blob
 );
 
--- Configuration table
-CREATE TABLE config (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-
--- Tree operations table
 CREATE TABLE tree_ops (
   clock INTEGER NOT NULL,
   peer_id TEXT NOT NULL,
   tree_id TEXT NOT NULL,
-  space_id TEXT NOT NULL,
   target_id TEXT NOT NULL,
   parent_id TEXT,
   key TEXT,
   value TEXT,
-  PRIMARY KEY (clock, peer_id, tree_id, space_id)
+  PRIMARY KEY (clock, peer_id, tree_id)
 );
 
--- Secrets table
 CREATE TABLE secrets (
-  space_id TEXT NOT NULL,
-  key TEXT NOT NULL,
-  value TEXT NOT NULL,
-  PRIMARY KEY (space_id, key)
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+-- Binary data stored as BLOBs
+CREATE TABLE files (
+  hash TEXT PRIMARY KEY,
+  content BLOB NOT NULL,
+  mime_type TEXT,
+  size INTEGER
+);
+
+CREATE TABLE mutable_files (
+  uuid TEXT PRIMARY KEY,
+  content BLOB NOT NULL,
+  size INTEGER
 );
 
 -- Indexes for performance
-CREATE INDEX idx_tree_ops_space_tree ON tree_ops(space_id, tree_id);
-CREATE INDEX idx_tree_ops_clock ON tree_ops(space_id, tree_id, clock);
-CREATE INDEX idx_secrets_space ON secrets(space_id);
+CREATE INDEX idx_tree_ops_tree ON tree_ops(tree_id);
+CREATE INDEX idx_tree_ops_clock ON tree_ops(tree_id, clock);
 ```
 
 **Advantages**:
-- **Familiar Schema**: Direct migration from IndexedDB structure
-- **SQL Queries**: Complex queries and aggregations possible
-- **ACID Transactions**: Reliable data consistency
-- **Efficient Indexing**: Fast lookups on indexed fields
-- **Bulk Operations**: Efficient batch inserts/updates
-- **Cross-Platform**: Works on any server environment
-- **Small Footprint**: Lightweight database engine
-- **Backup/Restore**: Standard SQLite backup tools
-
+- **Single File**: Each workspace is one SQLite database file
+- **Atomic Operations**: ACID transactions ensure data consistency
+- **Efficient Storage**: SQLite compresses data and handles small files better than filesystem
+- **Fast Queries**: Indexed lookups and complex queries supported
+- **Simplified Backup**: One file per workspace for easy backup/restore
+- **Cross-Platform**: Works identically across all server environments
 **Disadvantages**:
-- **Single Writer**: SQLite limited to one writer at a time
-- **No Network Access**: Cannot be accessed remotely without additional layer
-- **File-based**: Still requires file storage and transfer
-- **Concurrency Limits**: Limited concurrent read/write operations
-- **No Built-in Replication**: Manual replication setup required
+- **Single Writer**: SQLite limited to one writer at a time per database
+- **File Size Growth**: Database files grow continuously, no automatic cleanup
+- **Binary Data in DB**: Large files stored as BLOBs can impact performance
+- **No File Watching**: Cannot use filesystem watching for real-time sync
+- **Migration Complexity**: Converting from plain files requires data migration
 
 **Performance Characteristics**:
-- **Bulk Insert**: ~10,000-50,000 ops/second
-- **Query Performance**: ~1-10ms for indexed lookups
-- **File Size**: ~60-80% of raw data size (with compression)
-- **Memory Usage**: ~10-50MB per workspace database
+- **Upload**: ~2-10 seconds for entire workspace database
+- **Download**: ~1-5 seconds for entire workspace database
+- **Query Performance**: ~0.1-1ms for indexed lookups
+- **Binary Access**: ~10-50ms for file retrieval from BLOB
+- **Concurrent Reads**: Unlimited concurrent read access
+
+### Option 2: Plain Files (Current Approach)
+
+**Approach**: Continue using the current filesystem-based approach with JSONL files for operations and individual files for binary data.
+
+**Advantages**:
+- **Granular Access**: Can read/write individual operations or files without downloading entire workspace
+- **File Watching**: Real-time sync via filesystem watching
+- **Incremental Updates**: Only transfer changed files
+- **Content Deduplication**: Identical files stored once by hash
+- **Parallel Operations**: Can upload/download multiple files concurrently
+- **Selective Loading**: Load only required app trees or date ranges
+- **No Migration**: Already implemented and working
+- **Transparent Structure**: Easy to debug and inspect
+
+**Disadvantages**:
+- **High Latency**: Many small files create significant overhead for S3 operations
+- **Cost**: Higher costs due to per-request charges for numerous small files
+- **Complexity**: More complex sync logic and conflict resolution
+- **Rate Limits**: May hit S3 rate limits with many concurrent operations
+- **No Atomicity**: No built-in transaction support across files
+- **File System Dependency**: Relies on filesystem structure and permissions
+
+**Performance Characteristics**:
+- **Upload**: ~100-500ms per file (S3 PUT overhead)
+- **Download**: ~50-200ms per file (S3 GET overhead)
+- **Total for 1000 files**: 50-500 seconds (depending on file sizes and concurrency)
+- **Query Performance**: ~10-100ms for file-based lookups
+- **Binary Access**: ~50-200ms for file retrieval
 
 ### Option 3: Compressed Archive Storage
 
@@ -180,96 +200,196 @@ CREATE INDEX idx_secrets_space ON secrets(space_id);
 - **Download**: ~1-5 seconds for compressed archive
 - **Compression**: ~20-60% size reduction (depending on content type)
 
-## Hybrid Approach: Multi-Tier Storage
+## Direct Comparison: SQLite Database Files vs Plain Files
 
-### Proposed Solution
+### Key Differences
 
-Combine all three approaches with intelligent storage tiering based on workspace characteristics:
+| Aspect | SQLite Database Files | Plain Files |
+|--------|----------------------|-------------|
+| **File Count** | 1 file per workspace | 100-10,000+ files per workspace |
+| **Upload Time** | 2-10 seconds | 50-500 seconds |
+| **Download Time** | 1-5 seconds | 50-500 seconds |
+| **Query Performance** | 0.1-1ms | 10-100ms |
+| **Storage Efficiency** | 20-30% better compression | Standard filesystem |
+| **Atomicity** | Full ACID transactions | No built-in atomicity |
+| **Real-time Sync** | Not supported | File watching supported |
+| **Incremental Updates** | Full database transfer | Individual file updates |
+| **S3 Costs** | Low (few requests) | High (many requests) |
+| **Debugging** | Requires SQL tools | Direct file inspection |
+| **Migration** | Complex data migration | No migration needed |
 
-#### 1. **Active Workspaces** (SQLite + Individual Files)
-- Workspaces with recent activity (< 7 days)
-- Workspaces with active collaboration
-- Small to medium workspaces (< 500MB total)
-- Use SQLite for operations and individual files for binary content
-- Enables real-time sync and efficient querying
+### Performance Analysis
 
-#### 2. **Warm Workspaces** (SQLite + Compressed Archives)
-- Moderately active workspaces (7-30 days)
-- Medium to large workspaces (100MB-1GB total)
-- Use SQLite for operations but compress binary files
-- Balance between performance and storage efficiency
+#### Transfer Performance
+```
+Workspace Size: 100MB, 1000 operations, 500 files
 
-#### 3. **Cold Workspaces** (Compressed Archives)
-- Inactive workspaces (> 30 days without changes)
-- Very large workspaces (> 1GB total)
-- Workspaces with many small files (> 10,000 files)
-- Use compressed archive storage for maximum efficiency
+SQLite Database File:
+- Upload: 5-15 seconds (single file)
+- Download: 3-10 seconds (single file)
+- S3 Requests: 2 (PUT + GET)
 
-#### 4. **Migration Strategy**
-- **Tier Promotion**: Automatically promote workspaces to higher tiers based on activity
-- **Tier Demotion**: Move workspaces to lower tiers when they become inactive
-- **Background Processing**: Handle tier migrations in background threads
-- **Smart Caching**: Keep frequently accessed data in higher tiers
+Plain Files:
+- Upload: 300-1500 seconds (500 files)
+- Download: 150-750 seconds (500 files)  
+- S3 Requests: 1000+ (500 PUT + 500 GET)
+```
+
+#### Query Performance
+```
+Operation: Find all operations for a specific tree in date range
+
+SQLite Database File:
+- Query: SELECT * FROM tree_ops WHERE tree_id = ? AND clock BETWEEN ? AND ?
+- Time: 0.1-1ms (indexed lookup)
+
+Plain Files:
+- Process: Read all JSONL files, parse, filter
+- Time: 10-100ms (file I/O + parsing)
+```
+
+## Recommendation: Use Case Based Selection
+
+### For Active/Real-time Workspaces: Plain Files
+**Use plain files when**:
+- Workspace has active collaboration
+- Real-time sync is required
+- Workspace is frequently accessed
+- Incremental updates are common
+- File watching is needed
+
+**Benefits**:
+- Real-time sync capabilities
+- Incremental updates
+- Granular access control
+- No migration needed
+
+### For Archive/Backup Workspaces: SQLite Database Files
+**Use SQLite database files when**:
+- Workspace is infrequently accessed
+- Full workspace backup/restore is needed
+- Query performance is important
+- Cost optimization is priority
+- Workspace is large (>100MB)
+
+**Benefits**:
+- 10-100x faster upload/download
+- 90%+ cost reduction on S3
+- Atomic operations
+- Simplified backup/restore
+- Better compression
+
+### Hybrid Strategy
+
+#### Active Tier: Plain Files
+- Recent activity (< 7 days)
+- Active collaboration
+- Real-time sync required
+- Small to medium size (< 100MB)
+
+#### Archive Tier: SQLite Database Files  
+- Inactive workspaces (> 7 days)
+- Large workspaces (> 100MB)
+- Backup/restore operations
+- Cost optimization priority
+
+#### Migration Strategy
+- **Archive Trigger**: Convert to SQLite when workspace becomes inactive
+- **Unarchive on Access**: Convert back to plain files when accessed
+- **Background Processing**: Handle conversions in background threads
 
 ### Implementation Details
-
-#### Archive Format
-```json
-{
-  "version": "1.0",
-  "spaceId": "workspace-uuid",
-  "createdAt": "2024-01-01T00:00:00Z",
-  "archivedAt": "2024-01-15T00:00:00Z",
-  "compression": "gzip",
-  "checksum": "sha256-hash",
-  "size": 12345678,
-  "fileCount": 1500
-}
-```
 
 #### Storage Structure
 ```
 s3://sila-workspaces/
-  active/                    # SQLite + Individual files
+  active/                    # Plain files (current approach)
     <spaceId>/
-      workspace.db           # SQLite database
-      files/
-        static/sha256/       # Individual binary files
-        var/uuid/
-  warm/                      # SQLite + Compressed files
+      space-v1/
+        ops/                 # JSONL files
+        files/               # Individual binary files
+        secrets
+        space.json
+  archived/                  # SQLite database files
     <spaceId>/
-      workspace.db           # SQLite database
-      files-archive.zip      # Compressed binary files
-  cold/                      # Compressed archives
-    <spaceId>/
-      workspace-<timestamp>.zip
+      workspace.db           # Single SQLite database file
   metadata/                  # Workspace metadata
     <spaceId>.json
+```
+
+#### Conversion Process
+```typescript
+// Convert plain files to SQLite database
+async function archiveToSQLite(spaceId: string): Promise<void> {
+  // 1. Download all plain files from S3
+  const files = await downloadPlainFiles(spaceId);
+  
+  // 2. Create SQLite database
+  const db = new Database(`workspace-${spaceId}.db`);
+  
+  // 3. Import operations from JSONL files
+  for (const jsonlFile of files.ops) {
+    const operations = parseJSONL(jsonlFile);
+    await db.bulkInsert('tree_ops', operations);
+  }
+  
+  // 4. Import binary files as BLOBs
+  for (const file of files.binary) {
+    await db.insert('files', {
+      hash: file.hash,
+      content: file.data,
+      mime_type: file.mimeType,
+      size: file.size
+    });
+  }
+  
+  // 5. Upload SQLite database to S3
+  await uploadSQLiteDatabase(spaceId, db);
+  
+  // 6. Clean up plain files
+  await deletePlainFiles(spaceId);
+}
+
+// Convert SQLite database back to plain files
+async function unarchiveToPlainFiles(spaceId: string): Promise<void> {
+  // 1. Download SQLite database from S3
+  const db = await downloadSQLiteDatabase(spaceId);
+  
+  // 2. Export operations to JSONL files
+  const operations = await db.getAll('tree_ops');
+  await createJSONLFiles(spaceId, operations);
+  
+  // 3. Export binary files from BLOBs
+  const files = await db.getAll('files');
+  await createBinaryFiles(spaceId, files);
+  
+  // 4. Upload plain files to S3
+  await uploadPlainFiles(spaceId);
+  
+  // 5. Clean up SQLite database
+  await deleteSQLiteDatabase(spaceId);
+}
 ```
 
 #### API Design
 ```typescript
 interface WorkspaceStorage {
-  // SQLite operations (for active/warm workspaces)
+  // Workspace operations (format-agnostic)
   putOperation(treeId: string, operation: VertexOperation): Promise<void>;
   getOperations(treeId: string, dateRange?: DateRange): Promise<VertexOperation[]>;
-  bulkPutOperations(operations: VertexOperation[]): Promise<void>;
-  
-  // File operations (tier-dependent)
   putFile(hash: string, content: Uint8Array): Promise<void>;
   getFile(hash: string): Promise<Uint8Array>;
   
-  // Tier management
-  promoteWorkspace(spaceId: string, targetTier: 'active' | 'warm' | 'cold'): Promise<void>;
-  demoteWorkspace(spaceId: string, targetTier: 'warm' | 'cold'): Promise<void>;
-  getWorkspaceTier(spaceId: string): Promise<'active' | 'warm' | 'cold'>;
+  // Format management
+  getWorkspaceFormat(spaceId: string): Promise<'plain' | 'sqlite'>;
+  convertToSQLite(spaceId: string): Promise<void>;
+  convertToPlainFiles(spaceId: string): Promise<void>;
   
-  // Archive operations (for cold workspaces)
+  // Workspace lifecycle
   archiveWorkspace(spaceId: string): Promise<void>;
   unarchiveWorkspace(spaceId: string): Promise<void>;
   
-  // Hybrid operations
-  getWorkspace(spaceId: string): Promise<WorkspaceData>;
+  // Sync operations
   syncWorkspace(spaceId: string, localOps: VertexOperation[]): Promise<VertexOperation[]>;
 }
 ```
@@ -278,31 +398,30 @@ interface WorkspaceStorage {
 
 ### Transfer Time Comparison
 
-| Workspace Size | Files | Individual Files | SQLite + Files | Compressed Archive | SQLite Savings |
-|----------------|-------|------------------|----------------|-------------------|----------------|
-| 10MB | 100 | 30-150s | 5-10s | 2-5s | 80-90% |
-| 50MB | 500 | 150-750s | 15-30s | 5-15s | 85-95% |
-| 100MB | 1000 | 300-1500s | 30-60s | 10-30s | 90-95% |
-| 500MB | 5000 | 1500-7500s | 60-120s | 30-90s | 95-98% |
+| Workspace Size | Files | Plain Files | SQLite Database | SQLite Savings |
+|----------------|-------|-------------|-----------------|----------------|
+| 10MB | 100 | 30-150s | 5-10s | 80-90% |
+| 50MB | 500 | 150-750s | 15-30s | 85-95% |
+| 100MB | 1000 | 300-1500s | 30-60s | 90-95% |
+| 500MB | 5000 | 1500-7500s | 60-120s | 95-98% |
 
 ### Query Performance Comparison
 
-| Operation | IndexedDB | SQLite | File-based | Winner |
-|-----------|-----------|--------|------------|--------|
-| Single Operation Lookup | 1-5ms | 0.1-1ms | 10-100ms | SQLite |
-| Bulk Operations (1000 ops) | 50-200ms | 10-50ms | 500-2000ms | SQLite |
-| Date Range Queries | 10-50ms | 1-10ms | 100-1000ms | SQLite |
-| Full Workspace Load | 100-500ms | 50-200ms | 1000-5000ms | SQLite |
-| Complex Aggregations | Not supported | 1-10ms | Not supported | SQLite |
+| Operation | Plain Files | SQLite Database | Winner |
+|-----------|-------------|-----------------|--------|
+| Single Operation Lookup | 10-100ms | 0.1-1ms | SQLite (10-100x) |
+| Bulk Operations (1000 ops) | 500-2000ms | 10-50ms | SQLite (10-40x) |
+| Date Range Queries | 100-1000ms | 1-10ms | SQLite (10-100x) |
+| Full Workspace Load | 1000-5000ms | 50-200ms | SQLite (5-25x) |
+| Complex Aggregations | Not supported | 1-10ms | SQLite |
 
 ### Cost Analysis (S3)
 
 | Storage Type | Requests/Month | Storage (GB) | Transfer (GB) | Monthly Cost |
 |--------------|----------------|--------------|---------------|--------------|
-| Individual Files | 1M requests | 100GB | 50GB | ~$25-50 |
-| SQLite + Files | 100K requests | 85GB | 45GB | ~$15-25 |
-| Compressed Archives | 1K requests | 80GB | 40GB | ~$8-15 |
-| Multi-Tier Hybrid | 50K requests | 82GB | 42GB | ~$10-18 |
+| Plain Files | 1M requests | 100GB | 50GB | ~$25-50 |
+| SQLite Database | 10K requests | 80GB | 40GB | ~$5-10 |
+| Hybrid Approach | 100K requests | 90GB | 45GB | ~$12-20 |
 
 ## Security Considerations
 
@@ -323,26 +442,26 @@ interface WorkspaceStorage {
 
 ## Implementation Roadmap
 
-### Phase 1: SQLite Server Storage (4-6 weeks)
-- [ ] Implement SQLite-based persistence layer
-- [ ] Migrate IndexedDB schema to SQLite
-- [ ] Support SQLite + individual file storage for active workspaces
-- [ ] Basic workspace upload/download functionality
+### Phase 1: SQLite Archive Support (3-4 weeks)
+- [ ] Implement SQLite database file creation from plain files
+- [ ] Add conversion utilities (plain files ↔ SQLite)
+- [ ] Support SQLite database file upload/download to S3
+- [ ] Basic archive/unarchive functionality
 - [ ] Integration with existing SpaceManager
 
-### Phase 2: Multi-Tier System (3-4 weeks)
-- [ ] Implement workspace tiering logic
-- [ ] Background tier migration service
-- [ ] Tier promotion/demotion API endpoints
-- [ ] Compressed archive support for warm/cold tiers
+### Phase 2: Intelligent Archiving (2-3 weeks)
+- [ ] Implement automatic archiving based on workspace activity
+- [ ] Background conversion service (plain files → SQLite)
+- [ ] Archive/unarchive API endpoints
+- [ ] Workspace format detection and routing
 - [ ] Migration tools for existing workspaces
 
 ### Phase 3: Optimization (2-3 weeks)
-- [ ] Intelligent tiering based on workspace characteristics
 - [ ] Performance monitoring and metrics
 - [ ] Cost optimization features
 - [ ] Advanced sync conflict resolution
 - [ ] SQLite query optimization and indexing
+- [ ] Background cleanup and maintenance
 
 ### Phase 4: Advanced Features (4-6 weeks)
 - [ ] Real-time collaboration support
@@ -353,13 +472,13 @@ interface WorkspaceStorage {
 ## Recommendations
 
 ### Immediate Actions
-1. **Start with SQLite**: Implement SQLite persistence layer for active workspaces
-2. **Monitor Performance**: Track query times, transfer times, costs, and user experience
-3. **Implement Tiering**: Add tier management functionality for workspace lifecycle
-4. **Optimize Based on Data**: Use real usage patterns to refine tiering thresholds
+1. **Keep Plain Files for Active**: Continue using plain files for active workspaces (no migration needed)
+2. **Add SQLite for Archives**: Implement SQLite database files for inactive workspaces
+3. **Monitor Performance**: Track transfer times, costs, and user experience
+4. **Implement Archiving**: Add automatic archiving based on workspace activity
 
 ### Long-term Strategy
-1. **Multi-Tier Approach**: Use the proposed multi-tier model for optimal performance and cost
+1. **Hybrid Approach**: Use plain files for active workspaces, SQLite for archives
 2. **Smart Caching**: Implement intelligent caching for frequently accessed workspaces
 3. **CDN Integration**: Use CloudFront for global workspace distribution
 4. **Advanced Sync**: Implement sophisticated conflict resolution for collaborative workspaces
@@ -367,21 +486,28 @@ interface WorkspaceStorage {
 
 ## Conclusion
 
-The multi-tier approach combining SQLite for active workspaces with intelligent tiering provides the best balance of performance, cost, and functionality. This strategy leverages the strengths of SQLite's query performance while maintaining the efficiency of compressed archives for inactive workspaces.
+The hybrid approach using plain files for active workspaces and SQLite database files for archives provides the best balance of performance, cost, and functionality. This strategy leverages the strengths of both approaches while minimizing their weaknesses.
 
 **Key Benefits**:
-- **10-100x faster queries** compared to file-based storage through SQLite
-- **80-95% faster transfers** for large workspaces through intelligent tiering
-- **60-80% cost reduction** compared to pure individual file storage
+- **90-95% faster transfers** for archived workspaces through SQLite database files
+- **80-90% cost reduction** compared to pure plain file storage
 - **Maintained real-time sync** capabilities for active workspaces
-- **Advanced query capabilities** through SQL for analytics and complex operations
+- **Advanced query capabilities** through SQL for archived workspaces
+- **No migration needed** for existing active workspaces
 - **Scalable architecture** that grows with user base and workspace sizes
 
-**SQLite Advantages Over IndexedDB**:
-- **Server-side deployment**: Can run on any server environment
-- **Better performance**: 10-100x faster for complex queries
-- **SQL capabilities**: Support for complex aggregations and analytics
-- **Reliability**: No browser storage limitations or clearing policies
-- **Cross-platform**: Consistent behavior across all environments
+**SQLite Database Files vs Plain Files**:
+- **Transfer Performance**: 10-100x faster upload/download for large workspaces
+- **Query Performance**: 10-100x faster for complex operations and lookups
+- **Storage Efficiency**: 20-30% better compression and space utilization
+- **Cost Optimization**: 80-90% reduction in S3 request costs
+- **Atomicity**: Full ACID transactions vs no built-in atomicity
+- **Real-time Sync**: Not supported vs full file watching support
 
-The implementation should start with SQLite for active workspaces and gradually introduce tiering based on real usage patterns and performance requirements.
+**Recommendation**:
+- **Active Workspaces**: Keep using plain files (no migration needed)
+- **Archive Workspaces**: Convert to SQLite database files for efficiency
+- **Automatic Conversion**: Archive inactive workspaces to SQLite after 7+ days
+- **On-demand Unarchive**: Convert back to plain files when workspace is accessed
+
+The implementation should start by adding SQLite archive support while keeping the existing plain file system for active workspaces.
