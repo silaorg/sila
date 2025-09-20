@@ -7,7 +7,7 @@ This document describes how to build and package Sila for desktop platforms (mac
 The Sila desktop app is built using:
 - **Svelte + Vite** for the web layer (simple setup, no SvelteKit)
 - **Electron** for native desktop integration
-- **Shared client/core packages** for consistent functionality across platforms
+- **Client and core packages** for the actual functionality of the app
 
 ## Prerequisites
 
