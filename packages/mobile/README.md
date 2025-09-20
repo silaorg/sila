@@ -1,5 +1,11 @@
 # Sila Mobile - Capacitor + Svelte
 
-@TODO: we need to change it to a simpler setup of just Svelte without SvelteKit the same way we do it in the desktop package.
+A mobile application built with Capacitor and a thin Svelte wrapper around the client package. This package provides a native mobile experience for Sila using Capacitor's native capabilities for file system access, dialogs, and device integration.
 
-A mobile application built with Capacitor and a thin Svelte wrapper around the client package.
+## Status
+
+🚧 **In Progress**: This mobile implementation is currently under development.
+
+## Documentation
+
+- [Mobile Build Guide](../../docs/dev/platforms/mobile.md) - Complete guide for building and packaging for iOS/Android
