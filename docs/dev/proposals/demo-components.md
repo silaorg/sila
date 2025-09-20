@@ -81,12 +81,15 @@ npm run screenshots:components
 
 ## Component Hierarchy & Examples
 
+> **Note**: The code examples below are preliminary sketches and conceptual designs. Actual implementation options, configuration interfaces, and API details will likely change during development. These examples serve to illustrate the intended functionality and component scope.
+
 ### Big Components (Application-Level)
 
 These components represent complete application experiences or major interface sections:
 
 #### 1. **SilaAppDemo** - Complete Application
 ```typescript
+// Sketch - actual implementation will differ
 import { SilaAppDemo } from '@sila/demo-components';
 
 // Full app with tabbed chat interface (like the attached image)
@@ -1322,6 +1325,228 @@ Create standalone HTML pages for different demo scenarios:
 </html>
 ```
 
+## Automatic Screenshot Maker
+
+### Overview
+
+The demo-components package will include a comprehensive screenshot automation system that can generate high-quality images of any component for documentation, marketing, and testing purposes. This system is crucial for maintaining up-to-date visuals across all Sila materials.
+
+### Screenshot System Architecture
+
+#### 1. **Screenshot Engine**
+```typescript
+// Sketch - implementation details will be refined
+import { ScreenshotEngine } from '@sila/demo-components/screenshot';
+
+const engine = new ScreenshotEngine({
+  browser: 'chromium', // or 'firefox', 'webkit'
+  viewport: { width: 1920, height: 1080 },
+  theme: 'light', // or 'dark', 'auto'
+  format: 'png', // or 'jpeg', 'webp'
+  quality: 95
+});
+```
+
+#### 2. **Component Screenshot Configuration**
+```typescript
+// Sketch - configuration will be more flexible in implementation
+const screenshotConfig = {
+  component: 'SilaAppDemo',
+  mode: 'marketing',
+  scenario: 'tabbed-chat-interface',
+  interactions: [
+    { action: 'wait', duration: 2000 },
+    { action: 'click', selector: '[data-testid="chat-tab-1"]' },
+    { action: 'wait', duration: 1000 }
+  ],
+  variants: [
+    { theme: 'light', viewport: 'desktop' },
+    { theme: 'dark', viewport: 'desktop' },
+    { theme: 'light', viewport: 'tablet' },
+    { theme: 'light', viewport: 'mobile' }
+  ],
+  output: {
+    directory: './screenshots/marketing',
+    naming: '{component}-{theme}-{viewport}-{timestamp}',
+    formats: ['png', 'webp']
+  }
+};
+```
+
+### Screenshot Workflow
+
+#### 1. **Automated Screenshot Generation**
+```bash
+# Generate all marketing screenshots
+npm run screenshots:marketing
+
+# Generate component documentation screenshots
+npm run screenshots:docs
+
+# Generate responsive screenshots for all components
+npm run screenshots:responsive
+
+# Watch mode - regenerate on component changes
+npm run screenshots:watch
+
+# Generate specific component screenshots
+npm run screenshots --component=SilaAppDemo --scenario=marketing
+```
+
+#### 2. **Screenshot Scenarios**
+The system will support predefined scenarios for different use cases:
+
+- **Marketing Screenshots**: Perfect product images for website, social media, presentations
+- **Documentation Screenshots**: Clean, focused images for user guides and API docs
+- **Component Showcase**: Screenshots for the SvelteKit website component catalog
+- **Responsive Testing**: Screenshots across different viewport sizes
+- **Theme Comparison**: Side-by-side light/dark mode comparisons
+- **Interaction States**: Screenshots of hover, active, disabled states
+
+#### 3. **Integration with Component System**
+```typescript
+// Sketch - actual integration will be more sophisticated
+class ComponentScreenshotManager {
+  async generateScreenshots(component: string, scenarios: string[]) {
+    for (const scenario of scenarios) {
+      const config = this.getScenarioConfig(component, scenario);
+      const componentInstance = await this.createComponent(component, config);
+      const screenshots = await this.captureVariants(componentInstance, config);
+      await this.saveScreenshots(screenshots, config.output);
+    }
+  }
+  
+  private async captureVariants(component: ComponentInstance, config: ScreenshotConfig) {
+    const screenshots = [];
+    
+    for (const variant of config.variants) {
+      // Set theme and viewport
+      await component.setTheme(variant.theme);
+      await component.setViewport(variant.viewport);
+      
+      // Perform interactions if specified
+      if (config.interactions) {
+        await this.performInteractions(component, config.interactions);
+      }
+      
+      // Capture screenshot
+      const screenshot = await component.captureScreenshot();
+      screenshots.push({ ...screenshot, variant });
+    }
+    
+    return screenshots;
+  }
+}
+```
+
+### Screenshot Automation Features
+
+#### 1. **Smart Component Detection**
+- Automatically detect component boundaries
+- Handle responsive layouts and dynamic content
+- Capture specific UI regions or full components
+- Support for components with animations or transitions
+
+#### 2. **Multi-Format Output**
+- PNG for high-quality marketing materials
+- WebP for web optimization
+- JPEG for smaller file sizes
+- SVG for vector graphics where applicable
+
+#### 3. **Batch Processing**
+- Generate screenshots for multiple components simultaneously
+- Support for component variations and themes
+- Parallel processing for faster generation
+- Progress tracking and error handling
+
+#### 4. **CI/CD Integration**
+```yaml
+# Sketch - CI/CD workflow will be more comprehensive
+name: Generate Screenshots
+on:
+  push:
+    paths: ['packages/client/src/**', 'packages/demo-components/**']
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate screenshots
+        run: npm run screenshots:ci
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots
+          path: packages/demo-components/screenshots/
+```
+
+### Screenshot Quality & Consistency
+
+#### 1. **Visual Consistency**
+- Standardized viewport sizes across all screenshots
+- Consistent theme application (light/dark modes)
+- Unified styling and component states
+- Proper handling of dynamic content and animations
+
+#### 2. **Quality Assurance**
+- Automatic detection of visual regressions
+- Comparison with previous screenshots
+- Validation of component rendering
+- Error detection and reporting
+
+#### 3. **Optimization**
+- Automatic image optimization and compression
+- Responsive image generation for different screen densities
+- Lazy loading optimization for web usage
+- CDN-ready file naming and organization
+
+### Integration with Documentation
+
+#### 1. **Automatic Documentation Updates**
+```markdown
+<!-- Auto-generated screenshot includes -->
+![Sila App Demo - Light Theme](./screenshots/marketing/sila-app-demo-light-desktop.png)
+![Sila App Demo - Dark Theme](./screenshots/marketing/sila-app-demo-dark-desktop.png)
+
+<!-- Responsive screenshots -->
+![Desktop](./screenshots/responsive/sila-app-demo-desktop.png)
+![Tablet](./screenshots/responsive/sila-app-demo-tablet.png)
+![Mobile](./screenshots/responsive/sila-app-demo-mobile.png)
+```
+
+#### 2. **SvelteKit Website Integration**
+- Automatic screenshot updates in component showcase
+- Interactive screenshot galleries
+- Before/after comparisons for component changes
+- Download links for high-resolution images
+
+### Future Enhancements
+
+#### 1. **Advanced Screenshot Features**
+- Video capture for animated components
+- GIF generation for micro-interactions
+- 3D mockup generation for realistic presentations
+- Interactive screenshot annotations
+
+#### 2. **AI-Powered Screenshot Analysis**
+- Automatic screenshot quality assessment
+- Smart cropping and composition suggestions
+- Content-aware optimization
+- Accessibility compliance checking
+
+#### 3. **Collaborative Features**
+- Screenshot review and approval workflows
+- Team collaboration on screenshot scenarios
+- Version control for screenshot configurations
+- Integration with design tools and workflows
+
 ## Implementation Plan
 
 ### Phase 1: Package Foundation & Core Infrastructure (Week 1-2)
@@ -1422,19 +1647,30 @@ Create standalone HTML pages for different demo scenarios:
    - `ButtonDemo.svelte`: Interactive buttons
    - All individual UI elements and interactions
 
-2. **Screenshot Automation**:
-   - Implement `ScreenshotAutomation` class with Playwright
-   - Create configuration for different screenshot scenarios
+2. **Screenshot Automation System** (Critical Priority):
+   - Implement comprehensive `ScreenshotEngine` with Playwright
+   - Create `ComponentScreenshotManager` for automated generation
+   - Build configuration system for different screenshot scenarios
    - Add CI/CD integration for automatic screenshot generation
-   - Set up watch mode for development
+   - Set up watch mode for development and component changes
+   - Implement multi-format output (PNG, WebP, JPEG)
+   - Add responsive screenshot generation (desktop/tablet/mobile)
+   - Create theme comparison screenshots (light/dark modes)
 
-3. **Package Distribution**:
+3. **Screenshot Integration**:
+   - Integrate screenshot generation with SvelteKit website
+   - Add automatic screenshot updates to component showcase
+   - Implement screenshot galleries and download functionality
+   - Create screenshot comparison tools for visual regression testing
+   - Set up automatic documentation screenshot updates
+
+4. **Package Distribution**:
    - Set up npm package publishing
    - Create CDN distribution
    - Add TypeScript definitions
    - Set up automated builds and releases
 
-4. **Final Integration**:
+5. **Final Integration**:
    - Add demo pages to sila.org
    - Implement responsive design for mobile/desktop
    - Add call-to-action elements
