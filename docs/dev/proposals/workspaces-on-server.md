@@ -703,27 +703,95 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string): Per
 ### Phase 2: Real-Time Sync Implementation (3-4 weeks)
 
 #### Real-Time Sync Architecture
-The key insight is that **clients don't do SQL** - they sync RepTree operations and files with the server using real-time sync. The server batches operations and syncs periodically:
+The key insight is that **clients don't do SQL** - they sync RepTree operations and files with the server using real-time sync. The server batches operations and syncs periodically.
+
+#### Sync Client Interface
+Clients use a sync client to send and receive operations. The transport layer (WebSocket, HTTP, or UDP) is abstracted away:
+
+```typescript
+// Sync client interface (transport-agnostic)
+interface SyncClient {
+  // Send operations to server
+  post(spaceId: string, treeId: string, ops: VertexOperation[]): Promise<void>;
+  
+  // Get new operations relative to local state vector
+  get(spaceId: string, treeId: string, stateVector: StateVector): Promise<VertexOperation[]>;
+  
+  // Subscribe to incoming operations
+  on(spaceId: string, treeId: string, callback: (ops: VertexOperation[]) => void): Subscription;
+}
+
+// Usage examples:
+const client = new SyncClient(/* transport config */);
+
+// Post operations to server
+await client.post('space-id-1', 'tree-id-1', ops);
+
+// Get new operations relative to local state
+const newOps = await client.get('space-id-1', 'tree-id-1', stateVector);
+
+// Subscribe to incoming operations
+const subscription = client.on('space-id-1', 'tree-id-1', (incomingOps) => {
+  // Apply incoming operations to local RepTree
+  localRepTree.merge(incomingOps);
+});
+```
+
+#### ServerPersistenceLayer Implementation
+The ServerPersistenceLayer uses the sync client to communicate with the server:
 
 ```typescript
 class ServerPersistenceLayer implements PersistenceLayer {
-  // Real-time sync with server
+  private syncClient: SyncClient;
+  private subscriptions: Map<string, Subscription> = new Map();
+  
+  constructor(
+    private spaceId: string,
+    private serverConfig: {
+      syncClient: SyncClient;
+      s3Client: S3Client;
+      bucketName: string;
+    }
+  ) {
+    this.syncClient = serverConfig.syncClient;
+  }
+  
   async startListening(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void> {
-    // WebSocket connection to server for real-time sync
-    this.wsConnection = new WebSocket(`wss://api.sila.com/spaces/${this.spaceId}/sync`);
+    // Subscribe to incoming operations for all trees
+    const subscription = this.syncClient.on(this.spaceId, '*', (incomingOps) => {
+      // Determine treeId from operations and notify callback
+      const treeOps = this.groupOpsByTree(incomingOps);
+      for (const [treeId, ops] of treeOps) {
+        onIncomingOps(treeId, ops);
+      }
+    });
     
-    this.wsConnection.onmessage = (event) => {
-      const { treeId, operations } = JSON.parse(event.data);
-      onIncomingOps(treeId, operations);
-    };
+    this.subscriptions.set('*', subscription);
   }
   
   async saveTreeOps(treeId: string, ops: VertexOperation[]): Promise<void> {
     // Store operations locally in SQLite
     await this.storeOperationsLocally(treeId, ops);
     
+    // Send operations to server via sync client
+    await this.syncClient.post(this.spaceId, treeId, ops);
+    
     // Mark as dirty for periodic sync (not immediate)
     this.markDirty();
+  }
+  
+  async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
+    // Get local operations first
+    const localOps = await this.getLocalOperations(treeId);
+    
+    // Get state vector from local operations
+    const stateVector = this.buildStateVector(localOps);
+    
+    // Fetch new operations from server
+    const newOps = await this.syncClient.get(this.spaceId, treeId, stateVector);
+    
+    // Merge and return all operations
+    return [...localOps, ...newOps];
   }
   
   // Files are synced separately via S3
@@ -745,6 +813,14 @@ class ServerPersistenceLayer implements PersistenceLayer {
       Body: content,
       ContentType: 'application/octet-stream'
     });
+  }
+  
+  async stopListening(): Promise<void> {
+    // Unsubscribe from all subscriptions
+    for (const subscription of this.subscriptions.values()) {
+      subscription.unsubscribe();
+    }
+    this.subscriptions.clear();
   }
   
   // Server periodically downloads space.db, applies changes, uploads back
