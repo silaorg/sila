@@ -189,37 +189,6 @@ s3://sila-workspaces/
 | **Secrets** | IndexedDB + encrypted files | SQLite table with encryption |
 | **Metadata** | IndexedDB spaces table + space.json | SQLite spaces table |
 
-### Performance Characteristics
-
-| Operation | Local-First (IndexedDB + FileSystem) | Server-Side (SQLite + S3) | Improvement |
-|-----------|-------------------------------------|---------------------------|-------------|
-| **Single Operation Lookup** | 1-5ms (IndexedDB) | 0.1-1ms | 5-50x faster |
-| **Bulk Operations (1000 ops)** | 50-200ms (IndexedDB) | 10-50ms | 2-20x faster |
-| **Date Range Queries** | 10-50ms (IndexedDB) | 1-10ms | 5-50x faster |
-| **Full Workspace Load** | 100-500ms (IndexedDB) | 50-200ms | 2-10x faster |
-| **Complex Aggregations** | Not supported | 1-10ms | New capability |
-| **Binary File Access** | 10-100ms (filesystem) | 50-200ms | Similar performance |
-| **File Upload** | 100-500ms per file | 100-500ms per file | Similar performance |
-
-### Transfer Performance
-
-| Workspace Size | Local-First Sync | Server Transfer (Ops + Files) | Improvement |
-|----------------|------------------|-------------------------------|-------------|
-| **10MB** | 30-150s (filesystem sync via Dropbox/iCloud) | 5-15s (SQLite + S3 files) | 6-30x faster |
-| **50MB** | 150-750s (filesystem sync via Dropbox/iCloud) | 15-45s (SQLite + S3 files) | 10-50x faster |
-| **100MB** | 300-1500s (filesystem sync via Dropbox/iCloud) | 30-90s (SQLite + S3 files) | 10-50x faster |
-| **500MB** | 1500-7500s (filesystem sync via Dropbox/iCloud) | 150-450s (SQLite + S3 files) | 10-50x faster |
-
-### Hybrid Approach Benefits
-
-| Aspect | SQLite Operations | S3 Files | Combined Benefit |
-|--------|------------------|----------|------------------|
-| **Operations Transfer** | 2-5s (single file) | N/A | Fast operation sync |
-| **File Transfer** | N/A | Individual file access | Granular file access |
-| **Query Performance** | 0.1-1ms | N/A | Fast operation queries |
-| **File Access** | N/A | Direct S3 access | Efficient file serving |
-| **Storage Cost** | Low (small DB) | Standard S3 rates | Optimized costs |
-| **Backup** | Single file | Individual files | Flexible backup options |
 
 ## Implementation Strategy
 
@@ -817,45 +786,6 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 }
 ```
 
-## Performance Analysis
-
-### Storage Efficiency
-
-| Workspace Component | Client (IndexedDB) | Server (SQLite + S3) | Improvement |
-|---------------------|-------------------|---------------------|-------------|
-| **Operations Storage** | ~100 bytes/op | ~80 bytes/op | 20% smaller |
-| **Binary Files** | Filesystem overhead | S3 native storage | Similar efficiency |
-| **Indexes** | Browser-managed | Optimized SQLite | 2-5x faster queries |
-| **Total Size** | Baseline | Similar | No significant change |
-| **Database Size** | N/A | Small (ops only) | Minimal storage |
-
-### Transfer Performance
-
-| Workspace Size | Client Sync Time | Server Transfer Time (Ops + Files) | Speed Improvement |
-|----------------|------------------|-----------------------------------|-------------------|
-| **Small (10MB)** | 30-150s | 5-15s (SQLite + S3 files) | 6-30x faster |
-| **Medium (50MB)** | 150-750s | 15-45s (SQLite + S3 files) | 10-50x faster |
-| **Large (100MB)** | 300-1500s | 30-90s (SQLite + S3 files) | 10-50x faster |
-| **Very Large (500MB)** | 1500-7500s | 150-450s (SQLite + S3 files) | 10-50x faster |
-
-### Hybrid Approach Benefits
-
-| Aspect | SQLite Operations | S3 Files | Combined Benefit |
-|--------|------------------|----------|------------------|
-| **Operations Transfer** | 2-5s (single file) | N/A | Fast operation sync |
-| **File Transfer** | N/A | Individual file access | Granular file access |
-| **Query Performance** | 0.1-1ms | N/A | Fast operation queries |
-| **File Access** | N/A | Direct S3 access | Efficient file serving |
-| **Storage Cost** | Low (small DB) | Standard S3 rates | Optimized costs |
-| **Backup** | Single file | Individual files | Flexible backup options |
-
-### Cost Analysis
-
-| Storage Type | Monthly Requests | Storage (GB) | Transfer (GB) | Monthly Cost |
-|--------------|------------------|--------------|---------------|--------------|
-| **Local-First Sync** | 1M+ requests (filesystem sync) | 100GB | 50GB | ~$25-50 |
-| **Server SQLite + S3** | 50K requests | 100GB | 50GB | ~$15-25 |
-| **Cost Savings** | 95% fewer requests | Similar storage | Similar transfer | 40-60% cheaper |
 
 ## Security Considerations
 
@@ -919,16 +849,11 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 
 Adding server-side storage as an **additional sync option** alongside the existing local-first approach provides significant advantages:
 
-**Performance Benefits**:
-- **10-100x faster queries** through optimized SQLite indexing for operations
-- **6-50x faster transfers** through efficient operation sync + direct file access
-- **Fast operation sync** with single SQLite database file
-- **Efficient file access** through direct S3 URLs and presigned URLs
-
-**Cost Benefits**:
-- **40-60% cost reduction** through fewer S3 requests for operations
-- **Optimized storage** with small SQLite databases and standard S3 file storage
-- **Flexible backup** options for operations vs files
+**Technical Benefits**:
+- **Optimized queries** through SQLite indexing for operations
+- **Efficient sync** with single SQLite database file
+- **Direct file access** through S3 URLs and presigned URLs
+- **Structured storage** with small SQLite databases and standard S3 file storage
 
 **Functional Benefits**:
 - **Additional sync option** for users who prefer cloud-based access
@@ -940,10 +865,10 @@ Adding server-side storage as an **additional sync option** alongside the existi
 - **Granular file management** with individual S3 objects
 
 **Hybrid Approach Advantages**:
-- **Best of both worlds**: Fast operation queries + efficient file storage
+- **Best of both worlds**: Optimized operation queries + efficient file storage
 - **Scalable architecture**: SQLite for structured data, S3 for binary data
 - **Flexible access patterns**: Direct S3 URLs for files, SQL queries for operations
-- **Cost optimization**: Small databases + standard S3 storage rates
+- **Structured approach**: Small databases + standard S3 storage
 
 **User Choice**:
 - **Local-First Option**: Users can continue using IndexedDB + FileSystem layers with filesystem sync (Dropbox, iCloud) for offline-first experience
