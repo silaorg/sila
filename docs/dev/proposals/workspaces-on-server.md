@@ -119,7 +119,8 @@ CREATE TABLE mutable_file_metadata (
   uuid TEXT PRIMARY KEY,
   s3_key TEXT NOT NULL,        -- S3 object key
   size INTEGER,
-  created_at INTEGER DEFAULT (strftime('%s', 'now'))
+  created_at INTEGER DEFAULT (strftime('%s', 'now')),
+  version INTEGER DEFAULT (strftime('%s', 'now'))  -- Version timestamp for updates
 );
 
 -- Indexes for performance
@@ -380,6 +381,45 @@ class ServerPersistenceLayer implements PersistenceLayer {
     }
   }
   
+  async putMutableFile(uuid: string, content: Uint8Array): Promise<void> {
+    const timestamp = Date.now();
+    const s3Key = `${this.spaceId}/files/var/${uuid.slice(0, 2)}/${uuid.slice(2)}`;
+    
+    // Upload new version to S3 (overwrites previous version)
+    await this.s3Client.putObject({
+      Bucket: this.serverConfig.bucketName,
+      Key: s3Key,
+      Body: content,
+      ContentType: 'application/octet-stream'
+    });
+    
+    // Store metadata in SQLite with version info
+    if (this.db) {
+      this.db.prepare(`
+        INSERT OR REPLACE INTO mutable_file_metadata 
+        (uuid, s3_key, size, created_at, version)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(uuid, s3Key, content.length, timestamp, timestamp);
+    }
+    
+    this.markDirty();
+  }
+  
+  async updateMutableFile(uuid: string, content: Uint8Array): Promise<void> {
+    // Same as putMutableFile - mutable files are updated in place
+    await this.putMutableFile(uuid, content);
+  }
+  
+  async getMutableFileVersion(uuid: string): Promise<number | null> {
+    if (!this.db) throw new Error('Not connected');
+    
+    const metadata = this.db.prepare(`
+      SELECT version FROM mutable_file_metadata WHERE uuid = ?
+    `).get(uuid);
+    
+    return metadata ? metadata.version : null;
+  }
+  
   async getFile(hash: string): Promise<Uint8Array> {
     if (!this.db) throw new Error('Not connected');
     
@@ -389,6 +429,25 @@ class ServerPersistenceLayer implements PersistenceLayer {
     
     if (!metadata) {
       throw new Error(`File not found: ${hash}`);
+    }
+    
+    const response = await this.s3Client.getObject({
+      Bucket: this.serverConfig.bucketName,
+      Key: metadata.s3_key
+    });
+    
+    return new Uint8Array(await response.Body.transformToByteArray());
+  }
+  
+  async getMutableFile(uuid: string): Promise<Uint8Array> {
+    if (!this.db) throw new Error('Not connected');
+    
+    const metadata = this.db.prepare(`
+      SELECT s3_key FROM mutable_file_metadata WHERE uuid = ?
+    `).get(uuid);
+    
+    if (!metadata) {
+      throw new Error(`Mutable file not found: ${uuid}`);
     }
     
     const response = await this.s3Client.getObject({
@@ -506,6 +565,14 @@ class ServerPersistenceLayer implements PersistenceLayer {
         mime_type TEXT,
         size INTEGER,
         created_at INTEGER DEFAULT (strftime('%s', 'now'))
+      );
+      
+      CREATE TABLE IF NOT EXISTS mutable_file_metadata (
+        uuid TEXT PRIMARY KEY,
+        s3_key TEXT NOT NULL,
+        size INTEGER,
+        created_at INTEGER DEFAULT (strftime('%s', 'now')),
+        version INTEGER DEFAULT (strftime('%s', 'now'))
       );
       
       CREATE INDEX IF NOT EXISTS idx_tree_ops_tree ON tree_ops(tree_id);
@@ -661,12 +728,22 @@ class ServerPersistenceLayer implements PersistenceLayer {
   
   // Files are synced separately via S3
   async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
-    // Direct upload to S3
+    // Direct upload to S3 (immutable files)
     await this.s3Client.putObject({
       Bucket: this.bucketName,
       Key: `${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`,
       Body: content,
       ContentType: mimeType
+    });
+  }
+  
+  async putMutableFile(uuid: string, content: Uint8Array): Promise<void> {
+    // Direct upload to S3 (mutable files - overwrites previous version)
+    await this.s3Client.putObject({
+      Bucket: this.bucketName,
+      Key: `${this.spaceId}/files/var/${uuid.slice(0, 2)}/${uuid.slice(2)}`,
+      Body: content,
+      ContentType: 'application/octet-stream'
     });
   }
   
@@ -677,6 +754,28 @@ class ServerPersistenceLayer implements PersistenceLayer {
     // 3. Upload updated database back to S3
     // 4. Clear local dirty flag
   }
+}
+```
+
+#### Mutable File Update Strategy
+
+**Immutable Files (static/)**:
+- Content-addressed by SHA-256 hash
+- Never change - new content = new hash = new file
+- Deduplication across spaces
+
+**Mutable Files (var/)**:
+- UUID-addressed files that can be updated
+- Same UUID, new content = overwrite existing file
+- Version tracking in SQLite metadata
+- Direct S3 overwrite for updates
+
+**Update Workflow**:
+1. **Client updates mutable file** → `putMutableFile(uuid, newContent)`
+2. **Direct S3 upload** → Overwrites existing file at same S3 key
+3. **Update metadata** → Update version timestamp in local SQLite
+4. **Mark dirty** → Trigger periodic sync of metadata to server
+5. **Server sync** → Download space.db, merge metadata, upload back
 }
 ```
 
