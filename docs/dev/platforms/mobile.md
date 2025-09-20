@@ -99,7 +99,7 @@ npx cap build ios
 3. Build and run (⌘+R)
 
 **iOS Configuration:**
-- Bundle ID: `app.silaintelligence.com`
+- Bundle ID: `com.silain.mobile`
 - Deployment Target: iOS 13.0+
 - Signing: Configure in Xcode project settings
 
@@ -119,7 +119,7 @@ npx cap build android
 3. Build APK or run on device/emulator
 
 **Android Configuration:**
-- Package name: `app.silaintelligence.com`
+- Package name: `com.silain.mobile`
 - Target SDK: 33+
 - Minimum SDK: 24 (Android 7.0)
 
@@ -133,7 +133,7 @@ The `capacitor.config.ts` file controls Capacitor behavior:
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.silaintelligence.com',
+  appId: 'com.silain.mobile',
   appName: 'Sila',
   webDir: 'build',  // Web assets directory
   server: {
