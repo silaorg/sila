@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This proposal outlines adding server-side storage as an **additional sync option** for Sila workspaces, using a hybrid approach: SQLite database files for operations and metadata, with binary files stored directly on S3. This complements the existing local-first approach (which works across multiple devices via filesystem sync like Dropbox/iCloud) by providing cloud-based sync as an alternative option.
+This proposal outlines adding server-side storage as an **additional sync option** for Sila workspaces, using real-time sync: clients sync RepTree operations via WebSocket and files via S3, while servers store operations in SQLite databases. This complements the existing local-first approach (which works across multiple devices via filesystem sync like Dropbox/iCloud) by providing cloud-based real-time sync as an alternative option.
 
 ## Current Architecture: Multi-Layer Persistence
 
@@ -65,9 +65,9 @@ This proposal adds server-side storage as an **additional sync option** alongsid
 
 This would add a third persistence layer type that runs on the client but syncs with servers:
 
-3. **ServerPersistenceLayer**: Client-side layer that syncs with server-based storage (SQLite + S3)
+3. **ServerPersistenceLayer**: Client-side layer that syncs RepTree operations via WebSocket and files via S3
 
-**Key Point**: Server-synced spaces are still **client-side layers** - they just sync their data with servers. The client can open both types of spaces simultaneously:
+**Key Point**: Server-synced spaces are still **client-side layers** - they sync RepTree operations and files with servers using real-time sync. The client can open both types of spaces simultaneously:
 
 - **Local-First Spaces**: IndexedDB + FileSystem layers (current)
 - **Server-Synced Spaces**: IndexedDB + ServerPersistenceLayer (new)
@@ -604,49 +604,42 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string): Per
 }
 ```
 
-### Phase 2: Migration Tools (2-3 weeks)
+### Phase 2: Real-Time Sync Implementation (3-4 weeks)
 
-#### Client to Server Migration
+#### Real-Time Sync Architecture
+The key insight is that **clients don't do SQL** - they sync RepTree operations and files with the server using real-time sync:
+
 ```typescript
-class WorkspaceMigrator {
-  async migrateFromIndexedDB(spaceId: string): Promise<void> {
-    // 1. Export from IndexedDB
-    const operations = await getTreeOps(spaceId, spaceId);
-    const secrets = await getAllSecrets(spaceId);
-    const files = await getAllFiles(spaceId);
+class ServerPersistenceLayer implements PersistenceLayer {
+  // Real-time sync with server
+  async startListening(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void> {
+    // WebSocket connection to server for real-time sync
+    this.wsConnection = new WebSocket(`wss://api.sila.com/spaces/${this.spaceId}/sync`);
     
-    // 2. Create SQLite database
-    const serverStorage = new SQLitePersistenceLayer(spaceId, `workspace-${spaceId}.db`);
-    
-    // 3. Import data
-    await serverStorage.bulkPutOperations(operations);
-    await serverStorage.saveAllSecrets(secrets);
-    
-    for (const file of files) {
-      await serverStorage.putFile(file.hash, file.content, file.mimeType);
-    }
-    
-    // 4. Upload to server
-    await uploadWorkspaceDatabase(spaceId, serverStorage.getDatabasePath());
+    this.wsConnection.onmessage = (event) => {
+      const { treeId, operations } = JSON.parse(event.data);
+      onIncomingOps(treeId, operations);
+    };
   }
   
-  async migrateToIndexedDB(spaceId: string): Promise<void> {
-    // 1. Download SQLite database from server
-    const dbPath = await downloadWorkspaceDatabase(spaceId);
-    const serverStorage = new SQLitePersistenceLayer(spaceId, dbPath);
-    
-    // 2. Export data
-    const operations = await serverStorage.getAllOperations();
-    const secrets = await serverStorage.getAllSecrets();
-    const files = await serverStorage.getAllFiles();
-    
-    // 3. Import to IndexedDB
-    await appendTreeOps(spaceId, spaceId, operations);
-    await saveAllSecrets(spaceId, secrets);
-    
-    for (const file of files) {
-      await saveFile(spaceId, file.hash, file.content);
-    }
+  async saveTreeOps(treeId: string, ops: VertexOperation[]): Promise<void> {
+    // Send operations to server via WebSocket
+    this.wsConnection.send(JSON.stringify({
+      type: 'operations',
+      treeId,
+      operations: ops
+    }));
+  }
+  
+  // Files are synced separately via S3
+  async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
+    // Direct upload to S3
+    await this.s3Client.putObject({
+      Bucket: this.bucketName,
+      Key: `${this.userId}/${this.spaceId}/files/${hash}`,
+      Body: content,
+      ContentType: mimeType
+    });
   }
 }
 ```
@@ -817,14 +810,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 - [ ] Error handling and retry logic
 - [ ] Performance optimization
 
-### Phase 3: Migration Tools (2-3 weeks)
-- [ ] IndexedDB to SQLite migration utilities
-- [ ] SQLite to IndexedDB migration utilities
-- [ ] Data validation and integrity checks
-- [ ] Migration progress tracking
-- [ ] Rollback capabilities
-
-### Phase 4: Advanced Features (4-6 weeks)
+### Phase 3: Advanced Features (4-6 weeks)
 - [ ] Real-time collaboration support
 - [ ] Workspace sharing and permissions
 - [ ] Backup and recovery tools
@@ -834,10 +820,10 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 ## Recommendations
 
 ### Immediate Actions
-1. **Start with SQLite**: Implement SQLite database file storage for new workspaces
-2. **Parallel Development**: Keep existing IndexedDB system running during transition
-3. **Migration Strategy**: Provide tools for users to migrate existing workspaces
-4. **Performance Testing**: Validate performance improvements with real workspace data
+1. **Start with ServerPersistenceLayer**: Implement real-time sync for new workspaces
+2. **Parallel Development**: Keep existing persistence layers running during transition
+3. **Real-Time Sync**: Focus on WebSocket-based operation sync and S3 file storage
+4. **Testing**: Validate real-time sync with real workspace data
 
 ### Long-term Strategy
 1. **Dual Sync Options**: Support both local-first and server-side storage as user choices
@@ -878,8 +864,8 @@ Adding server-side storage as an **additional sync option** alongside the existi
 
 **Implementation Strategy**:
 - **Additive approach**: Server-side storage as additional option, not replacement
-- **User choice**: Users can migrate workspaces to server storage when desired
-- **Data integrity** maintained throughout migration process
-- **Rollback capability** if users want to return to local-first approach
+- **Real-time sync**: Clients sync RepTree operations and files, not SQL queries
+- **User choice**: Users can choose between local-first and server-synced spaces
+- **Data integrity** maintained through CRDT-based operation sync
 
 The hybrid SQLite + S3 approach adds a powerful cloud-based sync option to Sila while preserving the existing multi-layer persistence approach (IndexedDB + FileSystem), giving users the flexibility to choose the sync method that best fits their needs.
