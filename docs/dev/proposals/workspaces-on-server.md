@@ -63,9 +63,15 @@ This proposal adds server-side storage as an **additional sync option** alongsid
 
 ### Server-Side Persistence Layer
 
-This would add a third persistence layer type:
+This would add a third persistence layer type that runs on the client but syncs with servers:
 
-3. **ServerPersistenceLayer**: Server-based storage for operations, secrets, and files
+3. **ServerPersistenceLayer**: Client-side layer that syncs with server-based storage (SQLite + S3)
+
+**Key Point**: Server-synced spaces are still **client-side layers** - they just sync their data with servers. The client can open both types of spaces simultaneously:
+
+- **Local-First Spaces**: IndexedDB + FileSystem layers (current)
+- **Server-Synced Spaces**: IndexedDB + ServerPersistenceLayer (new)
+- **Hybrid Spaces**: IndexedDB + FileSystem + ServerPersistenceLayer (future possibility)
 
 ### SQLite Database Schema (Operations Only)
 Each workspace becomes a single SQLite database file containing only operations and metadata:
@@ -250,24 +256,56 @@ interface ServerWorkspaceStorage {
 }
 ```
 
-#### Hybrid Storage Implementation
+#### ServerPersistenceLayer Implementation
 ```typescript
-class HybridWorkspaceStorage implements ServerWorkspaceStorage {
-  private db: Database;
+class ServerPersistenceLayer implements PersistenceLayer {
+  readonly id: string;
+  readonly type = 'remote' as const;
+  
+  private _connected = false;
+  private s3Client: S3Client;
+  private db: Database | null = null;
   
   constructor(
-    private spaceId: string, 
-    private dbPath: string,
-    private s3Client: S3Client,
-    private bucketName: string,
-    private userId: string
+    private spaceId: string,
+    private serverConfig: {
+      s3Client: S3Client;
+      bucketName: string;
+      userId: string;
+    }
   ) {
+    this.id = `server-${spaceId}`;
+    this.s3Client = serverConfig.s3Client;
+  }
+  
+  async connect(): Promise<void> {
+    if (this._connected) return;
+    
+    // Download SQLite database from S3
+    const dbPath = await this.downloadDatabase();
     this.db = new Database(dbPath);
     this.initializeSchema();
+    
+    this._connected = true;
+  }
+  
+  async disconnect(): Promise<void> {
+    if (!this._connected) return;
+    
+    // Upload any pending changes back to S3
+    if (this.db) {
+      await this.uploadDatabase();
+      this.db.close();
+      this.db = null;
+    }
+    
+    this._connected = false;
   }
   
   // Operations (SQLite)
   async saveTreeOps(treeId: string, ops: VertexOperation[]): Promise<void> {
+    if (!this.db) throw new Error('Not connected');
+    
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO tree_ops 
       (clock, peer_id, tree_id, target_id, parent_id, key, value)
@@ -289,9 +327,14 @@ class HybridWorkspaceStorage implements ServerWorkspaceStorage {
     });
     
     transaction(ops);
+    
+    // Periodically sync to server (or on disconnect)
+    await this.syncToServer();
   }
   
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
+    if (!this.db) throw new Error('Not connected');
+    
     const rows = this.db.prepare(`
       SELECT * FROM tree_ops 
       WHERE tree_id = ? 
@@ -306,6 +349,172 @@ class HybridWorkspaceStorage implements ServerWorkspaceStorage {
       value: row.value ? JSON.parse(row.value) : undefined
     }));
   }
+  
+  async loadSpaceTreeOps(): Promise<VertexOperation[]> {
+    return this.loadTreeOps(this.spaceId);
+  }
+  
+  async loadSecrets(): Promise<Record<string, string> | undefined> {
+    if (!this.db) throw new Error('Not connected');
+    
+    const rows = this.db.prepare('SELECT * FROM secrets').all();
+    if (rows.length === 0) return undefined;
+    
+    const secrets: Record<string, string> = {};
+    for (const row of rows) {
+      secrets[row.key] = row.value;
+    }
+    return secrets;
+  }
+  
+  async saveSecrets(secrets: Record<string, string>): Promise<void> {
+    if (!this.db) throw new Error('Not connected');
+    
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO secrets (key, value)
+      VALUES (?, ?)
+    `);
+    
+    const transaction = this.db.transaction((secrets: Record<string, string>) => {
+      for (const [key, value] of Object.entries(secrets)) {
+        stmt.run(key, value);
+      }
+    });
+    
+    transaction(secrets);
+    await this.syncToServer();
+  }
+  
+  // File operations (S3)
+  async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
+    const s3Key = `${this.serverConfig.userId}/${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    
+    // Upload to S3
+    await this.s3Client.putObject({
+      Bucket: this.serverConfig.bucketName,
+      Key: s3Key,
+      Body: content,
+      ContentType: mimeType || 'application/octet-stream'
+    });
+    
+    // Store metadata in local SQLite
+    if (this.db) {
+      this.db.prepare(`
+        INSERT OR REPLACE INTO file_metadata 
+        (hash, s3_key, mime_type, size, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(hash, s3Key, mimeType, content.length, Date.now());
+    }
+  }
+  
+  async getFile(hash: string): Promise<Uint8Array> {
+    if (!this.db) throw new Error('Not connected');
+    
+    const metadata = this.db.prepare(`
+      SELECT s3_key FROM file_metadata WHERE hash = ?
+    `).get(hash);
+    
+    if (!metadata) {
+      throw new Error(`File not found: ${hash}`);
+    }
+    
+    const response = await this.s3Client.getObject({
+      Bucket: this.serverConfig.bucketName,
+      Key: metadata.s3_key
+    });
+    
+    return new Uint8Array(await response.Body.transformToByteArray());
+  }
+  
+  // Server sync methods
+  private async downloadDatabase(): Promise<string> {
+    const key = `${this.serverConfig.userId}/${this.spaceId}/workspace.db`;
+    
+    try {
+      const response = await this.s3Client.getObject({
+        Bucket: this.serverConfig.bucketName,
+        Key: key
+      });
+      
+      const tempPath = `/tmp/workspace-${this.spaceId}-${Date.now()}.db`;
+      const fileContent = await response.Body.transformToByteArray();
+      await fs.writeFile(tempPath, fileContent);
+      return tempPath;
+    } catch (error) {
+      // If database doesn't exist, create a new one
+      const tempPath = `/tmp/workspace-${this.spaceId}-${Date.now()}.db`;
+      const db = new Database(tempPath);
+      this.initializeSchema(db);
+      db.close();
+      return tempPath;
+    }
+  }
+  
+  private async uploadDatabase(): Promise<void> {
+    if (!this.db) return;
+    
+    const key = `${this.serverConfig.userId}/${this.spaceId}/workspace.db`;
+    const dbPath = this.db.name; // SQLite database file path
+    
+    const fileContent = await fs.readFile(dbPath);
+    
+    await this.s3Client.putObject({
+      Bucket: this.serverConfig.bucketName,
+      Key: key,
+      Body: fileContent,
+      ContentType: 'application/x-sqlite3'
+    });
+  }
+  
+  private async syncToServer(): Promise<void> {
+    // Debounced sync to avoid too many server calls
+    // Implementation would include debouncing logic
+    await this.uploadDatabase();
+  }
+  
+  private initializeSchema(db?: Database): void {
+    const database = db || this.db;
+    if (!database) return;
+    
+    // Create tables as shown in the schema section
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS spaces (
+        id TEXT PRIMARY KEY,
+        uri TEXT NOT NULL,
+        name TEXT,
+        created_at INTEGER NOT NULL,
+        user_id TEXT
+      );
+      
+      CREATE TABLE IF NOT EXISTS tree_ops (
+        clock INTEGER NOT NULL,
+        peer_id TEXT NOT NULL,
+        tree_id TEXT NOT NULL,
+        target_id TEXT NOT NULL,
+        parent_id TEXT,
+        key TEXT,
+        value TEXT,
+        PRIMARY KEY (clock, peer_id, tree_id)
+      );
+      
+      CREATE TABLE IF NOT EXISTS secrets (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS file_metadata (
+        hash TEXT PRIMARY KEY,
+        s3_key TEXT NOT NULL,
+        mime_type TEXT,
+        size INTEGER,
+        created_at INTEGER DEFAULT (strftime('%s', 'now'))
+      );
+      
+      CREATE INDEX IF NOT EXISTS idx_tree_ops_tree ON tree_ops(tree_id);
+      CREATE INDEX IF NOT EXISTS idx_tree_ops_clock ON tree_ops(tree_id, clock);
+    `);
+  }
+}
   
   // Files (S3)
   async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
@@ -367,6 +576,62 @@ class HybridWorkspaceStorage implements ServerWorkspaceStorage {
       SELECT * FROM file_metadata WHERE hash = ?
     `).get(hash);
   }
+}
+```
+
+### How Client-Side Server Layers Work
+
+#### Space Creation and Opening
+```typescript
+// Current: Local-first space
+const localSpace = await spaceManager.loadSpace(
+  { id: 'space1', uri: '/path/to/space', name: 'My Space', createdAt: new Date(), userId: null },
+  [
+    new IndexedDBPersistenceLayer('space1'),
+    new FileSystemPersistenceLayer('/path/to/space', 'space1', fs)
+  ]
+);
+
+// New: Server-synced space
+const serverSpace = await spaceManager.loadSpace(
+  { id: 'space2', uri: 'https://api.sila.com/spaces/space2', name: 'Cloud Space', createdAt: new Date(), userId: 'user123' },
+  [
+    new IndexedDBPersistenceLayer('space2'),  // Still keep local cache
+    new ServerPersistenceLayer('space2', {
+      s3Client: s3Client,
+      bucketName: 'sila-workspaces',
+      userId: 'user123'
+    })
+  ]
+);
+
+// Both spaces can be open simultaneously in the same client!
+```
+
+#### Persistence Layer Selection
+```typescript
+// Updated persistenceUtils.ts
+export function createPersistenceLayersForURI(spaceId: string, uri: string): PersistenceLayer[] {
+  const layers: PersistenceLayer[] = [];
+
+  if (uri.startsWith("local://")) {
+    // Local-only spaces: IndexedDB only
+    layers.push(new IndexedDBPersistenceLayer(spaceId));
+  } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+    // Server-synced spaces: IndexedDB + ServerPersistenceLayer
+    layers.push(new IndexedDBPersistenceLayer(spaceId));
+    layers.push(new ServerPersistenceLayer(spaceId, {
+      s3Client: getS3Client(),
+      bucketName: 'sila-workspaces',
+      userId: getCurrentUserId()
+    }));
+  } else {
+    // File system path: IndexedDB + FileSystem (dual persistence)
+    layers.push(new IndexedDBPersistenceLayer(spaceId));
+    layers.push(new FileSystemPersistenceLayer(uri, spaceId, clientState.fs));
+  }
+
+  return layers;
 }
 ```
 
