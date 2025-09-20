@@ -15,7 +15,6 @@ The Sila mobile app is built using:
 - **Node.js** (v18+)
 - **Xcode** (for iOS builds) - macOS only
 - **Android Studio** (for Android builds)
-- **Capacitor CLI**: `npm install -g @capacitor/cli`
 
 ### Platform-Specific Requirements
 
@@ -79,10 +78,3 @@ Capacitor copies web assets to native projects and updates native dependencies u
 ### Debug Commands
 - `npx cap doctor` - Check Capacitor installation
 - `npx cap ls` - List installed plugins
-
-## Resources
-
-- [Capacitor Documentation](https://capacitorjs.com/docs)
-- [iOS Development Guide](https://developer.apple.com/ios/)
-- [Android Development Guide](https://developer.android.com/)
-- [Sila Mobile Proposal](../proposals/mobile-v1.md)

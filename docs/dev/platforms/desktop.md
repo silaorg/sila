@@ -87,15 +87,8 @@ We use GitHub Actions for automated building and packaging across all platforms.
 - Creates installers and distributables
 - Publishes releases with platform-specific assets
 
-For detailed information about the build system, see [GitHub Actions Build Documentation](../../../.github/workflows/README.md).
+For details about the build system, see the workflow files in `.github/workflows/` in the repository.
 
 ### Debug Commands
 - `npm run dev:without-starting-electron` - Web dev without Electron
 - `npm run preview` - Preview built web assets
-
-## Resources
-
-- [Electron Documentation](https://www.electronjs.org/docs)
-- [Electron Builder Documentation](https://www.electron.build/)
-- [macOS Notarization Guide](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
-- [Windows Code Signing](https://docs.microsoft.com/en-us/windows/msix/package/packaging-uwp-apps)
