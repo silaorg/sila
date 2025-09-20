@@ -1,8 +1,8 @@
-# Server-Side Workspace Storage: SQLite Database Files
+# Server-Side Workspace Storage: SQLite Operations + S3 Files
 
 ## Executive Summary
 
-This proposal outlines storing Sila workspaces on servers using individual SQLite database files, providing a significant performance and cost advantage over the current client-side IndexedDB approach. Each workspace becomes a single, self-contained SQLite database file that can be efficiently stored, transferred, and queried.
+This proposal outlines storing Sila workspaces on servers using a hybrid approach: SQLite database files for operations and metadata, with binary files stored directly on S3. This provides significant performance and cost advantages over the current client-side IndexedDB approach while maintaining efficient file storage and access patterns.
 
 ## Current Architecture: Client-Side Storage
 
@@ -24,10 +24,10 @@ secrets: '&[spaceId+key], spaceId'
 - **File System**: Uses local filesystem for binary data (desktop only)
 - **Real-time Sync**: File watching for multi-device sync (desktop only)
 
-## Proposed Architecture: Server-Side SQLite Storage
+## Proposed Architecture: Hybrid SQLite + S3 Storage
 
-### SQLite Database Schema
-Each workspace becomes a single SQLite database file with the following structure:
+### SQLite Database Schema (Operations Only)
+Each workspace becomes a single SQLite database file containing only operations and metadata:
 
 ```sql
 -- Single workspace database: workspace-<spaceId>.db
@@ -59,18 +59,18 @@ CREATE TABLE secrets (
   value TEXT NOT NULL
 );
 
--- Binary data stored as BLOBs
-CREATE TABLE files (
+-- File metadata only (not content)
+CREATE TABLE file_metadata (
   hash TEXT PRIMARY KEY,
-  content BLOB NOT NULL,
+  s3_key TEXT NOT NULL,        -- S3 object key
   mime_type TEXT,
   size INTEGER,
   created_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
 
-CREATE TABLE mutable_files (
+CREATE TABLE mutable_file_metadata (
   uuid TEXT PRIMARY KEY,
-  content BLOB NOT NULL,
+  s3_key TEXT NOT NULL,        -- S3 object key
   size INTEGER,
   created_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
@@ -78,15 +78,34 @@ CREATE TABLE mutable_files (
 -- Indexes for performance
 CREATE INDEX idx_tree_ops_tree ON tree_ops(tree_id);
 CREATE INDEX idx_tree_ops_clock ON tree_ops(tree_id, clock);
-CREATE INDEX idx_files_created ON files(created_at);
+CREATE INDEX idx_file_metadata_created ON file_metadata(created_at);
 ```
 
-### Server Storage Characteristics
+### S3 File Storage Structure
+Binary files are stored directly on S3 with the following structure:
+
+```
+s3://sila-workspaces/
+  <userId>/
+    <spaceId>/
+      workspace.db           # SQLite database (operations only)
+      files/
+        static/
+          <hash[0..1]>/
+            <hash[2..]>      # Immutable files by content hash
+        var/
+          <uuid[0..1]>/
+            <uuid[2..]>      # Mutable files by UUID
+      metadata.json          # Workspace metadata
+```
+
+### Hybrid Storage Characteristics
 - **Cross-Platform**: Works on any server environment
 - **Unlimited Storage**: No browser storage limitations
 - **Cloud Sync**: Workspaces accessible from any device
-- **Single File**: Each workspace is one SQLite database file
-- **Atomic Operations**: Full ACID transaction support
+- **Optimized Storage**: Operations in SQLite, files on S3
+- **Atomic Operations**: Full ACID transaction support for operations
+- **Efficient File Access**: Direct S3 access for binary data
 
 ## Client vs Server Storage Comparison
 
@@ -103,32 +122,44 @@ CREATE INDEX idx_files_created ON files(created_at);
 
 ### Data Structure
 
-| Component | Client (IndexedDB) | Server (SQLite) |
-|-----------|-------------------|-----------------|
+| Component | Client (IndexedDB) | Server (SQLite + S3) |
+|-----------|-------------------|---------------------|
 | **Operations** | IndexedDB table with composite keys | SQLite table with indexes |
-| **Binary Files** | Filesystem (desktop) or IndexedDB (web) | SQLite BLOB storage |
+| **Binary Files** | Filesystem (desktop) or IndexedDB (web) | S3 with metadata in SQLite |
 | **Secrets** | IndexedDB table | SQLite table with encryption |
 | **Metadata** | IndexedDB spaces table | SQLite spaces table |
 
 ### Performance Characteristics
 
-| Operation | Client (IndexedDB) | Server (SQLite) | Improvement |
-|-----------|-------------------|-----------------|-------------|
+| Operation | Client (IndexedDB) | Server (SQLite + S3) | Improvement |
+|-----------|-------------------|---------------------|-------------|
 | **Single Operation Lookup** | 1-5ms | 0.1-1ms | 5-50x faster |
 | **Bulk Operations (1000 ops)** | 50-200ms | 10-50ms | 2-20x faster |
 | **Date Range Queries** | 10-50ms | 1-10ms | 5-50x faster |
 | **Full Workspace Load** | 100-500ms | 50-200ms | 2-10x faster |
 | **Complex Aggregations** | Not supported | 1-10ms | New capability |
-| **Binary File Access** | 10-100ms | 10-50ms | 2-10x faster |
+| **Binary File Access** | 10-100ms | 50-200ms | Similar performance |
+| **File Upload** | 100-500ms per file | 100-500ms per file | Similar performance |
 
 ### Transfer Performance
 
-| Workspace Size | Client Sync | Server Transfer | Improvement |
-|----------------|-------------|-----------------|-------------|
-| **10MB** | 30-150s (many files) | 2-5s (single file) | 15-75x faster |
-| **50MB** | 150-750s (many files) | 5-15s (single file) | 10-50x faster |
-| **100MB** | 300-1500s (many files) | 10-30s (single file) | 10-50x faster |
-| **500MB** | 1500-7500s (many files) | 30-90s (single file) | 17-83x faster |
+| Workspace Size | Client Sync | Server Transfer (Ops + Files) | Improvement |
+|----------------|-------------|-------------------------------|-------------|
+| **10MB** | 30-150s (many files) | 5-15s (SQLite + S3 files) | 6-30x faster |
+| **50MB** | 150-750s (many files) | 15-45s (SQLite + S3 files) | 10-50x faster |
+| **100MB** | 300-1500s (many files) | 30-90s (SQLite + S3 files) | 10-50x faster |
+| **500MB** | 1500-7500s (many files) | 150-450s (SQLite + S3 files) | 10-50x faster |
+
+### Hybrid Approach Benefits
+
+| Aspect | SQLite Operations | S3 Files | Combined Benefit |
+|--------|------------------|----------|------------------|
+| **Operations Transfer** | 2-5s (single file) | N/A | Fast operation sync |
+| **File Transfer** | N/A | Individual file access | Granular file access |
+| **Query Performance** | 0.1-1ms | N/A | Fast operation queries |
+| **File Access** | N/A | Direct S3 access | Efficient file serving |
+| **Storage Cost** | Low (small DB) | Standard S3 rates | Optimized costs |
+| **Backup** | Single file | Individual files | Flexible backup options |
 
 ## Implementation Strategy
 
@@ -142,34 +173,46 @@ interface ServerWorkspaceStorage {
   getWorkspace(spaceId: string): Promise<WorkspaceData>;
   deleteWorkspace(spaceId: string): Promise<void>;
   
-  // Operations
+  // Operations (SQLite)
   putOperation(treeId: string, operation: VertexOperation): Promise<void>;
   getOperations(treeId: string, dateRange?: DateRange): Promise<VertexOperation[]>;
   bulkPutOperations(operations: VertexOperation[]): Promise<void>;
   
-  // Files
+  // Files (S3)
   putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void>;
   getFile(hash: string): Promise<Uint8Array>;
   putMutableFile(uuid: string, content: Uint8Array): Promise<void>;
   getMutableFile(uuid: string): Promise<Uint8Array>;
+  getFileUrl(hash: string): Promise<string>; // Direct S3 URL
   
-  // Secrets
+  // File metadata (SQLite)
+  getFileMetadata(hash: string): Promise<FileMetadata | undefined>;
+  updateFileMetadata(hash: string, metadata: Partial<FileMetadata>): Promise<void>;
+  
+  // Secrets (SQLite)
   putSecret(key: string, value: string): Promise<void>;
   getSecret(key: string): Promise<string | undefined>;
   getAllSecrets(): Promise<Record<string, string>>;
 }
 ```
 
-#### SQLite Persistence Layer
+#### Hybrid Storage Implementation
 ```typescript
-class SQLitePersistenceLayer implements PersistenceLayer {
+class HybridWorkspaceStorage implements ServerWorkspaceStorage {
   private db: Database;
   
-  constructor(private spaceId: string, private dbPath: string) {
+  constructor(
+    private spaceId: string, 
+    private dbPath: string,
+    private s3Client: S3Client,
+    private bucketName: string,
+    private userId: string
+  ) {
     this.db = new Database(dbPath);
     this.initializeSchema();
   }
   
+  // Operations (SQLite)
   async saveTreeOps(treeId: string, ops: VertexOperation[]): Promise<void> {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO tree_ops 
@@ -208,6 +251,67 @@ class SQLitePersistenceLayer implements PersistenceLayer {
       key: row.key,
       value: row.value ? JSON.parse(row.value) : undefined
     }));
+  }
+  
+  // Files (S3)
+  async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
+    const s3Key = `${this.userId}/${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    
+    // Upload to S3
+    await this.s3Client.putObject({
+      Bucket: this.bucketName,
+      Key: s3Key,
+      Body: content,
+      ContentType: mimeType || 'application/octet-stream'
+    });
+    
+    // Store metadata in SQLite
+    this.db.prepare(`
+      INSERT OR REPLACE INTO file_metadata 
+      (hash, s3_key, mime_type, size, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(hash, s3Key, mimeType, content.length, Date.now());
+  }
+  
+  async getFile(hash: string): Promise<Uint8Array> {
+    const metadata = this.db.prepare(`
+      SELECT s3_key FROM file_metadata WHERE hash = ?
+    `).get(hash);
+    
+    if (!metadata) {
+      throw new Error(`File not found: ${hash}`);
+    }
+    
+    const response = await this.s3Client.getObject({
+      Bucket: this.bucketName,
+      Key: metadata.s3_key
+    });
+    
+    return new Uint8Array(await response.Body.transformToByteArray());
+  }
+  
+  async getFileUrl(hash: string): Promise<string> {
+    const metadata = this.db.prepare(`
+      SELECT s3_key FROM file_metadata WHERE hash = ?
+    `).get(hash);
+    
+    if (!metadata) {
+      throw new Error(`File not found: ${hash}`);
+    }
+    
+    // Generate presigned URL for direct S3 access
+    return await this.s3Client.getSignedUrl('getObject', {
+      Bucket: this.bucketName,
+      Key: metadata.s3_key,
+      Expires: 3600 // 1 hour
+    });
+  }
+  
+  // File metadata (SQLite)
+  async getFileMetadata(hash: string): Promise<FileMetadata | undefined> {
+    return this.db.prepare(`
+      SELECT * FROM file_metadata WHERE hash = ?
+    `).get(hash);
   }
 }
 ```
@@ -266,7 +370,14 @@ class WorkspaceMigrator {
 s3://sila-workspaces/
   <userId>/
     <spaceId>/
-      workspace.db           # SQLite database file
+      workspace.db           # SQLite database (operations only)
+      files/
+        static/
+          <hash[0..1]>/
+            <hash[2..]>      # Immutable files by content hash
+        var/
+          <uuid[0..1]>/
+            <uuid[2..]>      # Mutable files by UUID
       metadata.json          # Workspace metadata
 ```
 
@@ -286,7 +397,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
     // 2. Create temporary SQLite connection
     const db = new Database(dbPath);
     
-    // 3. Load workspace data
+    // 3. Load workspace data (operations only)
     const space = db.prepare('SELECT * FROM spaces WHERE id = ?').get(spaceId);
     const operations = db.prepare('SELECT * FROM tree_ops').all();
     const secrets = db.prepare('SELECT * FROM secrets').all();
@@ -322,6 +433,45 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
     await this.uploadDatabase(spaceId, dbPath);
   }
   
+  async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
+    const s3Key = `${this.userId}/${spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    
+    // Upload file directly to S3
+    await this.s3Client.putObject({
+      Bucket: this.bucketName,
+      Key: s3Key,
+      Body: content,
+      ContentType: mimeType || 'application/octet-stream'
+    });
+    
+    // Update file metadata in SQLite database
+    await this.updateFileMetadata(spaceId, hash, {
+      s3_key: s3Key,
+      mime_type: mimeType,
+      size: content.length,
+      created_at: Date.now()
+    });
+  }
+  
+  async getFile(hash: string): Promise<Uint8Array> {
+    // Get S3 key from SQLite metadata
+    const dbPath = await this.downloadDatabase(spaceId);
+    const db = new Database(dbPath);
+    const metadata = db.prepare('SELECT s3_key FROM file_metadata WHERE hash = ?').get(hash);
+    
+    if (!metadata) {
+      throw new Error(`File not found: ${hash}`);
+    }
+    
+    // Download file from S3
+    const response = await this.s3Client.getObject({
+      Bucket: this.bucketName,
+      Key: metadata.s3_key
+    });
+    
+    return new Uint8Array(await response.Body.transformToByteArray());
+  }
+  
   private async downloadDatabase(spaceId: string): Promise<string> {
     const key = `${this.userId}/${spaceId}/workspace.db`;
     const response = await this.s3Client.getObject({
@@ -352,29 +502,41 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 
 ### Storage Efficiency
 
-| Workspace Component | Client (IndexedDB) | Server (SQLite) | Improvement |
-|---------------------|-------------------|-----------------|-------------|
+| Workspace Component | Client (IndexedDB) | Server (SQLite + S3) | Improvement |
+|---------------------|-------------------|---------------------|-------------|
 | **Operations Storage** | ~100 bytes/op | ~80 bytes/op | 20% smaller |
-| **Binary Files** | Filesystem overhead | BLOB compression | 15-30% smaller |
+| **Binary Files** | Filesystem overhead | S3 native storage | Similar efficiency |
 | **Indexes** | Browser-managed | Optimized SQLite | 2-5x faster queries |
-| **Total Size** | Baseline | 20-30% smaller | Space savings |
+| **Total Size** | Baseline | Similar | No significant change |
+| **Database Size** | N/A | Small (ops only) | Minimal storage |
 
 ### Transfer Performance
 
-| Workspace Size | Client Sync Time | Server Transfer Time | Speed Improvement |
-|----------------|------------------|---------------------|-------------------|
-| **Small (10MB)** | 30-150s | 2-5s | 15-75x faster |
-| **Medium (50MB)** | 150-750s | 5-15s | 10-50x faster |
-| **Large (100MB)** | 300-1500s | 10-30s | 10-50x faster |
-| **Very Large (500MB)** | 1500-7500s | 30-90s | 17-83x faster |
+| Workspace Size | Client Sync Time | Server Transfer Time (Ops + Files) | Speed Improvement |
+|----------------|------------------|-----------------------------------|-------------------|
+| **Small (10MB)** | 30-150s | 5-15s (SQLite + S3 files) | 6-30x faster |
+| **Medium (50MB)** | 150-750s | 15-45s (SQLite + S3 files) | 10-50x faster |
+| **Large (100MB)** | 300-1500s | 30-90s (SQLite + S3 files) | 10-50x faster |
+| **Very Large (500MB)** | 1500-7500s | 150-450s (SQLite + S3 files) | 10-50x faster |
+
+### Hybrid Approach Benefits
+
+| Aspect | SQLite Operations | S3 Files | Combined Benefit |
+|--------|------------------|----------|------------------|
+| **Operations Transfer** | 2-5s (single file) | N/A | Fast operation sync |
+| **File Transfer** | N/A | Individual file access | Granular file access |
+| **Query Performance** | 0.1-1ms | N/A | Fast operation queries |
+| **File Access** | N/A | Direct S3 access | Efficient file serving |
+| **Storage Cost** | Low (small DB) | Standard S3 rates | Optimized costs |
+| **Backup** | Single file | Individual files | Flexible backup options |
 
 ### Cost Analysis
 
 | Storage Type | Monthly Requests | Storage (GB) | Transfer (GB) | Monthly Cost |
 |--------------|------------------|--------------|---------------|--------------|
 | **Client Sync** | 1M+ requests | 100GB | 50GB | ~$25-50 |
-| **Server SQLite** | 10K requests | 80GB | 40GB | ~$5-10 |
-| **Cost Savings** | 99% fewer requests | 20% less storage | 20% less transfer | 80-90% cheaper |
+| **Server SQLite + S3** | 50K requests | 100GB | 50GB | ~$15-25 |
+| **Cost Savings** | 95% fewer requests | Similar storage | Similar transfer | 40-60% cheaper |
 
 ## Security Considerations
 
@@ -436,23 +598,32 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 
 ## Conclusion
 
-Moving from client-side IndexedDB storage to server-side SQLite database files provides significant advantages:
+Moving from client-side IndexedDB storage to a hybrid SQLite + S3 approach provides significant advantages:
 
 **Performance Benefits**:
-- **10-100x faster queries** through optimized SQLite indexing
-- **15-83x faster transfers** through single-file architecture
-- **20-30% better compression** through SQLite's storage efficiency
+- **10-100x faster queries** through optimized SQLite indexing for operations
+- **6-50x faster transfers** through efficient operation sync + direct file access
+- **Fast operation sync** with single SQLite database file
+- **Efficient file access** through direct S3 URLs and presigned URLs
 
 **Cost Benefits**:
-- **80-90% cost reduction** through fewer S3 requests
-- **20% storage savings** through better compression
-- **Simplified infrastructure** through single-file management
+- **40-60% cost reduction** through fewer S3 requests for operations
+- **Optimized storage** with small SQLite databases and standard S3 file storage
+- **Flexible backup** options for operations vs files
 
 **Functional Benefits**:
 - **Cross-device access** to workspaces from anywhere
 - **Automatic backup** and version control
-- **Advanced querying** capabilities through SQL
+- **Advanced querying** capabilities through SQL for operations
 - **Unlimited storage** without browser limitations
+- **Direct file access** through S3 URLs for efficient file serving
+- **Granular file management** with individual S3 objects
+
+**Hybrid Approach Advantages**:
+- **Best of both worlds**: Fast operation queries + efficient file storage
+- **Scalable architecture**: SQLite for structured data, S3 for binary data
+- **Flexible access patterns**: Direct S3 URLs for files, SQL queries for operations
+- **Cost optimization**: Small databases + standard S3 storage rates
 
 **Migration Strategy**:
 - **No disruption** to existing users during transition
@@ -460,4 +631,4 @@ Moving from client-side IndexedDB storage to server-side SQLite database files p
 - **Data integrity** maintained throughout migration process
 - **Rollback capability** if issues arise
 
-The SQLite approach transforms Sila from a client-only application to a true cloud-based workspace platform while maintaining all existing functionality and adding significant performance and cost benefits.
+The hybrid SQLite + S3 approach transforms Sila from a client-only application to a true cloud-based workspace platform while maintaining all existing functionality and providing optimal performance for both operations and file storage.
