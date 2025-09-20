@@ -76,43 +76,9 @@ Capacitor copies web assets to native projects and updates native dependencies u
 - Current plugins: `@capacitor/core`, `@capacitor/ios`, `@capacitor/android`
 - Future plugins: Filesystem, Dialogs, Device info, Share, Camera
 
-## Distribution
-
-### iOS Distribution
-- **App Store**: Archive in Xcode, upload to App Store Connect
-- **TestFlight**: Beta distribution through App Store Connect
-- **Ad Hoc**: Internal distribution with provisioning profiles
-
-### Android Distribution
-- **Google Play**: Build AAB (recommended) or APK
-- **Direct APK**: Generate signed APK for internal distribution
-
-## Troubleshooting
-
-### Common Issues
-- **Build failures**: Check Vite configuration and dependencies
-- **Capacitor sync fails**: Ensure `build/` directory exists
-- **Native build fails**: Check platform-specific requirements
-- **Signing errors**: Configure certificates and provisioning profiles
-
 ### Debug Commands
 - `npx cap doctor` - Check Capacitor installation
 - `npx cap ls` - List installed plugins
-
-## Future Enhancements
-
-### Planned Features
-- Native file system integration
-- Camera and photo import
-- Native sharing capabilities
-- Offline-first architecture
-- Push notifications
-- Background sync
-
-### Platform-Specific Features
-- iOS: Shortcuts integration, widgets
-- Android: App shortcuts, adaptive icons
-- Cross-platform: Cloud sync, collaboration
 
 ## Resources
 
