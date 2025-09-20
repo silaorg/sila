@@ -259,8 +259,14 @@ class ServerPersistenceLayer implements PersistenceLayer {
   async disconnect(): Promise<void> {
     if (!this._connected) return;
     
+    // Clear any pending sync timer
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+      this.syncTimer = null;
+    }
+    
     // Upload any pending changes back to S3
-    if (this.db) {
+    if (this.db && this.isDirty) {
       await this.uploadDatabase();
       this.db.close();
       this.db = null;
@@ -295,8 +301,8 @@ class ServerPersistenceLayer implements PersistenceLayer {
     
     transaction(ops);
     
-    // Periodically sync to server (or on disconnect)
-    await this.syncToServer();
+    // Mark as dirty for periodic sync (don't sync immediately)
+    this.markDirty();
   }
   
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
@@ -349,7 +355,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
     });
     
     transaction(secrets);
-    await this.syncToServer();
+    this.markDirty();
   }
   
   // File operations (S3)
@@ -433,10 +439,35 @@ class ServerPersistenceLayer implements PersistenceLayer {
     });
   }
   
+  private isDirty = false;
+  private syncTimer: NodeJS.Timeout | null = null;
+  
+  private markDirty(): void {
+    this.isDirty = true;
+    
+    // Debounced sync - wait 5 seconds after last change
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+    }
+    
+    this.syncTimer = setTimeout(() => {
+      this.syncToServer();
+    }, 5000);
+  }
+  
   private async syncToServer(): Promise<void> {
-    // Debounced sync to avoid too many server calls
-    // Implementation would include debouncing logic
-    await this.uploadDatabase();
+    if (!this.isDirty || !this.db) return;
+    
+    try {
+      await this.uploadDatabase();
+      this.isDirty = false;
+    } catch (error) {
+      console.error('Failed to sync to server:', error);
+      // Retry later
+      this.syncTimer = setTimeout(() => {
+        this.syncToServer();
+      }, 30000); // Retry in 30 seconds
+    }
   }
   
   private initializeSchema(db?: Database): void {
@@ -605,7 +636,7 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string): Per
 ### Phase 2: Real-Time Sync Implementation (3-4 weeks)
 
 #### Real-Time Sync Architecture
-The key insight is that **clients don't do SQL** - they sync RepTree operations and files with the server using real-time sync:
+The key insight is that **clients don't do SQL** - they sync RepTree operations and files with the server using real-time sync. The server batches operations and syncs periodically:
 
 ```typescript
 class ServerPersistenceLayer implements PersistenceLayer {
@@ -621,12 +652,11 @@ class ServerPersistenceLayer implements PersistenceLayer {
   }
   
   async saveTreeOps(treeId: string, ops: VertexOperation[]): Promise<void> {
-    // Send operations to server via WebSocket
-    this.wsConnection.send(JSON.stringify({
-      type: 'operations',
-      treeId,
-      operations: ops
-    }));
+    // Store operations locally in SQLite
+    await this.storeOperationsLocally(treeId, ops);
+    
+    // Mark as dirty for periodic sync (not immediate)
+    this.markDirty();
   }
   
   // Files are synced separately via S3
@@ -638,6 +668,14 @@ class ServerPersistenceLayer implements PersistenceLayer {
       Body: content,
       ContentType: mimeType
     });
+  }
+  
+  // Server periodically downloads space.db, applies changes, uploads back
+  private async syncToServer(): Promise<void> {
+    // 1. Download current space.db from S3
+    // 2. Apply local changes to downloaded database
+    // 3. Upload updated database back to S3
+    // 4. Clear local dirty flag
   }
 }
 ```
