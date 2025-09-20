@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This proposal outlines storing Sila workspaces on servers using a hybrid approach: SQLite database files for operations and metadata, with binary files stored directly on S3. This provides significant performance and cost advantages over the current client-side IndexedDB approach while maintaining efficient file storage and access patterns.
+This proposal outlines adding server-side storage as an **additional sync option** for Sila workspaces, using a hybrid approach: SQLite database files for operations and metadata, with binary files stored directly on S3. This complements the existing local-first approach (which works across multiple devices via filesystem sync like Dropbox/iCloud) by providing cloud-based sync as an alternative option.
 
 ## Current Architecture: Client-Side Storage
 
@@ -20,11 +20,19 @@ secrets: '&[spaceId+key], spaceId'
 ### Client Storage Characteristics
 - **Browser-Only**: Limited to client-side environments
 - **Storage Limits**: Subject to browser quotas and clearing policies
-- **No Server Sync**: Workspaces exist only on individual devices
+- **Multi-Device Sync**: Works across multiple devices via filesystem sync (Dropbox, iCloud, etc.)
 - **File System**: Uses local filesystem for binary data (desktop only)
 - **Real-time Sync**: File watching for multi-device sync (desktop only)
+- **No Server Dependency**: Works completely offline
 
-## Proposed Architecture: Hybrid SQLite + S3 Storage
+## Proposed Architecture: Server-Side Storage as Additional Sync Option
+
+This proposal adds server-side storage as an **additional sync option** alongside the existing local-first approach. Users can choose between:
+
+1. **Local-First Sync** (current): Workspaces stored locally, synced via filesystem (Dropbox, iCloud, etc.)
+2. **Server-Side Sync** (new): Workspaces stored on servers, accessible from any device
+
+### Hybrid SQLite + S3 Storage
 
 ### SQLite Database Schema (Operations Only)
 Each workspace becomes a single SQLite database file containing only operations and metadata:
@@ -99,31 +107,43 @@ s3://sila-workspaces/
       metadata.json          # Workspace metadata
 ```
 
-### Hybrid Storage Characteristics
+### Server Storage Characteristics
 - **Cross-Platform**: Works on any server environment
 - **Unlimited Storage**: No browser storage limitations
-- **Cloud Sync**: Workspaces accessible from any device
+- **Cloud Sync**: Workspaces accessible from any device with internet
 - **Optimized Storage**: Operations in SQLite, files on S3
 - **Atomic Operations**: Full ACID transaction support for operations
 - **Efficient File Access**: Direct S3 access for binary data
+- **Internet Dependency**: Requires internet connection for access
 
-## Client vs Server Storage Comparison
+## Local-First vs Server-Side Storage Comparison
+
+### Sync Options Available
+
+| Sync Method | Local-First (Current) | Server-Side (Proposed) |
+|-------------|----------------------|------------------------|
+| **Primary Storage** | Local device | Server/Cloud |
+| **Multi-Device Access** | Via filesystem sync (Dropbox, iCloud) | Direct cloud access |
+| **Offline Capability** | Full offline support | Requires internet |
+| **Storage Limits** | Browser quotas | Unlimited |
+| **Sync Speed** | Depends on filesystem sync | Direct server access |
+| **User Control** | User manages sync location | Managed by service |
 
 ### Storage Architecture
 
-| Aspect | Client (IndexedDB) | Server (SQLite) |
-|--------|-------------------|-----------------|
+| Aspect | Local-First (IndexedDB) | Server-Side (SQLite + S3) |
+|--------|------------------------|---------------------------|
 | **Location** | Browser IndexedDB | Server SQLite files |
 | **Persistence** | Subject to browser policies | Permanent server storage |
-| **Access** | Single device only | Any device with internet |
-| **Sync** | Manual file sync (desktop) | Automatic cloud sync |
+| **Access** | Multi-device via filesystem sync | Any device with internet |
+| **Sync** | File watching + filesystem sync (Dropbox, iCloud) | Automatic cloud sync |
 | **Storage Limit** | Browser quota (~1-10GB) | Unlimited |
 | **Backup** | Manual user action | Automatic server backup |
 
 ### Data Structure
 
-| Component | Client (IndexedDB) | Server (SQLite + S3) |
-|-----------|-------------------|---------------------|
+| Component | Local-First (IndexedDB) | Server-Side (SQLite + S3) |
+|-----------|------------------------|---------------------------|
 | **Operations** | IndexedDB table with composite keys | SQLite table with indexes |
 | **Binary Files** | Filesystem (desktop) or IndexedDB (web) | S3 with metadata in SQLite |
 | **Secrets** | IndexedDB table | SQLite table with encryption |
@@ -131,8 +151,8 @@ s3://sila-workspaces/
 
 ### Performance Characteristics
 
-| Operation | Client (IndexedDB) | Server (SQLite + S3) | Improvement |
-|-----------|-------------------|---------------------|-------------|
+| Operation | Local-First (IndexedDB) | Server-Side (SQLite + S3) | Improvement |
+|-----------|------------------------|---------------------------|-------------|
 | **Single Operation Lookup** | 1-5ms | 0.1-1ms | 5-50x faster |
 | **Bulk Operations (1000 ops)** | 50-200ms | 10-50ms | 2-20x faster |
 | **Date Range Queries** | 10-50ms | 1-10ms | 5-50x faster |
@@ -143,12 +163,12 @@ s3://sila-workspaces/
 
 ### Transfer Performance
 
-| Workspace Size | Client Sync | Server Transfer (Ops + Files) | Improvement |
-|----------------|-------------|-------------------------------|-------------|
-| **10MB** | 30-150s (many files) | 5-15s (SQLite + S3 files) | 6-30x faster |
-| **50MB** | 150-750s (many files) | 15-45s (SQLite + S3 files) | 10-50x faster |
-| **100MB** | 300-1500s (many files) | 30-90s (SQLite + S3 files) | 10-50x faster |
-| **500MB** | 1500-7500s (many files) | 150-450s (SQLite + S3 files) | 10-50x faster |
+| Workspace Size | Local-First Sync | Server Transfer (Ops + Files) | Improvement |
+|----------------|------------------|-------------------------------|-------------|
+| **10MB** | 30-150s (filesystem sync) | 5-15s (SQLite + S3 files) | 6-30x faster |
+| **50MB** | 150-750s (filesystem sync) | 15-45s (SQLite + S3 files) | 10-50x faster |
+| **100MB** | 300-1500s (filesystem sync) | 30-90s (SQLite + S3 files) | 10-50x faster |
+| **500MB** | 1500-7500s (filesystem sync) | 150-450s (SQLite + S3 files) | 10-50x faster |
 
 ### Hybrid Approach Benefits
 
@@ -534,7 +554,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 
 | Storage Type | Monthly Requests | Storage (GB) | Transfer (GB) | Monthly Cost |
 |--------------|------------------|--------------|---------------|--------------|
-| **Client Sync** | 1M+ requests | 100GB | 50GB | ~$25-50 |
+| **Local-First Sync** | 1M+ requests | 100GB | 50GB | ~$25-50 |
 | **Server SQLite + S3** | 50K requests | 100GB | 50GB | ~$15-25 |
 | **Cost Savings** | 95% fewer requests | Similar storage | Similar transfer | 40-60% cheaper |
 
@@ -591,14 +611,14 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 4. **Performance Testing**: Validate performance improvements with real workspace data
 
 ### Long-term Strategy
-1. **Full Migration**: Eventually migrate all workspaces to server-side SQLite storage
-2. **Hybrid Approach**: Support both client and server storage during transition period
+1. **Dual Sync Options**: Support both local-first and server-side storage as user choices
+2. **Gradual Adoption**: Users can migrate workspaces to server storage when desired
 3. **Advanced Features**: Leverage SQLite's capabilities for analytics and complex queries
 4. **Global Distribution**: Use CDN for faster workspace access worldwide
 
 ## Conclusion
 
-Moving from client-side IndexedDB storage to a hybrid SQLite + S3 approach provides significant advantages:
+Adding server-side storage as an **additional sync option** alongside the existing local-first approach provides significant advantages:
 
 **Performance Benefits**:
 - **10-100x faster queries** through optimized SQLite indexing for operations
@@ -612,7 +632,8 @@ Moving from client-side IndexedDB storage to a hybrid SQLite + S3 approach provi
 - **Flexible backup** options for operations vs files
 
 **Functional Benefits**:
-- **Cross-device access** to workspaces from anywhere
+- **Additional sync option** for users who prefer cloud-based access
+- **Cross-device access** to workspaces from anywhere with internet
 - **Automatic backup** and version control
 - **Advanced querying** capabilities through SQL for operations
 - **Unlimited storage** without browser limitations
@@ -625,10 +646,15 @@ Moving from client-side IndexedDB storage to a hybrid SQLite + S3 approach provi
 - **Flexible access patterns**: Direct S3 URLs for files, SQL queries for operations
 - **Cost optimization**: Small databases + standard S3 storage rates
 
-**Migration Strategy**:
-- **No disruption** to existing users during transition
-- **Gradual migration** with user control over timing
-- **Data integrity** maintained throughout migration process
-- **Rollback capability** if issues arise
+**User Choice**:
+- **Local-First Option**: Users can continue using filesystem sync (Dropbox, iCloud) for offline-first experience
+- **Server-Side Option**: Users can choose cloud-based sync for convenience and cross-device access
+- **No Forced Migration**: Both options remain available, giving users control over their data
 
-The hybrid SQLite + S3 approach transforms Sila from a client-only application to a true cloud-based workspace platform while maintaining all existing functionality and providing optimal performance for both operations and file storage.
+**Implementation Strategy**:
+- **Additive approach**: Server-side storage as additional option, not replacement
+- **User choice**: Users can migrate workspaces to server storage when desired
+- **Data integrity** maintained throughout migration process
+- **Rollback capability** if users want to return to local-first approach
+
+The hybrid SQLite + S3 approach adds a powerful cloud-based sync option to Sila while preserving the existing local-first approach, giving users the flexibility to choose the sync method that best fits their needs.
