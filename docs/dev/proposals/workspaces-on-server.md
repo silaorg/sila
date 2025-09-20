@@ -397,7 +397,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
   
   // Server sync methods
   private async downloadDatabase(): Promise<string> {
-    const key = `${this.serverConfig.userId}/${this.spaceId}/workspace.db`;
+    const key = `${this.spaceId}/space.db`;
     
     try {
       const response = await this.s3Client.getObject({
@@ -405,13 +405,13 @@ class ServerPersistenceLayer implements PersistenceLayer {
         Key: key
       });
       
-      const tempPath = `/tmp/workspace-${this.spaceId}-${Date.now()}.db`;
+      const tempPath = `/tmp/space-${this.spaceId}-${Date.now()}.db`;
       const fileContent = await response.Body.transformToByteArray();
       await fs.writeFile(tempPath, fileContent);
       return tempPath;
     } catch (error) {
       // If database doesn't exist, create a new one
-      const tempPath = `/tmp/workspace-${this.spaceId}-${Date.now()}.db`;
+      const tempPath = `/tmp/space-${this.spaceId}-${Date.now()}.db`;
       const db = new Database(tempPath);
       this.initializeSchema(db);
       db.close();
@@ -422,7 +422,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
   private async uploadDatabase(): Promise<void> {
     if (!this.db) return;
     
-    const key = `${this.serverConfig.userId}/${this.spaceId}/workspace.db`;
+    const key = `${this.spaceId}/space.db`;
     const dbPath = this.db.name; // SQLite database file path
     
     const fileContent = await fs.readFile(dbPath);
@@ -487,7 +487,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
   
   // Files (S3)
   async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
-    const s3Key = `${this.userId}/${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    const s3Key = `${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
     
     // Upload to S3
     await this.s3Client.putObject({
@@ -636,7 +636,7 @@ class ServerPersistenceLayer implements PersistenceLayer {
     // Direct upload to S3
     await this.s3Client.putObject({
       Bucket: this.bucketName,
-      Key: `${this.userId}/${this.spaceId}/files/${hash}`,
+      Key: `${this.spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`,
       Body: content,
       ContentType: mimeType
     });
@@ -648,18 +648,16 @@ class ServerPersistenceLayer implements PersistenceLayer {
 
 #### S3 Storage Structure
 ```
-s3://sila-workspaces/
-  <userId>/
-    <spaceId>/
-      workspace.db           # SQLite database (operations only)
-      files/
-        static/
-          <hash[0..1]>/
-            <hash[2..]>      # Immutable files by content hash
-        var/
-          <uuid[0..1]>/
-            <uuid[2..]>      # Mutable files by UUID
-      metadata.json          # Workspace metadata
+s3://sila-spaces/
+  <space-id>/
+    space.db                 # SQLite database (operations only)
+    files/
+      static/
+        <hash[0..1]>/
+          <hash[2..]>        # Immutable files by content hash
+      var/
+        <uuid[0..1]>/
+          <uuid[2..]>        # Mutable files by UUID
 ```
 
 #### Cloud Storage API
@@ -715,7 +713,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
   }
   
   async putFile(hash: string, content: Uint8Array, mimeType?: string): Promise<void> {
-    const s3Key = `${this.userId}/${spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
+    const s3Key = `${spaceId}/files/static/${hash.slice(0, 2)}/${hash.slice(2)}`;
     
     // Upload file directly to S3
     await this.s3Client.putObject({
@@ -754,19 +752,19 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
   }
   
   private async downloadDatabase(spaceId: string): Promise<string> {
-    const key = `${this.userId}/${spaceId}/workspace.db`;
+    const key = `${spaceId}/space.db`;
     const response = await this.s3Client.getObject({
       Bucket: this.bucketName,
       Key: key
     });
     
-    const tempPath = `/tmp/workspace-${spaceId}-${Date.now()}.db`;
+    const tempPath = `/tmp/space-${spaceId}-${Date.now()}.db`;
     await fs.writeFile(tempPath, response.Body);
     return tempPath;
   }
   
   private async uploadDatabase(spaceId: string, dbPath: string): Promise<void> {
-    const key = `${this.userId}/${spaceId}/workspace.db`;
+    const key = `${spaceId}/space.db`;
     const fileContent = await fs.readFile(dbPath);
     
     await this.s3Client.putObject({
@@ -789,7 +787,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 - **Access Control**: IAM policies for workspace-level permissions
 
 ### Data Isolation
-- **User Isolation**: Each user's workspaces in separate S3 prefixes
+- **Space Isolation**: Each space in separate S3 prefixes
 - **Workspace Isolation**: Individual SQLite files prevent cross-workspace access
 - **Version Control**: Maintain workspace version history for recovery
 - **Audit Logging**: Track all workspace access and modifications
