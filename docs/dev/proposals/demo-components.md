@@ -1,64 +1,302 @@
-# Demo Components System - Standalone Rendering Proposal
+# Demo Components Package - Comprehensive Component Showcase
 
 ## Executive Summary
 
-This proposal outlines a system for rendering key SIla components outside of the main application, enabling interactive demonstrations on our website and isolated testing environments. The system will provide embeddable, in-memory versions of core UI components like the chat interface and settings screens without requiring persistent data storage.
+This proposal outlines a comprehensive `demo-components` package that serves dual purposes: (1) providing embeddable demo components that can be imported by other packages for testing, documentation, and integration, and (2) running as a standalone SvelteKit website for reviewing and testing all available components. The system spans from big components (like the complete app with tabbed chat interface) down to small components (like context menus and individual UI elements), enabling everything from product screenshots to granular component testing.
 
 ## 🎯 Main Use Cases
 
-### 1. 🚀 **Isolated Development Testing Environment**
+### 1. 📦 **Package Import & Integration**
 
-**Problem**: During development, you need to test specific UI states but navigating to them is time-consuming and distracting.
+**Problem**: Other packages need demo components for testing, documentation, and integration but don't want to maintain their own demo infrastructure.
 
-**Solution**: Jump instantly to any app state for focused development and testing.
+**Solution**: Import ready-made demo components from the demo-components package.
 
-```bash
-# Test a long conversation without manually creating 50 messages
-npm run dev:chat
+```typescript
+// Import big components for product screenshots
+import { SilaAppDemo } from '@sila/demo-components';
 
-# Test file upload interface without navigating through the app
-npm run dev:upload  
+// Import small components for isolated testing
+import { ContextMenuDemo, MessageFormDemo } from '@sila/demo-components';
 
-# Test settings panel without opening/closing modals
-npm run dev:settings
+// Use in documentation, testing, or integration
+const appDemo = new SilaAppDemo({
+  mode: 'tabbed-chat',
+  theme: 'light',
+  mockData: true
+});
 ```
 
 **Benefits**:
-- **⚡ Instant State Testing**: Skip navigation, jump directly to target state
-- **🎯 Focused Development**: Work on specific features without distractions  
-- **🔄 Hot Reload**: Changes render immediately in the target state
-- **🎨 Edge Case Testing**: Test long conversations, error states, loading states
+- **📦 Reusable Components**: Share demo components across packages
+- **🎯 Consistent Demos**: All packages use the same demo infrastructure
+- **⚡ Easy Integration**: Simple import and configuration
+- **🔄 Always Updated**: Components stay in sync with main app
 
-### 2. 📸 **Always Up-to-Date Website Screenshots**
+### 2. 🌐 **SvelteKit Component Showcase Website**
 
-**Problem**: Documentation and marketing screenshots become outdated every time the UI changes.
+**Problem**: Developers need a way to browse, test, and review all available components in one place.
 
-**Solution**: Automated screenshot generation that updates all images when UI changes.
+**Solution**: Run the demo-components package as a SvelteKit website with a comprehensive component catalog.
 
 ```bash
-# Generate all screenshots for docs/marketing
-npm run screenshots
+# Start the component showcase website
+cd packages/demo-components
+npm run dev
 
-# Watch for changes and auto-regenerate
-npm run screenshots:watch
+# Browse components at http://localhost:5173
+# - Big components: Full app demos, tabbed interfaces
+# - Small components: Context menus, buttons, forms
+# - Interactive testing and configuration
 ```
 
 **Benefits**:
-- **🚀 Automated Updates**: Screenshots refresh automatically when UI changes
-- **📸 Visual Consistency**: All images use current styling and themes
-- **⚡ Perfect Demos**: Show real interactions (file uploads, AI responses, etc.)
-- **🎯 CI/CD Integration**: Screenshots update in build pipeline
+- **🔍 Component Discovery**: Browse all available components
+- **🎮 Interactive Testing**: Test components with different configurations
+- **📱 Responsive Preview**: See how components work on different screen sizes
+- **📖 Documentation**: Built-in docs and usage examples
 
-### 3. 🌐 **Interactive Website Demos**
+### 3. 📸 **Product Screenshots & Marketing Assets**
 
-**Problem**: Users want to experience SIla without installing the app.
+**Problem**: Need high-quality screenshots of the app for marketing, documentation, and product showcases.
 
-**Solution**: Embeddable demos that show real SIla functionality in any browser.
+**Solution**: Use big components to generate perfect product screenshots.
+
+```bash
+# Generate marketing screenshots
+npm run screenshots:marketing
+
+# Generate documentation screenshots  
+npm run screenshots:docs
+
+# Generate component showcase images
+npm run screenshots:components
+```
 
 **Benefits**:
-- **🎯 Lead Generation**: Capture interest without requiring installation
-- **📱 Marketing Tool**: Showcase capabilities directly on website
-- **🎨 Authentic Experience**: Users see exactly what they'll get
+- **📸 Perfect Screenshots**: High-quality, consistent product images
+- **🎨 Multiple Themes**: Light/dark mode and custom themes
+- **📱 Responsive Images**: Screenshots for desktop, tablet, mobile
+- **🔄 Auto-Update**: Screenshots refresh when UI changes
+
+## Component Hierarchy & Examples
+
+### Big Components (Application-Level)
+
+These components represent complete application experiences or major interface sections:
+
+#### 1. **SilaAppDemo** - Complete Application
+```typescript
+import { SilaAppDemo } from '@sila/demo-components';
+
+// Full app with tabbed chat interface (like the attached image)
+const appDemo = new SilaAppDemo({
+  mode: 'full-app',
+  layout: 'tabbed',
+  tabs: [
+    { id: 'chat-1', title: 'Pumpkin Latte Sales', type: 'chat' },
+    { id: 'chat-2', title: 'About CityBean Coffee', type: 'chat' }
+  ],
+  sidebar: true,
+  mockData: true
+});
+```
+
+#### 2. **TabbedChatDemo** - Multi-Tab Chat Interface
+```typescript
+import { TabbedChatDemo } from '@sila/demo-components';
+
+// Tabbed interface with multiple chat sessions
+const tabbedDemo = new TabbedChatDemo({
+  tabs: [
+    { title: 'Main Chat', assistant: 'general' },
+    { title: 'Code Assistant', assistant: 'developer' },
+    { title: 'Research', assistant: 'analyst' }
+  ],
+  allowTabCreation: true,
+  mockAI: true
+});
+```
+
+#### 3. **WorkspaceDemo** - Complete Workspace Layout
+```typescript
+import { WorkspaceDemo } from '@sila/demo-components';
+
+// Full workspace with sidebar, main area, and panels
+const workspaceDemo = new WorkspaceDemo({
+  sidebar: {
+    navigation: true,
+    assistants: true,
+    spaces: true
+  },
+  mainArea: {
+    tabs: true,
+    chat: true,
+    fileViewer: true
+  },
+  mockData: true
+});
+```
+
+### Medium Components (Feature-Level)
+
+These components represent specific features or interface sections:
+
+#### 4. **ChatInterfaceDemo** - Complete Chat Experience
+```typescript
+import { ChatInterfaceDemo } from '@sila/demo-components';
+
+// Full chat interface with messages, input, and controls
+const chatDemo = new ChatInterfaceDemo({
+  messages: mockConversation,
+  allowSending: true,
+  fileUpload: true,
+  modelSwitching: true,
+  mockAI: true
+});
+```
+
+#### 5. **AssistantPanelDemo** - Assistant Management
+```typescript
+import { AssistantPanelDemo } from '@sila/demo-components';
+
+// Assistant selection and configuration panel
+const assistantDemo = new AssistantPanelDemo({
+  assistants: mockAssistants,
+  allowCreation: true,
+  allowEditing: true,
+  mockData: true
+});
+```
+
+#### 6. **SettingsDemo** - Settings Interface
+```typescript
+import { SettingsDemo } from '@sila/demo-components';
+
+// Complete settings interface
+const settingsDemo = new SettingsDemo({
+  sections: ['general', 'ai', 'appearance', 'advanced'],
+  mockData: true,
+  allowChanges: false // Read-only for demos
+});
+```
+
+### Small Components (UI Elements)
+
+These components represent individual UI elements and interactions:
+
+#### 7. **ContextMenuDemo** - Context Menus
+```typescript
+import { ContextMenuDemo } from '@sila/demo-components';
+
+// Context menu with various options
+const contextDemo = new ContextMenuDemo({
+  items: [
+    { label: 'Copy', icon: 'copy' },
+    { label: 'Edit', icon: 'edit' },
+    { label: 'Delete', icon: 'trash', danger: true }
+  ],
+  trigger: 'right-click',
+  animations: true
+});
+```
+
+#### 8. **MessageFormDemo** - Message Input
+```typescript
+import { MessageFormDemo } from '@sila/demo-components';
+
+// Message input with attachments
+const messageDemo = new MessageFormDemo({
+  placeholder: 'Write a message...',
+  fileUpload: true,
+  emojiPicker: true,
+  sendOnEnter: true,
+  mockSending: true
+});
+```
+
+#### 9. **FileUploadDemo** - File Upload Interface
+```typescript
+import { FileUploadDemo } from '@sila/demo-components';
+
+// File upload with drag-and-drop
+const uploadDemo = new FileUploadDemo({
+  acceptTypes: ['image/*', '.pdf', '.txt'],
+  maxSize: '10MB',
+  multiple: true,
+  dragAndDrop: true,
+  mockUpload: true
+});
+```
+
+#### 10. **ButtonDemo** - Interactive Buttons
+```typescript
+import { ButtonDemo } from '@sila/demo-components';
+
+// Various button styles and states
+const buttonDemo = new ButtonDemo({
+  variants: ['primary', 'secondary', 'danger', 'ghost'],
+  sizes: ['sm', 'md', 'lg'],
+  states: ['default', 'hover', 'active', 'disabled'],
+  icons: true,
+  animations: true
+});
+```
+
+### Component Usage Examples
+
+#### For Product Screenshots
+```typescript
+// Generate marketing screenshot like the attached image
+import { SilaAppDemo } from '@sila/demo-components';
+
+const marketingDemo = new SilaAppDemo({
+  mode: 'marketing',
+  layout: 'tabbed',
+  tabs: [
+    { 
+      id: 'sales', 
+      title: 'Pumpkin Latte Sales',
+      content: mockSalesData,
+      assistant: 'analyst'
+    },
+    { 
+      id: 'company', 
+      title: 'About CityBean Coffee',
+      content: mockCompanyInfo,
+      assistant: 'general'
+    }
+  ],
+  sidebar: {
+    title: 'CityBean Coffee',
+    navigation: mockNavigation,
+    assistants: mockAssistants
+  },
+  theme: 'light',
+  mockData: true
+});
+```
+
+#### For Component Testing
+```typescript
+// Test individual components in isolation
+import { ContextMenuDemo, MessageFormDemo } from '@sila/demo-components';
+
+// Test context menu behavior
+const contextTest = new ContextMenuDemo({
+  items: testMenuItems,
+  trigger: 'click',
+  position: 'dynamic'
+});
+
+// Test message form with edge cases
+const formTest = new MessageFormDemo({
+  placeholder: 'Test long placeholder text that might wrap...',
+  maxLength: 1000,
+  fileUpload: true,
+  validation: true
+});
+```
 
 ## Current State Analysis
 
@@ -132,15 +370,105 @@ Based on codebase analysis, the most valuable components for standalone demos ar
 
 ## Proposed Architecture
 
-### 1. Full SIla App in Demo Mode
+### 1. Dual-Purpose Package Design
 
-Run the complete SIla application in a special "demo mode" that:
+The `demo-components` package serves two distinct but complementary purposes:
 
-- **Uses real SIla components** - `SilaApp.svelte`, `Space.svelte`, `ChatApp.svelte`, etc.
-- **No persistence** - all data in-memory only
-- **Mock AI responses** - simulated API calls
-- **Pre-configured state** - specific screens/tabs locked open
-- **Simplified navigation** - remove elements not relevant for demo
+#### A. **Importable Package** (`@sila/demo-components`)
+```typescript
+// Other packages can import demo components
+import { SilaAppDemo, ContextMenuDemo } from '@sila/demo-components';
+
+// Use in documentation, testing, or integration
+const demo = new SilaAppDemo({ mode: 'tabbed-chat' });
+```
+
+#### B. **SvelteKit Website** (`packages/demo-components`)
+```bash
+# Run as standalone website for component browsing
+cd packages/demo-components
+npm run dev  # Starts SvelteKit dev server
+npm run build  # Builds for production
+```
+
+### 2. Package Structure
+
+```
+packages/demo-components/
+├── src/
+│   ├── components/           # Demo component implementations
+│   │   ├── big/             # Application-level components
+│   │   │   ├── SilaAppDemo.svelte
+│   │   │   ├── TabbedChatDemo.svelte
+│   │   │   └── WorkspaceDemo.svelte
+│   │   ├── medium/          # Feature-level components
+│   │   │   ├── ChatInterfaceDemo.svelte
+│   │   │   ├── AssistantPanelDemo.svelte
+│   │   │   └── SettingsDemo.svelte
+│   │   └── small/           # UI element components
+│   │       ├── ContextMenuDemo.svelte
+│   │       ├── MessageFormDemo.svelte
+│   │       ├── FileUploadDemo.svelte
+│   │       └── ButtonDemo.svelte
+│   ├── lib/                 # Shared utilities and infrastructure
+│   │   ├── DemoConfig.ts    # Configuration interfaces
+│   │   ├── MockDataFactory.ts # Mock data generation
+│   │   ├── DemoPersistence.ts # In-memory persistence
+│   │   └── MockAIProvider.ts  # Mock AI responses
+│   ├── routes/              # SvelteKit website routes
+│   │   ├── +layout.svelte   # Main layout
+│   │   ├── +page.svelte     # Home page
+│   │   ├── components/      # Component showcase pages
+│   │   │   ├── big/
+│   │   │   ├── medium/
+│   │   │   └── small/
+│   │   └── api/             # API endpoints for demos
+│   ├── app.html             # SvelteKit app template
+│   ├── app.d.ts             # TypeScript definitions
+│   └── index.ts             # Package entry point
+├── examples/                # Standalone HTML examples
+│   ├── marketing-demo.html
+│   ├── component-test.html
+│   └── integration-examples/
+├── screenshots/             # Generated screenshots
+├── dist/                    # Built package
+├── static/                  # Static assets
+├── package.json
+├── svelte.config.js
+├── vite.config.js
+└── README.md
+```
+
+### 3. SvelteKit Component Showcase Website
+
+The SvelteKit website provides a comprehensive interface for browsing, testing, and reviewing all available components:
+
+#### **Home Page** (`/`)
+- Component overview and navigation
+- Quick access to popular components
+- Search and filtering capabilities
+- Theme switcher (light/dark)
+
+#### **Component Categories** (`/components/big`, `/components/medium`, `/components/small`)
+- Organized by component size/scope
+- Interactive previews with live editing
+- Configuration panels for testing different options
+- Code examples and usage documentation
+
+#### **Individual Component Pages** (`/components/big/sila-app-demo`)
+- Full-screen component preview
+- Configuration options sidebar
+- Code snippets and integration examples
+- Responsive preview modes (desktop/tablet/mobile)
+- Screenshot generation tools
+
+#### **Features**:
+- **Interactive Testing**: Modify component props in real-time
+- **Responsive Preview**: Test components on different screen sizes
+- **Theme Support**: Switch between light/dark themes
+- **Code Generation**: Generate integration code for your use case
+- **Screenshot Tools**: Capture component images for documentation
+- **Mock Data**: Realistic data for all component demos
 
 ```typescript
 // packages/demo-app/src/DemoAppConfig.ts
@@ -996,89 +1324,121 @@ Create standalone HTML pages for different demo scenarios:
 
 ## Implementation Plan
 
-### Phase 1: Demo App Foundation (Week 1-2)
+### Phase 1: Package Foundation & Core Infrastructure (Week 1-2)
 
-1. **Create Demo App Package**:
+1. **Create Demo Components Package**:
    ```bash
-   mkdir packages/demo-app
-   cd packages/demo-app
+   mkdir packages/demo-components
+   cd packages/demo-components
    npm init -y
    ```
 
 2. **Set up Package Structure**:
    ```
-   packages/demo-app/
+   packages/demo-components/
    ├── src/
-   │   ├── DemoSilaApp.svelte          # Main demo app component
-   │   ├── DemoAppConfig.ts            # Configuration interfaces
-   │   ├── DemoAppFactory.ts           # Factory for different demo modes
-   │   ├── DemoPersistenceLayer.ts     # In-memory persistence
-   │   ├── MockAIProvider.ts           # Mock AI responses
-   │   └── index.ts                    # Main entry point
-   ├── examples/
-   │   ├── chat-demo.html              # Chat-focused demo
-   │   ├── settings-demo.html          # Settings demo
-   │   └── full-demo.html              # Complete app demo
-   ├── dist/
+   │   ├── components/                 # Demo component implementations
+   │   │   ├── big/                   # Application-level components
+   │   │   ├── medium/                # Feature-level components
+   │   │   └── small/                 # UI element components
+   │   ├── lib/                       # Shared utilities
+   │   │   ├── DemoConfig.ts          # Configuration interfaces
+   │   │   ├── MockDataFactory.ts     # Mock data generation
+   │   │   ├── DemoPersistence.ts     # In-memory persistence
+   │   │   └── MockAIProvider.ts      # Mock AI responses
+   │   ├── routes/                    # SvelteKit website routes
+   │   └── index.ts                   # Package entry point
+   ├── examples/                      # Standalone HTML examples
+   ├── screenshots/                   # Generated screenshots
    └── package.json
    ```
 
-3. **Implement Demo Infrastructure**:
+3. **Implement Core Infrastructure**:
    - Create `DemoPersistenceLayer` for in-memory storage
    - Implement `MockAIProvider` for realistic AI responses
-   - Set up `DemoAppConfig` for different demo modes
+   - Set up `DemoConfig` interfaces for all component types
+   - Create `MockDataFactory` for generating realistic demo data
 
 4. **Build System Setup**:
-   - Configure Vite for Svelte bundling
+   - Configure Vite for Svelte bundling (both package and SvelteKit website)
    - Set up TypeScript compilation
-   - Create optimized production builds
+   - Create optimized production builds for both use cases
 
-### Phase 2: Demo App Integration (Week 3-4)
+### Phase 2: Big Components Implementation (Week 3-4)
 
-1. **Create Demo App Component**:
-   - Build `DemoSilaApp.svelte` using real SIla components
-   - Implement demo-specific UI hiding/showing
-   - Add locked tabs and pre-configured state
+1. **Create Big Components**:
+   - `SilaAppDemo.svelte`: Complete application with tabbed interface
+   - `TabbedChatDemo.svelte`: Multi-tab chat interface
+   - `WorkspaceDemo.svelte`: Full workspace layout with sidebar
+   - Use real SIla components with demo-specific configurations
 
 2. **Implement Demo Modes**:
-   - Chat demo: Focus on chat interface only
-   - Settings demo: Show configuration screens
+   - Marketing mode: Perfect for product screenshots
+   - Testing mode: Focus on specific features
    - Full demo: Complete SIla experience with demo data
 
-3. **Demo App Factory**:
-   - Create `DemoAppFactory` for easy initialization
-   - Add configuration presets for common use cases
+3. **Component Configuration System**:
+   - Create configuration interfaces for each component type
+   - Add preset configurations for common use cases
    - Implement theme and interaction customization
 
 4. **Mock AI Integration**:
    - Connect mock AI provider to real chat system
    - Add contextual responses based on user input
-   - Implement realistic response timing
+   - Implement realistic response timing and typing indicators
 
-### Phase 3: Website Integration & Screenshot Automation (Week 5-6)
+### Phase 3: SvelteKit Website & Medium Components (Week 5-6)
 
-1. **Create Demo Examples**:
-   - Standalone HTML pages for different scenarios
-   - Embeddable demo widgets
-   - Full-screen demo experiences
+1. **Create SvelteKit Website**:
+   - Set up SvelteKit project structure
+   - Implement component showcase pages
+   - Add interactive preview system
+   - Create responsive layout with navigation
+
+2. **Implement Medium Components**:
+   - `ChatInterfaceDemo.svelte`: Complete chat experience
+   - `AssistantPanelDemo.svelte`: Assistant management
+   - `SettingsDemo.svelte`: Settings interface
+   - Feature-level components for specific use cases
+
+3. **Component Showcase Features**:
+   - Interactive configuration panels
+   - Live code generation
+   - Responsive preview modes
+   - Theme switching capabilities
+
+4. **Documentation & Integration**:
+   - Write component usage guides
+   - Create API documentation
+   - Add integration examples
+   - Set up automated documentation generation
+
+### Phase 4: Small Components & Screenshot Automation (Week 7-8)
+
+1. **Create Small Components**:
+   - `ContextMenuDemo.svelte`: Context menus
+   - `MessageFormDemo.svelte`: Message input
+   - `FileUploadDemo.svelte`: File upload interface
+   - `ButtonDemo.svelte`: Interactive buttons
+   - All individual UI elements and interactions
 
 2. **Screenshot Automation**:
    - Implement `ScreenshotAutomation` class with Playwright
-   - Create YAML configuration for different screenshot scenarios
+   - Create configuration for different screenshot scenarios
    - Add CI/CD integration for automatic screenshot generation
    - Set up watch mode for development
 
-3. **Website Integration**:
+3. **Package Distribution**:
+   - Set up npm package publishing
+   - Create CDN distribution
+   - Add TypeScript definitions
+   - Set up automated builds and releases
+
+4. **Final Integration**:
    - Add demo pages to sila.org
    - Implement responsive design for mobile/desktop
    - Add call-to-action elements
    - Integrate automated screenshots into documentation
-
-4. **Documentation & Testing**:
-   - Write integration guides
-   - Create API documentation
-   - Add unit tests for demo components
-   - Set up automated screenshot updates in CI/CD
 
 ## Technical Implementation Details
 
