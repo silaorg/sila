@@ -404,4 +404,96 @@ describe('AI Image Integration', () => {
     // Should say "NO IMAGE"
     expect(responseData.text.trim()).toBe('NO IMAGE');
   }, 30000);
+
+  it('should process image attachments with OpenRouter', async () => {
+    // Skip test if no OpenRouter API key is available
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
+      console.log('Skipping test: No valid OpenRouter API key available');
+      console.log('To run this test, set OPENROUTER_API_KEY environment variable');
+      return;
+    }
+
+    const fs = new NodeFileSystem();
+    const space = Space.newSpace(crypto.randomUUID());
+    const spaceId = space.getId();
+
+    // Set up file store
+    space.setFileStoreProvider({
+      getSpaceRootPath: () => tempDir,
+      getFs: () => fs
+    });
+
+    // Set up persistence
+    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+    const manager = new SpaceManager();
+    await manager.addNewSpace(space, [layer]);
+
+    // Add OpenRouter provider
+    space.saveModelProviderConfig({
+      id: 'openrouter',
+      type: 'cloud',
+      apiKey: openrouterApiKey
+    });
+
+    // Add a chat assistant config using OpenRouter with vision model
+    const assistantId = 'openrouter-vision-assistant';
+    space.addAppConfig({
+      id: assistantId,
+      name: 'OpenRouter Vision Assistant',
+      button: 'New query',
+      visible: true,
+      description: 'Assistant that can see images via OpenRouter',
+      instructions: 'You are a helpful assistant that can see images. When shown an image, describe what you see in one word. If no image is provided, respond with exactly "NO IMAGE".',
+      targetLLM: 'openrouter/openai/gpt-4o' // GPT-4o supports vision
+    } as any);
+
+    // Set up backend to handle AI responses
+    const backend = new Backend(space, true);
+
+    // Create chat tree
+    const chatTree = ChatAppData.createNewChatTree(space, assistantId);
+    const chatData = new ChatAppData(space, chatTree);
+
+    // Wait for backend to initialize
+    await wait(1000);
+
+    // Read the cat image
+    const catImagePath = path.join(__dirname, '..', '..', 'assets', 'to-send', 'cat.jpg');
+    const catImageBuffer = await readFile(catImagePath);
+
+    // Create a user message with the cat image
+    const userMessage = await chatData.newMessage('user', 'What animal do you see in this image? Say only the animal name in one word.', undefined, [
+      {
+        id: 'cat-image',
+        kind: 'image',
+        name: 'cat.jpg',
+        mimeType: 'image/jpeg',
+        size: catImageBuffer.length,
+        dataUrl: `data:image/jpeg;base64,${catImageBuffer.toString('base64')}`
+      }
+    ]);
+
+    // Wait for AI response
+    await wait(15000);
+
+    // Get the response
+    const messages = chatData.messageVertices;
+    const response = messages[messages.length - 1];
+    
+    if (!response) {
+      throw new Error('No response found');
+    }
+
+    const responseData = response.getAsTypedObject<any>();
+    if (responseData.role !== 'assistant') {
+      throw new Error('No assistant response generated');
+    }
+
+    console.log('OpenRouter Vision Response:', responseData.text);
+    
+    // Should contain "cat" (case insensitive)
+    const responseText = responseData.text.toLowerCase();
+    expect(responseText).toContain('cat');
+  }, 30000);
 });
