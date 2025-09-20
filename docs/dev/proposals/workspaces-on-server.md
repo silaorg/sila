@@ -4,11 +4,17 @@
 
 This proposal outlines adding server-side storage as an **additional sync option** for Sila workspaces, using a hybrid approach: SQLite database files for operations and metadata, with binary files stored directly on S3. This complements the existing local-first approach (which works across multiple devices via filesystem sync like Dropbox/iCloud) by providing cloud-based sync as an alternative option.
 
-## Current Architecture: Client-Side Storage
+## Current Architecture: Multi-Layer Persistence
 
-### IndexedDB Implementation
-Sila currently stores workspaces entirely on the client using IndexedDB with the following structure:
+### Persistence Layer System
+Sila uses a pluggable persistence layer system that supports multiple storage backends simultaneously. The current implementation includes:
 
+1. **IndexedDBPersistenceLayer**: Browser-based storage for operations and secrets
+2. **FileSystemPersistenceLayer**: File-based storage for operations, secrets, and files
+
+### Current Storage Implementation
+
+#### IndexedDBPersistenceLayer
 ```typescript
 // IndexedDB Schema (Dexie)
 spaces: '&id, uri, name, createdAt, userId'
@@ -17,22 +23,49 @@ treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [sp
 secrets: '&[spaceId+key], spaceId'
 ```
 
-### Client Storage Characteristics
-- **Browser-Only**: Limited to client-side environments
-- **Storage Limits**: Subject to browser quotas and clearing policies
+#### FileSystemPersistenceLayer
+```typescript
+// File System Structure
+<spacePath>/
+  sila.md                    # User-readable description
+  space-v1/
+    space.json              # Space metadata
+    secrets                 # Encrypted secrets file
+    ops/                    # Operations organized by tree and date
+      <treeId[0..1]>/
+        <treeId[2..]>/
+          <year>/
+            <month>/
+              <day>/
+                <peerId>.jsonl  # Operations for each peer per day
+    files/
+      static/sha256/        # Immutable files by content hash
+      var/uuid/             # Mutable files by UUID
+```
+
+### Current Storage Characteristics
+- **Multi-Layer**: Supports multiple persistence layers simultaneously
+- **Browser Storage**: IndexedDB for operations and secrets (all platforms)
+- **File System**: Local filesystem for operations, secrets, and files (desktop only)
+- **Dual Persistence**: File system spaces use both IndexedDB + FileSystem layers
 - **Multi-Device Sync**: Works across multiple devices via filesystem sync (Dropbox, iCloud, etc.)
-- **File System**: Uses local filesystem for binary data (desktop only)
-- **Real-time Sync**: File watching for multi-device sync (desktop only)
+- **Real-time Sync**: File watching for two-way sync between devices
 - **No Server Dependency**: Works completely offline
 
 ## Proposed Architecture: Server-Side Storage as Additional Sync Option
 
-This proposal adds server-side storage as an **additional sync option** alongside the existing local-first approach. Users can choose between:
+This proposal adds server-side storage as an **additional sync option** alongside the existing multi-layer persistence approach. Users can choose between:
 
-1. **Local-First Sync** (current): Workspaces stored locally, synced via filesystem (Dropbox, iCloud, etc.)
+1. **Local-First Sync** (current): 
+   - **File System Spaces**: IndexedDB + FileSystem layers, synced via filesystem (Dropbox, iCloud, etc.)
+   - **Local-Only Spaces**: IndexedDB layer only (browser storage)
 2. **Server-Side Sync** (new): Workspaces stored on servers, accessible from any device
 
-### Hybrid SQLite + S3 Storage
+### Server-Side Persistence Layer
+
+This would add a third persistence layer type:
+
+3. **ServerPersistenceLayer**: Server-based storage for operations, secrets, and files
 
 ### SQLite Database Schema (Operations Only)
 Each workspace becomes a single SQLite database file containing only operations and metadata:
@@ -122,53 +155,54 @@ s3://sila-workspaces/
 
 | Sync Method | Local-First (Current) | Server-Side (Proposed) |
 |-------------|----------------------|------------------------|
-| **Primary Storage** | Local device | Server/Cloud |
+| **Primary Storage** | Local device (IndexedDB + FileSystem) | Server/Cloud (SQLite + S3) |
 | **Multi-Device Access** | Via filesystem sync (Dropbox, iCloud) | Direct cloud access |
 | **Offline Capability** | Full offline support | Requires internet |
-| **Storage Limits** | Browser quotas | Unlimited |
+| **Storage Limits** | Browser quotas + disk space | Unlimited |
 | **Sync Speed** | Depends on filesystem sync | Direct server access |
 | **User Control** | User manages sync location | Managed by service |
+| **Persistence Layers** | IndexedDB + FileSystem | SQLite + S3 |
 
 ### Storage Architecture
 
-| Aspect | Local-First (IndexedDB) | Server-Side (SQLite + S3) |
-|--------|------------------------|---------------------------|
-| **Location** | Browser IndexedDB | Server SQLite files |
-| **Persistence** | Subject to browser policies | Permanent server storage |
+| Aspect | Local-First (IndexedDB + FileSystem) | Server-Side (SQLite + S3) |
+|--------|-------------------------------------|---------------------------|
+| **Location** | Browser IndexedDB + Local filesystem | Server SQLite files + S3 |
+| **Persistence** | Subject to browser policies + disk space | Permanent server storage |
 | **Access** | Multi-device via filesystem sync | Any device with internet |
 | **Sync** | File watching + filesystem sync (Dropbox, iCloud) | Automatic cloud sync |
-| **Storage Limit** | Browser quota (~1-10GB) | Unlimited |
+| **Storage Limit** | Browser quota (~1-10GB) + disk space | Unlimited |
 | **Backup** | Manual user action | Automatic server backup |
 
 ### Data Structure
 
-| Component | Local-First (IndexedDB) | Server-Side (SQLite + S3) |
-|-----------|------------------------|---------------------------|
-| **Operations** | IndexedDB table with composite keys | SQLite table with indexes |
-| **Binary Files** | Filesystem (desktop) or IndexedDB (web) | S3 with metadata in SQLite |
-| **Secrets** | IndexedDB table | SQLite table with encryption |
-| **Metadata** | IndexedDB spaces table | SQLite spaces table |
+| Component | Local-First (IndexedDB + FileSystem) | Server-Side (SQLite + S3) |
+|-----------|-------------------------------------|---------------------------|
+| **Operations** | IndexedDB + JSONL files (organized by date) | SQLite table with indexes |
+| **Binary Files** | Filesystem (static/sha256, var/uuid) | S3 with metadata in SQLite |
+| **Secrets** | IndexedDB + encrypted files | SQLite table with encryption |
+| **Metadata** | IndexedDB spaces table + space.json | SQLite spaces table |
 
 ### Performance Characteristics
 
-| Operation | Local-First (IndexedDB) | Server-Side (SQLite + S3) | Improvement |
-|-----------|------------------------|---------------------------|-------------|
-| **Single Operation Lookup** | 1-5ms | 0.1-1ms | 5-50x faster |
-| **Bulk Operations (1000 ops)** | 50-200ms | 10-50ms | 2-20x faster |
-| **Date Range Queries** | 10-50ms | 1-10ms | 5-50x faster |
-| **Full Workspace Load** | 100-500ms | 50-200ms | 2-10x faster |
+| Operation | Local-First (IndexedDB + FileSystem) | Server-Side (SQLite + S3) | Improvement |
+|-----------|-------------------------------------|---------------------------|-------------|
+| **Single Operation Lookup** | 1-5ms (IndexedDB) | 0.1-1ms | 5-50x faster |
+| **Bulk Operations (1000 ops)** | 50-200ms (IndexedDB) | 10-50ms | 2-20x faster |
+| **Date Range Queries** | 10-50ms (IndexedDB) | 1-10ms | 5-50x faster |
+| **Full Workspace Load** | 100-500ms (IndexedDB) | 50-200ms | 2-10x faster |
 | **Complex Aggregations** | Not supported | 1-10ms | New capability |
-| **Binary File Access** | 10-100ms | 50-200ms | Similar performance |
+| **Binary File Access** | 10-100ms (filesystem) | 50-200ms | Similar performance |
 | **File Upload** | 100-500ms per file | 100-500ms per file | Similar performance |
 
 ### Transfer Performance
 
 | Workspace Size | Local-First Sync | Server Transfer (Ops + Files) | Improvement |
 |----------------|------------------|-------------------------------|-------------|
-| **10MB** | 30-150s (filesystem sync) | 5-15s (SQLite + S3 files) | 6-30x faster |
-| **50MB** | 150-750s (filesystem sync) | 15-45s (SQLite + S3 files) | 10-50x faster |
-| **100MB** | 300-1500s (filesystem sync) | 30-90s (SQLite + S3 files) | 10-50x faster |
-| **500MB** | 1500-7500s (filesystem sync) | 150-450s (SQLite + S3 files) | 10-50x faster |
+| **10MB** | 30-150s (filesystem sync via Dropbox/iCloud) | 5-15s (SQLite + S3 files) | 6-30x faster |
+| **50MB** | 150-750s (filesystem sync via Dropbox/iCloud) | 15-45s (SQLite + S3 files) | 10-50x faster |
+| **100MB** | 300-1500s (filesystem sync via Dropbox/iCloud) | 30-90s (SQLite + S3 files) | 10-50x faster |
+| **500MB** | 1500-7500s (filesystem sync via Dropbox/iCloud) | 150-450s (SQLite + S3 files) | 10-50x faster |
 
 ### Hybrid Approach Benefits
 
@@ -554,7 +588,7 @@ class CloudWorkspaceStorage implements ServerWorkspaceStorage {
 
 | Storage Type | Monthly Requests | Storage (GB) | Transfer (GB) | Monthly Cost |
 |--------------|------------------|--------------|---------------|--------------|
-| **Local-First Sync** | 1M+ requests | 100GB | 50GB | ~$25-50 |
+| **Local-First Sync** | 1M+ requests (filesystem sync) | 100GB | 50GB | ~$25-50 |
 | **Server SQLite + S3** | 50K requests | 100GB | 50GB | ~$15-25 |
 | **Cost Savings** | 95% fewer requests | Similar storage | Similar transfer | 40-60% cheaper |
 
@@ -647,9 +681,10 @@ Adding server-side storage as an **additional sync option** alongside the existi
 - **Cost optimization**: Small databases + standard S3 storage rates
 
 **User Choice**:
-- **Local-First Option**: Users can continue using filesystem sync (Dropbox, iCloud) for offline-first experience
+- **Local-First Option**: Users can continue using IndexedDB + FileSystem layers with filesystem sync (Dropbox, iCloud) for offline-first experience
 - **Server-Side Option**: Users can choose cloud-based sync for convenience and cross-device access
 - **No Forced Migration**: Both options remain available, giving users control over their data
+- **Hybrid Approach**: Users could potentially use multiple persistence layers simultaneously
 
 **Implementation Strategy**:
 - **Additive approach**: Server-side storage as additional option, not replacement
@@ -657,4 +692,4 @@ Adding server-side storage as an **additional sync option** alongside the existi
 - **Data integrity** maintained throughout migration process
 - **Rollback capability** if users want to return to local-first approach
 
-The hybrid SQLite + S3 approach adds a powerful cloud-based sync option to Sila while preserving the existing local-first approach, giving users the flexibility to choose the sync method that best fits their needs.
+The hybrid SQLite + S3 approach adds a powerful cloud-based sync option to Sila while preserving the existing multi-layer persistence approach (IndexedDB + FileSystem), giving users the flexibility to choose the sync method that best fits their needs.
