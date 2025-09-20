@@ -38,6 +38,10 @@ npx cap sync
 - **Android**: Platform-specific implementations via Capacitor plugins
 - **Web**: Fallback to web APIs when running in browser
 
+## Documentation
+
+- [Mobile Build Guide](../../docs/dev/platforms/mobile.md) - Complete guide for building and packaging for iOS/Android
+
 ## Dependencies
 
 - `@capacitor/core` - Core Capacitor functionality
