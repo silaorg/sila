@@ -1,23 +1,27 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
-
-// @NOTE: at the moment this is almost a copy of the desktop config
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 export default defineConfig({
-	plugins: [sveltekit()],
-
+	plugins: [svelte()],
+	
+	// Ensure proper base path for Capacitor
+	base: './',
+	
 	// Build configuration
 	build: {
 		outDir: 'build',
 		emptyOutDir: true,
-		// Ensure compatibility with Electron
+		// Ensure compatibility with mobile browsers
 		target: 'chrome120',
-		sourcemap: true // Enable source maps for debugging
+		sourcemap: true,
+		cssMinify: false,
+		// Copy static assets to build output
+		assetsDir: 'assets'
 	},
-
-	// Ensure source maps work properly for debugging
-	css: {
-		devSourcemap: true
+	
+	// Define globals for mobile context
+	define: {
+		global: 'globalThis'
 	},
 	
 	// Resolve configuration for monorepo debugging
