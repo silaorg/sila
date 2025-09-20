@@ -7,45 +7,13 @@ A mobile application built with Capacitor and a thin Svelte wrapper around the c
 The mobile package follows the same simple structure as the desktop package:
 - **Svelte + Vite** for the UI layer (no SvelteKit complexity)
 - **Capacitor** for native mobile integration
-- **Shared client package** for all core functionality
+- **Client and core packages** for the actual functionality of the app
 - **Native mobile features** through Capacitor plugins
 
-## Current Status
+## Status
 
-✅ **Completed**: Basic Svelte + Vite setup with Capacitor integration
-🚧 **In Progress**: Native file system and dialog implementations
-📋 **Planned**: Full workspace management and persistence layers
-
-## Build & Development
-
-```bash
-# Install dependencies
-npm install
-
-# Development server
-npm run dev
-
-# Build for mobile
-npm run build
-
-# Sync with native platforms
-npx cap sync
-```
-
-## Native Platform Integration
-
-- **iOS**: Native file system access through Capacitor Filesystem API
-- **Android**: Platform-specific implementations via Capacitor plugins
-- **Web**: Fallback to web APIs when running in browser
+🚧 **In Progress**: This mobile implementation is currently under development.
 
 ## Documentation
 
 - [Mobile Build Guide](../../docs/dev/platforms/mobile.md) - Complete guide for building and packaging for iOS/Android
-
-## Dependencies
-
-- `@capacitor/core` - Core Capacitor functionality
-- `@capacitor/ios` - iOS platform support
-- `@capacitor/android` - Android platform support
-- `@sila/client` - Shared Sila client functionality
-- `@sila/core` - Core Sila business logic
