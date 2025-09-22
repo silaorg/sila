@@ -233,6 +233,41 @@ export class ClientState {
   }
 
   /**
+   * Adopt an existing in-memory Space into the manager without persistence layers.
+   * Useful for demos in the gallery where we don't want to persist to IndexedDB or FS.
+   */
+  async adoptInMemorySpace(space: Space, name?: string): Promise<string> {
+    const spaceId = space.getId();
+
+    if (name) {
+      space.name = name;
+    }
+
+    // Create a local pointer with a memory URI
+    const pointer: SpacePointer = {
+      id: spaceId,
+      uri: `memory://${spaceId}`,
+      name: space.name || null,
+      createdAt: space.createdAt,
+      userId: this.auth.user?.id || null,
+    };
+
+    // Add the space to the manager without any persistence layers
+    await this._spaceManager.addNewSpace(space, []);
+
+    // Update client state collections
+    this.pointers = [...this.pointers, pointer];
+    const newSpaceState = new SpaceState(pointer, this._spaceManager);
+    this._spaceStates = [...this._spaceStates, newSpaceState];
+
+    // Switch to the new space without saving to local DB
+    await this._setCurrentSpace(spaceId);
+    this._updateCurrentSpace();
+
+    return spaceId;
+  }
+
+  /**
    * Remove a space by ID
    */
   async removeSpace(spaceId: string): Promise<void> {
