@@ -34,7 +34,7 @@
           <SilaApp config={{}} state={galleryState["_client"]} />
         </ClientStateProvider>
       {:else}
-        <SilaApp config={{}} />
+        <div>Loading, please wait…</div>
       {/if}
     {/key}
   {/if}
