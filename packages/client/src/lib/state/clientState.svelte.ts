@@ -192,7 +192,7 @@ export class ClientState {
     if (!uri) {
       uri = "local://" + spaceId;
     } else {
-      uri = await checkIfCanCreateSpaceAndReturnPath(uri);
+      uri = await checkIfCanCreateSpaceAndReturnPath(this, uri);
     }
 
     const pointer: SpacePointer = {
@@ -443,10 +443,10 @@ export class ClientState {
    */
   async loadSpace(uri: string): Promise<string> {
     // We do this because a user might have selected a folder inside the space directory
-    const spaceRootPath = await checkIfPathHasValidStructureAndReturnActualRootPath(uri);
+    const spaceRootPath = await checkIfPathHasValidStructureAndReturnActualRootPath(this, uri);
 
     // Load space metadata from the file system
-    const { spaceId } = await loadSpaceMetadataFromPath(spaceRootPath);
+    const { spaceId } = await loadSpaceMetadataFromPath(this, spaceRootPath);
 
     // Check if space is already loaded
     const existingPointer = this.pointers.find(p => p.id === spaceId);
