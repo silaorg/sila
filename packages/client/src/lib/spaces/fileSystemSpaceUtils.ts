@@ -1,5 +1,5 @@
 import type { ClientState } from "../state/clientState.svelte";
-type DirEntry = { isDirectory: boolean; name: string };
+import type { FileEntry } from "../appFs";
 
 /**
  * Checks if a directory contains a space-v* directory
@@ -7,7 +7,7 @@ type DirEntry = { isDirectory: boolean; name: string };
 async function containsSpaceVersionDir(clientState: ClientState, dir: string): Promise<boolean> {
   try {
     const entries = await clientState.fs.readDir(dir);
-    return (entries as unknown as DirEntry[]).some((entry: DirEntry) => entry.isDirectory && entry.name.startsWith('space-v'));
+    return (entries as FileEntry[]).some((entry) => entry.isDirectory && entry.name.startsWith('space-v'));
   } catch (error) {
     return false;
   }
@@ -44,7 +44,7 @@ export async function checkIfCanCreateSpaceAndReturnPath(clientState: ClientStat
 
   const dirEntries = await clientState.fs.readDir(path);
   // Exclude all dot directories (e.g .DS_Store, .git)
-  const filteredDirEntries = (dirEntries as unknown as DirEntry[]).filter((entry: DirEntry) => entry.isDirectory && !entry.name.startsWith('.'));
+  const filteredDirEntries = (dirEntries as FileEntry[]).filter((entry) => entry.isDirectory && !entry.name.startsWith('.'));
   // Make sure the directory is empty (except for dot directories)
   if (filteredDirEntries.length > 0) {
     throw new Error("Folder (directory) is not empty. Make sure you create a space in a new, empty folder");
@@ -59,15 +59,7 @@ export async function checkIfCanCreateSpaceAndReturnPath(clientState: ClientStat
  * @returns The root path of the space
  * @throws If no valid space directory is found
  */
-export async function checkIfPathHasValidStructureAndReturnActualRootPath(path: string): Promise<string> {
-  // Check if current directory contains a space-v* directory
-  const clientStateMaybe = undefined as unknown as ClientState; // placeholder for type inference in overload; will be passed via wrapper below
-  if (false) { /* noop to satisfy TS when bundlers tree-shake */ }
-  return path;
-}
-
-// Overload with state parameter (actual implementation used by app code)
-export async function checkIfPathHasValidStructureAndReturnActualRootPathWithState(clientState: ClientState, path: string): Promise<string> {
+export async function checkIfPathHasValidStructureAndReturnActualRootPath(clientState: ClientState, path: string): Promise<string> {
   // Check if current directory contains a space-v* directory
   if (await containsSpaceVersionDir(clientState, path)) {
     return path;

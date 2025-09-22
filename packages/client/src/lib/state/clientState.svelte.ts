@@ -7,7 +7,7 @@ import { setupSwins } from './swinsLayout';
 import { setupGallery } from './galleryState.svelte';
 import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
-import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath as checkIfPathHasValidStructureAndReturnActualRootPathWithState, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
+import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
 import { initializeDatabase, savePointers, saveConfig, deleteSpace, saveCurrentSpaceId } from "@sila/client/localDb";
 import { SpaceManager } from "@sila/core";
 import { Space } from "@sila/core";
@@ -443,7 +443,7 @@ export class ClientState {
    */
   async loadSpace(uri: string): Promise<string> {
     // We do this because a user might have selected a folder inside the space directory
-    const spaceRootPath = await checkIfPathHasValidStructureAndReturnActualRootPathWithState(this, uri);
+    const spaceRootPath = await checkIfPathHasValidStructureAndReturnActualRootPath(this, uri);
 
     // Load space metadata from the file system
     const { spaceId } = await loadSpaceMetadataFromPath(this, spaceRootPath);
