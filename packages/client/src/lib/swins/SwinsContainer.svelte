@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { SWins } from "./Swins.svelte";
   import { fly, fade } from "svelte/transition";
   import ChevronLeft from "lucide-svelte/icons/chevron-left";
   import X from "lucide-svelte/icons/x";
   import { onMount } from "svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
 
-  let { swins }: { swins: SWins } = $props();
+  const clientState = useClientState();
+  const swins = $derived(clientState.layout.swins);
 
   // Function to handle breadcrumb navigation
   function handleBreadcrumbClick(pageIndex: number) {

@@ -553,13 +553,3 @@ export class ClientState {
     // @TODO: implement disconnect from server
   }
 }
-
-/**
- * This is the main singletone representing the entire client/app state.
- * It uses Svelte stores (that is why the file is named .svelte.ts) when we need reactivity in 
- * svelte components.
- * It has to be initialized at the start of the app.
- */
-import { getClientStateFromContext } from './clientStateContext';
-
-// Note: No default singleton export. Use ClientStateProvider + useClientState() for access.
