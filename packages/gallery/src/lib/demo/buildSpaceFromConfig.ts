@@ -1,5 +1,8 @@
 import { Space, ChatAppData } from '@sila/core';
-import uuid from '@sila/core/utils/uuid';
+
+function genId(): string {
+  return crypto.randomUUID().replace(/-/g, '');
+}
 
 type DemoConfig = {
   type: 'sila-space';
@@ -21,7 +24,7 @@ type MessageNode = {
 };
 
 export async function buildSpaceFromConfig(config: DemoConfig): Promise<Space> {
-  const space = Space.newSpace(uuid());
+  const space = Space.newSpace(genId());
   space.name = config.name;
 
   // Assistants
