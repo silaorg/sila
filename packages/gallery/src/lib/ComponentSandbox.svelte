@@ -3,6 +3,8 @@
   import { clientState } from '@sila/client/state/clientState.svelte';
   import type { ComponentType } from 'svelte';
   import { buildSpaceFromConfig } from '$lib/demo/buildSpaceFromConfig';
+  // Ensure component-level styles from @sila/client are available when not using <SilaApp>
+  import '@sila/client/compiled-style.css';
 
   export let component: ComponentType;
   export let props: Record<string, any> = {};
