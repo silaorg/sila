@@ -2,10 +2,12 @@
   import { provideClientState } from './clientStateContext';
   import { ClientState } from './clientState.svelte';
 
-  let { instance = new ClientState() } = $props<{ instance?: ClientState }>();
+  let { instance = new ClientState(), children } = $props<{ instance?: ClientState; children?: any }>();
 
   provideClientState(instance);
 </script>
 
-<slot />
+{#if children}
+  {@render children()}
+{/if}
 
