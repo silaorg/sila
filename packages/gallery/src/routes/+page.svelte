@@ -1,18 +1,12 @@
-<script>
-  // Home page with link to the test component route
-</script>
+<div class="space-y-4">
+  <h1 class="h1">Sila Gallery</h1>
 
-<h1>Sila Gallery</h1>
-
-<p>
-  <a href="/components/test-component">Open test component</a>
+  <p>
+    <a class="anchor" href="/app">Open full app with CityBean demo space</a>
   </p>
-
-<p>
-  <a href="/app">Open full app with CityBean demo space</a>
+  
+  <p>
+    <a class="anchor" href="/components/chat-sandbox">ChatApp sandbox</a>
   </p>
-
-<p>
-  <a href="/components/chat-sandbox">ChatApp sandbox</a>
-  </p>
+</div>
 

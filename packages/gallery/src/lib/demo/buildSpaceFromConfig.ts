@@ -11,7 +11,7 @@ type DemoConfig = {
   createdAt: string;
   onboarding?: boolean;
   description?: string;
-  assistants: Array<{ id: string; name: string; button: string; visible?: boolean; description: string; instructions: string; targetLLM?: string }>; 
+  assistants: Array<{ id: string; name: string; button: string; visible?: boolean; description: string; instructions: string; targetLLM?: string }>;
   providers: Array<{ id: string; apiKey?: string }>;
   conversations: Array<{ title: string; assistant: string; messages: MessageNode }>;
 };
