@@ -11,9 +11,8 @@
   let { state }: { state?: ClientState } = $props();
 
   onMount(async () => {
-    if (state) {
-      galleryState.setClient(state);
-    }
+    const localState = state || new ClientState();
+    galleryState.setClient(localState);
     await galleryState.loadSpace(demoConfigUrl);
   });
 </script>
@@ -25,9 +24,18 @@
 {:else}
   {#if state}
     <ClientStateProvider instance={state}>
-      <SilaApp config={{}} />
+      <SilaApp config={{}} state={state} />
     </ClientStateProvider>
   {:else}
-    <SilaApp config={{}} />
+    {#key initialized}
+      {#if initialized}
+        <!-- When we create local state above, we need to pass the same instance used by galleryState -->
+        <ClientStateProvider instance={galleryState["_client"]}>
+          <SilaApp config={{}} state={galleryState["_client"]} />
+        </ClientStateProvider>
+      {:else}
+        <SilaApp config={{}} />
+      {/if}
+    {/key}
   {/if}
 {/if}
