@@ -9,7 +9,7 @@ This document explains how to use the `packages/gallery` SvelteKit site to build
 - Open: `http://localhost:5173/`
 - Links:
   - Home: basic links and examples
-  - `/components/test-component`: minimal example
+  - `/components/chat-sandbox`: Chat app demo in isolation
   - `/app`: runs the full app with a demo space (CityBean)
 
 ## Project layout
@@ -23,20 +23,27 @@ This document explains how to use the `packages/gallery` SvelteKit site to build
 
 For components that rely on global state (spaces, swins, theme, dialogs), the simplest path is to render the entire app and then navigate to the UI you want to work on.
 
-- The gallery `/app` route:
-  - Fetches `CityBean` JSON from `/api/demo-space`
-  - Creates an in-memory `Space` via `buildSpaceFromConfig`
-  - Injects the space into the global `clientState` singleton via `clientState.adoptInMemorySpace`
-  - Renders `<SilaApp config={{}} />`
-  - Uses client-only rendering (SSR disabled)
+The gallery `/app` route uses a helper component that loads a demo space and renders the full app:
+
+```svelte
+<script lang="ts">
+  import GallerySilaApp from '$lib/GallerySilaApp.svelte';
+</script>
+
+<GallerySilaApp />
+```
+
+- Fetches `CityBean` JSON from `/api/demo-space`
+- Builds an in-memory `Space` and adopts it
+- Renders `<SilaApp config={{}} />`
+- Uses client-only rendering (SSR disabled)
 
 This gives a realistic environment without writing to disk or requiring any server.
 
 Notes:
 - `/app` sets `ssr = false` to avoid SSR importing browser-only modules.
 - The gallery defaults `onboarding: false`, so the app opens directly without the setup wizard.
-- The app requires compiled CSS from `@sila/client`. If styles are missing, run:
-  - `npm run build -w @sila/client`
+- Styles from `@sila/client/compiled-style.css` are imported globally in the gallery root layout. If styles are missing, ensure the layout import exists and (if needed) run `npm run build -w @sila/client` to generate the CSS.
 
 ## Adding a new component demo page
 
@@ -65,47 +72,26 @@ export const prerender = false;
 
 ```svelte
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { SilaApp } from '@sila/client';
-  import { clientState } from '@sila/client/state/clientState.svelte';
-  import { buildSpaceFromConfig } from '$lib/demo/buildSpaceFromConfig';
-
-  let ready = false;
-
-  onMount(async () => {
-    await clientState.init({});
-    const cfg = await (await fetch('/api/demo-space')).json();
-    const space = await buildSpaceFromConfig(cfg);
-    await clientState.adoptInMemorySpace(space, cfg.name);
-    ready = true;
-  });
+  import GallerySilaApp from '$lib/GallerySilaApp.svelte';
 </script>
 
-{#if ready}
-  <SilaApp config={{}} />
-{:else}
-  Loading…
-{/if}
+<GallerySilaApp />
 ```
 
 This pattern establishes the minimum viable app context without persistence.
 
-### ComponentSandbox wrapper (recommended)
+### Gallery helpers (recommended)
 
-For isolated component development with all global state initialized, use the `ComponentSandbox` wrapper:
+- Use `GallerySilaApp` to run the full app against a demo space.
+- To render Chat in isolation, use the built-in demo component:
 
 ```svelte
 <script lang="ts">
-  import ComponentSandbox from '$lib/ComponentSandbox.svelte';
-  import ChatApp from '@sila/client/comps/apps/ChatApp.svelte';
+  import ChatAppInGallery from '$lib/comps/ChatAppInGallery.svelte';
 </script>
 
-<ComponentSandbox component={ChatApp} props={{}} />
+<ChatAppInGallery />
 ```
-
-- It initializes `clientState`, builds an in-memory demo space from `/api/demo-space`, and adopts it.
-- Works for any component that expects app context; pass component-specific props via `props`.
-- You can switch the data source by setting `demoConfigUrl`.
 
 ## Feeding data to demos
 
@@ -115,12 +101,14 @@ For isolated component development with all global state initialized, use the `C
 - `buildSpaceFromConfig` accepts the config and constructs all assistants, providers, and seed conversations.
 - It also honors an optional `onboarding` boolean (default false in gallery).
 
-## Working with singletons and app-wide stores
+## Working with app state in gallery
 
-- `clientState` (singleton): central orchestrator for app state. In demos, call:
-  - `await clientState.init({})` – bootstraps state and local DB
-  - `await clientState.adoptInMemorySpace(space, name)` – adds a `Space` without persistence layers
-  - Avoid calling `createSpace` or `loadSpace` in demos unless you explicitly want IndexedDB/file persistence
+- `galleryState`: small helper that loads an in-memory demo `Space` once per URL and exposes readiness and the current `Space`.
+  - `await galleryState.loadSpace('/api/demo-space')`
+  - `galleryState.currentSpace` → the active space
+  - Used by both `GallerySilaApp` and `ChatAppInGallery`
+
+- App-wide state in components (proposal): prefer `useClientState()` accessor to support multiple instances via Svelte context providers.
 
 - Theme: managed by `ThemeManager` inside `SilaApp`; no extra setup needed in `/app` demos.
 
@@ -133,8 +121,8 @@ For isolated component development with all global state initialized, use the `C
 ## Isolating a specific app component (e.g., ChatApp)
 
 Options:
-- Recommended: run the full app `/app` and navigate to Chat; edit the demo JSON to include the conversations/state you need.
-- For deep isolation: render the component and supply its props and required stores manually. Inspect the component imports to see which stores/utilities it expects and mock them at the page level. This approach is advanced and can get brittle; prefer `/app` unless you truly need surgical isolation.
+- Recommended: run the full app `/app` and navigate to Chat; or use `ChatAppInGallery`.
+- For deep isolation: render the component and supply its props and required stores manually. This can be brittle; prefer the helpers above.
 
 ## Troubleshooting
 
