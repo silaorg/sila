@@ -11,4 +11,8 @@ demos
 .env*
 !*.env.example
 .DS_Store
-*.log 
+*.log
+
+# Playwright
+playwright-report/
+test-results/ 

@@ -1,10 +1,11 @@
-import { clientState } from "../state/clientState.svelte";
+import { useClientState } from "../state/clientStateContext";
 
 /**
  * Checks if a directory contains a space-v* directory
  */
 async function containsSpaceVersionDir(dir: string): Promise<boolean> {
   try {
+    const clientState = useClientState();
     const entries = await clientState.fs.readDir(dir);
     return entries.some(entry => entry.isDirectory && entry.name.startsWith('space-v'));
   } catch (error) {
@@ -36,6 +37,7 @@ export async function checkIfCanCreateSpaceAndReturnPath(path: string): Promise<
   }
 
   // Check if the target directory exists and is empty
+  const clientState = useClientState();
   if (!await clientState.fs.exists(path)) {
     // Directory doesn't exist, which is fine - we can create it
     return path;
@@ -69,6 +71,7 @@ export async function checkIfPathHasValidStructureAndReturnActualRootPath(path: 
   const lastPart = pathParts[pathParts.length - 1];
   if (lastPart.startsWith('space-v')) {
     const parentPath = pathParts.slice(0, -1).join('/');
+    const clientState = useClientState();
     if (await clientState.fs.exists(`${parentPath}/${lastPart}`)) {
       return parentPath;
     }
@@ -101,6 +104,7 @@ export async function loadSpaceMetadataFromPath(path: string): Promise<{ spaceId
   // Check if space.json exists and read space ID
   const spaceJsonPath = `${path}/space-v1/space.json`;
 
+  const clientState = useClientState();
   if (!await clientState.fs.exists(spaceJsonPath)) {
     throw new Error(`space.json not found in space-v1 structure at ${path}`);
   }

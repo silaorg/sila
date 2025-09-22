@@ -2,8 +2,9 @@
   import { onMount } from 'svelte';
   import { X } from 'lucide-svelte';
   import { getFilePreviewConfig, formatFileSize } from '@sila/client/utils/filePreview';
-  import { clientState } from '../../state/clientState.svelte';
+  import { useClientState } from '../../state/clientStateContext';
 
+  const clientState = useClientState();
   let activeFile = $derived(clientState.gallery.activeFile);
   let isOpen = $derived(clientState.gallery.isOpen);
   let lineCount = $state<number | null>(null);
