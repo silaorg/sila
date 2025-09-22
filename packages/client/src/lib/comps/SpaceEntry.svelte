@@ -5,9 +5,8 @@
   import Space from "./apps/Space.svelte";
   import Spaces from "../swins/routes/Spaces.svelte";
   import CenteredPage from "./basic/CenteredPage.svelte";
-</script>
-
   const clientState = useClientState();
+</script>
 
 {#if clientState.isInitializing || clientState.spaceStatus === "loading"}
   <Loading />
