@@ -1,8 +1,17 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
-    "types": ["svelte"],
-    "moduleResolution": "bundler"
+    "types": ["svelte", "@sveltejs/kit"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": false,
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"]
+    }
   }
 }
 
