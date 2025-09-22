@@ -264,6 +264,9 @@ export class ClientState {
     await this._setCurrentSpace(spaceId);
     this._updateCurrentSpace();
 
+    // Mark client initialized for in-memory usage scenarios (gallery/tests)
+    this._init = true;
+
     return spaceId;
   }
 
