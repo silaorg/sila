@@ -22,10 +22,14 @@ export { CLIENT_STATE };
 
 export function useClientState(): ClientState {
 	const instance = getClientStateFromContext();
-	if (!instance) {
-		throw new Error('ClientState not found in context. Wrap your component tree in <ClientStateProvider>.');
-	}
-	return instance;
+	if (instance) return instance;
+	// Return a lazy-throwing proxy so importing modules that call this in top-level
+	// script don't fail during unrelated test/setup. Any actual usage will throw.
+	return new Proxy({}, {
+		get() {
+			throw new Error('ClientState not found in context. Wrap your component tree in <ClientStateProvider>.');
+		}
+	}) as unknown as ClientState;
 }
 
 export function useClientStateOptional(): ClientState | null {

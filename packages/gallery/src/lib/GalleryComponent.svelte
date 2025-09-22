@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { galleryState } from "$lib/state/galleryState.svelte";
   import { ClientStateProvider, ClientState } from "@sila/client";
+  import { buildSpaceFromConfig } from "$lib/demo/buildSpaceFromConfig";
 
   // When not using <SilaApp>, ensure you include styles in the host app if needed
 
@@ -12,7 +13,14 @@
   let error: string | null = $derived(galleryState.error);
 
   onMount(async () => {
-    await galleryState.loadSpace(demoConfigUrl);
+    if (state) {
+      await state.init({});
+      const cfg = await (await fetch(demoConfigUrl)).json();
+      const built = await buildSpaceFromConfig(cfg);
+      await state.adoptInMemorySpace(built, cfg.name);
+    } else {
+      await galleryState.loadSpace(demoConfigUrl);
+    }
   });
 </script>
 

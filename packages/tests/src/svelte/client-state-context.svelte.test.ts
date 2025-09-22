@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte/svelte5';
 import ClientStateProvider from '@sila/client/state/ClientStateProvider.svelte';
 // Avoid importing ClientState to prevent pulling full library graph during test
 import TestContextConsumer from './TestContextConsumer.svelte';

@@ -5,8 +5,8 @@
   import { providers } from "@sila/core";
   import { getActiveProviders } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import {
   const clientState = useClientState();
+  import {
     splitModelString,
     isValidModelString,
     getProviderId,
