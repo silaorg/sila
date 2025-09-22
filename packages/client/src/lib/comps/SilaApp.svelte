@@ -32,10 +32,9 @@
   );
 </script>
 
-<ThemeManager />
-
 {#if config}
   <ClientStateProvider instance={providedState}>
+    <ThemeManager />
     <!-- Where our spaces are rendered -->
     <SpaceEntry />
 
