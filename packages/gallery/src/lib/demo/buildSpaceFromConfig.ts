@@ -9,6 +9,7 @@ type DemoConfig = {
   version: '1';
   name: string;
   createdAt: string;
+  onboarding?: boolean;
   description?: string;
   assistants: Array<{ id: string; name: string; button: string; visible?: boolean; description: string; instructions: string; targetLLM?: string }>; 
   providers: Array<{ id: string; apiKey?: string }>;
@@ -26,6 +27,10 @@ type MessageNode = {
 export async function buildSpaceFromConfig(config: DemoConfig): Promise<Space> {
   const space = Space.newSpace(genId());
   space.name = config.name;
+
+  // Control onboarding via config; default is to skip onboarding in gallery
+  const onboarding = config.onboarding ?? false;
+  space.tree.setVertexProperty(space.rootVertex.id, 'onboarding', onboarding);
 
   // Assistants
   for (const a of config.assistants) {
