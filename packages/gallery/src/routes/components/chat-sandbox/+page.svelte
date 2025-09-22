@@ -1,6 +1,6 @@
 <script lang="ts">
   import ComponentSandbox from '$lib/ComponentSandbox.svelte';
-  import ChatAppLoader from '@sila/client/comps/apps/ChatAppLoader.svelte';
+  import MemChatAppLoader from '$lib/MemChatAppLoader.svelte';
   import { clientState } from '@sila/client/state/clientState.svelte';
 
   let firstChatTreeId: string | null = null;
@@ -15,7 +15,7 @@
 
 <ComponentSandbox>
   {#if firstChatTreeId}
-    <ChatAppLoader treeId={firstChatTreeId} />
+    <MemChatAppLoader treeId={firstChatTreeId} />
   {:else}
     <div>Loading…</div>
   {/if}
