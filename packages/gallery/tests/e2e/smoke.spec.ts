@@ -6,7 +6,8 @@ test('gallery home loads', async ({ page }) => {
 });
 
 test('app loads and shows sidebar quickly', async ({ page }) => {
-	await page.goto('/app');
+    // Use a minimal page that adopts a demo space before mounting the app
+    await page.goto('/components/min-app');
     // Wait for readiness marker (hidden) or app-root
     await expect(page.locator('[data-testid="ready"], [data-testid="app-root"]')).toHaveCount(1, { timeout: 15000 });
     await expect(page.getByTestId('app-root')).toBeVisible({ timeout: 15000 });
