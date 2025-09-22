@@ -8,3 +8,7 @@
   <a href="/components/test-component">Open test component</a>
   </p>
 
+<p>
+  <a href="/app">Open full app with CityBean demo space</a>
+  </p>
+
