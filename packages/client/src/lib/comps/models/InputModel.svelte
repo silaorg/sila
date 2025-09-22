@@ -4,8 +4,9 @@
   import { Sparkles, CircleAlert } from "lucide-svelte/icons";
   import { providers } from "@sila/core";
   import { getActiveProviders } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import {
+  const clientState = useClientState();
     splitModelString,
     isValidModelString,
     getProviderId,

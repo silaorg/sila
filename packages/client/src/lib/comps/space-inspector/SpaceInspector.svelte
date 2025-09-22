@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import VertexView from "./VertexView.svelte";
+  const clientState = useClientState();
   import type { Vertex } from "@sila/core";
 
   let spaceRootVertex = $derived(clientState.currentSpace?.rootVertex);

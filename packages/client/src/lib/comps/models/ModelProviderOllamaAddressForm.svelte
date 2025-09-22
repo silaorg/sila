@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ModelProviderLocalConfig } from "@sila/core";
+  const clientState = useClientState();
   import { XCircle, CheckCircle, CircleAlert } from "lucide-svelte/icons";
   import { timeout } from "@sila/core";
 

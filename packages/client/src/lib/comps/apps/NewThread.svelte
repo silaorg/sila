@@ -1,7 +1,8 @@
 <script lang="ts">
   import SendMessageForm from "../../comps/forms/SendMessageForm.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { ChatAppData } from "@sila/core";
+  const clientState = useClientState();
   import type { AppConfig } from "@sila/core";
   import { onMount } from "svelte";
   import type { AttachmentPreview } from "@sila/core";

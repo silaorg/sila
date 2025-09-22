@@ -1,6 +1,7 @@
 <script lang="ts">
   import Wizard from "@sila/client/comps/wizards/Wizard.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
   import Lightswitch from "@sila/client/comps/basic/Lightswitch.svelte";

@@ -3,7 +3,8 @@
   import type { Tokens } from "@markpage/svelte";
   import { Copy, Check } from "lucide-svelte";
   import { timeout } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 </script>
 
 <script lang="ts">

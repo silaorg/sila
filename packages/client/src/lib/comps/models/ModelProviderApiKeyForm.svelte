@@ -6,8 +6,9 @@
     ModelProviderCloudConfig,
     ModelProviderConfig,
   } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { validateKey } from "@sila/core";
+  const clientState = useClientState();
 
   let {
     id,

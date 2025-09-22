@@ -2,8 +2,9 @@
   import type { ModelProvider, ModelProviderLocalConfig } from "@sila/core";
   import ModelProviderApiKeyForm from "./ModelProviderApiKeyForm.svelte";
   import ModelProviderOllamaAddressForm from "./ModelProviderOllamaAddressForm.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { onMount } from "svelte";
+  const clientState = useClientState();
   import { checkOllamaStatus } from "./ollama";
   import { Tooltip } from "@skeletonlabs/skeleton-svelte";
   import { CircleAlert } from "lucide-svelte/icons";

@@ -3,8 +3,9 @@
   import { onMount } from "svelte";
   import ModelSelectCard from "./ModelSelectCard.svelte";
   import AutoModelSelectCard from "./AutoModelSelectCard.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { getActiveProviders } from "@sila/core";
+  const clientState = useClientState();
   import { splitModelString, combineModelString } from "@sila/core";
 
   let {

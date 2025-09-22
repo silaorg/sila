@@ -1,6 +1,7 @@
 <script lang="ts">
   import { PlusCircle } from "lucide-svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   let {
     onProviderAdded = () => {},
