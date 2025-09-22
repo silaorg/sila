@@ -3,8 +3,7 @@
   import { galleryState } from "$lib/state/galleryState.svelte";
   import { ClientStateProvider, ClientState } from "@sila/client";
 
-  // Ensure component-level styles from @sila/client are available when not using <SilaApp>
-  import "@sila/client/compiled-style.css";
+  // When not using <SilaApp>, ensure you include styles in the host app if needed
 
   let { children, state }: { children?: any, state?: ClientState } = $props();
 

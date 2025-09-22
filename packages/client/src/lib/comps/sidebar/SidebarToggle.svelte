@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  // client state is provided via context accessor
   import PanelLeftClose from "lucide-svelte/icons/panel-left-close";
   import PanelLeftOpen from "lucide-svelte/icons/panel-left-open";
 
