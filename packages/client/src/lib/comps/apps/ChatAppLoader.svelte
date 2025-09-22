@@ -1,10 +1,11 @@
 <script lang="ts">
   import ChatApp from "./ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
 
   let { treeId }: { treeId: string } = $props();
 
+  const clientState = useClientState();
   let data = $derived.by(async () => {
     if (!clientState.currentSpace) {
       throw new Error("No current space id");

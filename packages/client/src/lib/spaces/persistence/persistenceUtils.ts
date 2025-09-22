@@ -1,7 +1,7 @@
 import type { PersistenceLayer } from "@sila/core";
 import { IndexedDBPersistenceLayer } from "./IndexedDBPersistenceLayer";
 import { FileSystemPersistenceLayer } from "@sila/core";
-import { clientState } from "@sila/client/state/clientState.svelte";
+import type { AppFileSystem } from "../../appFs";
 
 /**
  * Determines which persistence layers are needed based on the space URI
@@ -9,7 +9,7 @@ import { clientState } from "@sila/client/state/clientState.svelte";
  * @param uri The space URI (local://, file path, http://, etc.)
  * @returns Array of persistence layers to use
  */
-export function createPersistenceLayersForURI(spaceId: string, uri: string): PersistenceLayer[] {
+export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: AppFileSystem | null): PersistenceLayer[] {
   const layers: PersistenceLayer[] = [];
 
   if (uri.startsWith("local://")) {
@@ -23,7 +23,10 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string): Per
   } else {
     // File system path: IndexedDB + FileSystem (dual persistence)
     layers.push(new IndexedDBPersistenceLayer(spaceId));
-    layers.push(new FileSystemPersistenceLayer(uri, spaceId, clientState.fs));
+    if (!fs) {
+      throw new Error("App file system is not configured");
+    }
+    layers.push(new FileSystemPersistenceLayer(uri, spaceId, fs));
   }
 
   return layers;

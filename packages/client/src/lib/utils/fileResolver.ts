@@ -1,4 +1,4 @@
-import { clientState } from '../state/clientState.svelte';
+import { useClientState } from '../state/clientStateContext';
 import { FileResolver, type ResolvedFileInfo, type FileReference } from '@sila/core';
 
 export { type ResolvedFileInfo, type FileReference };
@@ -19,6 +19,7 @@ export class ClientFileResolver {
    * Resolves a file reference to file information using the current space state
    */
   static async resolveFileReference(fileRef: FileReference): Promise<ResolvedFileInfo | null> {
+    const clientState = useClientState();
     if (!clientState.currentSpace) {
       console.warn('No current space available for file resolution');
       return null;
@@ -32,6 +33,7 @@ export class ClientFileResolver {
    * Resolves multiple file references
    */
   static async getFilesInfo(fileRefs: FileReference[]): Promise<ResolvedFileInfo[]> {
+    const clientState = useClientState();
     if (!clientState.currentSpace) {
       console.warn('No current space available for file resolution');
       return [];

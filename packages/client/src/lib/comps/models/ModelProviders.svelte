@@ -4,8 +4,9 @@
   import CustomProviderCard from "./CustomProviderCard.svelte";
   import AddCustomProviderCard from "./AddCustomProviderCard.svelte";
   import { providers } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { getActiveProviders } from "@sila/core";
+  const clientState = useClientState();
 
   let customProviders = $state<ModelProvider[]>([]);
 

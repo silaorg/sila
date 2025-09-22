@@ -24,7 +24,8 @@
     { name: "wintry", emoji: "🌨️" },
   ];
 
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   async function handleThemeClick(name: string) {
     await clientState.theme.setThemeName(name);

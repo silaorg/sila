@@ -1,0 +1,10 @@
+# Playwright test artifacts
+playwright-report/
+test-results/
+
+# SvelteKit
+.svelte-kit/
+build/
+
+# Dependencies
+node_modules/

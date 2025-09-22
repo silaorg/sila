@@ -1,7 +1,8 @@
 <script lang="ts">
   import { isDevMode } from "@sila/client/state/devMode";
   import { spaceInspectorOpen } from "@sila/client/state/devMode";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 </script>
 
 <div class="flex flex-col gap-4 p-2">

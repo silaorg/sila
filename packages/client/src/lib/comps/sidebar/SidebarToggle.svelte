@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  // client state is provided via context accessor
   import PanelLeftClose from "lucide-svelte/icons/panel-left-close";
   import PanelLeftOpen from "lucide-svelte/icons/panel-left-open";
 
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
   const sidebar = $derived(clientState.currentSpaceState?.layout.sidebar);
 </script>
 

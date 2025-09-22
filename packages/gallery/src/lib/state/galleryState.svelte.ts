@@ -1,5 +1,5 @@
 import type { Space } from "@sila/core";
-import { clientState } from "@sila/client/state/clientState.svelte";
+import { ClientState } from "@sila/client";
 import { buildSpaceFromConfig } from "$lib/demo/buildSpaceFromConfig";
 
 class GalleryState {
@@ -8,10 +8,15 @@ class GalleryState {
   private initializing: boolean = false;
   private loadedFromUrl: string | null = null;
 
-  currentSpace: Space | null = $derived(clientState.currentSpace);
+  private _client: ClientState = $state(new ClientState());
+  currentSpace: Space | null = $derived(this._client.currentSpace);
 
   async init(demoConfigUrl: string = "/api/demo-space"): Promise<void> {
     await this.loadSpace(demoConfigUrl);
+  }
+
+  setClient(state: ClientState) {
+    this._client = state;
   }
 
   async loadSpace(demoConfigUrl: string): Promise<void> {
@@ -22,12 +27,12 @@ class GalleryState {
     this.error = null;
 
     try {
-      await clientState.init({});
+      await this._client.init({});
 
       if (this.loadedFromUrl !== demoConfigUrl) {
         const cfg = await (await fetch(demoConfigUrl)).json();
         const built = await buildSpaceFromConfig(cfg);
-        await clientState.adoptInMemorySpace(built, cfg.name);
+        await this._client.adoptInMemorySpace(built, cfg.name);
         this.loadedFromUrl = demoConfigUrl;
       }
 

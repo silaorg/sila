@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { providers } from "@sila/core";
+  const clientState = useClientState();
   import type { ModelProviderLocalConfig } from "@sila/core";
   import { checkOllamaStatus } from "./ollama";
   import { interval } from "@sila/core";

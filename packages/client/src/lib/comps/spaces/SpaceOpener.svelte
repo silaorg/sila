@@ -1,6 +1,7 @@
 <script lang="ts">
   import { txtStore } from "@sila/client/state/txtStore";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   type Status = "idle" | "creating" | "opening";
   let status: Status = $state("idle");

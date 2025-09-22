@@ -2,7 +2,8 @@
   import ModelProviderSelector from "../models/ModelProviderSelector.svelte";
   import ModelProviders from "../models/ModelProviders.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   let {
     selectedModel,

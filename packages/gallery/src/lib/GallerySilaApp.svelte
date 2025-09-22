@@ -1,13 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { SilaApp } from "@sila/client";
+  import { SilaApp, ClientStateProvider, ClientState } from "@sila/client";
   import { galleryState } from "$lib/state/galleryState.svelte";
 
   let demoConfigUrl: string = "/api/demo-space";
   let initialized = $derived(galleryState.ready);
   let error: string | null = $derived(galleryState.error);
 
+  // Allow passing a custom state for isolation if needed
+  let { state }: { state?: ClientState } = $props();
+
   onMount(async () => {
+    const localState = state || new ClientState();
+    galleryState.setClient(localState);
     await galleryState.loadSpace(demoConfigUrl);
   });
 </script>
@@ -17,5 +22,20 @@
 {:else if !initialized}
   <div>Loading demo space…</div>
 {:else}
-  <SilaApp config={{}} />
+  {#if state}
+    <ClientStateProvider instance={state}>
+      <SilaApp config={{}} state={state} />
+    </ClientStateProvider>
+  {:else}
+    {#key initialized}
+      {#if initialized}
+        <!-- When we create local state above, we need to pass the same instance used by galleryState -->
+        <ClientStateProvider instance={galleryState["_client"]}>
+          <SilaApp config={{}} state={galleryState["_client"]} />
+        </ClientStateProvider>
+      {:else}
+        <div>Loading, please wait…</div>
+      {/if}
+    {/key}
+  {/if}
 {/if}

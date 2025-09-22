@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount, untrack } from "svelte";
   import Sidebar from "./Sidebar.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
 
   let showHoverSidebar = $state(false);
   let hoverTriggerTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -9,6 +9,7 @@
   let recentlyClosed = $state(false);
   let sidebarElement: HTMLElement;
 
+  const clientState = useClientState();
   let sidebarIsOpen = $derived(clientState.currentSpaceState?.layout.sidebar.isOpen);
 
   function handleHoverEnter() {

@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
   import CenteredPage from "@sila/client/comps/basic/CenteredPage.svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
+  const clientState = useClientState();
 
   let showProviderSetupPage = $state(false);
   let allowToStartNewConversationFromProviderSetup = $state(false);

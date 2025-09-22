@@ -2,7 +2,8 @@
   import InputModel from "../models/InputModel.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
   import { uuid } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
 
   let {

@@ -1,8 +1,9 @@
 <script lang="ts">
   import Lightswitch from "@sila/client/comps/basic/Lightswitch.svelte";
   import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { isDevMode } from "@sila/client/state/devMode";
+  const clientState = useClientState();
   import { currentLanguage } from "@sila/client/state/txtStore";
   import {
     SUPPORTED_LANGUAGES,

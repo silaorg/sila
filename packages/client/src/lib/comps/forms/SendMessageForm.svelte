@@ -7,10 +7,11 @@
   import { focusTrap } from "@sila/client/utils/focusTrap";
   import { type MessageFormStatus } from "./messageFormStatus";
   import { txtStore } from "@sila/client/state/txtStore";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ChatAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions, processTextFileForUpload, optimizeTextFile, readFileAsText, extractTextFileMetadata, type TextFileMetadata } from "@sila/client/utils/fileProcessing";
+  const clientState = useClientState();
 
   const TEXTAREA_BASE_HEIGHT = 40; // px
   const TEXTAREA_LINE_HEIGHT = 1.5; // normal line height

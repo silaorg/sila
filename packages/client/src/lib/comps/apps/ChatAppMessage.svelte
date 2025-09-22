@@ -37,7 +37,8 @@
   import type { Vertex } from "@sila/core";
   import { onMount } from "svelte";
   import { Markdown, MarkpageOptions } from "@markpage/svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
   import ChatAppMessageInfo from "@sila/client/comps/apps/ChatAppMessageInfo.svelte";
   import ChatAssistantInfo from "@sila/client/comps/apps/ChatAssistantInfo.svelte";

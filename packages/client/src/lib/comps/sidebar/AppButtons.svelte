@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
   import type { AppConfig } from "@sila/core";
   import { LayoutGrid, MessageCircle } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";

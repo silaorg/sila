@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "@sila/client/compiled-style.css";
+  // Style is pulled in by client components as needed
   let { children } = $props();
 </script>
 

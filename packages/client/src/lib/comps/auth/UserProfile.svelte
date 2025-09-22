@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { LogOut, User } from "lucide-svelte";
+  const clientState = useClientState();
 
   const handleSignOut = async () => {
     // Use orchestrated sign-out workflow

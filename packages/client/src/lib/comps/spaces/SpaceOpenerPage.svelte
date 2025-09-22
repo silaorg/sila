@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import SpaceOpener from "./SpaceOpener.svelte";
+  const clientState = useClientState();
 
   function handleOpen(spaceId?: string) {
     clientState.layout.swins.clear();

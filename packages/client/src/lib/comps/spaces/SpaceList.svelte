@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import SpaceOptionsPopup from "@sila/client/comps/popups/SpaceOptionsPopup.svelte";
+  const clientState = useClientState();
   import RenamingPopup from "@sila/client/comps/popups/RenamingPopup.svelte";
   import type { SpacePointer } from "@sila/client/spaces/SpacePointer";
   import { Circle, CircleCheckBig } from "lucide-svelte";

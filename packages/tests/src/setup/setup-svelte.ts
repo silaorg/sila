@@ -99,14 +99,7 @@ if (typeof createEventDispatcher === 'undefined') {
   global.createEventDispatcher = vi.fn(() => vi.fn());
 }
 
-// Mock Svelte component context
-if (typeof setContext === 'undefined') {
-  global.setContext = vi.fn();
-}
-
-if (typeof getContext === 'undefined') {
-  global.getContext = vi.fn(() => null);
-}
+// Do NOT mock Svelte context; testing library provides it during rendering
 
 // Mock Svelte component lifecycle
 if (typeof onDestroy === 'undefined') {
