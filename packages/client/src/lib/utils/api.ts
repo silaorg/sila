@@ -4,9 +4,8 @@ import type { SpaceCreationResponse } from "@sila/core";
 import type { SpacePointer } from "@sila/client/spaces/SpacePointer";
 
 // API Base URL - should match the server
-// Using Vite/SvelteKit style env if available; fall back to localhost
-const viteEnv = (import.meta as any)?.env as Record<string, string> | undefined;
-export const API_BASE_URL = (viteEnv && (viteEnv as any).VITE_API_URL) || 'http://localhost:3131';
+// Use Vite/SvelteKit env with a static property chain to satisfy SSR runner
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3131';
 
 export interface APIResponse<T = any> {
   data?: T;
