@@ -565,14 +565,12 @@ export const globalClientState = new ClientState();
 export const clientState: ClientState = new Proxy(globalClientState as any, {
 	get(_target, prop, receiver) {
 		const instance = getClientStateFromContext() || globalClientState;
-		const value = (instance as any)[prop];
-		if (typeof value === 'function') {
-			return value.bind(instance);
-		}
-		return Reflect.get(instance as any, prop, receiver);
+		// Use Reflect.get with receiver bound to the real instance so class accessors keep correct `this`
+		return Reflect.get(instance as any, prop, instance as any);
 	},
 	set(_target, prop, value, receiver) {
 		const instance = getClientStateFromContext() || globalClientState;
-		return Reflect.set(instance as any, prop, value, receiver);
+		// Ensure class setters see the real instance as receiver
+		return Reflect.set(instance as any, prop, value, instance as any);
 	},
 }) as unknown as ClientState;

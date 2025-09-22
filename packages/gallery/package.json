@@ -7,9 +7,12 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "check": "svelte-kit sync && svelte-check"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@sveltejs/adapter-auto": "^3.3.1",
     "@sveltejs/kit": "^2.8.4",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
@@ -19,8 +22,7 @@
     "svelte-check": "^4.2.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
-  }
-  ,
+  },
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*"
