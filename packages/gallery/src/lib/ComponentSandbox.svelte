@@ -1,14 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { clientState } from '@sila/client/state/clientState.svelte';
-  import type { ComponentType } from 'svelte';
+  import type { Space } from '@sila/core';
   import { buildSpaceFromConfig } from '$lib/demo/buildSpaceFromConfig';
   // Ensure component-level styles from @sila/client are available when not using <SilaApp>
   import '@sila/client/compiled-style.css';
 
-  export let component: ComponentType;
-  export let props: Record<string, any> = {};
+  // Optional externally provided space; if not provided, the sandbox will load one
+  export let space: Space | null = null;
   export let demoConfigUrl: string = '/api/demo-space';
+  export let autoLoad: boolean = true;
 
   let ready = false;
   let error: string | null = null;
@@ -16,9 +17,13 @@
   onMount(async () => {
     try {
       await clientState.init({});
-      const cfg = await (await fetch(demoConfigUrl)).json();
-      const space = await buildSpaceFromConfig(cfg);
-      await clientState.adoptInMemorySpace(space, cfg.name);
+      if (space) {
+        await clientState.adoptInMemorySpace(space, space.name || 'Sandbox Space');
+      } else if (autoLoad) {
+        const cfg = await (await fetch(demoConfigUrl)).json();
+        const built = await buildSpaceFromConfig(cfg);
+        await clientState.adoptInMemorySpace(built, cfg.name);
+      }
       ready = true;
     } catch (e) {
       error = (e as Error).message;
@@ -31,6 +36,6 @@
 {:else if !ready}
   <div class="p-3">Loading…</div>
 {:else}
-  <svelte:component this={component} {...props} />
+  <slot />
 {/if}
 

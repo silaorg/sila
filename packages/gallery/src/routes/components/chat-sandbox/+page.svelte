@@ -5,5 +5,7 @@
 
 <h2>Chat App Sandbox</h2>
 
-<ComponentSandbox component={ChatApp} props={{}} />
+<ComponentSandbox>
+  <ChatApp />
+  </ComponentSandbox>
 
