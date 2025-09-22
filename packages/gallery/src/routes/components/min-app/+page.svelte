@@ -20,6 +20,7 @@
   <div>Loading…</div>
 {:else}
   <ClientStateProvider instance={state}>
+    <div data-testid="ready">Ready</div>
     <SilaApp config={{}} state={state} />
   </ClientStateProvider>
 {/if}
