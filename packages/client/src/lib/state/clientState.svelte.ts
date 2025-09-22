@@ -139,7 +139,7 @@ export class ClientState {
       this.config = config;
 
       // Create SpaceState instances for all pointers
-      this._spaceStates = pointers.map(pointer => new SpaceState(pointer, this._spaceManager));
+      this._spaceStates = pointers.map(pointer => new SpaceState(pointer, this._spaceManager, () => this._fs));
 
       // Register existing spaces with electron file system for file protocol
       if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
@@ -204,7 +204,7 @@ export class ClientState {
     };
 
     // Create persistence layers based on URI
-    const persistenceLayers = createPersistenceLayersForURI(spaceId, pointer.uri);
+    const persistenceLayers = createPersistenceLayersForURI(spaceId, pointer.uri, this._fs);
 
     await this._spaceManager.addNewSpace(space, persistenceLayers);
 
@@ -220,7 +220,7 @@ export class ClientState {
 
     // Add to our collections
     this.pointers = [...this.pointers, pointer];
-    const newSpaceState = new SpaceState(pointer, this._spaceManager);
+    const newSpaceState = new SpaceState(pointer, this._spaceManager, () => this._fs);
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space
@@ -257,7 +257,7 @@ export class ClientState {
 
     // Update client state collections
     this.pointers = [...this.pointers, pointer];
-    const newSpaceState = new SpaceState(pointer, this._spaceManager);
+    const newSpaceState = new SpaceState(pointer, this._spaceManager, () => this._fs);
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space without saving to local DB
@@ -463,7 +463,7 @@ export class ClientState {
     };
 
     // Create persistence layers based on URI (will be IndexedDB + FileSystem)
-    const persistenceLayers = createPersistenceLayersForURI(spaceId, spaceRootPath);
+      const persistenceLayers = createPersistenceLayersForURI(spaceId, spaceRootPath, this._fs);
 
     // Load the space using SpaceManager
     const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
@@ -557,4 +557,22 @@ export class ClientState {
  * svelte components.
  * It has to be initialized at the start of the app.
  */
-export const clientState = new ClientState(); 
+import { getClientStateFromContext } from './clientStateContext';
+
+export const globalClientState = new ClientState();
+
+// Context-aware proxy: resolves to provided instance if available, otherwise falls back to global
+export const clientState: ClientState = new Proxy(globalClientState as any, {
+	get(_target, prop, receiver) {
+		const instance = getClientStateFromContext() || globalClientState;
+		const value = (instance as any)[prop];
+		if (typeof value === 'function') {
+			return value.bind(instance);
+		}
+		return Reflect.get(instance as any, prop, receiver);
+	},
+	set(_target, prop, value, receiver) {
+		const instance = getClientStateFromContext() || globalClientState;
+		return Reflect.set(instance as any, prop, value, receiver);
+	},
+}) as unknown as ClientState;

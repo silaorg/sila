@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { galleryState } from "$lib/state/galleryState.svelte";
+  import { ClientStateProvider, ClientState } from "@sila/client";
 
   // Ensure component-level styles from @sila/client are available when not using <SilaApp>
   import "@sila/client/compiled-style.css";
 
-  let { children } = $props();
+  let { children, state }: { children?: any, state?: ClientState } = $props();
 
   let demoConfigUrl: string = "/api/demo-space";
   let ready = $derived(galleryState.ready);
@@ -21,5 +22,11 @@
 {:else if !ready}
   <div class="p-3">Loading…</div>
 {:else}
-  {@render children?.()}
+  {#if state}
+    <ClientStateProvider instance={state}>
+      {@render children?.()}
+    </ClientStateProvider>
+  {:else}
+    {@render children?.()}
+  {/if}
 {/if}

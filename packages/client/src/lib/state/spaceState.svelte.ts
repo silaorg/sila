@@ -5,6 +5,7 @@ import type { Space } from "@sila/core";
 import type { SpaceManager } from "@sila/core";
 import type { PersistenceLayer } from "@sila/core";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
+import type { AppFileSystem } from "../appFs";
 import {
   getDraft,
   saveDraft,
@@ -24,12 +25,14 @@ export class SpaceState {
   layout: LayoutStore = $state(new LayoutStore(''));
   isConnected: boolean = $state(false);
   private persistenceLayers: PersistenceLayer[] = [];
+  private getAppFs: () => AppFileSystem | null;
 
   private backend: Backend | null = null;
 
-  constructor(pointer: SpacePointer, spaceManager: SpaceManager) {
+  constructor(pointer: SpacePointer, spaceManager: SpaceManager, getAppFs: () => AppFileSystem | null = () => null) {
     this.pointer = pointer;
     this.spaceManager = spaceManager;
+    this.getAppFs = getAppFs;
     this.layout.spaceId = pointer.id;
 
     const space = this.spaceManager.getSpace(pointer.id);
@@ -111,7 +114,8 @@ export class SpaceState {
 
     try {
       // Create appropriate persistence layers based on URI
-      this.persistenceLayers = createPersistenceLayersForURI(this.pointer.id, this.pointer.uri);
+      // Prefer existing layers from SpaceManager; otherwise construct using app FS provider
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.id) || createPersistenceLayersForURI(this.pointer.id, this.pointer.uri, this.getAppFs());
 
       // Load the space using SpaceManager
       space = await this.spaceManager.loadSpace(this.pointer, this.persistenceLayers);
