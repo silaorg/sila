@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { AppConfig } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import NewThread from "@sila/client/comps/apps/NewThread.svelte";
+  const clientState = useClientState();
 
   let { appConfig }: { appConfig?: AppConfig } = $props();
 

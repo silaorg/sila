@@ -1,4 +1,4 @@
-import { clientState } from "@sila/client/state/clientState.svelte";
+import type { ClientState } from "@sila/client/state/clientState.svelte";
 
 // Platform detection (using userAgent instead of deprecated platform)
 const isMac = typeof window !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
@@ -16,13 +16,15 @@ interface Shortcut {
   preventDefault?: boolean;
 }
 
+let client: ClientState | null = null;
+
 const shortcuts: Shortcut[] = [
   {
     key: 'b',
     meta: isMac,
     ctrl: !isMac,
     action: () => {
-      const sidebar = clientState.currentSpaceState?.layout.sidebar;
+      const sidebar = client?.currentSpaceState?.layout.sidebar;
       if (sidebar) {
         sidebar.toggle();
       }
@@ -36,7 +38,7 @@ const shortcuts: Shortcut[] = [
     ctrl: !isMac,
     shift: true,
     action: () => {
-      clientState.layout.swins.open("new-thread", {}, "New conversation");
+      client?.layout.swins.open("new-thread", {}, "New conversation");
     },
     description: 'Start new conversation',
     preventDefault: true
@@ -80,7 +82,8 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 // Initialize shortcuts
-export function initShortcuts() {
+export function initShortcuts(state: ClientState) {
+  client = state;
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', handleKeydown);
   }
@@ -91,6 +94,7 @@ export function destroyShortcuts() {
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', handleKeydown);
   }
+  client = null;
 }
 
 // Get formatted shortcut strings for UI display

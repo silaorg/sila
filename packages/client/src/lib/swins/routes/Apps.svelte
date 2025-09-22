@@ -1,8 +1,9 @@
 <script lang="ts">
   import AppConfigTableCell from "@sila/client/comps/app-configs/AppConfigTableCell.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import type { AppConfig } from "@sila/core";
+  const clientState = useClientState();
   import SwinsNavButton from "../SwinsNavButton.svelte";
   import { Plus } from "lucide-svelte";
 

@@ -559,18 +559,4 @@ export class ClientState {
  */
 import { getClientStateFromContext } from './clientStateContext';
 
-export const globalClientState = new ClientState();
-
-// Context-aware proxy: resolves to provided instance if available, otherwise falls back to global
-export const clientState: ClientState = new Proxy(globalClientState as any, {
-	get(_target, prop, receiver) {
-		const instance = getClientStateFromContext() || globalClientState;
-		// Use Reflect.get with receiver bound to the real instance so class accessors keep correct `this`
-		return Reflect.get(instance as any, prop, instance as any);
-	},
-	set(_target, prop, value, receiver) {
-		const instance = getClientStateFromContext() || globalClientState;
-		// Ensure class setters see the real instance as receiver
-		return Reflect.set(instance as any, prop, value, instance as any);
-	},
-}) as unknown as ClientState;
+// Note: No default singleton export. Use ClientStateProvider + useClientState() for access.

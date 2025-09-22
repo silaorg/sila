@@ -4,8 +4,9 @@
   import type { AttachmentPreview } from "@sila/core";
   import type { Vertex } from "@sila/core";
   import { Folder, File as FileIcon, Upload, Plus } from "lucide-svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions } from "@sila/client/utils/fileProcessing";
+  const clientState = useClientState();
 
   let { data }: { data: FilesAppData } = $props();
 

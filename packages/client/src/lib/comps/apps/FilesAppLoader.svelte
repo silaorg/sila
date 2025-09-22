@@ -1,7 +1,8 @@
 <script lang="ts">
   import FilesApp from "./FilesApp.svelte";
   import { FilesAppData } from "@sila/core";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   let { treeId }: { treeId: string } = $props();
 

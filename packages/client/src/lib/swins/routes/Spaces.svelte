@@ -1,8 +1,9 @@
 <script lang="ts">
   import SpaceList from "@sila/client/comps/spaces/SpaceList.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import { Plus } from "lucide-svelte";
+  const clientState = useClientState();
   import SwinsNavButton from "../SwinsNavButton.svelte";
 
   /*
