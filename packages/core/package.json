@@ -10,10 +10,11 @@
     "watch": "tsc -p tsconfig.json --noEmit --watch"
   },
   "dependencies": {
-    "aiwrapper": "^2.0.0-alpha.1",
+    "aiwrapper": "^2.0.0-alpha.2",
     "reptree": "^0.2.3"
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "typescript": "~5.8.3"
   }
 }

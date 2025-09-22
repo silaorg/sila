@@ -1,4 +1,4 @@
-import type { LangChatMessage, LangContentPart } from "aiwrapper";
+import type { LangMessage, LangContentPart } from "aiwrapper";
 import { FileReference, FileResolver } from "../spaces/files/FileResolver";
 import { AppConfig, ThreadMessage } from "../models";
 import { Agent, AgentInput, AgentOutput } from "./Agent";
@@ -59,7 +59,7 @@ export class SimpleChatAgent extends Agent<AppConfigForChat> {
       return { base64: dataUrl };
     }
 
-    const remappedMessages: LangChatMessage[] = [
+    const remappedMessages: LangMessage[] = [
       { role: "system", content: systemPrompt },
       ...await Promise.all(messages.map(async (m) => {
         // Validate and normalize the role - only allow "assistant" or "user"
@@ -73,7 +73,7 @@ export class SimpleChatAgent extends Agent<AppConfigForChat> {
           return {
             role: normalizedRole as "assistant" | "user",
             content: m.text || "",
-          } as LangChatMessage;
+          } as LangMessage;
         }
 
         const fileRefs = (m as any).files as Array<FileReference>;
@@ -106,7 +106,7 @@ export class SimpleChatAgent extends Agent<AppConfigForChat> {
             parts.push({ type: 'image', image: { kind: 'base64', base64, mimeType } });
           }
           
-          return { role: normalizedRole as "assistant" | "user", content: parts } as LangChatMessage;
+          return { role: normalizedRole as "assistant" | "user", content: parts } as LangMessage;
         }
 
         // Handle text-only content (no images or non-vision models)
@@ -130,7 +130,7 @@ export class SimpleChatAgent extends Agent<AppConfigForChat> {
         return {
           role: normalizedRole as "assistant" | "user",
           content: content,
-        } as LangChatMessage;
+        } as LangMessage;
       })),
     ];
 
