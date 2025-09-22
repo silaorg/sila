@@ -90,6 +90,23 @@ export const prerender = false;
 
 This pattern establishes the minimum viable app context without persistence.
 
+### ComponentSandbox wrapper (recommended)
+
+For isolated component development with all global state initialized, use the `ComponentSandbox` wrapper:
+
+```svelte
+<script lang="ts">
+  import ComponentSandbox from '$lib/ComponentSandbox.svelte';
+  import ChatApp from '@sila/client/comps/apps/ChatApp.svelte';
+</script>
+
+<ComponentSandbox component={ChatApp} props={{}} />
+```
+
+- It initializes `clientState`, builds an in-memory demo space from `/api/demo-space`, and adopts it.
+- Works for any component that expects app context; pass component-specific props via `props`.
+- You can switch the data source by setting `demoConfigUrl`.
+
 ## Feeding data to demos
 
 - The default demo JSON is `packages/demo/examples/citybean-coffee.json`.

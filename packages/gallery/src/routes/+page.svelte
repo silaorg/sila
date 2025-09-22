@@ -12,3 +12,7 @@
   <a href="/app">Open full app with CityBean demo space</a>
   </p>
 
+<p>
+  <a href="/components/chat-sandbox">ChatApp sandbox</a>
+  </p>
+
