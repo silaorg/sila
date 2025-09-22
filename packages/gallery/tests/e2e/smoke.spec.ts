@@ -5,12 +5,9 @@ test('gallery home loads', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: /Sila Gallery/i })).toBeVisible();
 });
 
-test('app loads and shows sidebar quickly', async ({ page }) => {
-    // Use a minimal page that adopts a demo space before mounting the app
-    await page.goto('/components/min-app');
-    // Wait for readiness marker (hidden) or app-root
-    await expect(page.locator('[data-testid="ready"], [data-testid="app-root"]')).toHaveCount(1, { timeout: 15000 });
-    await expect(page.getByTestId('app-root')).toBeVisible({ timeout: 15000 });
+test('boot page renders within 1s', async ({ page }) => {
+    await page.goto('/components/boot');
+    await expect(page.getByTestId('ready')).toBeVisible({ timeout: 1000 });
 });
 
 test('dual-state page renders two panes', async ({ page }) => {
