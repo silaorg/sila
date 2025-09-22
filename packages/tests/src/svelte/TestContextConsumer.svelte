@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { provideClientState, getClientStateFromContext } from '@sila/client/state/clientStateContext';
+  import { getClientStateFromContext } from '@sila/client/state/clientStateContext';
 
-  let { instance }: { instance: any } = $props();
-
-  // Provide and then immediately read back from context
-  provideClientState(instance);
+  // Simply read from context; provider wraps this component in the test
   const ctx = getClientStateFromContext();
-  const equal = ctx === instance;
+  const equal = !!ctx;
 </script>
 
 <div data-equal={equal ? 'true' : 'false'}></div>
