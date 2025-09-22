@@ -5,7 +5,8 @@
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { ChevronUp, Pencil, Plus } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   let {
     configId = "",

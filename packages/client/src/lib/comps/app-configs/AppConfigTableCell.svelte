@@ -9,7 +9,8 @@
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
 
   let { config }: { config: AppConfig } = $props();
 

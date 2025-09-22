@@ -20,3 +20,15 @@ export function getClientStateFromContext(): ClientState | null {
 
 export { CLIENT_STATE };
 
+export function useClientState(): ClientState {
+	const instance = getClientStateFromContext();
+	if (!instance) {
+		throw new Error('ClientState not found in context. Wrap your component tree in <ClientStateProvider>.');
+	}
+	return instance;
+}
+
+export function useClientStateOptional(): ClientState | null {
+	return getClientStateFromContext();
+}
+

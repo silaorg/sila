@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { clientState } from "@sila/client/state/clientState.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
   import Loading from "@sila/client/comps/basic/Loading.svelte";
   import FreshStartWizard from "@sila/client/comps/wizards/FreshStartWizard.svelte";
   import Space from "./apps/Space.svelte";
   import Spaces from "../swins/routes/Spaces.svelte";
   import CenteredPage from "./basic/CenteredPage.svelte";
 </script>
+
+  const clientState = useClientState();
 
 {#if clientState.isInitializing || clientState.spaceStatus === "loading"}
   <Loading />

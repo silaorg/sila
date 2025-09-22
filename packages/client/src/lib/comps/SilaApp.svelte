@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
   import { type ClientStateConfig } from "@sila/client";
-  import { clientState } from "../state/clientState.svelte";
+  import ClientStateProvider from "@sila/client/state/ClientStateProvider.svelte";
+  import { ClientState } from "@sila/client";
   import SpaceEntry from "./SpaceEntry.svelte";
   import SwinsContainer from "../swins/SwinsContainer.svelte";
   import ContextMenuHandler from "./ContextMenuHandler.svelte";
@@ -13,16 +14,17 @@
   // you've run "npm run dev" or "npm run build" in the repository's root.
   import "@sila/client/compiled-style.css";
 
-  let { config }: { config: ClientStateConfig | null } = $props();
+  let { config, state }: { config: ClientStateConfig | null, state?: ClientState } = $props();
 
+  const providedState = state || new ClientState();
   $effect(() => {
     if (config) {
-      clientState.init(config);
+      providedState.init(config);
     }
   });
 
   onDestroy(() => {
-    clientState.cleanup();
+    providedState.cleanup();
   });
 
   console.log(
@@ -36,17 +38,19 @@
 <ThemeManager />
 
 {#if config}
-  <!-- Where our spaces are rendered -->
-  <SpaceEntry />
+  <ClientStateProvider instance={providedState}>
+    <!-- Where our spaces are rendered -->
+    <SpaceEntry />
 
-  <!-- Setup stacking windows (popover windows with navigation) we use for new conversations, settings, etc -->
-  <SwinsContainer swins={clientState.layout.swins} />
+    <!-- Setup stacking windows (popover windows with navigation) we use for new conversations, settings, etc -->
+    <SwinsContainer swins={providedState.layout.swins} />
 
-  <!-- Handle native and custom context menus -->
-  <ContextMenuHandler />
+    <!-- Handle native and custom context menus -->
+    <ContextMenuHandler />
 
-  <!-- File Gallery Modal -->
-  <FileGalleryModal />
+    <!-- File Gallery Modal -->
+    <FileGalleryModal />
+  </ClientStateProvider>
 {:else}
   Loading...
 {/if}
