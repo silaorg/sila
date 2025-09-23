@@ -13,6 +13,8 @@ export default defineConfig({
 	use: {
 		baseURL: 'http://localhost:5173',
 		trace: 'on-first-retry',
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2
 	},
 	webServer: {
 		command: 'npm run dev',

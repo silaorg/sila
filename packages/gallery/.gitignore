@@ -1,6 +1,7 @@
 # Playwright test artifacts
 playwright-report/
 test-results/
+screenshots/
 
 # SvelteKit
 .svelte-kit/

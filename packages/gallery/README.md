@@ -10,4 +10,6 @@ This package hosts a SvelteKit website used to:
 - From repo root: `npm run gallery`
 - Directly from package: `npm run dev -w packages/gallery`
 
-The first test component is available at `/components/test-component`.
+## Testing
+
+We use Playwright for end-to-end testing of components and pages.

@@ -14,6 +14,7 @@
     "gallery": "npm -w packages/gallery run dev",
     "stop-dev": "pkill -f concurrently 2>/dev/null; lsof -ti:6969 | xargs -r kill -9 2>/dev/null; pkill -f 'tailwindcss.*watch' 2>/dev/null; echo 'Dev servers stopped'",
     "build-demo-space": "npx tsx packages/demo/src/cli.ts",
+    "test:gallery": "npm -w packages/gallery run test:e2e",
     "test": "npm -w packages/tests run test",
     "test:watch": "npm -w packages/tests run test:watch",
     "test:spaces": "npm -w packages/tests run test:spaces",
