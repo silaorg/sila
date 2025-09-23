@@ -7,8 +7,6 @@ import { NodeFileSystem } from '../setup/setup-node-file-system';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const RUN_AI_TESTS = process.env.RUN_AI_TESTS === '1';
-
 describe('OpenRouter AI Integration', () => {
   let tempDir: string;
   let openrouterApiKey: string | undefined;
@@ -38,10 +36,6 @@ describe('OpenRouter AI Integration', () => {
   });
 
   it('should work with OpenRouter using auto model selection', async () => {
-    if (!RUN_AI_TESTS) {
-      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
-      return;
-    }
     // Skip test if no OpenRouter API key is available
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
       console.log('Skipping test: No valid OpenRouter API key available');
@@ -120,10 +114,6 @@ describe('OpenRouter AI Integration', () => {
   }, 30000);
 
   it('should work with OpenRouter using specific model (openai/gpt-4o)', async () => {
-    if (!RUN_AI_TESTS) {
-      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
-      return;
-    }
     // Skip test if no OpenRouter API key is available
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
       console.log('Skipping test: No valid OpenRouter API key available');
@@ -200,10 +190,6 @@ describe('OpenRouter AI Integration', () => {
   }, 30000);
 
   it('should work with OpenRouter using different models (anthropic/claude-3-5-sonnet)', async () => {
-    if (!RUN_AI_TESTS) {
-      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
-      return;
-    }
     // Skip test if no OpenRouter API key is available
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
       console.log('Skipping test: No valid OpenRouter API key available');
@@ -280,10 +266,6 @@ describe('OpenRouter AI Integration', () => {
   }, 30000);
 
   it('should handle OpenRouter auto model resolution correctly', async () => {
-    if (!RUN_AI_TESTS) {
-      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
-      return;
-    }
     // Skip test if no OpenRouter API key is available
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
       console.log('Skipping test: No valid OpenRouter API key available');
@@ -338,10 +320,6 @@ describe('OpenRouter AI Integration', () => {
   }, 10000);
 
   it('should handle OpenRouter provider/auto model resolution', async () => {
-    if (!RUN_AI_TESTS) {
-      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
-      return;
-    }
     // Skip test if no OpenRouter API key is available
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
       console.log('Skipping test: No valid OpenRouter API key available');
