@@ -157,7 +157,7 @@
   }
 </script>
 
-<div class="flex flex-col w-full h-full overflow-hidden">
+<div class="flex flex-col w-full h-full overflow-hidden" data-component="chat-app">
   <div
     class="flex-grow overflow-y-auto pt-2"
     bind:this={scrollableElement}
