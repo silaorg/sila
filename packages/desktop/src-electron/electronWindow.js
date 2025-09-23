@@ -2,8 +2,8 @@ import { app, BrowserWindow, Menu, shell } from 'electron';
 import serve from 'electron-serve';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getWindowOptionsWithState, saveWindowState, loadWindowState } from './windowState.js';
 
+import { getWindowOptionsWithState, saveWindowState, loadWindowState } from './windowState.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,6 +17,7 @@ const serveURL = serve({ directory: '.' });
 export function createWindow(isDev) {
   // Create the browser window with saved state
   const windowOptions = getWindowOptionsWithState({
+    autoHideMenuBar: process.platform !== 'darwin',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -26,6 +27,11 @@ export function createWindow(isDev) {
   });
   
   const mainWindow = new BrowserWindow(windowOptions);
+
+  // Explicitly hide menubar on Windows/Linux in case a desktop env forces it
+  if (process.platform !== 'darwin') {
+    mainWindow.setMenuBarVisibility(false);
+  }
 
   // Load the appropriate URL/file based on environment
   if (isDev) {

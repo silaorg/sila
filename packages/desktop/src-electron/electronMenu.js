@@ -1,6 +1,12 @@
 import { Menu } from 'electron';
 
 export function setupElectronMenu() {
+  // Only show a full application menu on macOS.
+  // On Windows/Linux we rely on in-app UI and keep the menu hidden.
+  if (process.platform !== 'darwin') {
+    Menu.setApplicationMenu(null);
+    return;
+  }
   /** @type {import('electron').MenuItemConstructorOptions[]} */
   const template = [
     // On macOS, the first menu is automatically the app menu (shows as "Sila")
