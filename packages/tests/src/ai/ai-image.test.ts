@@ -7,6 +7,8 @@ import { NodeFileSystem } from '../setup/setup-node-file-system';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const RUN_AI_TESTS = process.env.RUN_AI_TESTS === '1';
+
 describe('AI Image Integration', () => {
   let tempDir: string;
   let openaiApiKey: string | undefined;
@@ -32,6 +34,10 @@ describe('AI Image Integration', () => {
   });
 
   it('should process image attachments in AI responses', async () => {
+    if (!RUN_AI_TESTS) {
+      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
+      return;
+    }
     // Skip test if no OpenAI API key is available
     if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
       console.log('Skipping test: No valid OpenAI API key available');
@@ -166,6 +172,10 @@ describe('AI Image Integration', () => {
   }, 30000); // 30 second timeout for API call
 
   it('should maintain image context in follow-up conversations', async () => {
+    if (!RUN_AI_TESTS) {
+      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
+      return;
+    }
     // Skip test if no OpenAI API key is available
     if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
       console.log('Skipping test: No valid OpenAI API key available');
@@ -330,6 +340,10 @@ describe('AI Image Integration', () => {
   });
 
   it('should say NO IMAGE when no image is provided', async () => {
+    if (!RUN_AI_TESTS) {
+      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
+      return;
+    }
     // Skip test if no OpenAI API key is available
     if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
       console.log('Skipping test: No valid OpenAI API key available');
@@ -406,6 +420,10 @@ describe('AI Image Integration', () => {
   }, 30000);
 
   it('should process image attachments with OpenRouter', async () => {
+    if (!RUN_AI_TESTS) {
+      console.log('Skipping test: set RUN_AI_TESTS=1 to enable external AI calls');
+      return;
+    }
     // Skip test if no OpenRouter API key is available
     const openrouterApiKey = process.env.OPENROUTER_API_KEY;
     if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
