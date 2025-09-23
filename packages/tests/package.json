@@ -9,7 +9,6 @@
     "test:watch": "vitest",
     "test:node": "vitest run --config vitest.config.ts",
     "test:browser": "vitest run --config vitest.config.browser.ts",
-    "test:svelte": "vitest run --config vitest.config.svelte.ts",
     "test:spaces": "vitest run src/spaces/spaces-*.test.ts",
     "test:files": "vitest run src/files/files-*.test.ts",
     "test:chat": "vitest run src/chat/chat-*.test.ts",
