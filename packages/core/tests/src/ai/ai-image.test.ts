@@ -323,7 +323,7 @@ describe('AI Image Integration', () => {
     console.log('To run the actual tests:');
     console.log('1. Create a .env file in the root directory');
     console.log('2. Add: OPENAI_API_KEY=your_actual_openai_api_key');
-    console.log('3. Run: npm -w packages/tests run test -- --run src/ai-image-bug.test.ts');
+    console.log('3. Run: npm -w packages/core run test -- --run src/ai/ai-image.test.ts');
     
     // This test always passes - it's just for documentation
     expect(true).toBe(true);

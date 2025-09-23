@@ -462,7 +462,7 @@ const decrypted = await decrypt(currentSecret);
 
 ### Test Assets
 
-Test files stored in `packages/tests/assets/`:
+Test files stored in `packages/core/tests/assets/`:
 - **Images**: Various formats for testing image processing
 - **Text Files**: Different languages and formats
 - **Binary Files**: For testing rejection logic

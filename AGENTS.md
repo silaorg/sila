@@ -147,7 +147,7 @@ See [Quick Start](./quick-start.md) for the instructions on running, debugging, 
 - **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
 - **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
 - **packages/demo** is a tool to create demo workspaces out of a JSON
-- **packages/tests** is a test suit for the most important systems of Sila
+- **packages/gallery** is a SvelteKit site for developing and testing Sila components in isolation
 
 ### Quick facts about the tech stack
 
@@ -278,13 +278,9 @@ Use `gh` cli tool to inspect workflows if needed
     "gallery": "npm -w packages/gallery run dev",
     "stop-dev": "pkill -f concurrently 2>/dev/null; lsof -ti:6969 | xargs -r kill -9 2>/dev/null; pkill -f 'tailwindcss.*watch' 2>/dev/null; echo 'Dev servers stopped'",
     "build-demo-space": "npx tsx packages/demo/src/cli.ts",
-    "test": "npm -w packages/tests run test",
-    "test:watch": "npm -w packages/tests run test:watch",
-    "test:spaces": "npm -w packages/tests run test:spaces",
-    "test:files": "npm -w packages/tests run test:files",
-    "test:chat": "npm -w packages/tests run test:chat",
-    "test:previews": "npm -w packages/tests run test:previews",
-    "test:ai": "npm -w packages/tests run test:ai"
+    "test": "npm run test:core && npm run test:gallery",
+    "test:gallery": "npm -w packages/gallery run test",
+    "test:core": "npm -w packages/core run test"
   },
   "dependencies": {
     "markpage": "^0.4.0"

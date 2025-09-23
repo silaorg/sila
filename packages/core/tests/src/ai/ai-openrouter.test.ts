@@ -377,7 +377,7 @@ describe('OpenRouter AI Integration', () => {
     console.log('To run the actual tests:');
     console.log('1. Set OPENROUTER_API_KEY environment variable');
     console.log('2. Or create a .env file with: OPENROUTER_API_KEY=your_actual_openrouter_api_key');
-    console.log('3. Run: npm -w packages/tests run test -- --run src/ai/ai-openrouter.test.ts');
+    console.log('3. Run: npm -w packages/core run test -- --run src/ai/ai-openrouter.test.ts');
     console.log('');
     console.log('Available OpenRouter models to test:');
     console.log('- openai/gpt-4o (default)');
