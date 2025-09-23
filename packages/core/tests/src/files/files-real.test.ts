@@ -60,8 +60,8 @@ describe('Local assets persisted in workspace CAS', () => {
     const fileStore = createFileStore({ getSpaceRootPath: () => tempDir, getFs: () => fs });
     if (!fileStore) throw new Error('FileStore not available');
 
-    // Load local assets
-    const assetsDir = path.join(process.cwd(), 'assets', 'images');
+    // Load local assets (relative to this test file location)
+    const assetsDir = path.join(__dirname, '..', '..', 'assets', 'images');
     const entries = await readdir(assetsDir, { withFileTypes: true }).catch(() => [] as any[]);
     const files = entries.filter(e => e.isFile() && (/(\.b64|\.png|\.jpg|\.jpeg|\.webp)$/i).test(e.name));
     expect(files.length).toBeGreaterThan(0);

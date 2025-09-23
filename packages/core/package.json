@@ -7,7 +7,10 @@
   "types": "./src/index.ts",
   "scripts": {
     "check": "tsc -p tsconfig.json --noEmit",
-    "watch": "tsc -p tsconfig.json --noEmit --watch"
+    "watch": "tsc -p tsconfig.json --noEmit --watch",
+    "test": "vitest run --reporter=verbose --no-watch",
+    "test:node": "vitest run --config tests/vitest.config.ts",
+    "test:svelte": "vitest run --config tests/vitest.config.svelte.ts"
   },
   "dependencies": {
     "aiwrapper": "^2.0.0-alpha.2",
@@ -15,6 +18,11 @@
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vitest": "^2.1.1",
+    "tsx": "^4.0.0",
+    "jsdom": "^24.0.0",
+    "@testing-library/svelte": "^4.0.0",
+    "@sveltejs/vite-plugin-svelte": "^6.0.0"
   }
 }

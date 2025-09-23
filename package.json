@@ -16,7 +16,7 @@
     "build-demo-space": "npx tsx packages/demo/src/cli.ts",
     "test": "npm run test:core && npm run test:gallery",
     "test:gallery": "npm -w packages/gallery run test",
-    "test:core": "npm -w packages/tests run test"
+    "test:core": "npm -w packages/core run test"
   },
   "dependencies": {
     "markpage": "^0.4.0"
