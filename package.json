@@ -14,8 +14,9 @@
     "gallery": "npm -w packages/gallery run dev",
     "stop-dev": "pkill -f concurrently 2>/dev/null; lsof -ti:6969 | xargs -r kill -9 2>/dev/null; pkill -f 'tailwindcss.*watch' 2>/dev/null; echo 'Dev servers stopped'",
     "build-demo-space": "npx tsx packages/demo/src/cli.ts",
+    "test": "npm run test:core && npm run test:gallery",
     "test:gallery": "npm -w packages/gallery run test",
-    "test": "npm -w packages/tests run test"
+    "test:core": "npm -w packages/tests run test"
   },
   "dependencies": {
     "markpage": "^0.4.0"

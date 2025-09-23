@@ -5,7 +5,7 @@
   "description": "Vitest suite for Sila core components",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --reporter=verbose --no-watch",
     "test:watch": "vitest",
     "test:node": "vitest run --config vitest.config.ts",
     "test:browser": "vitest run --config vitest.config.browser.ts",
