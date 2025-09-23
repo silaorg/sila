@@ -194,11 +194,9 @@ How Sila serves files directly from CAS using a custom protocol:
 - Security considerations
 
 ### [Testing](./testing.md)
-Testing infrastructure and practices in Sila:
-- Vitest test suite
-- File persistence testing
-- Local assets for deterministic tests
-- Running tests and development workflow
+How we test and how to run tests:
+- Core tests (unit/integration) with Vitest in `packages/core/tests`
+- UI integration tests with Playwright in `packages/gallery`
 
 ### [Space Management](./space-management.md)
 Managing workspaces and data:
