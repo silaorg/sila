@@ -16,7 +16,7 @@
   let formStatus: MessageFormStatus = $state("can-send-message");
   let isProgrammaticScroll = $state(true);
   let lastMessageId = $derived.by(() =>
-    messages.length > 0 ? messages[messages.length - 1].id : undefined,
+    messages.length > 0 ? messages[messages.length - 1].id : undefined
   );
 
   let lastMessageTxt: string | null = null;
@@ -139,13 +139,17 @@
       return;
     }
     await tick();
-    const el = scrollableElement.querySelector(`[data-vertex-id="${messageId}"]`);
+    const el = scrollableElement.querySelector(
+      `[data-vertex-id="${messageId}"]`
+    );
     if (!el) {
-      console.warn(`scrollToMessage: element with vertex id "${messageId}" not found`);
+      console.warn(
+        `scrollToMessage: element with vertex id "${messageId}" not found`
+      );
       return;
     }
     isProgrammaticScroll = true;
-    (el as HTMLElement).scrollIntoView({ block: 'start' });
+    (el as HTMLElement).scrollIntoView({ block: "start" });
     programmaticScrollTimeout?.();
     programmaticScrollTimeout = timeout(() => {
       isProgrammaticScroll = false;
@@ -178,4 +182,3 @@
     </section>
   </div>
 </div>
-

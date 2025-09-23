@@ -7,11 +7,8 @@
   let initialized = $derived(galleryState.ready);
   let error: string | null = $derived(galleryState.error);
 
-  // Allow passing a custom state for isolation if needed
-  let { state }: { state?: ClientState } = $props();
-
   onMount(async () => {
-    const localState = state || new ClientState();
+    const localState = new ClientState();
     galleryState.setClient(localState);
     await galleryState.loadSpace(demoConfigUrl);
   });
@@ -22,20 +19,11 @@
 {:else if !initialized}
   <div>Loading demo space…</div>
 {:else}
-  {#if state}
-    <ClientStateProvider instance={state}>
-      <SilaApp config={{}} state={state} />
-    </ClientStateProvider>
-  {:else}
-    {#key initialized}
-      {#if initialized}
-        <!-- When we create local state above, we need to pass the same instance used by galleryState -->
-        <ClientStateProvider instance={galleryState["_client"]}>
-          <SilaApp config={{}} state={galleryState["_client"]} />
-        </ClientStateProvider>
-      {:else}
-        <div>Loading, please wait…</div>
-      {/if}
-    {/key}
-  {/if}
+  {#key initialized}
+    {#if initialized}
+      <SilaApp config={{}} state={galleryState["_client"]} />
+    {:else}
+      <div>Loading, please wait…</div>
+    {/if}
+  {/key}
 {/if}

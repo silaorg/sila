@@ -1,16 +1,30 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { SilaApp, ClientStateProvider, ClientState } from "@sila/client";
+  import { galleryState } from "$lib/state/galleryState.svelte";
   import ChatApp from "@sila/client/comps/apps/ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
-  import { galleryState } from "$lib/state/galleryState.svelte";
-  import { onMount } from "svelte";
 
-  let data: ChatAppData | null = $state(null);
-  let error: string | null = $state(null);
   let demoConfigUrl: string = "/api/demo-space";
+  let initialized = $derived(galleryState.ready);
+  let error: string | null = $derived(galleryState.error);
+  let data: ChatAppData | null = $state(null);
+  let localState: ClientState | null = $state(null);
+
+  onMount(async () => {
+    localState = new ClientState();
+    galleryState.setClient(localState);
+    await galleryState.loadSpace(demoConfigUrl);
+
+    await buildFromFirstChatTree();
+  });
 
   async function buildFromFirstChatTree() {
     const space = galleryState.currentSpace;
-    if (!space) return;
+    if (!space) {
+      error = "No space loaded";
+      return;
+    }
 
     // Pick the first app-forest child and read its 'tid' (actual AppTree id)
     const first = space.appTreesVertex.children[0];
@@ -33,16 +47,15 @@
 
     data = new ChatAppData(space, appTree);
   }
-
-  onMount(async () => {
-    await galleryState.loadSpace(demoConfigUrl);
-    await buildFromFirstChatTree();
-  });
   
 </script>
 
-{#if data}
-  <ChatApp {data} />
-{:else}
+{#if data && localState}
+  <ClientStateProvider instance={localState}>
+    <ChatApp {data} />
+  </ClientStateProvider>
+{:else if error}
   <div>Error loading app tree{error ? `: ${error}` : ''}</div>
+{:else}
+  <div>Loading...</div>
 {/if}
