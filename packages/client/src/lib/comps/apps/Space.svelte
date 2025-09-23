@@ -41,7 +41,7 @@
 {:else}
   <div
     class="grid h-screen grid-rows-[1fr_auto] border-t border-surface-200-800"
-    data-testid="app-root"
+    data-testid="space-root"
   >
     <div class="flex overflow-hidden">
       <main class="relative flex-grow h-full overflow-y-auto">

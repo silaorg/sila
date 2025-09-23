@@ -13,7 +13,6 @@
 {:else if clientState.needsSpace}
   <FreshStartWizard />
 {:else if clientState.isReady}
-  <div data-testid="ready" style="display: none;"></div>
   {#if clientState.currentSpaceState}
     <Space spaceState={clientState.currentSpaceState} />
   {:else}
