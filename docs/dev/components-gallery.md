@@ -108,14 +108,6 @@ This pattern establishes the minimum viable app context without persistence.
   - `galleryState.currentSpace` → the active space
   - Used by both `GallerySilaApp` and `ChatAppInGallery`
 
-- App-wide state in components (proposal): prefer `useClientState()` accessor to support multiple instances via Svelte context providers.
-
-- Theme: managed by `ThemeManager` inside `SilaApp`; no extra setup needed in `/app` demos.
-
-- Swins (stacking windows): initialized by `clientState.layout.swins` and rendered by `SwinsContainer` inside `SilaApp`.
-
-- Local DB (Dexie): `clientState.init` touches IndexedDB, which is fine in browser. The in-memory space avoids writing app data to disk or FS.
-
 - Files: file store provider is not set in memory-only mode. If your component needs file previews/uploads, consider adding a small mock API or extend the builder to attach a mock provider.
 
 ## Isolating a specific app component (e.g., ChatApp)
@@ -123,6 +115,10 @@ This pattern establishes the minimum viable app context without persistence.
 Options:
 - Recommended: run the full app `/app` and navigate to Chat; or use `ChatAppInGallery`.
 - For deep isolation: render the component and supply its props and required stores manually. This can be brittle; prefer the helpers above.
+
+## Testing
+
+We use Playwright for end-to-end testing of components and pages in the gallery.
 
 ## Troubleshooting
 

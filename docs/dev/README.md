@@ -15,6 +15,7 @@ See [Quick Start](./quick-start.md) for the instructions on running, debugging, 
 - **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
 - **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
 - **packages/demo** is a tool to create demo workspaces out of a JSON
+- **packages/gallery** is a SvelteKit site for developing and testing Sila components in isolation
 - **packages/tests** is a test suit for the most important systems of Sila
 
 ### Quick facts about the tech stack
