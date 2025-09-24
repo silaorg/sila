@@ -17,6 +17,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate tag matches desktop package version
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          APP_VERSION="${TAG_NAME#desktop-v}"
+          PKG_VERSION="$(jq -r .version packages/desktop/package.json)"
+          if [ "$PKG_VERSION" != "$APP_VERSION" ]; then
+            echo "::error::packages/desktop/package.json ($PKG_VERSION) must equal tag ($APP_VERSION)"
+            exit 1
+          fi
+
       - name: Create or ensure draft release exists
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

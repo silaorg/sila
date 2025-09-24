@@ -2,12 +2,14 @@
 
 We use GitHub Actions workflows to automate the entire release process.
 
+Main idea: code is the source of truth. We bump `packages/desktop/package.json` with `npm version`, which creates a `desktop-vX.Y.Z` tag. CI triggers on that tag and validates the tag equals the code version before building.
+
 We release in three steps:
 1) Create a draft release on Github
 2) Build and upload those builds to the draft release
 3) Publish the draft as the latest release
 
-For how we keep code and build versions in sync, see [Code-as-Source-of-Truth Versioning in CI](./proposals/versioning-ci.md).
+For details, see [Code-as-Source-of-Truth Versioning in CI](./proposals/versioning-ci.md).
 
 ## Create a draft
 - Trigger: push a tag `desktop-vX.Y.Z`
