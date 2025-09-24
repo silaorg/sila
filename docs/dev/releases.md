@@ -33,6 +33,4 @@ Use `gh` cli tool to inspect workflows if needed
 ## Notes
 - All platforms are built on CI. macOS artifacts are code-signed and notarized automatically.
 - We produce a single universal macOS DMG (Intel + Apple Silicon).
-- Windows builds include proper desktop icons and installer icons via electron-builder configuration.
-- Asset copying uses standard shell commands for reliable Git LFS handling across all platforms.
 - The latest public release is available on the download page: [silain.com/download](https://www.silain.com/download).
