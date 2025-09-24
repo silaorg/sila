@@ -26,6 +26,11 @@
       "label": "Local-first"
     },
     {
+      "name": "multiplayer",
+      "type": "page",
+      "label": "Multiplayer"
+    },
+    {
       "name": "search",
       "type": "page",
       "label": "Search"
