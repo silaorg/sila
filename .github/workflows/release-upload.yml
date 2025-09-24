@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag to build and upload to (e.g., v1.2.3)
+        description: Tag to build and upload to (e.g., desktop-v1.2.3)
         required: true
       linux:
         description: Linux - build and upload
