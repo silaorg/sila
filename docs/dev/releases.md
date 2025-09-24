@@ -9,8 +9,6 @@ We release in three steps:
 2) Build and upload those builds to the draft release
 3) Publish the draft as the latest release
 
-For details, see [Code-as-Source-of-Truth Versioning in CI](./proposals/versioning-ci.md).
-
 ## Create a draft
 - Trigger: push a tag `desktop-vX.Y.Z`
 - Workflow: "release-1-draft"
