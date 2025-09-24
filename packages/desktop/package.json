@@ -2,6 +2,11 @@
   "name": "@sila/desktop",
   "version": "1.0.0",
   "description": "Sila Desktop App - Svelte + Vite + Electron",
+  "homepage": "https://silain.com",
+  "author": {
+    "name": "Dmitry Kury",
+    "email": "d@dkury.com"
+  },
   "type": "module",
   "main": "src-electron/main.js",
   "build": {
@@ -49,6 +54,7 @@
     },
     "linux": {
       "artifactName": "Sila-${version}-linux-${arch}.${ext}",
+      "maintainer": "Dmitry Kury <d@dkury.com>",
       "target": [
         {
           "target": "AppImage",
