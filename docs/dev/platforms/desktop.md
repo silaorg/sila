@@ -37,7 +37,8 @@ packages/desktop/
 │   ├── electronFsWrapper.ts # Electron file system implementation
 │   └── electronDialogsWrapper.ts # Electron dialogs implementation
 ├── src-electron/            # Electron main process files
-├── static-desktop/          # Desktop-specific static assets
+├── static-desktop/          # Desktop-specific static assets (icons, etc.)
+├── static-compiled/         # Combined assets from client + desktop packages
 ├── package.json
 ├── vite.config.js          # Vite build configuration
 └── build/                  # Web build output
@@ -60,6 +61,8 @@ Electron Builder packages the web assets with the Electron runtime for each plat
 #### Windows Build
 - Creates `.exe` installer using NSIS
 - Supports x64 and ARM64 architectures
+- Includes proper desktop icons and installer icons
+- Uses standard shell commands for reliable asset copying (Git LFS support)
 
 #### Linux Build
 - Creates AppImage for universal Linux compatibility
