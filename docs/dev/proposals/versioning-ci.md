@@ -20,13 +20,13 @@ git push && git push --tags
 ```
 
 Notes:
-- `npm version` updates `package.json`, creates a version commit, and creates a `vX.Y.Z` tag by default.
+- `npm version` updates `package.json`, creates a version commit, and creates a tag using the configured prefix. For desktop we use `desktop-vX.Y.Z` via an `.npmrc` in `packages/desktop`.
 - Pushing the tag triggers CI release workflows.
 
 ### CI Workflows (Overview)
 Keep the existing 3-step flow; add two validations:
 
-1) release-1-draft (trigger: push tag `v*`)
+1) release-1-draft (trigger: push tag `desktop-v*`)
    - Validate: tag equals `packages/desktop/package.json` version
    - Optional: validate tag is greater than latest semver tag
    - Create/ensure a draft GitHub Release
@@ -46,7 +46,7 @@ Validate tag matches code version:
 - name: Validate tag matches desktop package version
   run: |
     TAG_NAME="${GITHUB_REF#refs/tags/}"
-    APP_VERSION="${TAG_NAME#v}"
+    APP_VERSION="${TAG_NAME#desktop-v}"
     PKG_VERSION="$(jq -r .version packages/desktop/package.json)"
     if [ "$PKG_VERSION" != "$APP_VERSION" ]; then
       echo "::error::packages/desktop/package.json ($PKG_VERSION) must equal tag ($APP_VERSION)"
@@ -60,10 +60,10 @@ Optional: ensure monotonic versioning (no downgrades/re-releases):
 - name: Ensure tag is greater than latest
   run: |
     TAG_NAME="${GITHUB_REF#refs/tags/}"
-    APP_VERSION="${TAG_NAME#v}"
-    LATEST="$(git tag -l 'v[0-9]*' --sort=-v:refname | grep -v "^${TAG_NAME}$" | head -n1 || true)"
+    APP_VERSION="${TAG_NAME#desktop-v}"
+    LATEST="$(git tag -l 'desktop-v[0-9]*' --sort=-v:refname | grep -v "^${TAG_NAME}$" | head -n1 || true)"
     if [ -n "$LATEST" ]; then
-      LATEST_VERSION="${LATEST#v}"
+      LATEST_VERSION="${LATEST#desktop-v}"
       HIGHEST="$(printf "%s\n%s\n" "$LATEST_VERSION" "$APP_VERSION" | sort -V | tail -n1)"
       if [ "$HIGHEST" != "$APP_VERSION" ]; then
         echo "::error::New tag $TAG_NAME is not greater than latest $LATEST"

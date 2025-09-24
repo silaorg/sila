@@ -3,7 +3,7 @@ name: release-1-draft
 on:
   push:
     tags:
-      - 'v*'
+      - 'desktop-v*'
 
 permissions:
   contents: write
