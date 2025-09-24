@@ -1,7 +1,7 @@
 {
   "name": "@sila/desktop",
   "version": "1.0.0",
-  "description": "Sila Desktop App - Svelte + Vite + Electron",
+  "description": "Sila",
   "homepage": "https://silain.com",
   "author": {
     "name": "Dmitry Kury",
@@ -44,6 +44,7 @@
       ]
     },
     "win": {
+      "icon": "build/icon.ico",
       "artifactName": "Sila-${version}-windows-${arch}.${ext}",
       "target": [
         {
@@ -65,10 +66,15 @@
           "arch": ["x64", "arm64"]
         }
       ]
+    },
+    "nsis": {
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
     }
   },
   "scripts": {
-    "prepare-static-files": "cpy '../client/static/**' './static-compiled' && cpy './static-desktop/**' './static-compiled'",
+    "prepare-static-files": "mkdir -p static-compiled && cp -r ../client/static/* ./static-compiled/ && cp -r ./static-desktop/* ./static-compiled/",
     "dev": "npm run prepare-static-files && concurrently \"npm run dev:client\" \"npm run dev:sveltekit\" \"npm run dev:electron\"",
     "dev:without-starting-electron": "npm run prepare-static-files && concurrently \"npm run dev:sveltekit\" \"npm run dev:client\"",
     "dev:sveltekit": "vite dev --port 6969",
