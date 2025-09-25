@@ -33,21 +33,10 @@ export function createWindow(isDev) {
 
   // Load the appropriate URL/file based on environment
   if (isDev) {
-    // Development: load from SvelteKit dev server
+    // Development: load from SvelteKit dev server. The server has to be running
     mainWindow.loadURL('http://localhost:6969');
   } else {
-    // Production: request the latest desktop build via protocol resolver
-    // Prefer explicit embedded version to avoid any resolver issues on first run
-    const embeddedName = `desktop-v${app.getVersion()}`;
-    const urlToLoad = `sila://builds/${embeddedName}/index.html`;
-    console.log('Loading URL:', urlToLoad);
-    mainWindow.loadURL(encodeURI(urlToLoad));
-
-    // If load fails for any reason, keep window visible to inspect errors
-    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-      console.error('Failed to load:', { errorCode, errorDescription, validatedURL });
-      try { mainWindow.show(); } catch {}
-    });
+    mainWindow.loadURL('sila://builds/desktop/index.html');
   }
 
   // Show window when ready to prevent visual flash
