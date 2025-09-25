@@ -39,7 +39,29 @@ export async function setupFileProtocol() {
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
-        const basePath = path.join(__dirname, '..', 'build');
+        const appRoot = process.defaultApp ? process.cwd() : (await import('electron')).app.getAppPath();
+        const candidateBasePaths = [
+          // Packaged app: files are copied from build/ to app root (per electron-builder config)
+          appRoot,
+          // Alternate layouts (dev or different packaging): keep 'build' folder
+          path.join(appRoot, 'build'),
+          path.join(__dirname, '..', 'build')
+        ];
+
+        // Pick the first existing base path
+        let basePath = null;
+        for (const candidate of candidateBasePaths) {
+          const exists = await fs.access(candidate).then(() => true).catch(() => false);
+          if (exists) {
+            basePath = candidate;
+            break;
+          }
+        }
+
+        if (!basePath) {
+          return new Response('File not found', { status: 404 });
+        }
+
         const fullPath = path.join(basePath, rest);
 
         const exists = await fs.access(fullPath).then(() => true).catch(() => false);

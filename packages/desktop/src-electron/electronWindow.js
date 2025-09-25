@@ -39,7 +39,39 @@ export function createWindow(isDev) {
     mainWindow.loadURL('http://localhost:6969');
   } else {
     // Production: load via custom protocol from the embedded client bundle
-    mainWindow.loadURL('sila://clients/embedded/index.html');
+    // Fallback to electron-serve if embedded build is not found (e.g., not built yet)
+    (async () => {
+      try {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirnameLocal = path.dirname(__filename);
+        const fs = await import('fs/promises');
+
+        const candidateBasePaths = [
+          path.join(process.defaultApp ? process.cwd() : (await import('electron')).app.getAppPath(), 'build'),
+          path.join(__dirnameLocal, '..', 'build')
+        ];
+
+        let indexFound = null;
+        for (const candidate of candidateBasePaths) {
+          const indexPath = path.join(candidate, 'index.html');
+          const exists = await fs.access(indexPath).then(() => true).catch(() => false);
+          if (exists) {
+            indexFound = indexPath;
+            break;
+          }
+        }
+
+        if (indexFound) {
+          mainWindow.loadURL('sila://clients/embedded/index.html');
+        } else {
+          // Fall back to serving from packaged build directory using electron-serve
+          serveURL(mainWindow);
+        }
+      } catch (e) {
+        // As a last resort, try electron-serve
+        serveURL(mainWindow);
+      }
+    })();
   }
 
   // Show window when ready to prevent visual flash
