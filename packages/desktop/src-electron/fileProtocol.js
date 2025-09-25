@@ -71,28 +71,29 @@ export async function setupFileProtocol() {
           buildName = latest || embeddedName;
         }
 
-        // Resolve basePath for buildName
-        let basePath = null;
+        // Resolve full path by picking first candidate base that contains the requested file
+        let fullPath = '';
         if (buildName === embeddedName) {
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = path.dirname(__filename);
           const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
           const candidates = [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
-          for (const c of candidates) {
-            const ok = await fs.access(c).then(() => true).catch(() => false);
-            if (ok) { basePath = c; break; }
+          for (const base of candidates) {
+            const candidatePath = path.join(base, rest);
+            const ok = await fs.access(candidatePath).then(() => true).catch(() => false);
+            if (ok) { fullPath = candidatePath; break; }
           }
         } else {
-          const candidate = path.join(buildsRoot, buildName);
-          const ok = await fs.access(candidate).then(() => true).catch(() => false);
-          if (ok) basePath = candidate;
+          const base = path.join(buildsRoot, buildName);
+          const candidatePath = path.join(base, rest);
+          const ok = await fs.access(candidatePath).then(() => true).catch(() => false);
+          if (ok) fullPath = candidatePath;
         }
 
-        if (!basePath) {
+        if (!fullPath) {
           return new Response('File not found', { status: 404 });
         }
 
-        const fullPath = path.join(basePath, rest);
         const exists = await fs.access(fullPath).then(() => true).catch(() => false);
         if (!exists) {
           return new Response('File not found', { status: 404 });
