@@ -126,9 +126,9 @@ Each client bundle will contain:
 ## Embedded seed bundle: options
 
 **A. Serve directly from the package (no extraction)**
-* Ship `bundle-seed/` (or `bundle-seed.zip`) in `resources/`
-* On first boot (and whenever no cache is present), set `currentBundlePath` to the **embedded** bundle path and load from there
-* Pros: zero copy, simplest first-run
+* Ship the built `build/` directory in the Electron package (already done)
+* On first boot (and whenever no cache is present), serve from the embedded `build/` directory via `sila://` protocol
+* Pros: zero copy, simplest first-run, no additional packaging needed
 * Cons: cannot be modified; still fine because it's only a fallback
 
 **B. Extract once to the cache**
@@ -136,7 +136,7 @@ Each client bundle will contain:
 * Pros: consistent code path for loading (always from cache), enables rollback to seed
 * Cons: adds one-time copy
 
-**Recommendation:** Start with **A** (serve-in-place) for simplicity. Add extraction later if we want rollback to seed without shipping a new binary
+**Recommendation:** Start with **A** (serve-in-place) for simplicity. The existing `build/` directory is already packaged with the Electron app, so we just need to serve it via the `sila://` protocol when no client bundle is available.
 
 ---
 
@@ -228,12 +228,23 @@ async function handleClientFile(request) {
   const url = new URL(request.url);
   const clientBundlePath = getCurrentClientBundle();
   
-  if (!clientBundlePath) {
-    // Fallback to embedded build/
-    clientBundlePath = path.join(__dirname, 'build');
+  let basePath;
+  if (clientBundlePath) {
+    // Use downloaded client bundle
+    basePath = clientBundlePath;
+  } else {
+    // Fallback to embedded build/ directory in the package
+    basePath = path.join(__dirname, 'build');
   }
   
-  const filePath = path.join(clientBundlePath, url.pathname);
+  const filePath = path.join(basePath, url.pathname);
+  
+  // Check if file exists
+  const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+  if (!fileExists) {
+    return new Response('File not found', { status: 404 });
+  }
+  
   // Serve the file with appropriate MIME type
   return serveFile(filePath);
 }
