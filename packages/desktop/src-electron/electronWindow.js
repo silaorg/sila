@@ -1,13 +1,10 @@
 import { app, BrowserWindow, Menu, shell } from 'electron';
-import serve from 'electron-serve';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { getWindowOptionsWithState, saveWindowState, loadWindowState } from './windowState.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const serveURL = serve({ directory: '.' });
 
 /**
  * Creates a new browser window
@@ -82,16 +79,12 @@ export function createWindow(isDev) {
         // Pick highest semver
         const latestName = desktopNames.sort(cmp).pop();
 
-        if (latestName) {
-          // Try loading via protocol
-          mainWindow.loadURL(`sila://builds/${latestName}/index.html`);
-        } else {
-          // Fall back to serving from packaged build directory using electron-serve
-          serveURL(mainWindow);
-        }
+        const nameToLoad = latestName || embeddedName;
+        mainWindow.loadURL(`sila://builds/${nameToLoad}/index.html`);
       } catch (e) {
-        // As a last resort, try electron-serve
-        serveURL(mainWindow);
+        // As a last resort, still try embedded via protocol
+        const nameToLoad = `desktop-v${app.getVersion()}`;
+        try { mainWindow.loadURL(`sila://builds/${nameToLoad}/index.html`); } catch {}
       }
     })();
   }
