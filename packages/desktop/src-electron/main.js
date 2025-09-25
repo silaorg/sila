@@ -39,20 +39,6 @@ let mainWindow;
 /** @type {any} */
 const globalAny = global;
 
-// Register custom scheme privileges BEFORE app is ready, so Web APIs (localStorage, fetch) work
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'sila',
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-      stream: true
-    }
-  }
-]);
-
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
 
@@ -60,7 +46,7 @@ app.whenReady().then(async () => {
   app.setName('Sila');
   
   // Setup custom file protocol
-  await setupFileProtocol();
+  setupFileProtocol();
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();

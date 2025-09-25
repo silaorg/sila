@@ -19,7 +19,7 @@ export function createWindow(isDev) {
       nodeIntegration: true,
       contextIsolation: true,
       webSecurity: !isDev,
-      partition: 'persist:sila',
+      /*partition: 'persist:sila',*/ // NOTE: If we re-enable it make sure our sila:// protocol is using that partition
       preload: path.join(__dirname, 'preload.js')
     }
   });
