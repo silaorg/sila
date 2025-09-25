@@ -38,7 +38,9 @@ export function createWindow(isDev) {
   } else {
     // Production: request the latest desktop build via protocol resolver
     // 'desktop' is a virtual name resolved by protocol to the highest desktop-vX.Y.Z
-    mainWindow.loadURL('sila://builds/desktop/index.html');
+    const urlToLoad = 'sila://builds/desktop/index.html';
+    console.log('Loading URL:', urlToLoad);
+    mainWindow.loadURL(encodeURI(urlToLoad));
   }
 
   // Show window when ready to prevent visual flash
