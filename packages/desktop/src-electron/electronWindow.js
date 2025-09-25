@@ -19,7 +19,7 @@ export function createWindow(isDev) {
       nodeIntegration: true,
       contextIsolation: true,
       webSecurity: !isDev,
-      /*partition: 'persist:sila',*/ // NOTE: If we re-enable it make sure our sila:// protocol is using that partition
+      /*partition: 'persist:sila',*/ // NOTE: If we use partition, make sure our sila:// protocol is using that partition
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -108,12 +108,12 @@ export function createWindow(isDev) {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Open only http/https externally; deny everything else (including custom schemes)
+    // Open external links in the default browser
     if (url.startsWith('http://') || url.startsWith('https://')) {
       shell.openExternal(url);
       return { action: 'deny' };
     }
-    return { action: 'deny' };
+    return { action: 'allow' };
   });
 
   return mainWindow;
