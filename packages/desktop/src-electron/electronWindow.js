@@ -46,23 +46,45 @@ export function createWindow(isDev) {
         const __dirnameLocal = path.dirname(__filename);
         const fs = await import('fs/promises');
 
-        const candidateBasePaths = [
-          path.join(process.defaultApp ? process.cwd() : (await import('electron')).app.getAppPath(), 'build'),
-          path.join(__dirnameLocal, '..', 'build')
-        ];
+        // Determine latest available desktop build
+        const appVersion = app.getVersion();
+        const embeddedName = `desktop-v${appVersion}`;
+        const buildsRoot = path.join(app.getPath('userData'), 'builds');
 
-        let indexFound = null;
-        for (const candidate of candidateBasePaths) {
-          const indexPath = path.join(candidate, 'index.html');
-          const exists = await fs.access(indexPath).then(() => true).catch(() => false);
-          if (exists) {
-            indexFound = indexPath;
-            break;
-          }
+        // List builds in userData/builds
+        let userBuildNames = [];
+        try {
+          const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
+          userBuildNames = dirents.filter(d => d.isDirectory()).map(d => d.name);
+        } catch {}
+
+        // Collect desktop-v* names including embedded
+        const allNames = Array.from(new Set([embeddedName, ...userBuildNames]));
+        const desktopNames = allNames.filter(n => n.startsWith('desktop-v'));
+
+        function parseSemver(name) {
+          const m = name.match(/^desktop-v(\d+)\.(\d+)\.(\d+)$/);
+          if (!m) return null;
+          return { major: +m[1], minor: +m[2], patch: +m[3] };
         }
 
-        if (indexFound) {
-          mainWindow.loadURL('sila://builds/desktop/embedded/index.html');
+        function cmp(a, b) {
+          const va = parseSemver(a);
+          const vb = parseSemver(b);
+          if (!va && !vb) return 0;
+          if (!va) return -1;
+          if (!vb) return 1;
+          if (va.major !== vb.major) return va.major - vb.major;
+          if (va.minor !== vb.minor) return va.minor - vb.minor;
+          return va.patch - vb.patch;
+        }
+
+        // Pick highest semver
+        const latestName = desktopNames.sort(cmp).pop();
+
+        if (latestName) {
+          // Try loading via protocol
+          mainWindow.loadURL(`sila://builds/${latestName}/index.html`);
         } else {
           // Fall back to serving from packaged build directory using electron-serve
           serveURL(mainWindow);
