@@ -7,7 +7,9 @@ import { spaceManager } from './spaceManager.js';
 
 /**
  * Setup the custom 'sila' protocol for serving files from CAS
- * URL format: sila://spaces/{spaceId}/files/{hash}?type={mimeType}
+ * URL formats:
+ *  - sila://builds/desktop/embedded/index.html          (embedded desktop build)
+ *  - sila://spaces/{spaceId}/files/{hash}?type={mimeType}
  */
 export async function setupFileProtocol() {
   // Check if protocol is already handled (modern API; replaces deprecated isProtocolRegistered)
@@ -22,19 +24,20 @@ export async function setupFileProtocol() {
       const pathParts = url.pathname.split('/').filter(Boolean);
 
       // Support multiple hosts under sila://
-      if (url.hostname === 'clients') {
-        // Only built-in client bundle for now: sila://clients/embedded/... 
+      if (url.hostname === 'builds') {
+        // Only built-in desktop build for now: sila://builds/desktop/embedded/... 
         if (pathParts.length === 0) {
-          return new Response(JSON.stringify({ versions: ['embedded'] }), {
+          return new Response(JSON.stringify({ desktop: ['embedded'] }), {
             headers: { 'Content-Type': 'application/json' }
           });
         }
 
-        const version = pathParts[0];
-        const rest = pathParts.slice(1).join('/') || 'index.html';
+        const target = pathParts[0]; // expect 'desktop'
+        const version = pathParts[1]; // expect 'embedded'
+        const rest = pathParts.slice(2).join('/') || 'index.html';
 
-        if (version !== 'embedded') {
-          return new Response('Client version not found', { status: 404 });
+        if (target !== 'desktop' || version !== 'embedded') {
+          return new Response('Build not found', { status: 404 });
         }
 
         const __filename = fileURLToPath(import.meta.url);
@@ -85,7 +88,7 @@ export async function setupFileProtocol() {
 
       // Default: spaces
       if (url.hostname !== 'spaces') {
-        return new Response('Invalid URL format - expected hostname "spaces"', { status: 400 });
+        return new Response('Invalid URL format - expected hostname "builds" or "spaces"', { status: 400 });
       }
       
       if (pathParts.length !== 3 || pathParts[1] !== 'files') {

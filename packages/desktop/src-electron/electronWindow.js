@@ -62,7 +62,7 @@ export function createWindow(isDev) {
         }
 
         if (indexFound) {
-          mainWindow.loadURL('sila://clients/embedded/index.html');
+          mainWindow.loadURL('sila://builds/desktop/embedded/index.html');
         } else {
           // Fall back to serving from packaged build directory using electron-serve
           serveURL(mainWindow);
