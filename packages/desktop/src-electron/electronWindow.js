@@ -37,10 +37,17 @@ export function createWindow(isDev) {
     mainWindow.loadURL('http://localhost:6969');
   } else {
     // Production: request the latest desktop build via protocol resolver
-    // 'desktop' is a virtual name resolved by protocol to the highest desktop-vX.Y.Z
-    const urlToLoad = 'sila://builds/desktop/index.html';
+    // Prefer explicit embedded version to avoid any resolver issues on first run
+    const embeddedName = `desktop-v${app.getVersion()}`;
+    const urlToLoad = `sila://builds/${embeddedName}/index.html`;
     console.log('Loading URL:', urlToLoad);
     mainWindow.loadURL(encodeURI(urlToLoad));
+
+    // If load fails for any reason, keep window visible to inspect errors
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error('Failed to load:', { errorCode, errorDescription, validatedURL });
+      try { mainWindow.show(); } catch {}
+    });
   }
 
   // Show window when ready to prevent visual flash
