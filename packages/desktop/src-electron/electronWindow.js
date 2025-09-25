@@ -35,58 +35,9 @@ export function createWindow(isDev) {
     // Development: load from SvelteKit dev server
     mainWindow.loadURL('http://localhost:6969');
   } else {
-    // Production: load via custom protocol from the embedded client bundle
-    // Fallback to electron-serve if embedded build is not found (e.g., not built yet)
-    (async () => {
-      try {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirnameLocal = path.dirname(__filename);
-        const fs = await import('fs/promises');
-
-        // Determine latest available desktop build
-        const appVersion = app.getVersion();
-        const embeddedName = `desktop-v${appVersion}`;
-        const buildsRoot = path.join(app.getPath('userData'), 'builds');
-
-        // List builds in userData/builds
-        let userBuildNames = [];
-        try {
-          const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
-          userBuildNames = dirents.filter(d => d.isDirectory()).map(d => d.name);
-        } catch {}
-
-        // Collect desktop-v* names including embedded
-        const allNames = Array.from(new Set([embeddedName, ...userBuildNames]));
-        const desktopNames = allNames.filter(n => n.startsWith('desktop-v'));
-
-        function parseSemver(name) {
-          const m = name.match(/^desktop-v(\d+)\.(\d+)\.(\d+)$/);
-          if (!m) return null;
-          return { major: +m[1], minor: +m[2], patch: +m[3] };
-        }
-
-        function cmp(a, b) {
-          const va = parseSemver(a);
-          const vb = parseSemver(b);
-          if (!va && !vb) return 0;
-          if (!va) return -1;
-          if (!vb) return 1;
-          if (va.major !== vb.major) return va.major - vb.major;
-          if (va.minor !== vb.minor) return va.minor - vb.minor;
-          return va.patch - vb.patch;
-        }
-
-        // Pick highest semver
-        const latestName = desktopNames.sort(cmp).pop();
-
-        const nameToLoad = latestName || embeddedName;
-        mainWindow.loadURL(`sila://builds/${nameToLoad}/index.html`);
-      } catch (e) {
-        // As a last resort, still try embedded via protocol
-        const nameToLoad = `desktop-v${app.getVersion()}`;
-        try { mainWindow.loadURL(`sila://builds/${nameToLoad}/index.html`); } catch {}
-      }
-    })();
+    // Production: request the latest desktop build via protocol resolver
+    // 'desktop' is a virtual name resolved by protocol to the highest desktop-vX.Y.Z
+    mainWindow.loadURL('sila://builds/desktop/index.html');
   }
 
   // Show window when ready to prevent visual flash

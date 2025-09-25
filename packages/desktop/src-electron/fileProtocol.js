@@ -28,39 +28,61 @@ export async function setupFileProtocol() {
         const buildsRoot = path.join(app.getPath('userData'), 'builds');
         const embeddedName = `desktop-v${app.getVersion()}`;
 
-        if (pathParts.length === 0) {
-          // List available builds: embedded + folders in buildsRoot
+        // Helper: list available build folder names
+        async function listBuildNames() {
           let entries = [];
           try {
             const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
             entries = dirents.filter(d => d.isDirectory()).map(d => d.name);
           } catch {}
-          const unique = Array.from(new Set([embeddedName, ...entries]));
-          return new Response(JSON.stringify(unique), {
+          return Array.from(new Set([embeddedName, ...entries]));
+        }
+
+        if (pathParts.length === 0) {
+          const names = await listBuildNames();
+          return new Response(JSON.stringify(names), {
             headers: { 'Content-Type': 'application/json' }
           });
         }
 
-        const buildName = pathParts[0]; // e.g., 'desktop-v1.0.1'
-        const rest = pathParts.slice(1).join('/') || 'index.html';
+        // Support virtual latest endpoint: sila://builds/desktop/index.html
+        // If first segment is 'desktop', resolve to highest semver desktop-vX.Y.Z
+        let buildName = pathParts[0];
+        let rest = pathParts.slice(1).join('/') || 'index.html';
+        if (buildName === 'desktop') {
+          const names = await listBuildNames();
+          const desktopNames = names.filter(n => n.startsWith('desktop-v'));
+          function parseSemver(name) {
+            const m = name.match(/^desktop-v(\d+)\.(\d+)\.(\d+)$/);
+            if (!m) return null;
+            return { major: +m[1], minor: +m[2], patch: +m[3] };
+          }
+          function cmp(a, b) {
+            const va = parseSemver(a);
+            const vb = parseSemver(b);
+            if (!va && !vb) return 0;
+            if (!va) return -1;
+            if (!vb) return 1;
+            if (va.major !== vb.major) return va.major - vb.major;
+            if (va.minor !== vb.minor) return va.minor - vb.minor;
+            return va.patch - vb.patch;
+          }
+          const latest = desktopNames.sort(cmp).pop();
+          buildName = latest || embeddedName;
+        }
 
+        // Resolve basePath for buildName
         let basePath = null;
         if (buildName === embeddedName) {
-          // Resolve embedded build base
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = path.dirname(__filename);
           const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
-          const candidates = [
-            appRoot,
-            path.join(appRoot, 'build'),
-            path.join(__dirname, '..', 'build')
-          ];
+          const candidates = [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
           for (const c of candidates) {
             const ok = await fs.access(c).then(() => true).catch(() => false);
             if (ok) { basePath = c; break; }
           }
         } else {
-          // Resolve external build base under userData/builds/<buildName>
           const candidate = path.join(buildsRoot, buildName);
           const ok = await fs.access(candidate).then(() => true).catch(() => false);
           if (ok) basePath = candidate;
