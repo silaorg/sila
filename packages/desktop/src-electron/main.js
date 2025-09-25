@@ -3,7 +3,7 @@ import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
 import { setupAutoUpdater, checkForUpdates } from './autoUpdater.js';
-import { setupFileProtocol } from './fileProtocol.js';
+import { setupSilaProtocol } from './silaProtocol.js';
 import { spaceManager } from './spaceManager.js';
 
 // Development mode check
@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
   app.setName('Sila');
   
   // Setup custom file protocol
-  setupFileProtocol();
+  setupSilaProtocol();
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();

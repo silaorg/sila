@@ -20,13 +20,13 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 /**
- * Setup the custom 'sila' protocol for serving files from CAS
+ * Setup the custom 'sila' protocol for serving files from CAS and builds
  * URL formats:
  *  - sila://builds/desktop/index.html (embedded desktop build)
  *  - sila://builds/desktop/vX.Y.Z/index.html (downloaded versioned desktop build)
  *  - sila://spaces/{spaceId}/files/{hash}?type={mimeType}
  */
-export function setupFileProtocol() {
+export function setupSilaProtocol() {
   // Check if protocol is already handled
   if (protocol.isProtocolHandled('sila')) {
     return;
