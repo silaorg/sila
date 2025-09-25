@@ -32,14 +32,31 @@ This approach allows Sila to deliver rapid client updates without requiring full
 
 ### Current Sila Architecture
 - **Desktop package**: Thin Electron wrapper that imports `@sila/client` and `@sila/core`
-- **Client package**: Svelte components and UI logic
+- **Client package**: Svelte components and UI logic  
 - **Core package**: Business logic, RepTree CRDT, persistence layers
-- **Build process**: Vite builds client → Electron packages the result
+- **Build process**: 
+  1. `prepare-static-files`: Copies client static files to `static-compiled/`
+  2. `build -w @sila/client`: Builds client package (generates `compiled-style.css`)
+  3. `vite build`: Builds desktop app with Vite, outputs to `build/` directory
+  4. Electron packages the `build/` directory
+
+### Current Build Output Structure
+```
+build/
+├── index.html                    # Main HTML entry point
+├── assets/
+│   ├── index-B6P78SKR.js        # Main JS bundle (1.5MB)
+│   ├── index-BGeEc107.css       # Main CSS bundle (361KB)
+│   └── [hundreds of other assets] # Language syntax files, themes, etc.
+├── auth-providers-icons/         # Static assets
+├── providers/                    # Provider logos
+└── [other static files]          # Icons, favicons, etc.
+```
 
 ### Client Bundle Contents
 Each client bundle will contain:
 - Built Svelte components and compiled CSS
-- Static assets (icons, images)
+- Static assets (icons, images, provider logos, auth icons)
 - `index.html` entry point
 - Version metadata
 - Compatibility information (minimum shell version)
@@ -161,7 +178,32 @@ Each client bundle will contain:
 2. **Client bundle creation**: Extract the built client assets into a versioned folder structure
 3. **Embedded seed**: Include the current client build as a fallback in the Electron app
 
-### IPC additions needed
+### Key changes needed
+
+#### 1. Modify build process
+```bash
+# Current build process
+npm run prepare-static-files && npm run build -w @sila/client && npm run build:vite
+
+# New: Also create client bundle
+npm run build:client-bundle  # New script to create versioned client bundle
+```
+
+#### 2. Update electronWindow.js
+```javascript
+// Current: Always loads from build/ directory
+serveURL(mainWindow);
+
+// New: Load from client bundle or fallback to build/
+const clientBundlePath = getCurrentClientBundle();
+if (clientBundlePath) {
+  serveURL(mainWindow, { directory: clientBundlePath });
+} else {
+  serveURL(mainWindow); // Fallback to embedded build/
+}
+```
+
+#### 3. IPC additions needed
 ```javascript
 // New IPC handlers for client bundle management
 ipcMain.handle('check-client-update', async (event) => {
@@ -175,19 +217,25 @@ ipcMain.handle('download-client-update', async (event, version) => {
 ipcMain.handle('switch-client-bundle', async (event, version) => {
   // Switch to a different client bundle version
 });
+
+ipcMain.handle('get-current-client-version', async (event) => {
+  // Get currently loaded client version
+});
 ```
 
 ### Bundle structure
 ```
 bundles/
 ├── client-v1.0.1/
-│   ├── index.html
+│   ├── index.html                    # Main entry point
 │   ├── assets/
-│   │   ├── app.js
-│   │   └── app.css
-│   ├── static/
-│   │   └── favicon.ico
-│   └── metadata.json
+│   │   ├── index-B6P78SKR.js        # Main JS bundle
+│   │   ├── index-BGeEc107.css       # Main CSS bundle
+│   │   └── [hundreds of other assets] # Language files, themes, etc.
+│   ├── auth-providers-icons/         # Static assets
+│   ├── providers/                    # Provider logos
+│   ├── favicon.ico                   # Icons
+│   └── metadata.json                 # Version and compatibility info
 ├── client-v1.0.2/
 │   └── ...
 └── previousVersion
@@ -202,8 +250,42 @@ bundles/
   "features": ["spaces", "chat", "files"],
   "dependencies": {
     "core": "^1.0.0"
-  }
+  },
+  "buildHash": "abc123...",
+  "createdAt": "2024-01-01T00:00:00Z"
 }
+```
+
+### Client bundle creation script
+```bash
+#!/bin/bash
+# packages/desktop/scripts/create-client-bundle.sh
+
+VERSION=$1
+BUNDLE_DIR="bundles/client-v${VERSION}"
+
+# Create bundle directory
+mkdir -p "$BUNDLE_DIR"
+
+# Copy build output to bundle
+cp -r build/* "$BUNDLE_DIR/"
+
+# Create metadata
+cat > "$BUNDLE_DIR/metadata.json" << EOF
+{
+  "version": "$VERSION",
+  "minShellVersion": "1.0.0",
+  "maxShellVersion": "2.0.0",
+  "features": ["spaces", "chat", "files"],
+  "dependencies": {
+    "core": "^1.0.0"
+  },
+  "buildHash": "$(git rev-parse HEAD)",
+  "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+
+echo "Client bundle created: $BUNDLE_DIR"
 ```
 
 ---
@@ -244,5 +326,27 @@ bundles/
 3. **A/B testing**: Easy to test different client versions with staged rollouts
 4. **Rollback safety**: Quick reversion if a client update causes issues
 5. **Development workflow**: Developers can test client changes without rebuilding the entire desktop app
+6. **Preserves existing architecture**: No changes to core package, client package, or Electron shell
+7. **Leverages existing build system**: Uses current Vite + Electron setup
+
+## Implementation roadmap
+
+### Phase 1: Basic client bundle system
+1. Create client bundle creation script
+2. Modify `electronWindow.js` to load from bundles
+3. Add basic IPC handlers for bundle management
+4. Test with manual bundle switching
+
+### Phase 2: Update mechanism
+1. Implement update checking and downloading
+2. Add bundle verification and security
+3. Implement rollback mechanism
+4. Add user notifications
+
+### Phase 3: Production features
+1. Staged rollouts and telemetry
+2. Bundle retention policies
+3. Compatibility checking
+4. Performance optimizations
 
 This approach maintains Sila's current architecture while enabling much faster client-side updates and improvements.
