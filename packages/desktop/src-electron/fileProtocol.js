@@ -1,4 +1,4 @@
-import { protocol } from 'electron';
+import { protocol, app } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
@@ -25,40 +25,45 @@ export async function setupFileProtocol() {
 
       // Support multiple hosts under sila://
       if (url.hostname === 'builds') {
-        // Only built-in desktop build for now: sila://builds/desktop/embedded/... 
+        const buildsRoot = path.join(app.getPath('userData'), 'builds');
+        const embeddedName = `desktop-v${app.getVersion()}`;
+
         if (pathParts.length === 0) {
-          return new Response(JSON.stringify({ desktop: ['embedded'] }), {
+          // List available builds: embedded + folders in buildsRoot
+          let entries = [];
+          try {
+            const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
+            entries = dirents.filter(d => d.isDirectory()).map(d => d.name);
+          } catch {}
+          const unique = Array.from(new Set([embeddedName, ...entries]));
+          return new Response(JSON.stringify(unique), {
             headers: { 'Content-Type': 'application/json' }
           });
         }
 
-        const target = pathParts[0]; // expect 'desktop'
-        const version = pathParts[1]; // expect 'embedded'
-        const rest = pathParts.slice(2).join('/') || 'index.html';
+        const buildName = pathParts[0]; // e.g., 'desktop-v1.0.1'
+        const rest = pathParts.slice(1).join('/') || 'index.html';
 
-        if (target !== 'desktop' || version !== 'embedded') {
-          return new Response('Build not found', { status: 404 });
-        }
-
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const appRoot = process.defaultApp ? process.cwd() : (await import('electron')).app.getAppPath();
-        const candidateBasePaths = [
-          // Packaged app: files are copied from build/ to app root (per electron-builder config)
-          appRoot,
-          // Alternate layouts (dev or different packaging): keep 'build' folder
-          path.join(appRoot, 'build'),
-          path.join(__dirname, '..', 'build')
-        ];
-
-        // Pick the first existing base path
         let basePath = null;
-        for (const candidate of candidateBasePaths) {
-          const exists = await fs.access(candidate).then(() => true).catch(() => false);
-          if (exists) {
-            basePath = candidate;
-            break;
+        if (buildName === embeddedName) {
+          // Resolve embedded build base
+          const __filename = fileURLToPath(import.meta.url);
+          const __dirname = path.dirname(__filename);
+          const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
+          const candidates = [
+            appRoot,
+            path.join(appRoot, 'build'),
+            path.join(__dirname, '..', 'build')
+          ];
+          for (const c of candidates) {
+            const ok = await fs.access(c).then(() => true).catch(() => false);
+            if (ok) { basePath = c; break; }
           }
+        } else {
+          // Resolve external build base under userData/builds/<buildName>
+          const candidate = path.join(buildsRoot, buildName);
+          const ok = await fs.access(candidate).then(() => true).catch(() => false);
+          if (ok) basePath = candidate;
         }
 
         if (!basePath) {
@@ -66,7 +71,6 @@ export async function setupFileProtocol() {
         }
 
         const fullPath = path.join(basePath, rest);
-
         const exists = await fs.access(fullPath).then(() => true).catch(() => false);
         if (!exists) {
           return new Response('File not found', { status: 404 });
