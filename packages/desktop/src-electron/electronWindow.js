@@ -108,12 +108,12 @@ export function createWindow(isDev) {
 
   // Handle external links
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    // Open external links in the default browser
+    // Open only http/https externally; deny everything else (including custom schemes)
     if (url.startsWith('http://') || url.startsWith('https://')) {
       shell.openExternal(url);
       return { action: 'deny' };
     }
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   return mainWindow;
