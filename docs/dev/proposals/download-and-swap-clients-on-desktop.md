@@ -194,21 +194,22 @@ npm run build:client-bundle  # New script to create versioned client bundle
 // Current: Uses electron-serve to load from build/ directory
 serveURL(mainWindow);
 
-// New: Use sila:// protocol to load client bundles
+// New: Use sila:// protocol with versioned client API
 // Instead of: serveURL(mainWindow);
-// Use: mainWindow.loadURL('sila://client/index.html');
+// Use: mainWindow.loadURL('sila://clients/v1.0.3/index.html');
 
-// The sila:// protocol would be extended to handle:
-// sila://client/index.html          # Main app entry point
-// sila://client/assets/app.js       # JS bundles
-// sila://client/assets/app.css       # CSS bundles
-// sila://client/favicon.ico          # Static assets
+// The sila:// protocol would handle:
+// sila://clients/                    # List available client versions
+// sila://clients/v1.0.3/index.html  # Main app entry point
+// sila://clients/v1.0.3/assets/app.js # JS bundles
+// sila://clients/v1.0.3/assets/app.css # CSS bundles
+// sila://clients/v1.0.3/favicon.ico   # Static assets
 ```
 
 #### 3. Extend fileProtocol.js
 ```javascript
 // Current: Only handles sila://spaces/{spaceId}/files/{hash}
-// New: Also handle sila://client/{path}
+// New: Also handle sila://clients/{version}/{path}
 
 protocol.handle('sila', async (request) => {
   const url = new URL(request.url);
@@ -216,7 +217,7 @@ protocol.handle('sila', async (request) => {
   if (url.hostname === 'spaces') {
     // Existing space file handling
     return handleSpaceFile(request);
-  } else if (url.hostname === 'client') {
+  } else if (url.hostname === 'clients') {
     // New: Handle client bundle files
     return handleClientFile(request);
   }
@@ -226,31 +227,72 @@ protocol.handle('sila', async (request) => {
 
 async function handleClientFile(request) {
   const url = new URL(request.url);
-  const clientBundlePath = getCurrentClientBundle();
+  const pathParts = url.pathname.split('/').filter(Boolean);
   
-  let basePath;
-  if (clientBundlePath) {
-    // Use downloaded client bundle
-    basePath = clientBundlePath;
-  } else {
-    // Fallback to embedded build/ directory in the package
-    basePath = path.join(__dirname, 'build');
+  if (pathParts.length === 0) {
+    // sila://clients/ - List available client versions
+    return listAvailableClients();
   }
   
-  const filePath = path.join(basePath, url.pathname);
+  const version = pathParts[0];
+  const filePath = pathParts.slice(1).join('/');
+  
+  // Get the client bundle path for this version
+  const clientBundlePath = getClientBundlePath(version);
+  
+  if (!clientBundlePath) {
+    return new Response('Client version not found', { status: 404 });
+  }
+  
+  const fullPath = path.join(clientBundlePath, filePath);
   
   // Check if file exists
-  const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+  const fileExists = await fs.access(fullPath).then(() => true).catch(() => false);
   if (!fileExists) {
     return new Response('File not found', { status: 404 });
   }
   
   // Serve the file with appropriate MIME type
-  return serveFile(filePath);
+  return serveFile(fullPath);
+}
+
+async function listAvailableClients() {
+  const bundlesDir = path.join(app.getPath('userData'), 'bundles');
+  const versions = await fs.readdir(bundlesDir).catch(() => []);
+  
+  // Add embedded version
+  versions.push('embedded');
+  
+  return new Response(JSON.stringify({ versions }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+function getClientBundlePath(version) {
+  if (version === 'embedded') {
+    return path.join(__dirname, 'build');
+  }
+  
+  const bundlesDir = path.join(app.getPath('userData'), 'bundles');
+  return path.join(bundlesDir, `client-v${version}`);
 }
 ```
 
-#### 4. IPC additions needed
+#### 4. Update electronWindow.js
+```javascript
+// Current: Always loads from build/ directory
+serveURL(mainWindow);
+
+// New: Load from specific client version
+const clientVersion = getCurrentClientVersion(); // e.g., 'v1.0.3' or 'embedded'
+const serveClient = serve({ directory: getClientBundlePath(clientVersion) });
+serveClient(mainWindow);
+
+// Or even simpler:
+mainWindow.loadURL(`sila://clients/${clientVersion}/index.html`);
+```
+
+#### 5. IPC additions needed
 ```javascript
 // New IPC handlers for client bundle management
 ipcMain.handle('check-client-update', async (event) => {
@@ -267,6 +309,11 @@ ipcMain.handle('switch-client-bundle', async (event, version) => {
 
 ipcMain.handle('get-current-client-version', async (event) => {
   // Get currently loaded client version
+});
+
+ipcMain.handle('list-available-clients', async (event) => {
+  // List available client versions
+  return fetch('sila://clients/').then(r => r.json());
 });
 ```
 
@@ -378,6 +425,9 @@ echo "Client bundle created: $BUNDLE_DIR"
 8. **Unified protocol**: Uses existing `sila://` protocol instead of `electron-serve`
 9. **Better security**: Custom protocol gives more control over file serving
 10. **Consistent with existing patterns**: Follows the same pattern as space file serving
+11. **Versioned API**: `sila://clients/` provides a clean API for client management
+12. **Flexible serving**: Can use either `electron-serve` or direct `sila://` URLs
+13. **Easy debugging**: Can inspect available clients via `sila://clients/`
 
 ## Implementation roadmap
 
