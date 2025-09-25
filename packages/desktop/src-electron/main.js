@@ -4,6 +4,7 @@ import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
 import { setupAutoUpdater, checkForUpdates } from './autoUpdater.js';
 import { setupSilaProtocol } from './silaProtocol.js';
+import { setupGitHubReleaseIPC } from './githubReleaseManager.js';
 import { spaceManager } from './spaceManager.js';
 
 // Development mode check
@@ -50,6 +51,9 @@ app.whenReady().then(async () => {
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();
+  
+  // Setup IPC handlers for GitHub release management
+  setupGitHubReleaseIPC();
   
   mainWindow = createWindow(isDev);
   setupElectronMenu();

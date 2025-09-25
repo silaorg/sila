@@ -104,6 +104,7 @@
     "package:linux": "electron-builder --linux",
     "build:publish": "npm run build && electron-builder --publish=always",
     "build:publish-draft": "npm run build && electron-builder --publish=draft",
+    "create-desktop-build": "./scripts/create-desktop-build.sh",
     "preview": "vite preview",
     "start": "electron .",
     "check": "svelte-check"
@@ -111,6 +112,7 @@
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*",
+    "adm-zip": "^0.5.10",
     "chokidar": "^4.0.3",
     "electron-serve": "^2.1.1",
     "electron-updater": "^6.1.7"
