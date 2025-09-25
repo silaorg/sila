@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol } from 'electron';
 import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
@@ -38,6 +38,20 @@ let mainWindow;
 // Type declaration for global
 /** @type {any} */
 const globalAny = global;
+
+// Register custom scheme privileges BEFORE app is ready, so Web APIs (localStorage, fetch) work
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'sila',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
+  }
+]);
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {

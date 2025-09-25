@@ -18,7 +18,8 @@ export function createWindow(isDev) {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      webSecurity: !isDev, // Needed for SvelteKit in development
+      webSecurity: !isDev,
+      partition: 'persist:sila',
       preload: path.join(__dirname, 'preload.js')
     }
   });
