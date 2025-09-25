@@ -2,6 +2,7 @@ import { protocol } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
+import { fileURLToPath } from 'url';
 import { spaceManager } from './spaceManager.js';
 
 /**
@@ -18,12 +19,52 @@ export async function setupFileProtocol() {
     try {
       const url = new URL(request.url);
       
-      // sila://spaces/{spaceId}/files/{hash|uuid}?type={mimeType}
+      const pathParts = url.pathname.split('/').filter(Boolean);
+
+      // Support multiple hosts under sila://
+      if (url.hostname === 'clients') {
+        // Only built-in client bundle for now: sila://clients/embedded/... 
+        if (pathParts.length === 0) {
+          return new Response(JSON.stringify({ versions: ['embedded'] }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        const version = pathParts[0];
+        const rest = pathParts.slice(1).join('/') || 'index.html';
+
+        if (version !== 'embedded') {
+          return new Response('Client version not found', { status: 404 });
+        }
+
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const basePath = path.join(__dirname, '..', 'build');
+        const fullPath = path.join(basePath, rest);
+
+        const exists = await fs.access(fullPath).then(() => true).catch(() => false);
+        if (!exists) {
+          return new Response('File not found', { status: 404 });
+        }
+
+        /** @type {Record<string, string>} */
+        const headers = {};
+        const lc = fullPath.toLowerCase();
+        if (lc.endsWith('.html')) headers['Content-Type'] = 'text/html; charset=utf-8';
+        else if (lc.endsWith('.js')) headers['Content-Type'] = 'text/javascript; charset=utf-8';
+        else if (lc.endsWith('.css')) headers['Content-Type'] = 'text/css; charset=utf-8';
+        else if (lc.endsWith('.svg')) headers['Content-Type'] = 'image/svg+xml';
+        else if (lc.endsWith('.png')) headers['Content-Type'] = 'image/png';
+        else if (lc.endsWith('.ico')) headers['Content-Type'] = 'image/x-icon';
+
+        const buf = await fs.readFile(fullPath);
+        return new Response(buf, { headers });
+      }
+
+      // Default: spaces
       if (url.hostname !== 'spaces') {
         return new Response('Invalid URL format - expected hostname "spaces"', { status: 400 });
       }
-      
-      const pathParts = url.pathname.split('/').filter(Boolean);
       
       if (pathParts.length !== 3 || pathParts[1] !== 'files') {
         return new Response('Invalid URL format - expected path "/{spaceId}/files/{hash|uuid}"', { status: 400 });

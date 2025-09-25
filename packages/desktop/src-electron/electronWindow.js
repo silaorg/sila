@@ -38,8 +38,8 @@ export function createWindow(isDev) {
     // Development: load from SvelteKit dev server
     mainWindow.loadURL('http://localhost:6969');
   } else {
-    // Production: load built SvelteKit files
-    serveURL(mainWindow);
+    // Production: load via custom protocol from the embedded client bundle
+    mainWindow.loadURL('sila://clients/embedded/index.html');
   }
 
   // Show window when ready to prevent visual flash
