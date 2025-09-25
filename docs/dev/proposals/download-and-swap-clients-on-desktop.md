@@ -93,14 +93,14 @@ Each client bundle will contain:
 2. If `version` > currently loaded version and compatibility checks pass:
    * Download bundle to temp, verify checksum + signature, then unpack to `…/bundles/client-<version>/`
 3. **Switching bundles:**
-   * After unpacking, call `selectLatestBundle()` again → it returns the new version path
-   * Notify renderer about available update. Offer two behaviors:
-     * **Soft reload** (reload the window to pick up the new bundle) if no migration needed
-     * **Quick restart** prompt if a clean boot is safer
+   * After unpacking, update the current client version setting
+   * The next time the app loads a resource, it automatically uses the new bundle
+   * No user notification needed - seamless update
 
 **UX example**
-* Toast: "New client version 1.5.1 installed."
-* Buttons: **Restart now** / **Later**. If Restart now → close window(s), re-run boot sequence → latest bundle loads
+* User continues working normally
+* New client version loads automatically on next page navigation or resource request
+* No interruption to user workflow
 
 ---
 
@@ -290,6 +290,13 @@ serveClient(mainWindow);
 
 // Or even simpler:
 mainWindow.loadURL(`sila://clients/${clientVersion}/index.html`);
+
+// For seamless updates, we can also update the serve function:
+function updateClientVersion(newVersion) {
+  const newServeClient = serve({ directory: getClientBundlePath(newVersion) });
+  // The next resource request will use the new version
+  // No need to reload the window!
+}
 ```
 
 #### 5. IPC additions needed
@@ -305,6 +312,9 @@ ipcMain.handle('download-client-update', async (event, version) => {
 
 ipcMain.handle('switch-client-bundle', async (event, version) => {
   // Switch to a different client bundle version
+  // This updates the current version setting
+  // Next resource request will use the new version
+  updateCurrentClientVersion(version);
 });
 
 ipcMain.handle('get-current-client-version', async (event) => {
@@ -387,10 +397,10 @@ echo "Client bundle created: $BUNDLE_DIR"
 ## Example: switching after download (step-by-step)
 
 1. App finds update client-v1.5.1 → downloads → verifies → unpacks to `…/bundles/client-v1.5.1/`
-2. `selectLatestBundle()` now returns `…/bundles/client-v1.5.1/` (no symlink needed)
-3. App notifies UI → user clicks **Restart now**
-4. App closes windows → re-runs boot sequence → loads `index.html` from `…/bundles/client-v1.5.1/`
-5. Health check passes → show "Updated to client-v1.5.1". If it fails → auto-select `client-v1.5.0` and notify
+2. App updates the current client version setting to `v1.5.1`
+3. Next time the app loads a resource (JS, CSS, image), it automatically serves from the new bundle
+4. User continues working with the updated client - no interruption
+5. If the new bundle fails health checks, automatically fall back to the previous version
 
 ---
 
@@ -441,8 +451,8 @@ echo "Client bundle created: $BUNDLE_DIR"
 ### Phase 2: Update mechanism
 1. Implement update checking and downloading
 2. Add bundle verification and security
-3. Implement rollback mechanism
-4. Add user notifications
+3. Implement seamless client switching
+4. Add automatic rollback on failure
 
 ### Phase 3: Production features
 1. Staged rollouts and telemetry
