@@ -189,21 +189,57 @@ npm run prepare-static-files && npm run build -w @sila/client && npm run build:v
 npm run build:client-bundle  # New script to create versioned client bundle
 ```
 
-#### 2. Update electronWindow.js
+#### 2. Extend sila:// protocol for client bundles
 ```javascript
-// Current: Always loads from build/ directory
+// Current: Uses electron-serve to load from build/ directory
 serveURL(mainWindow);
 
-// New: Load from client bundle or fallback to build/
-const clientBundlePath = getCurrentClientBundle();
-if (clientBundlePath) {
-  serveURL(mainWindow, { directory: clientBundlePath });
-} else {
-  serveURL(mainWindow); // Fallback to embedded build/
+// New: Use sila:// protocol to load client bundles
+// Instead of: serveURL(mainWindow);
+// Use: mainWindow.loadURL('sila://client/index.html');
+
+// The sila:// protocol would be extended to handle:
+// sila://client/index.html          # Main app entry point
+// sila://client/assets/app.js       # JS bundles
+// sila://client/assets/app.css       # CSS bundles
+// sila://client/favicon.ico          # Static assets
+```
+
+#### 3. Extend fileProtocol.js
+```javascript
+// Current: Only handles sila://spaces/{spaceId}/files/{hash}
+// New: Also handle sila://client/{path}
+
+protocol.handle('sila', async (request) => {
+  const url = new URL(request.url);
+  
+  if (url.hostname === 'spaces') {
+    // Existing space file handling
+    return handleSpaceFile(request);
+  } else if (url.hostname === 'client') {
+    // New: Handle client bundle files
+    return handleClientFile(request);
+  }
+  
+  return new Response('Invalid hostname', { status: 400 });
+});
+
+async function handleClientFile(request) {
+  const url = new URL(request.url);
+  const clientBundlePath = getCurrentClientBundle();
+  
+  if (!clientBundlePath) {
+    // Fallback to embedded build/
+    clientBundlePath = path.join(__dirname, 'build');
+  }
+  
+  const filePath = path.join(clientBundlePath, url.pathname);
+  // Serve the file with appropriate MIME type
+  return serveFile(filePath);
 }
 ```
 
-#### 3. IPC additions needed
+#### 4. IPC additions needed
 ```javascript
 // New IPC handlers for client bundle management
 ipcMain.handle('check-client-update', async (event) => {
@@ -328,14 +364,18 @@ echo "Client bundle created: $BUNDLE_DIR"
 5. **Development workflow**: Developers can test client changes without rebuilding the entire desktop app
 6. **Preserves existing architecture**: No changes to core package, client package, or Electron shell
 7. **Leverages existing build system**: Uses current Vite + Electron setup
+8. **Unified protocol**: Uses existing `sila://` protocol instead of `electron-serve`
+9. **Better security**: Custom protocol gives more control over file serving
+10. **Consistent with existing patterns**: Follows the same pattern as space file serving
 
 ## Implementation roadmap
 
 ### Phase 1: Basic client bundle system
 1. Create client bundle creation script
-2. Modify `electronWindow.js` to load from bundles
-3. Add basic IPC handlers for bundle management
-4. Test with manual bundle switching
+2. Extend `sila://` protocol to handle client bundles
+3. Modify `electronWindow.js` to use `sila://client/index.html`
+4. Add basic IPC handlers for bundle management
+5. Test with manual bundle switching
 
 ### Phase 2: Update mechanism
 1. Implement update checking and downloading
