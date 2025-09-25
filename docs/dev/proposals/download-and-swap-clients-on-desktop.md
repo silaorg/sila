@@ -290,6 +290,9 @@ serveClient(mainWindow);
 
 // Or even simpler:
 mainWindow.loadURL(`sila://clients/${clientVersion}/index.html`);
+// Examples:
+// sila://clients/v1.0.3/index.html
+// sila://clients/embedded/index.html
 
 // For seamless updates, we can also update the serve function:
 function updateClientVersion(newVersion) {
@@ -444,7 +447,7 @@ echo "Client bundle created: $BUNDLE_DIR"
 ### Phase 1: Basic client bundle system
 1. Create client bundle creation script
 2. Extend `sila://` protocol to handle client bundles
-3. Modify `electronWindow.js` to use `sila://client/index.html`
+3. Modify `electronWindow.js` to use `sila://clients/v1.0.3/index.html`
 4. Add basic IPC handlers for bundle management
 5. Test with manual bundle switching
 
