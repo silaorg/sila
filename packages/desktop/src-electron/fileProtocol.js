@@ -1,8 +1,8 @@
-import { protocol, app } from 'electron';
+import { protocol, app, net } from 'electron';
 import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { spaceManager } from './spaceManager.js';
 
 /**
@@ -71,46 +71,59 @@ export async function setupFileProtocol() {
           buildName = latest || embeddedName;
         }
 
-        // Resolve full path by picking first candidate base that contains the requested file
-        let fullPath = '';
+        // Determine base directory candidates
+        /** @type {string[]} */
+        let baseCandidates = [];
         if (buildName === embeddedName) {
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = path.dirname(__filename);
           const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
-          const candidates = [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
-          for (const base of candidates) {
-            const candidatePath = path.join(base, rest);
-            const ok = await fs.access(candidatePath).then(() => true).catch(() => false);
-            if (ok) { fullPath = candidatePath; break; }
-          }
+          baseCandidates = [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
         } else {
-          const base = path.join(buildsRoot, buildName);
-          const candidatePath = path.join(base, rest);
-          const ok = await fs.access(candidatePath).then(() => true).catch(() => false);
-          if (ok) fullPath = candidatePath;
+          baseCandidates = [path.join(buildsRoot, buildName)];
         }
 
-        if (!fullPath) {
-          return new Response('File not found', { status: 404 });
+        // Try to resolve a safe final path similar to electron-serve
+        for (const baseDir of baseCandidates) {
+          try {
+            const directory = baseDir;
+            const indexPath = path.join(directory, 'index.html');
+            const filePath = path.join(directory, decodeURIComponent('/' + rest).replace(/^\//, ''));
+
+            // Path traversal guard
+            const relativePath = path.relative(directory, filePath);
+            const isSafe = !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+            if (!isSafe) {
+              continue;
+            }
+
+            const finalPath = await getServePath(filePath, 'index');
+            const fileExtension = path.extname(filePath);
+
+            if (!finalPath && fileExtension && fileExtension !== '.html' && fileExtension !== '.asar') {
+              continue;
+            }
+
+            const fileUrl = pathToFileURL((finalPath || indexPath));
+            const response = await net.fetch(fileUrl.toString());
+
+            if ((finalPath || indexPath).endsWith('.map')) {
+              const body = await response.arrayBuffer();
+              return new Response(body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: {
+                  ...Object.fromEntries(response.headers.entries()),
+                  'content-type': 'application/json',
+                },
+              });
+            }
+
+            return response;
+          } catch {}
         }
 
-        const exists = await fs.access(fullPath).then(() => true).catch(() => false);
-        if (!exists) {
-          return new Response('File not found', { status: 404 });
-        }
-
-        /** @type {Record<string, string>} */
-        const headers = {};
-        const lc = fullPath.toLowerCase();
-        if (lc.endsWith('.html')) headers['Content-Type'] = 'text/html; charset=utf-8';
-        else if (lc.endsWith('.js')) headers['Content-Type'] = 'text/javascript; charset=utf-8';
-        else if (lc.endsWith('.css')) headers['Content-Type'] = 'text/css; charset=utf-8';
-        else if (lc.endsWith('.svg')) headers['Content-Type'] = 'image/svg+xml';
-        else if (lc.endsWith('.png')) headers['Content-Type'] = 'image/png';
-        else if (lc.endsWith('.ico')) headers['Content-Type'] = 'image/x-icon';
-
-        const buf = await fs.readFile(fullPath);
-        return new Response(buf, { headers });
+        return new Response('Not Found', { status: 404 });
       }
 
       // Default: spaces
@@ -164,6 +177,18 @@ export async function setupFileProtocol() {
       return new Response('Internal server error', { status: 500 });
     }
   });
+}
+
+/**
+ * Resolve a path like electron-serve: if it's a directory, return <dir>/<file>.html; if file, return it.
+ */
+async function getServePath(path_, file) {
+  try {
+    const stat = await fs.stat(path_);
+    if (stat.isFile()) return path_;
+    if (stat.isDirectory()) return getServePath(path.join(path_, `${file}.html`), file);
+  } catch {}
+  return undefined;
 }
 
 /**
