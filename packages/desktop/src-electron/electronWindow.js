@@ -1,13 +1,10 @@
 import { app, BrowserWindow, Menu, shell } from 'electron';
-import serve from 'electron-serve';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { getWindowOptionsWithState, saveWindowState, loadWindowState } from './windowState.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const serveURL = serve({ directory: '.' });
 
 /**
  * Creates a new browser window
@@ -21,7 +18,8 @@ export function createWindow(isDev) {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      webSecurity: !isDev, // Needed for SvelteKit in development
+      webSecurity: !isDev,
+      /*partition: 'persist:sila',*/ // NOTE: If we use partition, make sure our sila:// protocol is using that partition
       preload: path.join(__dirname, 'preload.js')
     }
   });
@@ -35,11 +33,10 @@ export function createWindow(isDev) {
 
   // Load the appropriate URL/file based on environment
   if (isDev) {
-    // Development: load from SvelteKit dev server
+    // Development: load from SvelteKit dev server. The server has to be running
     mainWindow.loadURL('http://localhost:6969');
   } else {
-    // Production: load built SvelteKit files
-    serveURL(mainWindow);
+    mainWindow.loadURL('sila://builds/desktop/index.html');
   }
 
   // Show window when ready to prevent visual flash
