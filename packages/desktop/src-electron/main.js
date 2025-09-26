@@ -1,4 +1,8 @@
 import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+
+// Set the app name IMMEDIATELY before any other imports that might use app.getPath('userData')
+app.setName('Sila');
+
 import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
@@ -40,9 +44,6 @@ let mainWindow;
 // Type declaration for global
 /** @type {any} */
 const globalAny = global;
-
-// Set the app name as early as possible so userData path uses 'Sila'
-app.setName('Sila');
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
