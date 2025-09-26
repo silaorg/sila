@@ -5,7 +5,7 @@ import { dialog, BrowserWindow } from 'electron';
 // Standard auto-updater setup - this is the usual way
 export function setupAutoUpdater() {
   // Configure auto updater
-  autoUpdater.autoDownload = false;
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
   // Set up event handlers
@@ -15,7 +15,7 @@ export function setupAutoUpdater() {
 
   autoUpdater.on('update-available', (/** @type {any} */ info) => {
     console.log('Update available:', info);
-    showUpdateDialog(info);
+    // Auto-download is now enabled, so we just log and let it download automatically
   });
 
   autoUpdater.on('update-not-available', () => {
@@ -28,7 +28,7 @@ export function setupAutoUpdater() {
 
   autoUpdater.on('update-downloaded', (/** @type {any} */ info) => {
     console.log('Update downloaded:', info);
-    showInstallDialog();
+    showInstallDialog(info);
   });
 
   // Check for updates after a short delay
@@ -37,33 +37,15 @@ export function setupAutoUpdater() {
   }, 5000);
 }
 
-function showUpdateDialog(/** @type {any} */ info) {
-  const mainWindow = BrowserWindow.getAllWindows()[0];
-  if (!mainWindow) return;
 
-  dialog.showMessageBox(mainWindow, {
-    type: 'info',
-    title: 'Update Available',
-    message: `A new version (${info.version}) is available!`,
-    detail: 'Would you like to download and install it now?',
-    buttons: ['Yes', 'No'],
-    defaultId: 0,
-    cancelId: 1
-  }).then((result) => {
-    if (result.response === 0) {
-      autoUpdater.downloadUpdate();
-    }
-  });
-}
-
-function showInstallDialog() {
+function showInstallDialog(/** @type {any} */ info) {
   const mainWindow = BrowserWindow.getAllWindows()[0];
   if (!mainWindow) return;
 
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'Update Ready',
-    message: 'The update has been downloaded and is ready to install.',
+    message: `Sila ${info.version} has been downloaded and is ready to install.`,
     detail: 'The app will restart to install the update.',
     buttons: ['Restart Now', 'Later'],
     defaultId: 0,
