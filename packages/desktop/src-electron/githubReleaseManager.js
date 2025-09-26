@@ -17,8 +17,14 @@ export class GitHubReleaseManager {
   constructor() {
     this.owner = 'silaorg'; // From package.json build.publish
     this.repo = 'sila'; // From package.json build.publish
-    this.buildsDir = path.join(app.getPath('userData'), 'builds');
     this.currentVersion = app.getVersion();
+  }
+
+  /**
+   * Resolve builds directory dynamically to respect app.setName timing
+   */
+  getBuildsDir() {
+    return path.join(app.getPath('userData'), 'builds');
   }
 
   /**
@@ -89,8 +95,9 @@ export class GitHubReleaseManager {
     let tempZipPath = null;
     try {
       const buildName = `desktop-v${version}`;
-      const buildDir = path.join(this.buildsDir, buildName);
-      tempZipPath = path.join(this.buildsDir, `${buildName}.zip`);
+      const buildsDir = this.getBuildsDir();
+      const buildDir = path.join(buildsDir, buildName);
+      tempZipPath = path.join(buildsDir, `${buildName}.zip`);
       
       // Check if build already exists
       const buildExists = await fs.access(buildDir).then(() => true).catch(() => false);
@@ -100,7 +107,7 @@ export class GitHubReleaseManager {
       }
       
       // Ensure builds directory exists
-      await fs.mkdir(this.buildsDir, { recursive: true });
+      await fs.mkdir(buildsDir, { recursive: true });
       
       // Download the zip file
       console.log(`Downloading build from: ${downloadUrl}`);
@@ -156,10 +163,10 @@ export class GitHubReleaseManager {
     try {
       // Ensure builds directory exists; if not, create it and return empty list
       try {
-        await fs.mkdir(this.buildsDir, { recursive: true });
+        await fs.mkdir(this.getBuildsDir(), { recursive: true });
       } catch { /* noop */ }
 
-      const entries = await fs.readdir(this.buildsDir, { withFileTypes: true });
+      const entries = await fs.readdir(this.getBuildsDir(), { withFileTypes: true });
       return entries
         .filter(entry => entry.isDirectory() && entry.name.startsWith('desktop-v'))
         .map(entry => entry.name)

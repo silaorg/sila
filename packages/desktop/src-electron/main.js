@@ -41,11 +41,11 @@ let mainWindow;
 /** @type {any} */
 const globalAny = global;
 
+// Set the app name as early as possible so userData path uses 'Sila'
+app.setName('Sila');
+
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
-
-  // Set the app name for menus
-  app.setName('Sila');
   
   // Initialize update coordinator with current version
   updateCoordinator.setCurrentVersion(app.getVersion());
