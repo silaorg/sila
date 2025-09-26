@@ -7,6 +7,7 @@ import { pipeline } from 'stream/promises';
 import { createGunzip } from 'zlib';
 import { createReadStream } from 'fs';
 import AdmZip from 'adm-zip';
+import { updateCoordinator } from './updateCoordinator.js';
 
 /**
  * GitHub Release Manager for downloading and managing desktop builds
@@ -25,6 +26,12 @@ export class GitHubReleaseManager {
    * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string} | null>}
    */
   async checkForLatestRelease() {
+    // Check if we can check for client updates (no full app update in progress)
+    if (!updateCoordinator.canCheckClientUpdates()) {
+      console.log('Skipping client bundle update check - full app update in progress');
+      return null;
+    }
+
     try {
       const url = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
       
@@ -70,6 +77,15 @@ export class GitHubReleaseManager {
    * @returns {Promise<boolean>} Success status
    */
   async downloadAndExtractBuild(downloadUrl, version) {
+    // Check if we can download client updates
+    if (!updateCoordinator.canCheckClientUpdates()) {
+      console.log('Skipping client bundle download - full app update in progress');
+      return false;
+    }
+
+    // Mark client bundle update as in progress
+    updateCoordinator.setClientBundleUpdate(true);
+
     let tempZipPath = null;
     try {
       const buildName = `desktop-v${version}`;
@@ -113,6 +129,7 @@ export class GitHubReleaseManager {
       tempZipPath = null;
       
       console.log(`Successfully downloaded and extracted build: ${buildName}`);
+      updateCoordinator.setClientBundleUpdate(false);
       return true;
     } catch (error) {
       console.error('Error downloading and extracting build:', error);
@@ -126,6 +143,7 @@ export class GitHubReleaseManager {
         }
       }
       
+      updateCoordinator.setClientBundleUpdate(false);
       return false;
     }
   }
@@ -294,6 +312,11 @@ export function setupGitHubReleaseIPC() {
       return true;
     }
     return false;
+  });
+
+  // Get update coordinator state
+  ipcMain.handle('get-update-coordinator-state', async (event) => {
+    return updateCoordinator.getState();
   });
 }
 

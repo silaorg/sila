@@ -11,6 +11,7 @@
   let isChecking = false;
   let isDownloading = false;
   let downloadProgress = '';
+  let updateCoordinatorState = null;
 
   // Check if we're in Electron
   const isElectron = typeof window !== 'undefined' && window.electronFileSystem;
@@ -23,6 +24,11 @@
       latestRelease = await window.electronFileSystem.checkGitHubRelease();
       currentVersion = await window.electronFileSystem.getCurrentBuildVersion();
       availableBuilds = await window.electronFileSystem.getAvailableBuilds();
+      
+      // Check update coordinator state if available
+      if (window.electronFileSystem.getUpdateCoordinatorState) {
+        updateCoordinatorState = await window.electronFileSystem.getUpdateCoordinatorState();
+      }
     } catch (error) {
       console.error('Error checking for latest release:', error);
     } finally {
@@ -83,6 +89,16 @@
         <div class="text-xs text-surface-600-300-token">
           Current Version: {currentVersion}
         </div>
+
+        <!-- Update Coordinator State -->
+        {#if updateCoordinatorState}
+          <div class="text-xs text-surface-600-300-token">
+            Update State: 
+            {updateCoordinatorState.fullAppUpdate ? 'Full App Update' : 'No Full App Update'} | 
+            {updateCoordinatorState.clientBundleUpdate ? 'Client Bundle Update' : 'No Client Bundle Update'} |
+            {updateCoordinatorState.dialogShown ? 'Dialog Shown' : 'No Dialog'}
+          </div>
+        {/if}
 
         <!-- Available Builds -->
         {#if availableBuilds.length > 0}
