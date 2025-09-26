@@ -154,6 +154,11 @@ export class GitHubReleaseManager {
    */
   async getAvailableBuilds() {
     try {
+      // Ensure builds directory exists; if not, create it and return empty list
+      try {
+        await fs.mkdir(this.buildsDir, { recursive: true });
+      } catch { /* noop */ }
+
       const entries = await fs.readdir(this.buildsDir, { withFileTypes: true });
       return entries
         .filter(entry => entry.isDirectory() && entry.name.startsWith('desktop-v'))
@@ -165,7 +170,7 @@ export class GitHubReleaseManager {
           return versionB.localeCompare(versionA, undefined, { numeric: true });
         });
     } catch (error) {
-      console.error('Error getting available builds:', error);
+      // If directory truly doesn't exist or is inaccessible, surface an empty list
       return [];
     }
   }
