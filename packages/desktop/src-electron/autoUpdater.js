@@ -16,9 +16,18 @@ export function setupAutoUpdater() {
 
   autoUpdater.on('update-available', (/** @type {any} */ info) => {
     console.log('Update available:', info);
-    // Mark full app update as in progress
-    updateCoordinator.setFullAppUpdate(true);
-    // Auto-download is now enabled, so we just log and let it download automatically
+    
+    // Determine if we should use this full app update based on strategy
+    const strategy = updateCoordinator.determineUpdateStrategy(info.version, null);
+    
+    if (strategy && strategy.useFullAppUpdate) {
+      console.log('Using full app update based on strategy:', strategy.reason);
+      updateCoordinator.setFullAppUpdate(true);
+      // Auto-download is now enabled, so we just log and let it download automatically
+    } else {
+      console.log('Skipping full app update based on strategy:', strategy?.reason || 'No strategy');
+      // Don't mark as updating, allow client bundle updates
+    }
   });
 
   autoUpdater.on('update-not-available', () => {

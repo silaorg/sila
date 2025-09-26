@@ -67,6 +67,14 @@ export function setupFileSystemAPI() {
     },
 
     /**
+     * Check for updates with strategy consideration
+     * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
+     */
+    checkUpdatesWithStrategy: () => {
+      return ipcRenderer.invoke('check-updates-with-strategy');
+    },
+
+    /**
      * Download and extract a GitHub build
      * @param {string} downloadUrl - URL to download the zip file
      * @param {string} version - Version string for the build

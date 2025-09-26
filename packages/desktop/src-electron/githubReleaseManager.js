@@ -179,6 +179,36 @@ export class GitHubReleaseManager {
   }
 
   /**
+   * Check for updates with strategy consideration
+   * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
+   */
+  async checkForUpdatesWithStrategy() {
+    // Check if we can check for client updates (no full app update in progress)
+    if (!updateCoordinator.canCheckClientUpdates()) {
+      console.log('Skipping client bundle update check - full app update in progress');
+      return null;
+    }
+
+    try {
+      const release = await this.checkForLatestRelease();
+      if (!release) {
+        return null;
+      }
+
+      // Determine update strategy
+      const strategy = updateCoordinator.determineUpdateStrategy(null, release.version);
+      
+      return {
+        ...release,
+        strategy
+      };
+    } catch (error) {
+      console.error('Error checking for updates with strategy:', error);
+      return null;
+    }
+  }
+
+  /**
    * Make HTTP request to GitHub API
    * @param {string} url - URL to request
    * @returns {Promise<string>} Response body
@@ -286,6 +316,11 @@ export function setupGitHubReleaseIPC() {
   // Check for latest release
   ipcMain.handle('check-github-release', async (event) => {
     return await githubReleaseManager.checkForLatestRelease();
+  });
+
+  // Check for updates with strategy
+  ipcMain.handle('check-updates-with-strategy', async (event) => {
+    return await githubReleaseManager.checkForUpdatesWithStrategy();
   });
 
   // Download and extract a specific build

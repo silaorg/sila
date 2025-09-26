@@ -1,12 +1,17 @@
+import { updateStrategy } from './updateStrategy.js';
+
 /**
  * Update Coordinator - Manages coordination between different update systems
  * Prevents conflicts between full app updates and client bundle updates
+ * Uses smart strategy to determine which update mechanism to use
  */
 export class UpdateCoordinator {
   constructor() {
     this.fullAppUpdate = false;
     this.clientBundleUpdate = false;
     this.dialogShown = false;
+    this.updateStrategy = null;
+    this.currentVersion = null;
   }
 
   /**
@@ -53,6 +58,36 @@ export class UpdateCoordinator {
   }
 
   /**
+   * Set current app version
+   * @param {string} version - Current app version
+   */
+  setCurrentVersion(version) {
+    this.currentVersion = version;
+  }
+
+  /**
+   * Determine update strategy based on available versions
+   * @param {string} latestFullAppVersion - Latest full app version
+   * @param {string} latestClientBundleVersion - Latest client bundle version
+   * @returns {Object} Update strategy recommendation
+   */
+  determineUpdateStrategy(latestFullAppVersion, latestClientBundleVersion) {
+    if (!this.currentVersion) {
+      console.warn('Current version not set, cannot determine update strategy');
+      return null;
+    }
+
+    this.updateStrategy = updateStrategy.determineUpdateStrategy(
+      this.currentVersion,
+      latestFullAppVersion,
+      latestClientBundleVersion
+    );
+
+    console.log('Update strategy determined:', this.updateStrategy);
+    return this.updateStrategy;
+  }
+
+  /**
    * Get current update state
    * @returns {Object} - Current update state
    */
@@ -60,7 +95,9 @@ export class UpdateCoordinator {
     return {
       fullAppUpdate: this.fullAppUpdate,
       clientBundleUpdate: this.clientBundleUpdate,
-      dialogShown: this.dialogShown
+      dialogShown: this.dialogShown,
+      updateStrategy: this.updateStrategy,
+      currentVersion: this.currentVersion
     };
   }
 

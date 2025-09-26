@@ -47,6 +47,9 @@ app.whenReady().then(async () => {
   // Set the app name for menus
   app.setName('Sila');
   
+  // Initialize update coordinator with current version
+  updateCoordinator.setCurrentVersion(app.getVersion());
+  
   // Setup custom file protocol
   setupSilaProtocol();
 

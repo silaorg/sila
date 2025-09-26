@@ -21,13 +21,27 @@
     
     isChecking = true;
     try {
-      latestRelease = await window.electronFileSystem.checkGitHubRelease();
+      // Use the new strategy-based approach
+      const updateInfo = await window.electronFileSystem.checkUpdatesWithStrategy();
+      if (updateInfo) {
+        latestRelease = {
+          version: updateInfo.version,
+          downloadUrl: updateInfo.downloadUrl,
+          publishedAt: updateInfo.publishedAt
+        };
+        // Store strategy info for display
+        updateCoordinatorState = updateInfo.strategy;
+      } else {
+        latestRelease = null;
+      }
+      
       currentVersion = await window.electronFileSystem.getCurrentBuildVersion();
       availableBuilds = await window.electronFileSystem.getAvailableBuilds();
       
       // Check update coordinator state if available
       if (window.electronFileSystem.getUpdateCoordinatorState) {
-        updateCoordinatorState = await window.electronFileSystem.getUpdateCoordinatorState();
+        const coordinatorState = await window.electronFileSystem.getUpdateCoordinatorState();
+        updateCoordinatorState = { ...updateCoordinatorState, ...coordinatorState };
       }
     } catch (error) {
       console.error('Error checking for latest release:', error);
@@ -89,6 +103,23 @@
         <div class="text-xs text-surface-600-300-token">
           Current Version: {currentVersion}
         </div>
+
+        <!-- Update Strategy -->
+        {#if updateCoordinatorState && updateCoordinatorState.reason}
+          <div class="bg-blue-50-800-token p-3 rounded border">
+            <div class="text-sm font-medium text-blue-900-100-token mb-1">
+              Update Strategy
+            </div>
+            <div class="text-xs text-blue-700-300-token mb-2">
+              {updateCoordinatorState.reason}
+            </div>
+            <div class="text-xs text-blue-600-400-token">
+              Priority: {updateCoordinatorState.priority} | 
+              Use Full App: {updateCoordinatorState.useFullAppUpdate ? 'Yes' : 'No'} | 
+              Use Client Bundle: {updateCoordinatorState.useClientBundleUpdate ? 'Yes' : 'No'}
+            </div>
+          </div>
+        {/if}
 
         <!-- Update Coordinator State -->
         {#if updateCoordinatorState}
