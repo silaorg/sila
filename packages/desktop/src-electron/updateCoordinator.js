@@ -69,7 +69,7 @@ export class UpdateCoordinator {
    * Determine update strategy based on available versions
    * @param {string} latestFullAppVersion - Latest full app version
    * @param {string} latestClientBundleVersion - Latest client bundle version
-   * @returns {Object} Update strategy recommendation
+   * @returns {Object | null} Update strategy recommendation
    */
   determineUpdateStrategy(latestFullAppVersion, latestClientBundleVersion) {
     if (!this.currentVersion) {
