@@ -1,6 +1,7 @@
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 import { dialog, BrowserWindow } from 'electron';
+import { updateCoordinator } from './updateCoordinator.js';
 
 // Standard auto-updater setup - this is the usual way
 export function setupAutoUpdater() {
@@ -15,11 +16,24 @@ export function setupAutoUpdater() {
 
   autoUpdater.on('update-available', (/** @type {any} */ info) => {
     console.log('Update available:', info);
-    // Auto-download is now enabled, so we just log and let it download automatically
+    
+    // Determine if we should use this full app update based on strategy
+    const strategy = updateCoordinator.determineUpdateStrategy(info.version, null);
+    
+    if (strategy && strategy.useFullAppUpdate) {
+      console.log('Using full app update based on strategy:', strategy.reason);
+      updateCoordinator.setFullAppUpdate(true);
+      // Auto-download is now enabled, so we just log and let it download automatically
+    } else {
+      console.log('Skipping full app update based on strategy:', strategy?.reason || 'No strategy');
+      // Don't mark as updating, allow client bundle updates
+    }
   });
 
   autoUpdater.on('update-not-available', () => {
     console.log('Update not available');
+    // No full app update available, allow client bundle updates
+    updateCoordinator.setFullAppUpdate(false);
   });
 
   autoUpdater.on('error', (err) => {
@@ -42,6 +56,14 @@ function showInstallDialog(/** @type {any} */ info) {
   const mainWindow = BrowserWindow.getAllWindows()[0];
   if (!mainWindow) return;
 
+  // Check if we can show dialog (prevent multiple dialogs)
+  if (!updateCoordinator.canShowDialog()) {
+    console.log('Update dialog already shown, skipping');
+    return;
+  }
+
+  updateCoordinator.setDialogShown(true);
+
   dialog.showMessageBox(mainWindow, {
     type: 'info',
     title: 'Update Ready',
@@ -51,6 +73,7 @@ function showInstallDialog(/** @type {any} */ info) {
     defaultId: 0,
     cancelId: 1
   }).then((result) => {
+    updateCoordinator.setDialogShown(false);
     if (result.response === 0) {
       autoUpdater.quitAndInstall();
     }

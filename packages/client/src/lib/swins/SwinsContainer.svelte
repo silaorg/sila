@@ -89,8 +89,6 @@
   <!-- Stack of pages -->
   <div
     class="fixed inset-0 z-49 flex flex-col items-center p-4 pt-20 pb-20 overflow-y-auto"
-    in:fly={{ y: 50, duration: 200 }}
-    out:fly={{ y: 50, duration: 200 }}
   >
     <div
       class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80"
@@ -98,8 +96,6 @@
       onkeydown={(e) => e.key === "Enter" && closeAll}
       role="button"
       tabindex="0"
-      in:fade={{ duration: 100 }}
-      out:fade={{ duration: 100 }}
     ></div>
     {#each swins.windows as page, i (page.id)}
       <div
