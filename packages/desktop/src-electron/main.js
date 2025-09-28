@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { setupChatGptImportIpc } from './parser/chatgptImportMain.js';
 import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
@@ -50,6 +51,7 @@ app.whenReady().then(async () => {
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();
+  setupChatGptImportIpc();
   
   mainWindow = createWindow(isDev);
   setupElectronMenu();
