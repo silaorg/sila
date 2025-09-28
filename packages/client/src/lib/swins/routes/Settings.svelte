@@ -11,6 +11,7 @@
   } from "@sila/core";
   import { txtStore } from "@sila/client/state/txtStore";
   import ThemeSwitcher from "@sila/client/comps/themes/ThemeSwitcher.svelte";
+  import { importChatGptZipIntoSpace } from "@sila/client/utils/chatgptImport";
 </script>
 
 <div>
@@ -48,6 +49,30 @@
     <div class="card p-4 border-[1px] border-surface-200-800">
       <h3 class="h4 mb-4">{$txtStore.settingsPage.providers.title}</h3>
       <ModelProviders />
+    </div>
+
+    <div class="card p-4 border-[1px] border-surface-200-800">
+      <h3 class="h4 mb-4">Import from ChatGPT</h3>
+      <div class="flex items-center gap-3">
+        <input id="chatgptZipInput" type="file" accept="application/zip" class="input" onchange={async (e: any) => {
+          try {
+            const file = e?.currentTarget?.files?.[0];
+            if (!file) return;
+            if (!clientState.currentSpace) {
+              alert("No active workspace selected.");
+              return;
+            }
+            const res = await importChatGptZipIntoSpace(clientState.currentSpace, file);
+            alert(`Imported: ${res.created}, Skipped: ${res.skipped}`);
+          } catch (err) {
+            console.error(err);
+            alert("Failed to import ChatGPT export. Check console for details.");
+          } finally {
+            e.currentTarget.value = '';
+          }
+        }} />
+      </div>
+      <p class="text-sm mt-2 opacity-70">Select your ChatGPT export .zip. We will create conversations and attachments. Duplicates are skipped using ChatGPT conversation id.</p>
     </div>
 
     <div class="card p-4 border-[1px] border-surface-200-800">
