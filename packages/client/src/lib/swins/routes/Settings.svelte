@@ -54,11 +54,9 @@
     <div class="card p-4 border-[1px] border-surface-200-800">
       <h3 class="h4 mb-4">Import from ChatGPT</h3>
       <div class="flex items-center gap-3">
-        {#if typeof window !== 'undefined' && (window as any).chatgptImport}
-          <button class="btn preset-filled" onclick={async () => {
+        <button class="btn preset-filled" onclick={async () => {
             try {
-              // Use native open dialog exposed already
-              const filePath = await (window as any).dialogs?.open({ title: 'Select ChatGPT export', filters: [{ name: 'Zip', extensions: ['zip'] }] });
+              const filePath = await (window as any).electronDialog?.openDialog({ title: 'Select ChatGPT export', filters: [{ name: 'Zip', extensions: ['zip'] }] });
               if (!filePath) return;
               const unsubs: Array<() => void> = [];
               const api = (window as any).chatgptImport;
@@ -68,7 +66,6 @@
                 // Import each conversation as it arrives
                 // Reuse the same logic from browser path, but for a single conversation
                 // Minimal duplicate check:
-                const { importChatGptZipIntoSpace } = await import('@sila/client/utils/chatgptImport');
                 // Build a fake ExportData wrapper to reuse function quickly
                 // For performance, you may want a dedicated function later
                 // Here we just rely on the root logic for now
@@ -108,25 +105,7 @@
               alert('Failed to import ChatGPT export.');
             }
           }}>Select ZIP…</button>
-        {:else}
-          <input id="chatgptZipInput" type="file" accept="application/zip" class="input" onchange={async (e: any) => {
-            try {
-              const file = e?.currentTarget?.files?.[0];
-              if (!file) return;
-              if (!clientState.currentSpace) {
-                alert("No active workspace selected.");
-                return;
-              }
-              const res = await importChatGptZipIntoSpace(clientState.currentSpace, file);
-              alert(`Imported: ${res.created}, Skipped: ${res.skipped}`);
-            } catch (err) {
-              console.error(err);
-              alert("Failed to import ChatGPT export. Check console for details.");
-            } finally {
-              e.currentTarget.value = '';
-            }
-          }} />
-        {/if}
+        
       </div>
       <p class="text-sm mt-2 opacity-70">Select your ChatGPT export .zip. We will create conversations and attachments. Duplicates are skipped using ChatGPT conversation id.</p>
     </div>
