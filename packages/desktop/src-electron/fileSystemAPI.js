@@ -93,6 +93,14 @@ export function setupFileSystemAPI() {
     },
 
     /**
+     * Get all available desktop builds from recent GitHub releases
+     * @returns {Promise<Array<{version: string, downloadUrl: string, publishedAt: string, releaseTag: string}>>}
+     */
+    getAllAvailableDesktopBuilds: () => {
+      return ipcRenderer.invoke('get-all-available-desktop-builds');
+    },
+
+    /**
      * Get current build version
      * @returns {Promise<string>} Current build version
      */

@@ -7,6 +7,7 @@
   // GitHub release state
   let latestRelease = null;
   let availableBuilds = [];
+  let allAvailableDesktopBuilds = [];
   let currentVersion = '';
   let isChecking = false;
   let isDownloading = false;
@@ -37,6 +38,7 @@
       
       currentVersion = await window.electronFileSystem.getCurrentBuildVersion();
       availableBuilds = await window.electronFileSystem.getAvailableBuilds();
+      allAvailableDesktopBuilds = await window.electronFileSystem.getAllAvailableDesktopBuilds();
       
       // Check update coordinator state if available
       if (window.electronFileSystem.getUpdateCoordinatorState) {
@@ -64,6 +66,32 @@
       if (success) {
         downloadProgress = 'Download complete! Reloading...';
         // Reload to the latest build
+        window.location.href = 'sila://builds/desktop/index.html';
+      } else {
+        downloadProgress = 'Download failed';
+      }
+    } catch (error) {
+      console.error('Error downloading build:', error);
+      downloadProgress = 'Download failed: ' + error.message;
+    } finally {
+      isDownloading = false;
+    }
+  }
+
+  async function downloadSpecificBuild(build) {
+    if (!isElectron) return;
+    
+    isDownloading = true;
+    downloadProgress = `Downloading ${build.version}...`;
+    try {
+      const success = await window.electronFileSystem.downloadGitHubBuild(
+        build.downloadUrl, 
+        build.version
+      );
+      
+      if (success) {
+        downloadProgress = 'Download complete! Reloading...';
+        // Reload to the new build
         window.location.href = 'sila://builds/desktop/index.html';
       } else {
         downloadProgress = 'Download failed';
@@ -135,6 +163,37 @@
         {#if availableBuilds.length > 0}
           <div class="text-xs text-surface-600-300-token">
             Available Builds: {availableBuilds.join(', ')}
+          </div>
+        {/if}
+
+        <!-- All Available Desktop Builds -->
+        {#if allAvailableDesktopBuilds.length > 0}
+          <div class="bg-surface-50-800-token p-3 rounded border">
+            <div class="text-sm font-medium text-surface-900-100-token mb-2">
+              All Available Desktop Builds ({allAvailableDesktopBuilds.length})
+            </div>
+            <div class="space-y-2 max-h-40 overflow-y-auto">
+              {#each allAvailableDesktopBuilds as build}
+                <div class="flex items-center justify-between bg-surface-100-700-token p-2 rounded text-xs">
+                  <div>
+                    <div class="font-medium text-surface-900-100-token">v{build.version}</div>
+                    <div class="text-surface-600-300-token">
+                      {new Date(build.publishedAt).toLocaleDateString()} ({build.releaseTag})
+                      {#if build.size}
+                        - {(build.size / 1024 / 1024).toFixed(1)} MB
+                      {/if}
+                    </div>
+                  </div>
+                  <button 
+                    class="btn btn-xs variant-outline" 
+                    onclick={() => downloadSpecificBuild(build)}
+                    disabled={isDownloading}
+                  >
+                    Download
+                  </button>
+                </div>
+              {/each}
+            </div>
           </div>
         {/if}
 

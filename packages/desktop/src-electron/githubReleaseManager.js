@@ -50,15 +50,15 @@ export class GitHubReleaseManager {
       );
       
       if (!desktopAsset) {
-        console.log('No desktop build found in latest release');
-        return null;
+        console.log('No desktop build found in latest release, checking recent releases...');
+        return await this.findDesktopBuildInRecentReleases();
       }
       
       // Extract version from asset name (desktop-v1.2.3.zip -> 1.2.3)
       const versionMatch = desktopAsset.name.match(/desktop-v(.+)\.zip$/);
       if (!versionMatch) {
         console.log('Could not extract version from asset name:', desktopAsset.name);
-        return null;
+        return await this.findDesktopBuildInRecentReleases();
       }
       
       const version = versionMatch[1];
@@ -72,6 +72,55 @@ export class GitHubReleaseManager {
       };
     } catch (error) {
       console.error('Error checking for latest release:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Find desktop build in recent releases (fallback when latest doesn't have one)
+   * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string} | null>}
+   */
+  async findDesktopBuildInRecentReleases() {
+    try {
+      console.log('Searching recent releases for desktop builds...');
+      
+      // Get recent releases (last 10)
+      const url = `https://api.github.com/repos/${this.owner}/${this.repo}/releases?per_page=10&page=1`;
+      
+      const response = await this.makeHttpRequest(url);
+      const releases = JSON.parse(response);
+      
+      // Look through releases for desktop builds
+      for (const release of releases) {
+        const desktopAsset = release.assets.find(asset => 
+          asset.name.startsWith('desktop-v') && asset.name.endsWith('.zip')
+        );
+        
+        if (desktopAsset) {
+          // Extract version from asset name
+          const versionMatch = desktopAsset.name.match(/desktop-v(.+)\.zip$/);
+          if (versionMatch) {
+            const version = versionMatch[1];
+            
+            console.log(`Found desktop build in release ${release.tag_name}: ${desktopAsset.name}`);
+            
+            return {
+              version,
+              downloadUrl: desktopAsset.browser_download_url,
+              publishedAt: release.published_at,
+              assetName: desktopAsset.name,
+              size: desktopAsset.size,
+              releaseTag: release.tag_name,
+              isFromRecentRelease: true
+            };
+          }
+        }
+      }
+      
+      console.log('No desktop builds found in recent releases');
+      return null;
+    } catch (error) {
+      console.error('Error searching recent releases:', error);
       return null;
     }
   }
@@ -178,6 +227,59 @@ export class GitHubReleaseManager {
         });
     } catch (error) {
       // If directory truly doesn't exist or is inaccessible, surface an empty list
+      return [];
+    }
+  }
+
+  /**
+   * Get all available desktop builds from recent GitHub releases
+   * @returns {Promise<Array<{version: string, downloadUrl: string, publishedAt: string, releaseTag: string}>>}
+   */
+  async getAllAvailableDesktopBuilds() {
+    try {
+      console.log('Fetching all available desktop builds from recent releases...');
+      
+      // Get recent releases (last 20 to have more options)
+      const url = `https://api.github.com/repos/${this.owner}/${this.repo}/releases?per_page=20&page=1`;
+      
+      const response = await this.makeHttpRequest(url);
+      const releases = JSON.parse(response);
+      
+      const desktopBuilds = [];
+      
+      // Look through releases for desktop builds
+      for (const release of releases) {
+        const desktopAsset = release.assets.find(asset => 
+          asset.name.startsWith('desktop-v') && asset.name.endsWith('.zip')
+        );
+        
+        if (desktopAsset) {
+          // Extract version from asset name
+          const versionMatch = desktopAsset.name.match(/desktop-v(.+)\.zip$/);
+          if (versionMatch) {
+            const version = versionMatch[1];
+            
+            desktopBuilds.push({
+              version,
+              downloadUrl: desktopAsset.browser_download_url,
+              publishedAt: release.published_at,
+              releaseTag: release.tag_name,
+              assetName: desktopAsset.name,
+              size: desktopAsset.size
+            });
+          }
+        }
+      }
+      
+      // Sort by version (newest first)
+      desktopBuilds.sort((a, b) => {
+        return b.version.localeCompare(a.version, undefined, { numeric: true });
+      });
+      
+      console.log(`Found ${desktopBuilds.length} desktop builds in recent releases`);
+      return desktopBuilds;
+    } catch (error) {
+      console.error('Error fetching all desktop builds:', error);
       return [];
     }
   }
@@ -343,6 +445,11 @@ export function setupGitHubReleaseIPC() {
   // Get available builds
   ipcMain.handle('get-available-builds', async (event) => {
     return await githubReleaseManager.getAvailableBuilds();
+  });
+
+  // Get all available desktop builds from recent releases
+  ipcMain.handle('get-all-available-desktop-builds', async (event) => {
+    return await githubReleaseManager.getAllAvailableDesktopBuilds();
   });
 
   // Get current build version
