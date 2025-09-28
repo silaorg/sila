@@ -1,5 +1,6 @@
-// We avoid static imports to prevent tooling resolution issues in some environments
-// and load peer package code dynamically at runtime.
+import type { Space, AppTree } from "@sila/core";
+import { ChatAppData } from "@sila/core";
+import type { AttachmentPreview } from "@sila/core";
 
 // Lazy import parser to avoid bloating initial bundle
 async function loadParser(): Promise<any> {
@@ -15,27 +16,13 @@ type ParsedAttachment = {
   content?: string;
 };
 
-type ParsedMessage = {
-  role: "user" | "assistant" | "system";
-  text?: string;
-  createdAt?: number | string;
-  attachments?: ParsedAttachment[];
-  files?: ParsedAttachment[]; // alternate field name
-};
-
-type ParsedConversation = {
-  id: string; // ChatGPT conversation id
-  title?: string;
-  messages: ParsedMessage[];
-};
-
 export type ImportResult = {
   created: number;
   skipped: number;
   updated: number;
 };
 
-function findExistingChatByChatgptId(space: any, chatgptId: string): any | undefined {
+function findExistingChatByChatgptId(space: Space, chatgptId: string): AppTree | undefined {
   const refIds: string[] = space.getAppTreeIds();
   for (const refId of refIds) {
     const refVertex = space.getVertex(refId);
@@ -50,25 +37,15 @@ function findExistingChatByChatgptId(space: any, chatgptId: string): any | undef
   return undefined;
 }
 
-type LocalAttachmentPreview = {
-  id: string;
-  kind: 'image' | 'text' | 'file';
-  name: string;
-  mimeType: string;
-  size: number;
-  dataUrl?: string;
-  content?: string;
-};
-
-function toAttachmentPreview(att: ParsedAttachment): LocalAttachmentPreview {
+function toAttachmentPreview(att: ParsedAttachment): AttachmentPreview {
   const id = (globalThis.crypto && "randomUUID" in globalThis.crypto)
     ? globalThis.crypto.randomUUID()
     : Math.random().toString(36).slice(2);
   const name = att.name ?? "file";
   const mimeType = att.mimeType ?? (att.dataUrl?.split(":")[1]?.split(";")[0] ?? "application/octet-stream");
   const size = att.size ?? 0;
-  const kind: LocalAttachmentPreview["kind"] = att.dataUrl ? "image" : att.content ? "text" : "file";
-  const preview: LocalAttachmentPreview = {
+  const kind: AttachmentPreview["kind"] = att.dataUrl ? "image" : att.content ? "text" : "file";
+  const preview: AttachmentPreview = {
     id,
     kind,
     name,
@@ -80,12 +57,11 @@ function toAttachmentPreview(att: ParsedAttachment): LocalAttachmentPreview {
   return preview;
 }
 
-export async function importChatGptZipIntoSpace(space: any, zipFile: File): Promise<ImportResult> {
+export async function importChatGptZipIntoSpace(space: Space, zipFile: File): Promise<ImportResult> {
   const parser: any = await loadParser();
-  const core: any = await import("@sila/core");
   // Try common entry points
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const parsed: { conversations: ParsedConversation[] } = await (
+  const parsed: any = await (
     parser.parseZip ? parser.parseZip(zipFile)
     : parser.parse ? parser.parse(zipFile)
     : parser.default ? parser.default(zipFile)
@@ -96,7 +72,7 @@ export async function importChatGptZipIntoSpace(space: any, zipFile: File): Prom
   let skipped = 0;
   let updated = 0;
 
-  for (const conv of parsed.conversations || []) {
+  for (const conv of (parsed.conversations as any[]) || []) {
     if (!conv?.id) continue;
     const existing = findExistingChatByChatgptId(space, conv.id);
     if (existing) {
@@ -105,8 +81,8 @@ export async function importChatGptZipIntoSpace(space: any, zipFile: File): Prom
       continue;
     }
 
-    const appTree = core.ChatAppData.createNewChatTree(space, "default");
-    const chatData = new core.ChatAppData(space, appTree);
+    const appTree = ChatAppData.createNewChatTree(space, "default");
+    const chatData = new ChatAppData(space, appTree);
     chatData.title = conv.title || "Imported chat";
 
     // Mark identifiers for duplicate detection
