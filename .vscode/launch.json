@@ -29,7 +29,10 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
       },
-      "args": [".", "--remote-debugging-port=9222"],
+      "args": [
+        ".",
+        "--remote-debugging-port=9222"
+      ],
       "outputCapture": "std",
       "preLaunchTask": "dev-client",
       "postDebugTask": "stop-dev-client",
@@ -47,6 +50,29 @@
       "webRoot": "${workspaceFolder}",
       "sourceMaps": true,
       "timeout": 30000
+    },
+    {
+      "name": "Gallery: Vite dev (SSR, Node)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/gallery",
+      "program": "${workspaceFolder}/packages/gallery/node_modules/vite/bin/vite.js",
+      "args": [
+        "dev"
+      ],
+      "runtimeArgs": [
+        "--inspect"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
+    },
+    {
+      "name": "Gallery: Attach Chrome (client)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/packages/gallery"
     }
   ],
   "compounds": [
@@ -59,6 +85,13 @@
       "presentation": {
         "order": 1
       }
+    },
+    {
+      "name": "Gallery: Vite + Chrome",
+      "configurations": [
+        "Gallery: Vite dev (SSR, Node)",
+        "Gallery: Attach Chrome (client)"
+      ]
     }
   ]
 }

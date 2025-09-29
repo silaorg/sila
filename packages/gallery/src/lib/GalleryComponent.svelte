@@ -1,16 +1,17 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { galleryState } from "$lib/state/galleryState.svelte";
   import { ClientStateProvider, ClientState } from "@sila/client";
   import { buildSpaceFromConfig } from "$lib/demo/buildSpaceFromConfig";
+  import { loadDemoSpace } from "$lib/loadDemoSpace";
 
   // When not using <SilaApp>, ensure you include styles in the host app if needed
 
   let { children, state }: { children?: any, state?: ClientState } = $props();
 
   let demoConfigUrl: string = "/api/demo-space";
-  let ready = $derived(galleryState.ready);
-  let error: string | null = $derived(galleryState.error);
+  let ready = $state(false);
+  let error: string | null = $state(null);
+  let localState: ClientState | null = $state(null);
 
   onMount(async () => {
     if (state) {
@@ -18,8 +19,15 @@
       const cfg = await (await fetch(demoConfigUrl)).json();
       const built = await buildSpaceFromConfig(cfg);
       await state.adoptInMemorySpace(built, cfg.name);
+      ready = true;
     } else {
-      await galleryState.loadSpace(demoConfigUrl);
+      try {
+        const { state: newState } = await loadDemoSpace({ configUrl: demoConfigUrl });
+        localState = newState;
+        ready = true;
+      } catch (err) {
+        error = err instanceof Error ? err.message : String(err);
+      }
     }
   });
 </script>
@@ -31,6 +39,10 @@
 {:else}
   {#if state}
     <ClientStateProvider instance={state}>
+      {@render children?.()}
+    </ClientStateProvider>
+  {:else if localState}
+    <ClientStateProvider instance={localState}>
       {@render children?.()}
     </ClientStateProvider>
   {:else}

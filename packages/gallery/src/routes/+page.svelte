@@ -6,7 +6,7 @@
   </p>
   
   <p>
-    <a class="anchor" href="/components/chat-sandbox">ChatApp sandbox</a>
+    <a class="anchor" href="/components/chat">ChatApp sandbox</a>
   </p>
 </div>
 
