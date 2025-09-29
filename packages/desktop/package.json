@@ -114,7 +114,6 @@
     "@sila/core": "*",
     "adm-zip": "^0.5.16",
     "chokidar": "^4.0.3",
-    "electron-serve": "^2.1.1",
     "electron-updater": "^6.1.7"
   },
   "devDependencies": {
