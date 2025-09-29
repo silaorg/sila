@@ -16,3 +16,5 @@ demos
 # Playwright
 playwright-report/
 test-results/ 
+.dev.pid
+.dev.log
