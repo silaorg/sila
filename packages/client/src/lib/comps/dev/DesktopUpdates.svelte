@@ -131,125 +131,136 @@
   });
 </script>
 
-<div class="flex flex-col gap-4 p-2">
+<div class="flex h-full flex-col gap-6 p-4" data-component="desktop-updates">
   {#if isElectron}
-    <div class="border-t border-surface-200-700-token pt-4">
-      <h3 class="text-sm font-medium text-surface-900-100-token mb-3">
-        GitHub Release Manager
-      </h3>
-
-      <div class="space-y-3">
-        <div class="text-xs text-surface-600-300-token">
-          Current Version: {currentVersion}
+    <section class="space-y-4">
+      <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1">
+          <h2 class="text-base font-medium text-surface-900-100-token">Desktop Updates</h2>
+          <p class="text-xs text-surface-600-300-token">
+            Current version:
+            <span class="font-mono text-surface-900-100-token">{currentVersion || "—"}</span>
+          </p>
+          {#if availableBuilds.length > 0}
+            <p class="text-xs text-surface-500-400-token">
+              Cached builds: {availableBuilds.join(", ")}
+            </p>
+          {/if}
         </div>
+        <div class="flex items-center gap-2">
+          <button
+            class="btn btn-sm preset-filled"
+            onclick={checkForLatestRelease}
+            disabled={isChecking}
+          >
+            {isChecking ? "Checking..." : "Check for Updates"}
+          </button>
+        </div>
+      </header>
 
-        {#if updateCoordinatorState && updateCoordinatorState.reason}
-          <div class="bg-blue-50-800-token p-3 rounded border">
-            <div class="text-sm font-medium text-blue-900-100-token mb-1">
-              Update Strategy
-            </div>
-            <div class="text-xs text-blue-700-300-token mb-2">
-              {updateCoordinatorState.reason}
-            </div>
-            <div class="text-xs text-blue-600-400-token">
-              Priority: {updateCoordinatorState.priority} |
-              Use Full App: {updateCoordinatorState.useFullAppUpdate ? "Yes" : "No"} |
-              Use Client Bundle: {updateCoordinatorState.useClientBundleUpdate ? "Yes" : "No"}
-            </div>
-          </div>
-        {/if}
+      {#if downloadProgress}
+        <div class="text-xs text-surface-600-300-token">
+          {downloadProgress}
+        </div>
+      {/if}
 
-        {#if updateCoordinatorState}
-          <div class="text-xs text-surface-600-300-token">
-            Update State:
-            {updateCoordinatorState.fullAppUpdate ? "Full App Update" : "No Full App Update"} |
-            {updateCoordinatorState.clientBundleUpdate ? "Client Bundle Update" : "No Client Bundle Update"} |
-            {updateCoordinatorState.dialogShown ? "Dialog Shown" : "No Dialog"}
-          </div>
-        {/if}
-
-        {#if availableBuilds.length > 0}
-          <div class="text-xs text-surface-600-300-token">
-            Available Builds: {availableBuilds.join(", ")}
-          </div>
-        {/if}
-
-        {#if allAvailableDesktopBuilds.length > 0}
-          <div class="bg-surface-50-800-token p-3 rounded border">
-            <div class="text-sm font-medium text-surface-900-100-token mb-2">
-              All Available Desktop Builds ({allAvailableDesktopBuilds.length})
-            </div>
-            <div class="space-y-2 max-h-40 overflow-y-auto">
-              {#each allAvailableDesktopBuilds as build}
-                <div class="flex items-center justify-between bg-surface-100-700-token p-2 rounded text-xs">
-                  <div>
-                    <div class="font-medium text-surface-900-100-token">v{build.version}</div>
-                    <div class="text-surface-600-300-token">
-                      {new Date(build.publishedAt).toLocaleDateString()} ({build.releaseTag})
-                      {#if build.size}
-                        - {(build.size / 1024 / 1024).toFixed(1)} MB
-                      {/if}
-                    </div>
-                  </div>
-                  <button
-                    class="btn btn-xs variant-outline"
-                    onclick={() => downloadSpecificBuild(build)}
-                    disabled={isDownloading}
-                  >
-                    Download
-                  </button>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        {#if latestRelease}
-          <div class="bg-surface-50-800-token p-3 rounded border">
-            <div class="text-sm font-medium text-surface-900-100-token mb-2">
-              Latest Release: v{latestRelease.version}
-            </div>
-            <div class="text-xs text-surface-600-300-token mb-2">
-              Published: {new Date(latestRelease.publishedAt).toLocaleDateString()}
-            </div>
-            {#if typeof latestRelease.size === "number"}
-              <div class="text-xs text-surface-600-300-token mb-3">
-                Size: {(latestRelease.size / 1024 / 1024).toFixed(1)} MB
+      {#if updateCoordinatorState}
+        <div class="space-y-3 rounded border border-surface-200-700-token bg-surface-50-800-token p-3">
+          {#if updateCoordinatorState.reason}
+            <div class="space-y-1">
+              <div class="text-sm font-medium text-surface-900-100-token">Update strategy</div>
+              <div class="text-xs text-surface-600-300-token">
+                {updateCoordinatorState.reason}
               </div>
-            {/if}
+            </div>
+          {/if}
 
+          <div class="grid gap-2 text-xs text-surface-600-300-token sm:grid-cols-3">
+            <span>Priority: {updateCoordinatorState.priority ?? "—"}</span>
+            <span>Full app: {updateCoordinatorState.useFullAppUpdate ? "Yes" : "No"}</span>
+            <span>Client bundle: {updateCoordinatorState.useClientBundleUpdate ? "Yes" : "No"}</span>
+          </div>
+
+          <div class="grid gap-2 text-xs text-surface-600-300-token sm:grid-cols-3">
+            <span>{updateCoordinatorState.fullAppUpdate ? "Full app update ready" : "No full app update"}</span>
+            <span>{updateCoordinatorState.clientBundleUpdate ? "Client bundle ready" : "No client bundle"}</span>
+            <span>{updateCoordinatorState.dialogShown ? "Dialog shown" : "Dialog not shown"}</span>
+          </div>
+        </div>
+      {/if}
+
+      {#if latestRelease}
+        <div class="space-y-3 rounded border border-surface-200-700-token bg-surface-50-800-token p-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+              <div class="text-sm font-medium text-surface-900-100-token">Latest release</div>
+              <div class="text-xs text-surface-600-300-token">v{latestRelease.version}</div>
+            </div>
             {#if latestRelease.version !== currentVersion}
               <button
                 class="btn btn-sm variant-filled"
                 onclick={downloadLatestBuild}
                 disabled={isDownloading}
               >
-                {isDownloading ? "Downloading..." : "Download & Install Latest"}
+                {isDownloading ? "Downloading..." : "Install latest"}
               </button>
-            {:else}
-              <div class="text-xs text-green-600-400-token">✓ You're on the latest version</div>
             {/if}
           </div>
-        {/if}
 
-        {#if downloadProgress}
           <div class="text-xs text-surface-600-300-token">
-            {downloadProgress}
+            Published: {new Date(latestRelease.publishedAt).toLocaleDateString()}
           </div>
-        {/if}
 
-        <button
-          class="btn btn-sm variant-soft"
-          onclick={checkForLatestRelease}
-          disabled={isChecking}
-        >
-          {isChecking ? "Checking..." : "Check for Updates"}
-        </button>
-      </div>
-    </div>
+          {#if typeof latestRelease.size === "number"}
+            <div class="text-xs text-surface-600-300-token">
+              Size: {(latestRelease.size / 1024 / 1024).toFixed(1)} MB
+            </div>
+          {/if}
+
+          {#if latestRelease.version === currentVersion}
+            <div class="text-xs text-green-600-400-token">✓ You're on the latest version</div>
+          {/if}
+        </div>
+      {/if}
+
+      {#if allAvailableDesktopBuilds.length > 0}
+        <div class="rounded border border-surface-200-700-token bg-surface-50-800-token">
+          <div class="flex items-center justify-between border-b border-surface-200-700-token px-3 py-2">
+            <div class="text-sm font-medium text-surface-900-100-token">
+              All available desktop builds
+            </div>
+            <div class="text-xs text-surface-600-300-token">
+              {allAvailableDesktopBuilds.length}
+            </div>
+          </div>
+          <div class="max-h-60 overflow-y-auto divide-y divide-surface-200-700-token">
+            {#each allAvailableDesktopBuilds as build}
+              <div class="flex items-center justify-between gap-3 px-3 py-2 text-xs">
+                <div class="space-y-1">
+                  <div class="font-medium text-surface-900-100-token">v{build.version}</div>
+                  <div class="text-surface-600-300-token">
+                    {new Date(build.publishedAt).toLocaleDateString()} ({build.releaseTag})
+                    {#if build.size}
+                      · {(build.size / 1024 / 1024).toFixed(1)} MB
+                    {/if}
+                  </div>
+                </div>
+                <button
+                  class="btn btn-xs variant-outline"
+                  onclick={() => downloadSpecificBuild(build)}
+                  disabled={isDownloading}
+                >
+                  Download
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </section>
   {:else}
-    <div class="border-t border-surface-200-700-token pt-4 text-xs text-surface-600-300-token">
-      Desktop updates are only available in the Electron build.
+    <div class="rounded border border-surface-200-700-token bg-surface-50-800-token p-3 text-xs text-surface-600-300-token">
+      Desktop updates are only available in the desktop app.
     </div>
   {/if}
 </div>
