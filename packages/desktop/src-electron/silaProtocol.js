@@ -35,6 +35,97 @@ export function setupSilaProtocol() {
   protocol.handle('sila', handleSilaRequest);
 }
 
+async function listBuildNames(buildsRoot, embeddedName) {
+  try {
+    const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
+    const directories = dirents.filter(d => d.isDirectory()).map(d => d.name);
+    return Array.from(new Set([embeddedName, ...directories]));
+  } catch {
+    return [embeddedName];
+  }
+}
+
+function parseDesktopSemver(name) {
+  const match = name.match(/^desktop-v(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return { major: +match[1], minor: +match[2], patch: +match[3] };
+}
+
+function compareDesktopVersions(a, b) {
+  const va = parseDesktopSemver(a);
+  const vb = parseDesktopSemver(b);
+  if (!va && !vb) return 0;
+  if (!va) return -1;
+  if (!vb) return 1;
+  if (va.major !== vb.major) return va.major - vb.major;
+  if (va.minor !== vb.minor) return va.minor - vb.minor;
+  return va.patch - vb.patch;
+}
+
+function getEmbeddedBaseCandidates() {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
+  return [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
+}
+
+async function serveBuildContent(buildName, restPath, buildsRoot, embeddedName) {
+  const baseCandidates = buildName === embeddedName
+    ? getEmbeddedBaseCandidates()
+    : [path.join(buildsRoot, buildName)];
+
+  for (const baseDir of baseCandidates) {
+    try {
+      const directory = baseDir;
+      const indexPath = path.join(directory, 'index.html');
+      const filePath = path.join(
+        directory,
+        decodeURIComponent('/' + restPath).replace(/^\/+/, '')
+      );
+
+      const relativePath = path.relative(directory, filePath);
+      const isSafe = !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+      if (!isSafe) {
+        continue;
+      }
+
+      const finalPath = await getServePath(filePath, 'index');
+      const fileExtension = path.extname(filePath);
+      if (!finalPath && fileExtension && fileExtension !== '.html' && fileExtension !== '.asar') {
+        continue;
+      }
+
+      const targetPath = finalPath || indexPath;
+      const fileUrl = pathToFileURL(targetPath);
+      const response = await net.fetch(fileUrl.toString());
+
+      if (targetPath.endsWith('.map')) {
+        const body = await response.arrayBuffer();
+        return new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: {
+            ...Object.fromEntries(response.headers.entries()),
+            'content-type': 'application/json',
+          },
+        });
+      }
+
+      return response;
+    } catch {
+      // Try next candidate
+    }
+  }
+
+  return null;
+}
+
+async function selectDesktopBuildName(names, embeddedName) {
+  const desktopNames = names.filter(name => name.startsWith('desktop-v'));
+  desktopNames.sort(compareDesktopVersions);
+  return desktopNames.pop() || embeddedName;
+}
+
 /**
  * Handle a request for the sila:// protocol
  * @param {Request} request 
@@ -46,107 +137,31 @@ async function handleSilaRequest(request) {
 
     const pathParts = url.pathname.split('/').filter(Boolean);
 
-    // Support multiple hosts under sila://
-    if (url.hostname === 'builds') {
-      const buildsRoot = path.join(app.getPath('userData'), 'builds');
-      const embeddedName = `desktop-v${app.getVersion()}`;
+    const buildsRoot = path.join(app.getPath('userData'), 'builds');
+    const embeddedName = `desktop-v${app.getVersion()}`;
 
-      // Helper: list available build folder names
-      async function listBuildNames() {
-        let entries = [];
-        try {
-          const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });
-          entries = dirents.filter(d => d.isDirectory()).map(d => d.name);
-        } catch { }
-        return Array.from(new Set([embeddedName, ...entries]));
-      }
+    if (url.hostname === 'builds' || url.hostname === 'client') {
+      const names = await listBuildNames(buildsRoot, embeddedName);
 
-      if (pathParts.length === 0) {
-        const names = await listBuildNames();
+      if (url.hostname === 'builds' && pathParts.length === 0) {
         return new Response(JSON.stringify(names), {
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // Support virtual latest endpoint: sila://builds/desktop/index.html
-      // If first segment is 'desktop', resolve to highest semver desktop-vX.Y.Z
-      let buildName = pathParts[0];
-      let rest = pathParts.slice(1).join('/') || 'index.html';
-      if (buildName === 'desktop') {
-        const names = await listBuildNames();
-        const desktopNames = names.filter(n => n.startsWith('desktop-v'));
-        function parseSemver(name) {
-          const m = name.match(/^desktop-v(\d+)\.(\d+)\.(\d+)$/);
-          if (!m) return null;
-          return { major: +m[1], minor: +m[2], patch: +m[3] };
-        }
-        function cmp(a, b) {
-          const va = parseSemver(a);
-          const vb = parseSemver(b);
-          if (!va && !vb) return 0;
-          if (!va) return -1;
-          if (!vb) return 1;
-          if (va.major !== vb.major) return va.major - vb.major;
-          if (va.minor !== vb.minor) return va.minor - vb.minor;
-          return va.patch - vb.patch;
-        }
-        const latest = desktopNames.sort(cmp).pop();
-        buildName = latest || embeddedName;
-      }
+      let buildName;
+      let rest;
 
-      // Determine base directory candidates
-      /** @type {string[]} */
-      let baseCandidates = [];
-      if (buildName === embeddedName) {
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const appRoot = process.defaultApp ? process.cwd() : app.getAppPath();
-        baseCandidates = [appRoot, path.join(appRoot, 'build'), path.join(__dirname, '..', 'build')];
+      if (url.hostname === 'client') {
+        buildName = await selectDesktopBuildName(names, embeddedName);
+        rest = pathParts.join('/') || 'index.html';
       } else {
-        baseCandidates = [path.join(buildsRoot, buildName)];
+        buildName = pathParts[0];
+        rest = pathParts.slice(1).join('/') || 'index.html';
       }
 
-      // Try to resolve a safe final path similar to electron-serve
-      for (const baseDir of baseCandidates) {
-        try {
-          const directory = baseDir;
-          const indexPath = path.join(directory, 'index.html');
-          const filePath = path.join(directory, decodeURIComponent('/' + rest).replace(/^\//, ''));
-
-          // Path traversal guard
-          const relativePath = path.relative(directory, filePath);
-          const isSafe = !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
-          if (!isSafe) {
-            continue;
-          }
-
-          const finalPath = await getServePath(filePath, 'index');
-          const fileExtension = path.extname(filePath);
-
-          if (!finalPath && fileExtension && fileExtension !== '.html' && fileExtension !== '.asar') {
-            continue;
-          }
-
-          const fileUrl = pathToFileURL((finalPath || indexPath));
-          const response = await net.fetch(fileUrl.toString());
-
-          if ((finalPath || indexPath).endsWith('.map')) {
-            const body = await response.arrayBuffer();
-            return new Response(body, {
-              status: response.status,
-              statusText: response.statusText,
-              headers: {
-                ...Object.fromEntries(response.headers.entries()),
-                'content-type': 'application/json',
-              },
-            });
-          }
-
-          return response;
-        } catch { }
-      }
-
-      return new Response('Not Found', { status: 404 });
+      const response = await serveBuildContent(buildName, rest, buildsRoot, embeddedName);
+      return response ?? new Response('Not Found', { status: 404 });
     }
 
     // Default: spaces

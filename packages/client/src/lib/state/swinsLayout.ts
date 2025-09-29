@@ -11,6 +11,7 @@ import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
 import SignInButtons from "@sila/client/comps/auth/SignInButtons.svelte";
 import UserProfile from "@sila/client/comps/auth/UserProfile.svelte";
 import SpaceOpenerPage from "../comps/spaces/SpaceOpenerPage.svelte";
+import DesktopUpdates from "@sila/client/comps/dev/DesktopUpdates.svelte";
 
 // Setup function that can configure any SWins instance
 export function setupSwins(): SWins {
@@ -28,6 +29,7 @@ export function setupSwins(): SWins {
   swins.register('model-providers', ModelProviders);
   swins.register('sign-in', SignInButtons);
   swins.register('user-profile', UserProfile);
+  swins.register('desktop-updates', DesktopUpdates);
 
   return swins;
 }
