@@ -4,7 +4,7 @@ Sila ships two kinds of desktop updates and lets the app decide which one to app
 
 - **Executable updates** refresh the Electron bundle itself. We download the latest signed installer from GitHub Releases and hand it off to the user (macOS DMG, Windows EXE, Linux AppImage). After the download completes, the updater relaunches the new build or lets the system installer finish the upgrade.
 
-- **Client bundle swaps** refresh only the web assets (HTML/CSS/JS). The current executable stays in place. We fetch the latest client zip, unpack it under the local `builds/desktop` cache, and reload the app to serve the new files via the custom `sila://builds/` protocol. This keeps hotfixes lightweight and avoids forcing users to re-download the entire Electron runtime.
+- **Client bundle swaps** refresh only the web assets (HTML/CSS/JS). The current executable stays in place. We fetch the latest client zip, unpack it under the local `builds/desktop` cache, and reload the app to serve the new files via the custom `sila://client/` protocol. This keeps hotfixes lightweight and avoids forcing users to re-download the entire Electron runtime. Release zips now live directly under `packages/desktop/dist/` (for example `desktop-v1.0.1.zip`).
 
 The smart update coordinator decides which path to take. It compares the running version, the latest tagged release, and the available client-only builds:
 

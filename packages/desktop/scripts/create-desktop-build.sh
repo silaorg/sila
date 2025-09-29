@@ -8,7 +8,7 @@ set -e
 VERSION=${1:-$(node -p "require('./package.json').version")}
 BUILD_DIR="build"
 ZIP_NAME="desktop-v${VERSION}.zip"
-OUTPUT_DIR="dist-desktop-builds"
+OUTPUT_DIR="dist"
 
 echo "Creating desktop build zip for version: $VERSION"
 
