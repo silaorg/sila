@@ -1,4 +1,4 @@
-# Download and Swap Clients on Mobile (Capacitor)
+# Download and Swap Builds on Mobile (Capacitor)
 
 ## Goal
 
@@ -18,7 +18,7 @@ Ship a small, stable native shell (Capacitor) while updating only the client bun
 
 Two layers:
 1) Shell (frozen): Capacitor app + plugins; WebView config; security
-2) Client bundles (mutable): versioned web bundles with `index.html`, JS, CSS, assets
+2) Build bundles (mutable): versioned web bundles with `index.html`, JS, CSS, assets
 
 Key principle: Renderer loads from a writable cache path, or falls back to the embedded seed bundle inside the app package when no cache exists.
 
@@ -26,7 +26,7 @@ Key principle: Renderer loads from a writable cache path, or falls back to the e
 
 ## Storage layout (no symlinks)
 
-- Writable root: `…/clients/`
+- Writable root: `…/builds/`
 - Inside: `v1.4.2/`, `v1.5.0/`, `v1.5.1/` … (semver)
 - Selection rule: list subfolders that look like `vX.Y.Z`, sort by semver, pick the highest within compatibility bounds
 - Optional `previousVersion` file for rollback heuristics
@@ -40,10 +40,10 @@ Locations
 ## Boot sequence
 
 1) Discover bundle
-   - List folders under `…/clients/` → pick latest compatible
+- List folders under `…/builds/` → pick latest compatible
    - If none exist, use the embedded seed bundle packaged with the app
 2) Load UI
-   - Point WebView to `app://clients/v1.5.1/index.html` (custom scheme) or `file:///…` path handled by a resource loader
+- Point WebView to `app://builds/v1.5.1/index.html` (custom scheme) or `file:///…` path handled by a resource loader
 3) Health check
    - Renderer self-test (handshake with native bridge, required endpoints reachable). If it fails and an older bundle exists, auto-select the next-latest and continue
 
@@ -53,9 +53,9 @@ Locations
 
 1) Fetch manifest from update endpoint: `{ version, url, sha256, signature, minShellVersion, maxShellVersion }`
 2) If `version` > current and compatible:
-   - Download archive to temp, verify checksum + signature, then unpack to `…/clients/vX.Y.Z/`
+- Download archive to temp, verify checksum + signature, then unpack to `…/builds/vX.Y.Z/`
 3) Switch bundle (seamless)
-   - Update current client version setting; subsequent navigations/resource requests use the new bundle
+- Update current build version setting; subsequent navigations/resource requests use the new bundle
    - No user notification required (optional toast in debug builds)
 
 Rollback
@@ -78,15 +78,15 @@ Rollback
 
 ### iOS (WKWebView)
 
-- Use `WKURLSchemeHandler` via a Capacitor plugin to handle `app://clients/...`
-- Resolve `app://clients/vX.Y.Z/...` to files under `FilesystemDirectory.Data/clients/vX.Y.Z/`
-- Fallback to embedded seed: resolve `app://clients/embedded/...` to files in the app bundle (e.g., `Bundle.main.url(forResource:)`)
+- Use `WKURLSchemeHandler` via a Capacitor plugin to handle `app://builds/...`
+- Resolve `app://builds/vX.Y.Z/...` to files under `FilesystemDirectory.Data/builds/vX.Y.Z/`
+- Fallback to embedded seed: resolve `app://builds/embedded/...` to files in the app bundle (e.g., `Bundle.main.url(forResource:)`)
 - Enforce CSP and MIME types; support range requests if needed for media
 
 ### Android (WebView)
 
-- Use `WebViewAssetLoader` (androidx) or `shouldInterceptRequest` to serve `https://appassets.androidplatform.net/clients/...` (or a custom scheme)
-- Map `…/clients/vX.Y.Z/...` to internal app storage under `Context.getFilesDir()`
+- Use `WebViewAssetLoader` (androidx) or `shouldInterceptRequest` to serve `https://appassets.androidplatform.net/builds/...` (or a custom scheme)
+- Map `…/builds/vX.Y.Z/...` to internal app storage under `Context.getFilesDir()`
 - Fallback to embedded seed in `assets/` or `res/raw/`
 - Add CSP headers and correct MIME types
 
@@ -96,10 +96,10 @@ Rollback
 
 Option A. Serve in place (recommended start)
 - Ship the built `www/` (Capacitor web assets) as the embedded seed
-- When no cached clients exist, load `embedded` directly from the app package
+- When no cached builds exist, load `embedded` directly from the app package
 
 Option B. Extract once to cache
-- On first launch, copy `www/` to `…/clients/v<seed>/` for a unified code path and rollback safety
+- On first launch, copy `www/` to `…/builds/v<seed>/` for a unified code path and rollback safety
 
 —
 
@@ -127,9 +127,9 @@ Update service
 
 ## Example URLs and selection
 
-- List: `app://clients/` → JSON `{ versions: ["embedded", "v1.5.0", "v1.5.1"] }`
-- Load: `app://clients/v1.5.1/index.html`
-- Fallback: `app://clients/embedded/index.html`
+- List: `app://builds/` → JSON `{ versions: ["embedded", "v1.5.0", "v1.5.1"] }`
+- Load: `app://builds/v1.5.1/index.html`
+- Fallback: `app://builds/embedded/index.html`
 
 —
 
@@ -137,7 +137,7 @@ Update service
 
 1) Bundle structure
 ```
-clients/
+builds/
   v1.5.0/
     index.html
     assets/
@@ -148,11 +148,11 @@ clients/
 ```
 
 2) Native resource handlers
-- iOS plugin with `WKURLSchemeHandler` for `app://clients/...`
-- Android WebView setup with `WebViewAssetLoader` mapping `/clients/...`
+- iOS plugin with `WKURLSchemeHandler` for `app://builds/...`
+- Android WebView setup with `WebViewAssetLoader` mapping `/builds/...`
 
 3) JS bootstrap
-- Determine current version (from storage) → navigate to `app://clients/<version>/index.html`
+- Determine current version (from storage) → navigate to `app://builds/<version>/index.html`
 - If not set → use `embedded`
 
 4) Update pipeline
