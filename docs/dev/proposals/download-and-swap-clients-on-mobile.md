@@ -40,10 +40,10 @@ Locations
 ## Boot sequence
 
 1) Discover bundle
-- List folders under `…/builds/` → pick latest compatible
+   - List folders under `…/builds/` → pick latest compatible
    - If none exist, use the embedded seed bundle packaged with the app
 2) Load UI
-- Point WebView to `app://builds/v1.5.1/index.html` (custom scheme) or `file:///…` path handled by a resource loader
+   - Point WebView to `sila://builds/mobile/v1.5.1/index.html` (custom scheme) or `file:///…` path handled by a resource loader
 3) Health check
    - Renderer self-test (handshake with native bridge, required endpoints reachable). If it fails and an older bundle exists, auto-select the next-latest and continue
 
@@ -53,7 +53,7 @@ Locations
 
 1) Fetch manifest from update endpoint: `{ version, url, sha256, signature, minShellVersion, maxShellVersion }`
 2) If `version` > current and compatible:
-- Download archive to temp, verify checksum + signature, then unpack to `…/builds/vX.Y.Z/`
+   - Download archive to temp, verify checksum + signature, then unpack to `…/builds/vX.Y.Z/`
 3) Switch bundle (seamless)
 - Update current build version setting; subsequent navigations/resource requests use the new bundle
    - No user notification required (optional toast in debug builds)
@@ -78,14 +78,14 @@ Rollback
 
 ### iOS (WKWebView)
 
-- Use `WKURLSchemeHandler` via a Capacitor plugin to handle `app://builds/...`
-- Resolve `app://builds/vX.Y.Z/...` to files under `FilesystemDirectory.Data/builds/vX.Y.Z/`
-- Fallback to embedded seed: resolve `app://builds/embedded/...` to files in the app bundle (e.g., `Bundle.main.url(forResource:)`)
+- Use `WKURLSchemeHandler` via a Capacitor plugin to handle `sila://builds/mobile/...`
+- Resolve `sila://builds/mobile/vX.Y.Z/...` to files under `FilesystemDirectory.Data/builds/vX.Y.Z/`
+- Fallback to embedded seed: resolve `sila://builds/mobile/embedded/...` to files in the app bundle (e.g., `Bundle.main.url(forResource:)`)
 - Enforce CSP and MIME types; support range requests if needed for media
 
 ### Android (WebView)
 
-- Use `WebViewAssetLoader` (androidx) or `shouldInterceptRequest` to serve `https://appassets.androidplatform.net/builds/...` (or a custom scheme)
+- Use `shouldInterceptRequest` (or a custom asset loader) to serve `sila://builds/mobile/...`
 - Map `…/builds/vX.Y.Z/...` to internal app storage under `Context.getFilesDir()`
 - Fallback to embedded seed in `assets/` or `res/raw/`
 - Add CSP headers and correct MIME types
@@ -96,7 +96,7 @@ Rollback
 
 Option A. Serve in place (recommended start)
 - Ship the built `www/` (Capacitor web assets) as the embedded seed
-- When no cached builds exist, load `embedded` directly from the app package
+- When no cached builds exist, load `sila://builds/mobile/embedded/index.html` directly from the app package
 
 Option B. Extract once to cache
 - On first launch, copy `www/` to `…/builds/v<seed>/` for a unified code path and rollback safety
@@ -127,9 +127,9 @@ Update service
 
 ## Example URLs and selection
 
-- List: `app://builds/` → JSON `{ versions: ["embedded", "v1.5.0", "v1.5.1"] }`
-- Load: `app://builds/v1.5.1/index.html`
-- Fallback: `app://builds/embedded/index.html`
+- List: `sila://builds/mobile/` → JSON `{ versions: ["embedded", "v1.5.0", "v1.5.1"] }`
+- Load: `sila://builds/mobile/v1.5.1/index.html`
+- Fallback: `sila://builds/mobile/embedded/index.html`
 
 —
 
@@ -148,11 +148,11 @@ builds/
 ```
 
 2) Native resource handlers
-- iOS plugin with `WKURLSchemeHandler` for `app://builds/...`
-- Android WebView setup with `WebViewAssetLoader` mapping `/builds/...`
+- iOS plugin with `WKURLSchemeHandler` for `sila://builds/mobile/...`
+- Android WebView setup intercepting `sila://builds/mobile/...`
 
 3) JS bootstrap
-- Determine current version (from storage) → navigate to `app://builds/<version>/index.html`
+- Determine current version (from storage) → navigate to `sila://builds/mobile/<version>/index.html`
 - If not set → use `embedded`
 
 4) Update pipeline
