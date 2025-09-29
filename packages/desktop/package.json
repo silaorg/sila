@@ -90,7 +90,7 @@
     "dev:without-starting-electron": "npm run prepare-static-files && concurrently \"npm run dev:sveltekit\" \"npm run dev:client\"",
     "dev:sveltekit": "vite dev --port 6969",
     "dev:client": "npm run dev -w @sila/client",
-    "dev:electron": "wait-on http://localhost:6969 && electron . --dev --remote-debugging-port=9222",
+    "dev:electron": "wait-on http://localhost:6969 && electron . --dev --remote-debugging-port=9222 --max-old-space-size=8192",
     "build": "npm run prepare-static-files && npm run build -w @sila/client && npm run build:vite",
     "build:vite": "vite build",
     "prepackage:mac": "npm run build",
@@ -111,7 +111,7 @@
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*",
-    "chatgpt-export-parser": "^0.3.2",
+    "chatgpt-export-parser": "^0.1.0",
     "chokidar": "^4.0.3",
     "electron-serve": "^2.1.1",
     "electron-updater": "^6.1.7"

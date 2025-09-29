@@ -23,6 +23,11 @@ export function setupChatGptImportPreload() {
       const listener = (_e, err) => callback(err);
       ipcRenderer.on('chatgpt-import:error', listener);
       return () => ipcRenderer.removeListener('chatgpt-import:error', listener);
+    },
+    onProgress(callback) {
+      const listener = (_e, progress) => callback(progress);
+      ipcRenderer.on('chatgpt-import:progress', listener);
+      return () => ipcRenderer.removeListener('chatgpt-import:progress', listener);
     }
   });
 }

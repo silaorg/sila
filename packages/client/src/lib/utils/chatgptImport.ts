@@ -2,11 +2,8 @@ import type { Space, AppTree } from "@sila/core";
 import { ChatAppData } from "@sila/core";
 import type { AttachmentPreview } from "@sila/core";
 
-// Lazy import parser to avoid bloating initial bundle
-async function loadParser(): Promise<any> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return await import("chatgpt-export-parser");
-}
+// Note: ChatGPT import parsing is handled in the desktop Node.js process
+// This file only contains utilities for processing the parsed data
 
 type ParsedAttachment = {
   name?: string;
@@ -23,7 +20,7 @@ export type ImportResult = {
 };
 
 function findExistingChatByChatgptId(space: Space, chatgptId: string): AppTree | undefined {
-  const refIds: string[] = space.getAppTreeIds();
+  const refIds: string[] = [...space.getAppTreeIds()];
   for (const refId of refIds) {
     const refVertex = space.getVertex(refId);
     if (!refVertex) continue;
@@ -57,23 +54,19 @@ function toAttachmentPreview(att: ParsedAttachment): AttachmentPreview {
   return preview;
 }
 
-export async function importChatGptZipIntoSpace(space: Space, zipFile: File): Promise<ImportResult> {
-  const parser: any = await loadParser();
-  // Try common entry points
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const parsed: any = await (
-    parser.parseZip ? parser.parseZip(zipFile)
-    : parser.parse ? parser.parse(zipFile)
-    : parser.default ? parser.default(zipFile)
-    : Promise.reject(new Error("chatgpt-export-parser: no parse function found"))
-  );
-
+// Function to process parsed ChatGPT conversation data into Sila space
+// This receives the parsed data from the Node.js process via IPC
+export async function processChatGptConversationsIntoSpace(
+  space: Space, 
+  conversations: any[]
+): Promise<ImportResult> {
   let created = 0;
   let skipped = 0;
   let updated = 0;
 
-  for (const conv of (parsed.conversations as any[]) || []) {
+  for (const conv of conversations) {
     if (!conv?.id) continue;
+    
     const existing = findExistingChatByChatgptId(space, conv.id);
     if (existing) {
       // v1: skip updates
@@ -95,14 +88,14 @@ export async function importChatGptZipIntoSpace(space: Space, zipFile: File): Pr
 
     for (const m of conv.messages || []) {
       const role = m.role === "assistant" ? "assistant" : "user"; // ignore system for v1
-      const text = m.text || "";
+      const text = m.content || "";
       const rawAtts = (m.attachments && m.attachments.length > 0)
         ? m.attachments
         : (m.files && m.files.length > 0)
         ? m.files
         : [];
       const mapped = rawAtts.length > 0 ? rawAtts.map(toAttachmentPreview) : [];
-      const onlySupported = mapped.filter(a => !!a.dataUrl || !!a.content);
+      const onlySupported = mapped.filter((a: any) => !!a.dataUrl || !!a.content);
       const attachments = onlySupported.length > 0 ? onlySupported : undefined;
       await chatData.newMessage(role, text, undefined, attachments);
     }

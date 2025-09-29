@@ -11,7 +11,6 @@
   } from "@sila/core";
   import { txtStore } from "@sila/client/state/txtStore";
   import ThemeSwitcher from "@sila/client/comps/themes/ThemeSwitcher.svelte";
-  import { importChatGptZipIntoSpace } from "@sila/client/utils/chatgptImport";
 </script>
 
 <div>

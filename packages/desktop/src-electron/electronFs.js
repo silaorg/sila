@@ -303,15 +303,22 @@ export class ElectronFileSystem {
       });
 
       watcher.on('error', (error) => {
-        console.error('File watcher error:', error);
+        // Log file watcher errors as warnings rather than errors since they're often non-critical
+        // Common causes: permission issues, deleted directories, network filesystem issues
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn('File watcher encountered an issue (this is usually non-critical):', errorMessage);
       });
 
       return () => {
         watcher.close();
       };
     } catch (error) {
-      console.error('Failed to set up file watcher:', watchPath, error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn('Failed to set up file watcher for:', watchPath, errorMessage);
+      // Return a no-op function instead of throwing to allow the app to continue
+      return () => {
+        console.log('File watcher was not set up, no cleanup needed');
+      };
     }
   }
 }
