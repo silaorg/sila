@@ -16,6 +16,11 @@
       "label": "Pricing"
     },
     {
+      "name": "strengths-of-sila",
+      "type": "page",
+      "label": "Strengths of Sila"
+    },
+    {
       "name": "getting-started",
       "type": "page",
       "label": "Getting started"
