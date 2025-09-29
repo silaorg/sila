@@ -6,6 +6,7 @@ const DEFAULT_CONFIG_URL = "/api/demo-space";
 export type LoadDemoSpaceOptions = {
   configUrl?: string;
   state?: ClientState;
+  initializeState?: boolean;
 };
 
 export async function loadDemoSpace(
@@ -14,7 +15,9 @@ export async function loadDemoSpace(
   const configUrl = options.configUrl ?? DEFAULT_CONFIG_URL;
   const state = options.state ?? new ClientState();
 
-  await state.init({});
+  if (options.initializeState !== false) {
+    await state.init({});
+  }
 
   const response = await fetch(configUrl);
   if (!response.ok) {
