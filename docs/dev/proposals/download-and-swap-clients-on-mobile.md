@@ -2,7 +2,7 @@
 
 ## Goal
 
-Ship a small, stable native shell (Capacitor) while updating only the client bundle (HTML/JS/CSS) at runtime. Keep it simple: versioned folders, a lightweight selection rule (pick newest compatible), and platform‑appropriate resource serving. No symlinks; no native code updates. We already follow this pattern on desktop; this proposal adapts the same ideas for mobile.
+Ship a stable native shell (Capacitor) while making it easy for us to update only the client bundle (HTML/JS/CSS) at runtime. Keep it simple: versioned folders, a lightweight selection rule (pick newest compatible), and platform‑appropriate resource serving. No symlinks; no native code updates. We already follow this pattern on desktop; this proposal adapts the same ideas for mobile.
 
 —
 
