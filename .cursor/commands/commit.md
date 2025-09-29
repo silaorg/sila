@@ -1,0 +1,1 @@
+git status and commit things related to a task at hand. If you don't know the task - ask the user and add things that related to somethign particular or everything if the user wants to. Make sure to follow a commit name convention we have.
