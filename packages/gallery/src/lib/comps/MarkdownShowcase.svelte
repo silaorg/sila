@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "@sila/client/comps/markdown/chatMarkdownOptions";
+  import ClientStateProvider from "@sila/client/state/ClientStateProvider.svelte";
 
   const markdownSource = String.raw`# Markdown Showcase
 
@@ -69,6 +70,7 @@ Enjoy exploring how markdown renders in Sila!`;
 </script>
 
 <div class="prose max-w-none">
-  <Markdown source={markdownSource} options={chatMarkdownOptions} />
+  <ClientStateProvider>
+    <Markdown source={markdownSource} options={chatMarkdownOptions} />
+  </ClientStateProvider>
 </div>
-

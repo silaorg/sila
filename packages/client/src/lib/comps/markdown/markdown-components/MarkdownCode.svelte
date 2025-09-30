@@ -7,6 +7,7 @@
 
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+
   const clientState = useClientState();
 
   let { token }: { token: Tokens.Code } = $props();
