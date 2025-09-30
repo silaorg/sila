@@ -7,6 +7,7 @@
 
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { getOSColorScheme } from "@sila/client/utils/updateColorScheme";
 
   const clientState = useClientState();
 
@@ -15,17 +16,19 @@
   let isCopied = $state(false);
 
   let generatedHtml = $derived.by(async () => {
-    const codeTheme =
-      clientState.theme.colorScheme === "dark"
-        ? "github-dark"
-        : "github-light";
+    const colorScheme =
+      clientState.theme.colorScheme !== "system"
+        ? clientState.theme.colorScheme
+        : getOSColorScheme();
+
+    const codeTheme = colorScheme === "dark" ? "github-dark" : "github-light";
     return await generatedHighlightedHtml(token.text, codeTheme, token.lang);
   });
 
   async function generatedHighlightedHtml(
     source: string,
     codeTheme: string,
-    lang?: string,
+    lang?: string
   ): Promise<string | null> {
     try {
       return await codeToHtml(source, {
