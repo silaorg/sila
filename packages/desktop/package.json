@@ -20,6 +20,10 @@
       {
         "from": "build",
         "to": ""
+      },
+      {
+        "from": "build/icons",
+        "to": "icons"
       }
     ],
     "publish": {
@@ -59,6 +63,7 @@
       ]
     },
     "linux": {
+      "icon": "icons",
       "artifactName": "Sila-${version}-linux-${arch}.${ext}",
       "maintainer": "Dmitry Kury <d@dkury.com>",
       "target": [
@@ -100,7 +105,7 @@
     "package:win": "electron-builder --win",
     "prepackage:win:signed": "npm run build",
     "package:win:signed": ". .env && electron-builder --win",
-    "prepackage:linux": "npm run build",
+    "prepackage:linux": "npm run build && node scripts/gen-icon.js && cp build/icons/512x512.png build/icon.png",
     "package:linux": "electron-builder --linux",
     "build:publish": "npm run build && electron-builder --publish=always",
     "build:publish-draft": "npm run build && electron-builder --publish=draft",
@@ -124,6 +129,7 @@
     "cpy-cli": "^5.0.0",
     "electron": "37.2.3",
     "electron-builder": "26.0.12",
+    "jimp": "^1.6.0",
     "svelte": "^5.36.16",
     "svelte-check": "^4.2.2",
     "typescript": "~5.8.3",
