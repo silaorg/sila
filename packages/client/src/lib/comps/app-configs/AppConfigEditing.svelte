@@ -4,7 +4,6 @@
   import { type AppConfig, uuid } from "@sila/core";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { onMount } from "svelte";
   const clientState = useClientState();
 
   let { configId }: { configId?: string } = $props();
@@ -30,10 +29,6 @@
   let description = $state("");
   let instructions = $state("");
   let targetLLM = $state("auto");
-
-  onMount(() => {
-    console.log("config", config);
-  });
 
   $effect(() => {
     if (config) {
