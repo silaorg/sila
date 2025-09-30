@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
 
   const clientState = useClientState();
@@ -17,9 +18,10 @@
     onCancel?: (folderPath?: string) => void;
   } = $props();
 
-  const presetNames = ["Personal", "Work", "Studies", "School"];
+  const defaultPresetNames = ["Personal", "Work", "Studies", "School"];
 
-  let workspaceName = $state(presetNames[0]);
+  let presets = $state<string[]>([...defaultPresetNames]);
+  let workspaceName = $state(defaultPresetNames[0]);
   let workspaceNameError = $state("");
   let status: Status = $state("idle");
   let currentParentPath = $state(parentPath);
@@ -39,7 +41,8 @@
   }
 
   function folderNameCandidate(name: string): string {
-    return sanitizeFolderName(name) || "New Workspace";
+    const sanitized = sanitizeFolderName(name);
+    return sanitized ? sanitized.toLowerCase() : "new workspace";
   }
 
   function normalizePathSelection(
@@ -56,6 +59,8 @@
     return path;
   }
 
+  let existingFolderNames = $state<Set<string>>(new Set());
+
   let workspaceFolderPreview = $derived.by(() => {
     if (!currentParentPath) {
       return null;
@@ -63,6 +68,46 @@
 
     return `${currentParentPath}/${folderNameCandidate(workspaceName)}`;
   });
+
+  async function refreshExistingFolders(path: string | null) {
+    try {
+      if (!path) {
+        existingFolderNames = new Set();
+        presets = [...defaultPresetNames];
+        return;
+      }
+
+      const entries = await clientState.fs.readDir(path);
+      const directoryNames = entries
+        .filter((entry) => entry.isDirectory && !entry.name.startsWith("."))
+        .map((entry) => folderNameCandidate(entry.name));
+
+      existingFolderNames = new Set(directoryNames);
+
+      const filteredPresets = defaultPresetNames.filter(
+        (name) => !existingFolderNames.has(folderNameCandidate(name))
+      );
+
+      presets =
+        filteredPresets.length > 0
+          ? filteredPresets
+          : [...defaultPresetNames];
+
+      if (
+        (!workspaceName.trim() && presets.length > 0) ||
+        (defaultPresetNames.includes(workspaceName) &&
+          !presets.some(
+            (preset) => folderNameCandidate(preset) === folderNameCandidate(workspaceName)
+          ))
+      ) {
+        workspaceName = presets[0];
+      }
+    } catch (e) {
+      console.error("Failed to read directory", e);
+      existingFolderNames = new Set();
+      presets = [...defaultPresetNames];
+    }
+  }
 
   async function chooseLocation() {
     try {
@@ -78,6 +123,7 @@
       }
 
       currentParentPath = path;
+      await refreshExistingFolders(path);
       onParentPathChange?.(path);
     } catch (e) {
       console.error(e);
@@ -93,10 +139,37 @@
     }
   }
 
+  onMount(() => {
+    refreshExistingFolders(currentParentPath);
+  });
+
+  $effect(() => {
+    if (parentPath && parentPath !== currentParentPath) {
+      currentParentPath = parentPath;
+      refreshExistingFolders(parentPath);
+    }
+  });
+
   function closeWindow() {
     onCancel?.(currentParentPath ?? undefined);
     clientState.layout.swins.pop();
   }
+
+  function suggestNameOnFocus() {
+    if (!workspaceName.trim() && presets.length > 0) {
+      workspaceName = presets[0];
+    }
+  }
+
+  function isNameTaken(name: string): boolean {
+    return existingFolderNames.has(folderNameCandidate(name));
+  }
+
+  let nameAlreadyExists = $derived.by(() => {
+    const trimmed = workspaceName.trim();
+    if (!trimmed) return false;
+    return isNameTaken(trimmed);
+  });
 
   async function confirmCreateWorkspace() {
     if (status === "creating") return;
@@ -110,6 +183,12 @@
     const folderName = sanitizeFolderName(trimmedName);
     if (!folderName) {
       workspaceNameError = "Workspace name contains unsupported characters.";
+      return;
+    }
+
+    if (isNameTaken(trimmedName)) {
+      workspaceNameError =
+        "A folder with this name already exists in the selected location.";
       return;
     }
 
@@ -168,9 +247,16 @@
         placeholder="My Workspace"
         autocomplete="off"
         disabled={status === "creating"}
+        onfocus={suggestNameOnFocus}
+        oninput={() => (workspaceNameError = "")}
       />
       {#if workspaceNameError}
         <p class="text-error-500 text-sm mt-2">{workspaceNameError}</p>
+      {/if}
+      {#if nameAlreadyExists && !workspaceNameError}
+        <p class="text-warning-500 text-sm mt-2">
+          A workspace with this name already exists in the selected folder.
+        </p>
       {/if}
     </div>
 
@@ -178,7 +264,7 @@
       <p class="mb-2">You can give a simple name that describes the purpose of the
         workspace:</p>
       <div class="flex flex-wrap gap-2">
-        {#each presetNames as name}
+        {#each presets as name}
           <button
             type="button"
             class="btn btn-sm preset-outlined"
@@ -224,7 +310,7 @@
         <button
           type="submit"
           class="btn preset-filled-primary-500"
-          disabled={status === "creating"}
+          disabled={status === "creating" || nameAlreadyExists}
         >
           {status === "creating" ? "Creating..." : "Create workspace"}
         </button>
