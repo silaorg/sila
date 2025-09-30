@@ -27,7 +27,7 @@ export async function loadDemoSpace(
   const config = (await response.json()) as DemoConfig;
   const space = await buildSpaceFromConfig(config);
 
-  const spaceId = await state.adoptInMemorySpace(space, config.name);
+  const spaceId = await state.addDemoSpace(space, config.name);
   return { state, spaceId, config };
 }
 

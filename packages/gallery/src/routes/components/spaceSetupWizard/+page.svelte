@@ -23,7 +23,7 @@
                 conversations: [],
             });
 
-            await clientState.adoptInMemorySpace(space, space.name);
+            await clientState.addDemoSpace(space, space.name);
         } catch (err) {
             error = err instanceof Error ? err.message : String(err);
         } finally {
