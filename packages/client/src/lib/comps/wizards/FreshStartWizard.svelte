@@ -15,6 +15,7 @@
     </div>
 
     <h3 class="h3">Create or open a workspace</h3>
+    <p>A workspace is where your conversations, files and assistants are stored. You can have multiple workspaces and switch between them with a click.</p>
     <SpaceOpener />
   </div>
 </CenteredPage>
