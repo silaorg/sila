@@ -29,7 +29,7 @@
 
 
 /* KaTeX for math rendering */
-/*@import 'katex/dist/katex.min.css'; */
+@import 'katex/dist/katex.min.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
