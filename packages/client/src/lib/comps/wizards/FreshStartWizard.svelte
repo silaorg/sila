@@ -8,14 +8,18 @@
     <div class="space-y-4">
       <h2 class="h2">Welcome to Sila</h2>
       <p>
-        Sila is like ChatGPT but open source. It allows to use the best AI
-        models from different providers, keeps data private, and doesn't require
-        a subscription.
+        Sila works like ChatGPT, but in Sila you own your assistants, chats, and
+        all generated data. As you use AI more, as it learns more about you and
+        your preferences - that data becomes more valuable over time - so it
+        makes sense to own it!
       </p>
     </div>
 
     <h3 class="h3">Create or open a workspace</h3>
-    <p>A workspace is where your conversations, files and assistants are stored. You can have multiple workspaces and switch between them with a click.</p>
+    <p>
+      A workspace is where your conversations, files and assistants are stored.
+      You can have multiple workspaces and switch between quickly.
+    </p>
     <SpaceOpener />
   </div>
 </CenteredPage>

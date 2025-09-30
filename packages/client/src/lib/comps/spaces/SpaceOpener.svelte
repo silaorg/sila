@@ -7,13 +7,13 @@
   type Status = "idle" | "selectingLocation" | "opening";
   let status: Status = $state("idle");
 
-  let {
-    onSpaceSetup,
-  }: { onSpaceSetup?: (spaceId: string) => void } = $props();
+  let { onSpaceSetup }: { onSpaceSetup?: (spaceId: string) => void } = $props();
 
   let selectedParentPath = $state<string | null>(null);
 
-  function normalizePathSelection(path: string | string[] | null | undefined): string | null {
+  function normalizePathSelection(
+    path: string | string[] | null | undefined
+  ): string | null {
     if (!path) {
       return null;
     }
@@ -26,13 +26,13 @@
   }
 
   async function promptForLocation(): Promise<string | null> {
-  const selection = await clientState.dialog.openDialog({
-    title: "Choose where to create your workspace",
-    directory: true,
-    defaultPath: selectedParentPath ?? undefined,
-  });
+    const selection = await clientState.dialog.openDialog({
+      title: "Choose where to create your workspace",
+      directory: true,
+      defaultPath: selectedParentPath ?? undefined,
+    });
 
-  return normalizePathSelection(selection ?? null);
+    return normalizePathSelection(selection ?? null);
   }
 
   async function startCreateFlow() {
@@ -55,7 +55,10 @@
       await clientState.dialog.showError({
         title: "Failed to Open Folder",
         message: $txtStore.spacesPage.opener.errorCreate,
-        detail: e instanceof Error ? e.message : "An unknown error occurred while choosing the folder.",
+        detail:
+          e instanceof Error
+            ? e.message
+            : "An unknown error occurred while choosing the folder.",
         buttons: ["OK"],
       });
       status = "idle";
@@ -110,7 +113,10 @@
       await clientState.dialog.showError({
         title: "Failed to Open Space",
         message: $txtStore.spacesPage.opener.errorOpen,
-        detail: e instanceof Error ? e.message : "An unknown error occurred while opening the space.",
+        detail:
+          e instanceof Error
+            ? e.message
+            : "An unknown error occurred while opening the space.",
         buttons: ["OK"],
       });
     } finally {
@@ -134,9 +140,7 @@
       onclick={startCreateFlow}
       disabled={status !== "idle"}
     >
-      {status === "creating"
-        ? "Creating..."
-        : $txtStore.spacesPage.opener.createButton}
+      {$txtStore.spacesPage.opener.createButton}
     </button>
   </div>
 
@@ -152,9 +156,7 @@
       onclick={openSpaceDialog}
       disabled={status !== "idle"}
     >
-      {status === "opening"
-        ? "Opening..."
-        : $txtStore.spacesPage.opener.openButton}
+      {$txtStore.spacesPage.opener.openButton}
     </button>
   </div>
 </div>
