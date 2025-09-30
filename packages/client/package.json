@@ -23,7 +23,7 @@
     "dexie": "^4.0.11",
     "github-slugger": "^2.0.0",
     "heic2any": "^0.0.4",
-    "katex": "^0.16.21",
+    "katex": "^0.16.22",
     "lucide-svelte": "^0.453.0",
     "marked": "^15.0.6",
     "shiki": "^2.0.3",
