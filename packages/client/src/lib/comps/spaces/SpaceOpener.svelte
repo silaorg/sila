@@ -132,7 +132,7 @@ import {
 </script>
 
 <div>
-  <div class="flex items-center justify-between mt-4">
+  <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
         {$txtStore.spacesPage.opener.createTitle}
@@ -150,7 +150,7 @@ import {
     </button>
   </div>
 
-  <div class="flex items-center justify-between mt-4">
+  <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
         {$txtStore.spacesPage.opener.openTitle}
