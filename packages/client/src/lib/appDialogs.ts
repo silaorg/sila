@@ -2,6 +2,7 @@ export interface OpenDialogOptions {
   title?: string;
   directory?: boolean;
   multiple?: boolean;
+  defaultPath?: string;
   filters?: { name: string; extensions: string[] }[];
 }
 

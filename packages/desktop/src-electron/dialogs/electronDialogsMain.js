@@ -16,6 +16,7 @@ export function setupDialogsInMain() {
     /** @type {import('electron').OpenDialogOptions} */
     const params = {
       title: options?.title,
+      defaultPath: options?.defaultPath,
       // @ts-ignore: runtime valid values
       properties,
       filters: options?.filters
