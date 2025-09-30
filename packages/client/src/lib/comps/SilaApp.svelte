@@ -51,7 +51,7 @@
     <!-- Handle native and custom context menus -->
     <ContextMenuHandler />
 
-    <!-- File Gallery Modal -->
+    <!-- A modal for viewing files, such as images, videos, PDFs, etc -->
     <FileGalleryModal />
   </ClientStateProvider>
 {:else}

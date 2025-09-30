@@ -18,8 +18,6 @@ export function getClientStateFromContext(): ClientState | null {
 	return null;
 }
 
-export { CLIENT_STATE };
-
 export function useClientState(): ClientState {
 	const instance = getClientStateFromContext();
 	if (instance) return instance;
