@@ -66,6 +66,9 @@
 
   function handleStepChange(newStep: number) {
     currentWizardStep = newStep;
+
+    // @NOTE: we're probably going to remove this as we changed how the space is named now
+    /*
     if (newStep === 1) {
       // Moving from step 0 (Name) to step 1 (Provider)
       // Allow empty space name (skip naming)
@@ -79,6 +82,7 @@
       }
       spaceNameError = ""; // Clear any previous error
     }
+    */
   }
 
   function completeSetup() {
