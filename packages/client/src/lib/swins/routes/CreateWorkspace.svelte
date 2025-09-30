@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+import {
+  checkIfCanCreateSpaceAndReturnPath,
+  ensurePathIsNotInsideExistingSpace,
+} from "@sila/client/spaces/fileSystemSpaceUtils";
 
   const clientState = useClientState();
 
@@ -66,7 +70,12 @@
       return null;
     }
 
-    return `${currentParentPath}/${folderNameCandidate(workspaceName)}`;
+    const sanitized = sanitizeFolderName(workspaceName);
+    if (!sanitized) {
+      return currentParentPath;
+    }
+
+    return `${currentParentPath}/${sanitized}`;
   });
 
   async function refreshExistingFolders(path: string | null) {
@@ -97,7 +106,8 @@
         (!workspaceName.trim() && presets.length > 0) ||
         (defaultPresetNames.includes(workspaceName) &&
           !presets.some(
-            (preset) => folderNameCandidate(preset) === folderNameCandidate(workspaceName)
+            (preset) =>
+              folderNameCandidate(preset) === folderNameCandidate(workspaceName)
           ))
       ) {
         workspaceName = presets[0];
@@ -122,6 +132,21 @@
         return;
       }
 
+      try {
+        await ensurePathIsNotInsideExistingSpace(clientState, path);
+      } catch (validationError) {
+        await clientState.dialog.showError({
+          title: "Folder Already Used",
+          message: "Pick a folder outside of existing workspaces.",
+          detail:
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError),
+          buttons: ["OK"],
+        });
+        return;
+      }
+
       currentParentPath = path;
       await refreshExistingFolders(path);
       onParentPathChange?.(path);
@@ -143,11 +168,16 @@
     refreshExistingFolders(currentParentPath);
   });
 
+  let lastParentPath = $state(parentPath);
+
   $effect(() => {
-    if (parentPath && parentPath !== currentParentPath) {
-      currentParentPath = parentPath;
-      refreshExistingFolders(parentPath);
+    if (parentPath === lastParentPath) {
+      return;
     }
+
+    lastParentPath = parentPath;
+    currentParentPath = parentPath ?? null;
+    refreshExistingFolders(parentPath ?? null);
   });
 
   function closeWindow() {
@@ -198,6 +228,22 @@
     }
 
     const targetPath = `${currentParentPath}/${folderName}`;
+
+    try {
+      await checkIfCanCreateSpaceAndReturnPath(clientState, targetPath);
+    } catch (validationError) {
+      workspaceNameError =
+        validationError instanceof Error
+          ? validationError.message
+          : String(validationError);
+      await clientState.dialog.showError({
+        title: "Cannot Use This Folder",
+        message: "Choose a different location for your workspace.",
+        detail: workspaceNameError,
+        buttons: ["OK"],
+      });
+      return;
+    }
 
     status = "creating";
     workspaceNameError = "";
@@ -268,8 +314,8 @@
           <button
             type="button"
             class="btn btn-sm preset-outlined"
-            class:preset-filled={name.toLowerCase() ===
-              workspaceName.toLowerCase()}
+            class:preset-filled={folderNameCandidate(name) ===
+              folderNameCandidate(workspaceName)}
             onclick={() => (workspaceName = name)}
             disabled={status === "creating"}
           >

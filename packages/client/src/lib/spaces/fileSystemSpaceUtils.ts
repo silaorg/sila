@@ -53,6 +53,27 @@ export async function checkIfCanCreateSpaceAndReturnPath(clientState: ClientStat
   return path;
 }
 
+export async function ensurePathIsNotInsideExistingSpace(clientState: ClientState, path: string): Promise<void> {
+  const normalizedPath = path.replace(/\/+$/, "");
+  if (!normalizedPath) {
+    return;
+  }
+
+  try {
+    await checkIfPathHasValidStructureAndReturnActualRootPath(clientState, normalizedPath);
+    throw new Error('Cannot use a folder that belongs to an existing Sila workspace.');
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === 'Not a valid Sila space directory. Expected to find a space-v* directory.'
+    ) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Checks if the provided path is a valid space directory or contains one
  * @param path The path to check

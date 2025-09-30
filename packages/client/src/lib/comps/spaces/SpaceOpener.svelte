@@ -1,6 +1,7 @@
 <script lang="ts">
   import { txtStore } from "@sila/client/state/txtStore";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { ensurePathIsNotInsideExistingSpace } from "@sila/client/spaces/fileSystemSpaceUtils";
 
   const clientState = useClientState();
 
@@ -43,6 +44,22 @@
     try {
       const path = await promptForLocation();
       if (!path) {
+        status = "idle";
+        return;
+      }
+
+      try {
+        await ensurePathIsNotInsideExistingSpace(clientState, path);
+      } catch (validationError) {
+        await clientState.dialog.showError({
+          title: "Folder Already Used",
+          message: "Pick a folder outside of existing workspaces.",
+          detail:
+            validationError instanceof Error
+              ? validationError.message
+              : String(validationError),
+          buttons: ["OK"],
+        });
         status = "idle";
         return;
       }
