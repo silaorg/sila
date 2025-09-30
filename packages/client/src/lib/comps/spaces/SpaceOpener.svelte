@@ -1,7 +1,10 @@
 <script lang="ts">
   import { txtStore } from "@sila/client/state/txtStore";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { ensurePathIsNotInsideExistingSpace } from "@sila/client/spaces/fileSystemSpaceUtils";
+import {
+  ensurePathIsNotInsideExistingSpace,
+  normalizePathSelection,
+} from "@sila/client/spaces/fileSystemSpaceUtils";
 
   const clientState = useClientState();
 
@@ -11,20 +14,6 @@
   let { onSpaceSetup }: { onSpaceSetup?: (spaceId: string) => void } = $props();
 
   let selectedParentPath = $state<string | null>(null);
-
-  function normalizePathSelection(
-    path: string | string[] | null | undefined
-  ): string | null {
-    if (!path) {
-      return null;
-    }
-
-    if (Array.isArray(path)) {
-      return path[0] ?? null;
-    }
-
-    return path;
-  }
 
   async function promptForLocation(): Promise<string | null> {
     const selection = await clientState.dialog.openDialog({

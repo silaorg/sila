@@ -4,6 +4,7 @@
 import {
   checkIfCanCreateSpaceAndReturnPath,
   ensurePathIsNotInsideExistingSpace,
+  normalizePathSelection,
 } from "@sila/client/spaces/fileSystemSpaceUtils";
 
   const clientState = useClientState();
@@ -47,20 +48,6 @@ import {
   function folderNameCandidate(name: string): string {
     const sanitized = sanitizeFolderName(name);
     return sanitized ? sanitized.toLowerCase() : "new workspace";
-  }
-
-  function normalizePathSelection(
-    path: string | string[] | null | undefined
-  ): string | null {
-    if (!path) {
-      return null;
-    }
-
-    if (Array.isArray(path)) {
-      return path[0] ?? null;
-    }
-
-    return path;
   }
 
   let existingFolderNames = $state<Set<string>>(new Set());

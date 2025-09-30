@@ -1,6 +1,20 @@
 import type { ClientState } from "../state/clientState.svelte";
 import type { FileEntry } from "../appFs";
 
+export function normalizePathSelection(
+  path: string | string[] | null | undefined,
+): string | null {
+  if (!path) {
+    return null;
+  }
+
+  if (Array.isArray(path)) {
+    return path[0] ?? null;
+  }
+
+  return path;
+}
+
 /**
  * Checks if a directory contains a space-v* directory
  */
