@@ -12,6 +12,7 @@ import SignInButtons from "@sila/client/comps/auth/SignInButtons.svelte";
 import UserProfile from "@sila/client/comps/auth/UserProfile.svelte";
 import SpaceOpenerPage from "../comps/spaces/SpaceOpenerPage.svelte";
 import DesktopUpdates from "@sila/client/comps/dev/DesktopUpdates.svelte";
+import CreateWorkspace from "../swins/routes/CreateWorkspace.svelte";
 
 // Setup function that can configure any SWins instance
 export function setupSwins(): SWins {
@@ -20,6 +21,7 @@ export function setupSwins(): SWins {
   swins.register('settings', Settings);
   swins.register('spaces', Spaces);
   swins.register('open-space', SpaceOpenerPage);
+  swins.register('create-workspace', CreateWorkspace);
   swins.register('apps', Apps);
   swins.register('app-config', AppConfigEditing);
   swins.register('new-thread', NewThreadSwins);
