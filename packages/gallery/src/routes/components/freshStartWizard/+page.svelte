@@ -6,11 +6,11 @@
 
     let loading = $state(true);
     let error: string | null = $state(null);
-    let state: ClientState = $state(new ClientState());
+    let clientState: ClientState = $state(new ClientState());
 
     onMount(async () => {
         try {
-            await state.init({});
+            await clientState.init({});
         } catch (err) {
             error = err instanceof Error ? err.message : String(err);
         } finally {
@@ -30,7 +30,7 @@
 {/if}
 
 {#if !loading && !error}
-    <ClientStateProvider instance={state}>
+    <ClientStateProvider instance={clientState}>
         <FreshStartWizard />
     </ClientStateProvider>
 {/if}

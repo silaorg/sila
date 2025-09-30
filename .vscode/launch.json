@@ -87,7 +87,7 @@
       }
     },
     {
-      "name": "Gallery: Vite + Chrome",
+      "name": "🖼️ Debug Gallery",
       "configurations": [
         "Gallery: Vite dev (SSR, Node)",
         "Gallery: Attach Chrome (client)"
