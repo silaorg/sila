@@ -42,7 +42,9 @@
     return sanitizeFolderName(name) || "New Workspace";
   }
 
-  function normalizePathSelection(path: string | string[] | null | undefined): string | null {
+  function normalizePathSelection(
+    path: string | string[] | null | undefined
+  ): string | null {
     if (!path) {
       return null;
     }
@@ -82,7 +84,10 @@
       await clientState.dialog.showError({
         title: "Failed to Access Folder",
         message: "We couldn't access the selected folder.",
-        detail: e instanceof Error ? e.message : "An unknown error occurred while choosing the folder.",
+        detail:
+          e instanceof Error
+            ? e.message
+            : "An unknown error occurred while choosing the folder.",
         buttons: ["OK"],
       });
     }
@@ -128,7 +133,8 @@
       clientState.layout.swins.pop();
     } catch (e) {
       console.error(e);
-      workspaceNameError = e instanceof Error ? e.message : "Failed to create the workspace.";
+      workspaceNameError =
+        e instanceof Error ? e.message : "Failed to create the workspace.";
       await clientState.dialog.showError({
         title: "Failed to Create Workspace",
         message: "We couldn't create the workspace.",
@@ -169,13 +175,15 @@
     </div>
 
     <div>
-      <p class="text-sm mb-2">Suggestions</p>
+      <p class="mb-2">You can give a simple name that describes the purpose of the
+        workspace:</p>
       <div class="flex flex-wrap gap-2">
         {#each presetNames as name}
           <button
             type="button"
             class="btn btn-sm preset-outlined"
-            class:preset-filled={name.toLowerCase() === workspaceName.toLowerCase()}
+            class:preset-filled={name.toLowerCase() ===
+              workspaceName.toLowerCase()}
             onclick={() => (workspaceName = name)}
             disabled={status === "creating"}
           >
@@ -185,8 +193,10 @@
       </div>
     </div>
 
-    <div class="rounded-md bg-surface-100/70 p-3 text-sm dark:bg-surface-800/70">
-      <strong class="block text-surface-500">Will be created in</strong>
+    <div
+      class=""
+    >
+      <p>Your new workspace will be created in:</p>
       <span class="font-mono text-sm break-words">
         {workspaceFolderPreview ?? "Select a location"}
       </span>
@@ -222,4 +232,3 @@
     </div>
   </form>
 </div>
-
