@@ -12,7 +12,7 @@
   - patch → Bundle update path (download zip bundle, reload prompt on ready)
 
 ### Full Executable Update Path (major/minor)
-- Trigger on app launch (after a short delay, e.g., 10–20s) to avoid startup contention.
+- Trigger on app launch; no delay.
 - Use `electron-updater` to `checkForUpdates` and then `downloadUpdate` without user prompt when semver diff is major/minor.
 - On `update-downloaded`, show a small modal: “Update ready. Restart to apply?” with actions: Restart Now (calls `autoUpdater.quitAndInstall()`) and Later.
 - Respect release channels and signatures as today; no change to code signing configuration.
@@ -28,27 +28,25 @@
 - Keep last known good bundle for rollback if reload fails.
 
 ### Startup Background Check
-- On `app.whenReady()`, schedule a background check (e.g., setTimeout 10–20s).
+- On `app.whenReady()`, run a background check immediately (no delay).
 - Single-flight guard to avoid concurrent checks; backoff on errors.
 - Low-priority network settings, resumable downloads where supported.
 
 ### Decision Logic (high-level pseudocode)
 ```ts
-onAppReady(() => {
-  schedule(15s, async () => {
-    const info = await updater.checkForUpdates(); // returns version + files
-    if (!info || !info.version) return;
+onAppReady(async () => {
+  const info = await updater.checkForUpdates(); // returns version + files
+  if (!info || !info.version) return;
 
-    const diff = semverDiff(currentVersion, info.version);
-    if (diff === 'major' || diff === 'minor') {
-      await updater.downloadFullExecutable(info); // silent
-      promptRestartOnDownloaded();
-    } else if (diff === 'patch') {
-      const bundle = await bundles.fetchLatestPatchManifest(currentMajorMinor);
-      await bundles.downloadAndActivate(bundle); // validate + switch pointer
-      promptReloadWhenReady();
-    }
-  });
+  const diff = semverDiff(currentVersion, info.version);
+  if (diff === 'major' || diff === 'minor') {
+    await updater.downloadFullExecutable(info); // silent
+    promptRestartOnDownloaded();
+  } else if (diff === 'patch') {
+    const bundle = await bundles.fetchLatestPatchManifest(currentMajorMinor);
+    await bundles.downloadAndActivate(bundle); // validate + switch pointer
+    promptReloadWhenReady();
+  }
 });
 ```
 
@@ -61,7 +59,6 @@ onAppReady(() => {
 - Feature flags/env:
   - `UPDATER_DISABLE_AUTO_MAJOR_MINOR` (default false)
   - `UPDATER_DISABLE_PATCH_BUNDLE` (default false)
-  - `UPDATER_STARTUP_DELAY_MS` (default 15000)
 
 ### Open Questions
 - Bundle source of truth and signing: reuse existing release pipeline or separate CDN + manifest?
