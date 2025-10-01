@@ -4,7 +4,7 @@ function genId(): string {
   return crypto.randomUUID().replace(/-/g, '');
 }
 
-type DemoConfig = {
+export type DemoConfig = {
   type: 'sila-space';
   version: '1';
   name: string;

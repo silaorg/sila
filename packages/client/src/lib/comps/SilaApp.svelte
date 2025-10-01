@@ -17,7 +17,8 @@
     state,
   }: { config: ClientStateConfig | null; state?: ClientState } = $props();
 
-  const providedState = state || new ClientState();
+  const providedState = $derived(state || new ClientState());
+
   $effect(() => {
     if (config) {
       providedState.init(config);
@@ -38,7 +39,9 @@
 
 {#if config}
   <ClientStateProvider instance={providedState}>
+    <!-- Set a current theme and a color scheme -->
     <ThemeManager />
+
     <!-- Where our spaces are rendered -->
     <SpaceEntry />
 
@@ -48,7 +51,7 @@
     <!-- Handle native and custom context menus -->
     <ContextMenuHandler />
 
-    <!-- File Gallery Modal -->
+    <!-- A modal for viewing files, such as images, videos, PDFs, etc -->
     <FileGalleryModal />
   </ClientStateProvider>
 {:else}

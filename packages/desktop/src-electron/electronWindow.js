@@ -36,7 +36,7 @@ export function createWindow(isDev) {
     // Development: load from SvelteKit dev server. The server has to be running
     mainWindow.loadURL('http://localhost:6969');
   } else {
-    mainWindow.loadURL('sila://builds/desktop/index.html');
+    mainWindow.loadURL('sila://client/index.html');
   }
 
   // Show window when ready to prevent visual flash

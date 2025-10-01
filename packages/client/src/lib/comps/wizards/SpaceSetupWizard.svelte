@@ -14,9 +14,11 @@
 
   const presetNames = ["Personal", "Work", "Studies", "School"];
 
-  const wizardSteps = ["name", "provider", "theme"];
+  //const wizardSteps = ["name", "provider", "theme"];
+  const wizardSteps = ["provider", "theme"];
 
-  const wizardTitles = ["Name", "Brains", "Theme"];
+  //const wizardTitles = ["Name", "Brains", "Theme"];
+  const wizardTitles = ["Brains", "Theme"];
 
   let currentWizardStep = $state(0);
 
@@ -64,6 +66,9 @@
 
   function handleStepChange(newStep: number) {
     currentWizardStep = newStep;
+
+    // @NOTE: we're probably going to remove this as we changed how the space is named now
+    /*
     if (newStep === 1) {
       // Moving from step 0 (Name) to step 1 (Provider)
       // Allow empty space name (skip naming)
@@ -77,6 +82,7 @@
       }
       spaceNameError = ""; // Clear any previous error
     }
+    */
   }
 
   function completeSetup() {
@@ -89,7 +95,7 @@
   }
 
   let canAdvance = $derived.by(() => {
-    if (currentWizardStep === 1 && !hasSetupProvider) {
+    if (currentWizardStep === 0 && !hasSetupProvider) {
       return false;
     }
     return true;
@@ -106,7 +112,8 @@
   bind:step={currentWizardStep}
 >
   {#snippet children({ currentStep }: { currentStep: number })}
-    {#if currentStep === 0}
+    <!-- Note: we disabled the name step for now that is why it's -1 -->
+    {#if currentStep === -1}
       <!-- Step 1: Space Name -->
       <h2 class="h3 mb-4">Name your workspace</h2>
       <p class="mb-4">
@@ -148,7 +155,7 @@
           {/each}
         </div>
       </div>
-    {:else if currentStep === 1}
+    {:else if currentStep === 0}
       <!-- Step 2: Model Provider -->
       <h2 class="h3 mb-4">Setup brains for your workspace</h2>
       <p class="mb-4">
@@ -159,7 +166,7 @@
       <div class="overflow-y-auto pr-2">
         <ModelProviders onConnect={handleProviderConnect} />
       </div>
-    {:else if currentStep === 2}
+    {:else if currentStep === 1}
       <!-- Step 3: Theme -->
       <h2 class="h3 mb-4">Choose the look of your workspace</h2>
       <div class="mb-4 space-y-4">

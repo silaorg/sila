@@ -233,10 +233,10 @@ export class ClientState {
   }
 
   /**
-   * Adopt an existing in-memory Space into the manager without persistence layers.
+   * Add a demo space into the manager without persistence layers.
    * Useful for demos in the gallery where we don't want to persist to IndexedDB or FS.
    */
-  async adoptInMemorySpace(space: Space, name?: string): Promise<string> {
+  async addDemoSpace(space: Space, name?: string): Promise<string> {
     const spaceId = space.getId();
 
     if (name) {

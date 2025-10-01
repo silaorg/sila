@@ -1,0 +1,1 @@
+See the code at hand and try to clean it up and simplify without breaking anything. If we have tests for that code or functionality it's part of - run them. Otherwise ask the user to test manually.

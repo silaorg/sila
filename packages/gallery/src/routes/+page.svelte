@@ -6,7 +6,19 @@
   </p>
   
   <p>
-    <a class="anchor" href="/components/chat-sandbox">ChatApp sandbox</a>
+    <a class="anchor" href="/components/chat">ChatApp sandbox</a>
+  </p>
+
+  <p>
+    <a class="anchor" href="/components/freshStartWizard">Fresh start wizard</a>
+  </p>
+
+  <p>
+    <a class="anchor" href="/components/spaceSetupWizard">Space setup wizard</a>
+  </p>
+
+  <p>
+    <a class="anchor" href="/components/markdown">Markdown showcase</a>
   </p>
 </div>
 

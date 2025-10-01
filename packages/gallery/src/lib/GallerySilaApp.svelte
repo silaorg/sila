@@ -1,29 +1,31 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { SilaApp, ClientStateProvider, ClientState } from "@sila/client";
-  import { galleryState } from "$lib/state/galleryState.svelte";
+  import { loadDemoSpace } from "$lib/loadDemoSpace";
 
   let demoConfigUrl: string = "/api/demo-space";
-  let initialized = $derived(galleryState.ready);
-  let error: string | null = $derived(galleryState.error);
+  let loading = $state(true);
+  let error: string | null = $state(null);
+  let localState: ClientState | null = $state(null);
 
   onMount(async () => {
-    const localState = new ClientState();
-    galleryState.setClient(localState);
-    await galleryState.loadSpace(demoConfigUrl);
+    try {
+      const { state } = await loadDemoSpace({ configUrl: demoConfigUrl });
+      localState = state;
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    } finally {
+      loading = false;
+    }
   });
 </script>
 
 {#if error}
   <div>Error: {error}</div>
-{:else if !initialized}
+{:else if loading}
   <div>Loading demo space…</div>
+{:else if localState}
+  <SilaApp config={{}} state={localState} />
 {:else}
-  {#key initialized}
-    {#if initialized}
-      <SilaApp config={{}} state={galleryState["_client"]} />
-    {:else}
-      <div>Loading, please wait…</div>
-    {/if}
-  {/key}
+  <div>Demo space not loaded</div>
 {/if}

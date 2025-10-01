@@ -56,6 +56,72 @@ export function setupFileSystemAPI() {
      */
     getAllSpaces: () => {
       return ipcRenderer.invoke('get-all-spaces');
+    },
+
+    /**
+     * Check for latest GitHub release
+     * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string} | null>}
+     */
+    checkGitHubRelease: () => {
+      return ipcRenderer.invoke('check-github-release');
+    },
+
+    /**
+     * Check for updates with strategy consideration
+     * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
+     */
+    checkUpdatesWithStrategy: () => {
+      return ipcRenderer.invoke('check-updates-with-strategy');
+    },
+
+    /**
+     * Download and extract a GitHub build
+     * @param {string} downloadUrl - URL to download the zip file
+     * @param {string} version - Version string for the build
+     * @returns {Promise<boolean>} Success status
+     */
+    downloadGitHubBuild: (downloadUrl, version) => {
+      return ipcRenderer.invoke('download-github-build', { downloadUrl, version });
+    },
+
+    /**
+     * Get available builds
+     * @returns {Promise<string[]>} Array of build names
+     */
+    getAvailableBuilds: () => {
+      return ipcRenderer.invoke('get-available-builds');
+    },
+
+    /**
+     * Get all available desktop builds from recent GitHub releases
+     * @returns {Promise<Array<{version: string, downloadUrl: string, publishedAt: string, releaseTag: string}>>}
+     */
+    getAllAvailableDesktopBuilds: () => {
+      return ipcRenderer.invoke('get-all-available-desktop-builds');
+    },
+
+    /**
+     * Get current build version
+     * @returns {Promise<string>} Current build version
+     */
+    getCurrentBuildVersion: () => {
+      return ipcRenderer.invoke('get-current-build-version');
+    },
+
+    /**
+     * Reload to latest build
+     * @returns {Promise<boolean>} Success status
+     */
+    reloadToLatestBuild: () => {
+      return ipcRenderer.invoke('reload-to-latest-build');
+    },
+
+    /**
+     * Get update coordinator state
+     * @returns {Promise<Object>} Update coordinator state
+     */
+    getUpdateCoordinatorState: () => {
+      return ipcRenderer.invoke('get-update-coordinator-state');
     }
   });
 }

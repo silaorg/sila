@@ -1,26 +1,30 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { SilaApp, ClientStateProvider, ClientState } from "@sila/client";
-  import { galleryState } from "$lib/state/galleryState.svelte";
+  import { ClientStateProvider, type ClientState } from "@sila/client";
   import ChatApp from "@sila/client/comps/apps/ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
+  import { loadDemoSpace } from "$lib/loadDemoSpace";
 
   let demoConfigUrl: string = "/api/demo-space";
-  let initialized = $derived(galleryState.ready);
-  let error: string | null = $derived(galleryState.error);
+  let loading = $state(true);
+  let error: string | null = $state(null);
   let data: ChatAppData | null = $state(null);
   let localState: ClientState | null = $state(null);
 
   onMount(async () => {
-    localState = new ClientState();
-    galleryState.setClient(localState);
-    await galleryState.loadSpace(demoConfigUrl);
-
-    await buildFromFirstChatTree();
+    try {
+      const { state } = await loadDemoSpace({ configUrl: demoConfigUrl });
+      localState = state;
+      await buildFromFirstChatTree(state);
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    } finally {
+      loading = false;
+    }
   });
 
-  async function buildFromFirstChatTree() {
-    const space = galleryState.currentSpace;
+  async function buildFromFirstChatTree(state: ClientState) {
+    const space = state.currentSpace;
     if (!space) {
       error = "No space loaded";
       return;

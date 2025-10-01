@@ -5,6 +5,10 @@
 
   function handleOpen(spaceId?: string) {
     clientState.layout.swins.clear();
+    if (spaceId) {
+      // Ensure the new space becomes active
+      clientState.switchToSpace(spaceId);
+    }
   }
 </script>
 

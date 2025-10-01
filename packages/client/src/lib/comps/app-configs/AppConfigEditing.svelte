@@ -1,40 +1,41 @@
 <script lang="ts">
   import InputModel from "../models/InputModel.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
-  import { uuid } from "@sila/core";
+  import { type AppConfig, uuid } from "@sila/core";
+  import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
-  import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
 
-  let {
-    configId,
-  }: { configId?: string } = $props();
+  let { configId }: { configId?: string } = $props();
 
   let isNewApp = $derived(!configId);
+  let isDefault = $derived(configId === "default");
 
+  let config: AppConfig | null = $derived.by(() => {
+    if (!configId || clientState.currentSpace === null) {
+      return null;
+    }
+
+    const target = clientState.currentSpace.getAppConfig(configId);
+    if (!target) {
+      return null;
+    }
+
+    return target;
+  });
+
+  // We define them as states because we then bind them to the form elements
   let name = $state("");
   let description = $state("");
   let instructions = $state("");
   let targetLLM = $state("auto");
 
-  let defaultConfigMessage = $derived(
-    $txtStore.appConfigPage.defaultConfigMessage.replace(
-      "{defaultConfigGotoNew}",
-      $txtStore.appConfigPage.defaultConfigGotoNew
-    )
-  );
-
-  let isDefault = $derived(configId === "default");
-
   $effect(() => {
-    if (configId) {
-      const config = clientState.currentSpace?.getAppConfig(configId);
-      if (config) {
-        name = config.name;
-        description = config.description;
-        instructions = config.instructions;
-        targetLLM = config.targetLLM || "auto";
-      }
+    if (config) {
+      name = config.name;
+      description = config.description;
+      instructions = config.instructions;
+      targetLLM = config.targetLLM || "auto";
     }
   });
 
@@ -65,9 +66,9 @@
       });
 
       // Dispatch custom event to notify about new assistant creation
-      const event = new CustomEvent('assistant-created', {
+      const event = new CustomEvent("assistant-created", {
         detail: { assistantId: newConfigId },
-        bubbles: true
+        bubbles: true,
       });
       document.dispatchEvent(event);
 
@@ -100,10 +101,10 @@
     {$txtStore.appConfigPage.defaultConfigTitle}
   {/if}
 </h3>
-<form class="space-y-4" bind:this={formElement}>
+<form class="space-y-4" bind:this={formElement} onsubmit={handleSubmit}>
   {#if isDefault}
     <p>
-      {@html defaultConfigMessage}
+      {$txtStore.appConfigPage.defaultConfigMessage}
       <SwinsNavButton
         component="app-config"
         className="anchor"
@@ -153,15 +154,16 @@
     <span>{$txtStore.basics.model}</span>
     <InputModel bind:value={targetLLM} required />
   </div>
-  <button
-    type="submit"
-    onclick={handleSubmit}
-    class="btn preset-filled-primary-500 mb-2"
-  >
-    {#if isNewApp}
-      {$txtStore.appConfigPage.buttonCreate}
-    {:else}
-      {$txtStore.appConfigPage.buttonSave}
-    {/if}
-  </button>
+  <div class="flex justify-end">
+    <button
+      type="submit"
+      class="btn preset-filled-primary-500 mb-2"
+    >
+      {#if isNewApp}
+        {$txtStore.appConfigPage.buttonCreate}
+      {:else}
+        {$txtStore.appConfigPage.buttonSave}
+      {/if}
+    </button>
+  </div>
 </form>

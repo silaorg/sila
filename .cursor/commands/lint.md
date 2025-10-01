@@ -1,0 +1,1 @@
+Run a lint command for the code at hand and then fix whatever is wrong with it.

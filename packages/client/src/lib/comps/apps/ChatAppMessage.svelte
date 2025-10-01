@@ -1,28 +1,5 @@
 <script module lang="ts">
-  import {
-    createInlineLatexExtension,
-    createBlockLatexExtension,
-  } from "../markdown/markdown-extensions/latexInMarkdown";
-  import type { Component } from "svelte";
-
-  import MarkdownTeX from "../markdown/markdown-components/MarkdownTeX.svelte";
-  import MarkdownTeXBlock from "../markdown/markdown-components/MarkdownTeXBlock.svelte";
-  import MarkdownCode from "../markdown/markdown-components/MarkdownCode.svelte";
-  import MarkdownCodeSpan from "../markdown/markdown-components/MarkdownCodeSpan.svelte";
-
-  // Configure Markpage options for markdown rendering
-  const markpageOptions = new MarkpageOptions()
-    // Override builtin tokens with our components
-    .overrideBuiltinToken("code", MarkdownCode as Component)
-    .overrideBuiltinToken("codespan", MarkdownCodeSpan as Component)
-    .overrideBuiltinToken("texInline", MarkdownTeX as Component)
-    .overrideBuiltinToken("texBlock", MarkdownTeXBlock as Component)
-    .extendMarkdown({
-      extensions: [
-        createInlineLatexExtension(MarkdownTeX),
-        createBlockLatexExtension(MarkdownTeXBlock),
-      ],
-    });
+  import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
 </script>
 
 <script lang="ts">
@@ -36,7 +13,7 @@
   import type { ChatAppData } from "@sila/core";
   import type { Vertex } from "@sila/core";
   import { onMount } from "svelte";
-  import { Markdown, MarkpageOptions } from "@markpage/svelte";
+  import { Markdown } from "@markpage/svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
@@ -358,7 +335,7 @@
                 >
                   <Markdown
                     source={message.thinking || ""}
-                    options={markpageOptions}
+                    options={chatMarkdownOptions}
                   />
                 </div>
               {/if}
@@ -366,7 +343,7 @@
           {/if}
           <Markdown
             source={message.text ? message.text : ""}
-            options={markpageOptions}
+            options={chatMarkdownOptions}
           />
           <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
           <div

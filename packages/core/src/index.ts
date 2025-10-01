@@ -1,5 +1,3 @@
-// Core package exports
-
 export * from 'reptree';
 
 export * from './models';
