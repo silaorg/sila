@@ -142,9 +142,11 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
         this.handleWatchEvent.bind(this),
         { recursive: true }
       );
+      console.log(`File watcher started for space: ${this.spacePath}`);
     } catch (error) {
-      console.error("Error setting up file watch:", error);
-      throw error;
+      console.warn("Failed to set up file watcher - continuing without file watching:", error);
+      // Don't throw the error - file watching is not critical for basic functionality
+      // The space can still work without real-time file sync
     }
 
     // Start periodic secret checking
@@ -481,25 +483,30 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
 
   // File watching event handler
   private handleWatchEvent(event: WatchEvent) {
-    switch (event.event) {
-      case 'add':
-        if (event.path.endsWith('.jsonl')) {
-          this.tryReadOpsFromPeer(event.path);
-        } else if (event.path.endsWith('secrets')) {
-          this.tryReadSecretsFromPeer(event.path);
-        }
-        break;
-        
-      case 'change':
-        if (event.path.endsWith('.jsonl')) {
-          this.tryReadOpsFromPeer(event.path);
-        } else if (event.path.endsWith('secrets')) {
-          this.tryReadSecretsFromPeer(event.path);
-        }
-        break;
-        
-      // We don't need to handle 'addDir', 'unlink', or 'unlinkDir' for our use case
-      // but they're available if needed in the future
+    try {
+      switch (event.event) {
+        case 'add':
+          if (event.path.endsWith('.jsonl')) {
+            this.tryReadOpsFromPeer(event.path);
+          } else if (event.path.endsWith('secrets')) {
+            this.tryReadSecretsFromPeer(event.path);
+          }
+          break;
+          
+        case 'change':
+          if (event.path.endsWith('.jsonl')) {
+            this.tryReadOpsFromPeer(event.path);
+          } else if (event.path.endsWith('secrets')) {
+            this.tryReadSecretsFromPeer(event.path);
+          }
+          break;
+          
+        // We don't need to handle 'addDir', 'unlink', or 'unlinkDir' for our use case
+        // but they're available if needed in the future
+      }
+    } catch (error) {
+      console.warn('Error handling file watcher event:', error, 'for path:', event.path);
+      // Continue processing other events even if one fails
     }
   }
 
@@ -556,19 +563,24 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
       treeId = treeIdStartPart + treeIdEndPart;
 
     } catch (e) {
-      console.error("Error getting peerId from", path);
+      console.warn("Error parsing path structure for", path, "- skipping");
       return;
     }
 
-    const lines = await this.fs.readTextFileLines(path);
-    const ops = await this.turnJSONLinesIntoOps(lines, peerId);
+    try {
+      const lines = await this.fs.readTextFileLines(path);
+      const ops = await this.turnJSONLinesIntoOps(lines, peerId);
 
-    if (ops.length === 0) {
-      return;
+      if (ops.length === 0) {
+        return;
+      }
+
+      // Notify callback about incoming operations
+      this.onIncomingOpsCallback(treeId, ops);
+    } catch (error) {
+      console.warn("Error reading ops from file:", path, error);
+      // Continue processing other files even if one fails
     }
-
-    // Notify callback about incoming operations
-    this.onIncomingOpsCallback(treeId, ops);
   }
 
   private async tryReadSecretsFromPeer(path: string) {
