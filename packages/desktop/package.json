@@ -1,5 +1,6 @@
 {
   "name": "@sila/desktop",
+  "private": true,
   "version": "1.0.1",
   "description": "Sila",
   "homepage": "https://silain.com",

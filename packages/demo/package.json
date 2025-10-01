@@ -1,5 +1,6 @@
 {
   "name": "@sila/demo",
+  "private": true,
   "version": "1.0.0",
   "description": "Build scripts for creating demo spaces from JSON",
   "main": "dist/index.js",

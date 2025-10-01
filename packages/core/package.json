@@ -1,5 +1,6 @@
 {
   "name": "@sila/core",
+  "private": true,
   "version": "1.0.0",
   "description": "Core for Sila that can be used on clients, servers, and inside other services",
   "type": "module",

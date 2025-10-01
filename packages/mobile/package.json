@@ -1,5 +1,6 @@
 {
   "name": "@sila/mobile",
+  "private": true,
   "version": "1.0.0",
   "description": "Sila Mobile App - Svelte + Vite + Capacitor",
   "type": "module",
