@@ -7,8 +7,6 @@ import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
 import { setUpdater, checkForUpdates } from './updates/updater.js';
 import { setupSilaProtocol } from './silaProtocol.js';
-//import { setupGitHubReleaseIPC } from './githubReleaseManager.js';
-//import { updateCoordinator } from './updates/updateCoordinator.js';
 import { spaceManager } from './spaceManager.js';
 
 // Development mode check
@@ -63,27 +61,6 @@ app.whenReady().then(async () => {
   mainWindow = createWindow(isDev);
   setupElectronMenu();
   setupDialogsInMain();
-
-  /*
-  if (!isDev) {
-    // Setup auto updater (standard approach) - Primary update system
-    setUpdater();
-    
-    // Setup GitHub release management - Secondary update system
-    // Delay client bundle updates to avoid conflicts with full app updates
-    setTimeout(() => {
-      if (updateCoordinator.canCheckClientUpdates()) {
-        setupGitHubReleaseIPC();
-        console.log('GitHub release manager initialized');
-      } else {
-        console.log('Skipping GitHub release manager - full app update in progress');
-      }
-    }, 10000); // 10s delay after full app update check
-  } else {
-    // In development mode, always setup GitHub release manager
-    setupGitHubReleaseIPC();
-  }
-  */
   
   // Expose manual update check for menu
   globalAny.checkForUpdates = checkForUpdates;
