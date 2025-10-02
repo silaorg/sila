@@ -43,6 +43,12 @@
           "arch": [
             "universal"
           ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
         }
       ]
     },
@@ -96,7 +102,7 @@
     "build:vite": "vite build",
     "prepackage:mac": "npm run build",
     "package:mac": ". .env && export APPLE_ID=\"$APPLE_ID\" APPLE_TEAM_ID=\"$APPLE_TEAM_ID\" APPLE_APP_SPECIFIC_PASSWORD=\"${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_ID_PASSWORD}\" && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
-    "package:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac dmg --universal -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.notarize=false",
+    "package:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.notarize=false",
     "prepackage:win": "npm run build",
     "package:win": "electron-builder --win",
     "prepackage:win:signed": "npm run build",
