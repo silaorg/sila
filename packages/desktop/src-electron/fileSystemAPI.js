@@ -11,6 +11,7 @@ export function setupFileSystemAPI() {
      * @param {string} spaceId - The space ID
      * @param {string} hash - The file hash
      * @param {string} mimeType - The MIME type (optional)
+     * @param {string} name - The file name (optional)
      * @returns {string} The file URL
      */
     getFileUrl: (spaceId, hash, mimeType, name) => {

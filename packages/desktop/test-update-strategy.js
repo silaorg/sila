@@ -5,7 +5,7 @@
  * Demonstrates how the system chooses between full app updates and client bundle updates
  */
 
-import { updateStrategy } from './src-electron/updateStrategy.js';
+import { updateStrategy } from './src-electron/updates/updateStrategy.js';
 
 // Test cases
 const testCases = [

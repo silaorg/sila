@@ -1,4 +1,4 @@
-import { Menu } from 'electron';
+import { Menu, app } from 'electron';
 
 export function setupElectronMenu() {
   // Only show a full application menu on macOS.
@@ -10,9 +10,32 @@ export function setupElectronMenu() {
   /** @type {import('electron').MenuItemConstructorOptions[]} */
   const template = [
     // On macOS, the first menu is automatically the app menu (shows as "Sila")
-    ...(process.platform === 'darwin' ? [/** @type {import('electron').MenuItemConstructorOptions} */ ({
-      role: 'appMenu'  // This automatically creates the standard macOS app menu with Quit
-    })] : []),
+    ...(process.platform === 'darwin'
+      ? [
+          /** @type {import('electron').MenuItemConstructorOptions} */ ({
+            label: app.name,
+            submenu: [
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'about' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+              {
+                label: 'Check for Updates',
+                click: () => {
+                  const globalAny = /** @type {any} */ (globalThis);
+                  globalAny.checkForUpdates?.();
+                }
+              },
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'services' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'hide' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'hideOthers' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'unhide' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'quit' })
+            ]
+          })
+        ]
+      : []),
     {
       label: 'File',
       submenu: [
@@ -51,21 +74,7 @@ export function setupElectronMenu() {
     }),
     {
       label: 'Help',
-      submenu: [
-        {
-          label: 'Check for Updates',
-          click: function () {
-            console.log('Manual update check requested');
-            /** @type {any} */
-            const globalAny = global;
-            if (globalAny.checkForUpdates) {
-              globalAny.checkForUpdates();
-            }
-          }
-        },
-        /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
-        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'about' })
-      ]
+      submenu: []
     }
   ];
 
