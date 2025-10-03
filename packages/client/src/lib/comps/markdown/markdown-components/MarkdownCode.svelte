@@ -7,6 +7,7 @@
 
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { untrack } from "svelte";
 
   const clientState = useClientState();
 
@@ -14,11 +15,19 @@
   let lang = $derived(token.lang || "text");
   let isCopied = $state(false);
 
-  // @TODO: remove flashing by caching the generated HTML and updating it when a new resolved generated is ready.
+  let generatedHtml = $state<string | null>(null);
 
-  let generatedHtml = $derived.by(async () => {
-    const codeTheme = clientState.theme.actualColorScheme === "dark" ? "github-dark" : "github-light";
-    return await generatedHighlightedHtml(token.text, codeTheme, token.lang);
+  $effect(() => {
+    const codeTheme =
+      clientState.theme.actualColorScheme === "dark"
+        ? "github-dark"
+        : "github-light";
+
+    generatedHighlightedHtml(token.text, codeTheme, token.lang).then((html) => {
+      untrack(() => {
+        generatedHtml = html;
+      });
+    });
   });
 
   async function generatedHighlightedHtml(
@@ -77,20 +86,12 @@
     </button>
   </div>
   <div class="min-w-0">
-    {#await generatedHtml}
+    {#if generatedHtml}
+      {@html generatedHtml}
+    {:else}
       <pre class="overflow-x-auto"><code class="block min-w-fit"
           >{token.text}</code
         ></pre>
-    {:then html}
-      {#if html}
-        {@html html}
-      {:else}
-        <pre class="overflow-x-auto"><code class="block min-w-fit"
-            >{token.text}</code
-          ></pre>
-      {/if}
-    {:catch error}
-      Error: {error}
-    {/await}
+    {/if}
   </div>
 </div>
