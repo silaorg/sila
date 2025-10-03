@@ -27,6 +27,8 @@
       untrack(() => {
         generatedHtml = html;
       });
+    }).catch((error) => {
+      console.error("Error generating highlighted HTML:", error);
     });
   });
 
