@@ -1,5 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { watch } from "runed";
+
   const clientState = useClientState();
   import {
     applyColorSchemeToDocument,
@@ -16,10 +18,9 @@
     return clientState.theme.colorScheme === "dark" ? "dark" : "light";
   }
 
-  function applyActualColorScheme() {
+  function updateActualColorScheme() {
     const resolved = computeActualColorScheme();
     clientState.theme.setActualColorScheme(resolved);
-    applyColorSchemeToDocument(resolved);
   }
 
   function applyThemeToDocument(themeName: string) {
@@ -30,7 +31,7 @@
     const mq = window.matchMedia(DARK_MODE_MATCH_MEDIA_STR);
     const handler = () => {
       if (clientState.theme.colorScheme === "system") {
-        applyActualColorScheme();
+        updateActualColorScheme();
       }
     };
     mq.addEventListener("change", handler);
@@ -40,12 +41,16 @@
     };
   });
 
+  watch(() => clientState.theme.colorScheme, () => { 
+    updateActualColorScheme();
+  });
+
   $effect(() => {
     applyThemeToDocument(clientState.theme.themeName);
   });
 
   $effect(() => {
-    applyActualColorScheme();
+    applyColorSchemeToDocument(clientState.theme.actualColorScheme);
   });
 
   $effect(() => {
