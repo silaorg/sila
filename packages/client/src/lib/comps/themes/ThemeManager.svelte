@@ -11,10 +11,6 @@
   // Works in pair with theme.svelte.ts: 
   // uses effects and applies the actual color scheme to the document and persists themes.
 
-  function applyThemeToDocument(themeName: string) {
-    document.documentElement.setAttribute("data-theme", themeName);
-  }
-
   function computeActualColorScheme(): "light" | "dark" {
     if (clientState.theme.colorScheme === "system") return getOSColorScheme();
     return clientState.theme.colorScheme === "dark" ? "dark" : "light";
@@ -27,8 +23,6 @@
   }
 
   onMount(() => {
-    applyActualColorScheme();
-
     const mq = window.matchMedia(DARK_MODE_MATCH_MEDIA_STR);
     const handler = () => {
       if (clientState.theme.colorScheme === "system") {
@@ -43,7 +37,7 @@
   });
 
   $effect(() => {
-    applyThemeToDocument(clientState.theme.themeName);
+    applyActualColorScheme();
   });
 
   $effect(() => {
