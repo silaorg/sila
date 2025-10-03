@@ -22,6 +22,7 @@ interface AuthTokens {
 }
 
 export type ClientStateConfig = {
+  initState?: ClientState;
   fs?: AppFileSystem;
   dialog?: AppDialogs;
 }
