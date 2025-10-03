@@ -8,7 +8,7 @@
   } from "@sila/client/utils/updateColorScheme";
   import { onMount } from "svelte";
 
-  // Works in pair with theme.svelte.ts: 
+  // Works in pair with theme.svelte.ts:
   // uses effects and applies the actual color scheme to the document and persists themes.
 
   function computeActualColorScheme(): "light" | "dark" {
@@ -20,6 +20,10 @@
     const resolved = computeActualColorScheme();
     clientState.theme.setActualColorScheme(resolved);
     applyColorSchemeToDocument(resolved);
+  }
+
+  function applyThemeToDocument(themeName: string) {
+    document.documentElement.setAttribute("data-theme", themeName);
   }
 
   onMount(() => {
@@ -34,6 +38,10 @@
     return () => {
       mq.removeEventListener("change", handler);
     };
+  });
+
+  $effect(() => {
+    applyThemeToDocument(clientState.theme.themeName);
   });
 
   $effect(() => {
