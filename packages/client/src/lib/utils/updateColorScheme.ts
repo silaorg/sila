@@ -3,11 +3,7 @@ export const COLOR_SCHEMA_STORAGE_KEY = "colorScheme";
 
 // This function applies the color scheme to the document without updating the theme store
 // to avoid circular dependencies
-export function applyColorSchemeToDocument(colorScheme: 'system' | 'light' | 'dark') {
-  if (colorScheme === 'system') {
-    colorScheme = getOSColorScheme();
-  }
-
+export function applyColorSchemeToDocument(colorScheme: 'light' | 'dark') {
   if (colorScheme === 'dark') {
     document.documentElement.classList.add('dark');
   } else {
