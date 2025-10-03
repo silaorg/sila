@@ -1,7 +1,7 @@
 {
   "name": "@sila/desktop",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "Sila",
   "homepage": "https://silain.com",
   "author": {
@@ -101,7 +101,7 @@
     "build": "npm run prepare-static-files && npm run build -w @sila/client && npm run build:vite",
     "build:vite": "vite build",
     "prepackage:mac": "npm run build",
-    "package:mac": ". .env && export APPLE_ID=\"$APPLE_ID\" APPLE_TEAM_ID=\"$APPLE_TEAM_ID\" APPLE_APP_SPECIFIC_PASSWORD=\"${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_ID_PASSWORD}\" && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
+    "package:mac": ". .env && ./scripts/setup-macos-signing.sh && electron-builder --mac",
     "package:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.notarize=false",
     "prepackage:win": "npm run build",
     "package:win": "electron-builder --win",
