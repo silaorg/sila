@@ -1,9 +1,7 @@
 <script lang="ts">
-  import { getOSColorScheme } from "@sila/client/utils/updateColorScheme";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { Moon, Sun } from "lucide-svelte";
   const clientState = useClientState();
-  import { onMount } from "svelte";
 
   let { tiny = false } = $props();
 

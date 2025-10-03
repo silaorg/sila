@@ -7,7 +7,6 @@
 
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { getOSColorScheme } from "@sila/client/utils/updateColorScheme";
 
   const clientState = useClientState();
 
@@ -15,13 +14,10 @@
   let lang = $derived(token.lang || "text");
   let isCopied = $state(false);
 
-  let generatedHtml = $derived.by(async () => {
-    const colorScheme =
-      clientState.theme.colorScheme !== "system"
-        ? clientState.theme.colorScheme
-        : getOSColorScheme();
+  // @TODO: remove flashing by caching the generated HTML and updating it when a new resolved generated is ready.
 
-    const codeTheme = colorScheme === "dark" ? "github-dark" : "github-light";
+  let generatedHtml = $derived.by(async () => {
+    const codeTheme = clientState.theme.actualColorScheme === "dark" ? "github-dark" : "github-light";
     return await generatedHighlightedHtml(token.text, codeTheme, token.lang);
   });
 
