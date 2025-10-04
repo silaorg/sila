@@ -23,13 +23,23 @@
         ? "github-dark"
         : "github-light";
 
-    generatedHighlightedHtml(token.text, codeTheme, token.lang).then((html) => {
-      untrack(() => {
-        generatedHtml = html;
+    let cancelled = false;
+
+    generatedHighlightedHtml(token.text, codeTheme, token.lang)
+      .then((html) => {
+        if (cancelled) return;
+        untrack(() => {
+          generatedHtml = html;
+        });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error generating highlighted HTML:", error);
       });
-    }).catch((error) => {
-      console.error("Error generating highlighted HTML:", error);
-    });
+
+    return () => {
+      cancelled = true;
+    };
   });
 
   async function generatedHighlightedHtml(
@@ -91,7 +101,7 @@
     {#if generatedHtml}
       {@html generatedHtml}
     {:else}
-      <!-- Invisible (opacity-0) to avoid layout shift when "generatedHtml" gets generated -->
+      <!-- Invisible (opacity-0) to avoid both a layout shift and a flicker when "generatedHtml" gets generated  -->
       <pre class="overflow-x-auto opacity-0"><code class="block min-w-fit"
           >{token.text}</code
         ></pre>
