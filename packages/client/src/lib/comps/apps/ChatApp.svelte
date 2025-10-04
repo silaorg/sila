@@ -8,6 +8,7 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../forms/messageFormStatus";
+  import { ArrowDown } from "lucide-svelte";
 
   let { data }: { data: ChatAppData } = $props();
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
@@ -15,9 +16,11 @@
   let shouldAutoScroll = $state(true);
   let formStatus: MessageFormStatus = $state("can-send-message");
   let isProgrammaticScroll = $state(true);
+  let canScrollDown = $state(false);
   let lastMessageId = $derived.by(() =>
     messages.length > 0 ? messages[messages.length - 1].id : undefined
   );
+  let showScrollDown = $derived(canScrollDown && !shouldAutoScroll);
 
   let lastMessageTxt: string | null = null;
   let programmaticScrollTimeout: (() => void) | undefined;
@@ -39,6 +42,7 @@
     if (!isProgrammaticScroll) {
       shouldAutoScroll = isAtBottom();
     }
+    updateScrollState();
   }
 
   $effect(() => {
@@ -84,41 +88,69 @@
     const msgsObs = data.observeNewMessages((vertices) => {
       scrollToBottom();
       messages = vertices;
+      tick().then(updateScrollState);
     });
     // @TODO temporary: subscribe to message updates for edits/branch switching
     const updateObs = data.onUpdate((vertices) => {
       messages = vertices;
+      tick().then(updateScrollState);
     });
 
     tick().then(() => {
       scrollToBottom();
+      updateScrollState();
     });
+
+    const onResize = () => updateScrollState();
+    window.addEventListener("resize", onResize);
 
     return () => {
       msgsObs();
       updateObs();
+      window.removeEventListener("resize", onResize);
     };
   });
 
-  function scrollToBottom() {
+  function scrollToBottom(smooth: boolean = false) {
     if (!scrollableElement) {
       console.warn("scrollable element not found");
       return;
     }
 
     isProgrammaticScroll = true;
-    scrollableElement.scrollTo(0, scrollableElement.scrollHeight);
+    if (smooth) {
+      scrollableElement.scrollTo({
+        top: scrollableElement.scrollHeight,
+        behavior: "smooth",
+      });
+    } else {
+      scrollableElement.scrollTo(0, scrollableElement.scrollHeight);
+    }
     // Reset the flag after the scroll animation would have completed
     programmaticScrollTimeout?.();
-    programmaticScrollTimeout = timeout(() => {
-      isProgrammaticScroll = false;
-    }, 100);
+    programmaticScrollTimeout = timeout(
+      () => {
+        isProgrammaticScroll = false;
+      },
+      smooth ? 400 : 100
+    );
   }
 
   function scrollOnlyIfAutoscroll() {
     if (shouldAutoScroll) {
       scrollToBottom();
     }
+  }
+
+  function updateScrollState() {
+    if (!scrollableElement) {
+      canScrollDown = false;
+      return;
+    }
+    const threshold = 40; // px before we consider it scrollable enough
+    canScrollDown =
+      scrollableElement.scrollHeight - scrollableElement.clientHeight >
+      threshold;
   }
 
   // Using shared AttachmentPreview from core
@@ -157,7 +189,10 @@
   }
 </script>
 
-<div class="flex flex-col w-full h-full overflow-hidden" data-component="chat-app">
+<div
+  class="flex flex-col w-full h-full overflow-hidden relative"
+  data-component="chat-app"
+>
   <div
     class="flex-grow overflow-y-auto pt-2"
     bind:this={scrollableElement}
@@ -169,6 +204,15 @@
       {/each}
     </div>
   </div>
+  {#if showScrollDown}
+    <button
+      class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
+      aria-label="Scroll to bottom"
+      onclick={() => scrollToBottom(true)}
+    >
+      <ArrowDown size={18} />
+    </button>
+  {/if}
   <div class="min-h-min">
     <section class="max-w-4xl mx-auto py-2 px-2">
       <SendMessageForm
