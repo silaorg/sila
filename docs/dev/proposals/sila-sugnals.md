@@ -5,16 +5,91 @@
 - The client cannot subscribe to backend events in a consistent, typed way (e.g., update available, download progress, background jobs).
 - We need a single, reliable pathway for backend modules to publish events and for the client to handle them reactively.
 
-### Goals
-- Provide a unified, typed, and minimal API for push-style events from Electron to the client.
+### Goals (MVP)
+- Provide a unified, minimal API for push-style events from Electron to the client.
 - Support multiple sources (updater, GitHub releases, space manager, menu, dialogs, custom).
 - Work with contextIsolation enabled and our current preload bridge pattern.
-- Play well with Svelte 5 runes and be easy to consume in UI.
-- Allow optional sticky signals (replay of latest state for late subscribers).
+- Be ergonomic with Svelte 5 runes.
+
+Note: typing and sticky replay are deferred to a V2.
 
 ### Non‑Goals
 - Full request/response replacement (continue to use `ipcMain.handle/ipcRenderer.invoke` for RPC calls).
 - Cross‑process eventing beyond Electron main → current renderer window(s).
+
+---
+
+## Simplified MVP
+
+Ship a single channel and two tiny helpers. No classes, no sticky state, no levels/metadata.
+
+- Channel: `sila:signal`
+- Envelope: `{ type: string, payload?: unknown }`
+- Main helper: `emitSignal(type, payload)` broadcasts to all windows
+- Preload: `window.silaSignals.on(type, handler)` and `off(handler)`; return an `unsubscribe()` from `on`
+
+### Minimal types (optional)
+```ts
+export type SilaSignal = { type: string; payload?: unknown };
+```
+
+### Main (MVP)
+```ts
+// packages/desktop/src-electron/silaSignalsMain.ts
+import { BrowserWindow } from 'electron';
+
+export function emitSignal(type: string, payload?: unknown) {
+  const envelope = { type, payload };
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send('sila:signal', envelope);
+  }
+}
+
+// Usage
+// autoUpdater.on('update-available', (info) => emitSignal('updater/available', { version: info.version }));
+```
+
+### Preload (MVP)
+```ts
+// packages/desktop/src-electron/preloadSignals.ts
+import { contextBridge, ipcRenderer } from 'electron';
+
+type Handler = (s: { type: string; payload?: unknown }) => void;
+
+function on(type: string, handler: Handler) {
+  const listener = (_: unknown, s: { type: string; payload?: unknown }) => {
+    if (s.type === type) handler(s);
+  };
+  ipcRenderer.on('sila:signal', listener);
+  return () => ipcRenderer.removeListener('sila:signal', listener);
+}
+
+function off(handler: Handler) {
+  // no-op placeholder; callers generally keep the returned unsubscribe()
+}
+
+contextBridge.exposeInMainWorld('silaSignals', { on, off });
+```
+
+### Renderer usage (Svelte 5)
+```svelte
+<script lang="ts">
+  let updateInfo: { version: string } | null = $state(null);
+  let unsubscribe = () => {};
+
+  $effect(() => {
+    unsubscribe();
+    unsubscribe = window.silaSignals.on('updater/available', (s) => {
+      updateInfo = { version: (s.payload as any)?.version };
+    });
+  });
+</script>
+```
+
+Why this is simpler:
+- One function to emit, one to subscribe.
+- No sticky state; UIs display current session state only.
+- Typing can be added later without changing the wire format.
 
 ---
 
@@ -29,67 +104,23 @@
 [main modules] ── emit(signal) ─▶ SignalHub ─ webContents.send('sila:signal', envelope) ─▶ preload listener ─▶ window.silaSignals callbacks
 ```
 
-### Signal Envelope (typed)
+### Signal Envelope (MVP)
 
-- Discriminated by `type` (domain/topic namespace + action): `"updater/available"`, `"updater/downloading"`, `"space/registered"`, `"menu/action"`, etc.
-- Minimal required fields: `id`, `type`, `payload`, `source`, `ts`.
-- Optional: `level` (info/warning/error/success), `sticky` (eligible for replay), `meta` (freeform).
-
-```ts
-export type SilaSignalType =
-  | 'updater/checking'
-  | 'updater/available'
-  | 'updater/downloading'
-  | 'updater/downloaded'
-  | 'updater/error'
-  | 'menu/action'
-  | 'space/registered'
-  | 'space/unregistered'
-  | 'custom';
-
-export interface SilaSignalEnvelope<TType extends SilaSignalType = SilaSignalType, TPayload = unknown> {
-  id: string;             // uuid
-  type: TType;            // e.g., 'updater/available'
-  payload: TPayload;      // typed per discriminator
-  source: string;         // e.g., 'autoUpdater', 'githubReleaseManager'
-  ts: number;             // epoch ms
-  level?: 'info' | 'warning' | 'error' | 'success';
-  sticky?: boolean;       // include in sticky replay
-  meta?: Record<string, unknown>;
-}
-```
+- Fields: `type` and optional `payload`.
+- Free string `type` (use `domain/action` naming for consistency), e.g., `updater/available`.
 
 Examples:
 
 ```ts
-// update available
-{
-  id: '...',
-  type: 'updater/available',
-  payload: { version: '1.2.3' },
-  source: 'autoUpdater',
-  ts: Date.now(),
-  level: 'info',
-  sticky: true
-}
-
-// download progress
-{
-  id: '...',
-  type: 'updater/downloading',
-  payload: { percent: 42 },
-  source: 'githubReleaseManager',
-  ts: Date.now()
-}
+{ type: 'updater/available', payload: { version: '1.2.3' } }
+{ type: 'menu/action', payload: { action: 'new-file' } }
 ```
 
 ---
 
-## Main process API (SignalHub)
+## Optional V2: Main process API (SignalHub + sticky replay)
 
-- Singleton module that modules can import to publish signals.
-- Broadcasts to all existing BrowserWindows by default.
-- Maintains an in‑memory map of last sticky signal per `type` (configurable) for replay.
+- For richer features later: class wrapper, sticky snapshot, levels, ids, sources.
 
 ```ts
 // packages/desktop/src-electron/silaSignalsMain.ts (new)
@@ -155,12 +186,7 @@ menuItem.click = () => {
 
 ---
 
-## Preload bridge API
-
-Expose a minimal, safe surface under `window.silaSignals`:
-- `subscribe(handler)` → returns `unsubscribe`
-- `subscribeBy(type, handler)` typed convenience
-- `getStickySnapshot()` → Promise of current sticky signals
+## Optional V2: Preload bridge API (subscribeBy, sticky snapshot)
 
 ```ts
 // packages/desktop/src-electron/preloadSignals.ts (new)
@@ -205,7 +231,7 @@ Finally, wire the preload file in our existing `preload.js` after other bridges.
 
 ---
 
-## Renderer utility + Svelte 5 runes
+## Optional V2: Renderer utility + Svelte 5 runes
 
 Provide a tiny client helper so UI can filter by type and use runes comfortably.
 
@@ -284,14 +310,15 @@ Svelte 5 usage:
 
 ## Migration Plan
 
-1) Introduce `SignalHub` and preload bridge (behind feature flag if desired).
-2) Emit updater signals:
-   - `updater/checking`, `updater/available{version}`, `updater/downloading{percent}`, `updater/downloaded{version}`, `updater/error{message}`.
-3) Emit release manager progress (optional): `updater/downloading{percent}` while zip downloads.
-4) Emit menu actions via signals instead of ad‑hoc `webContents.send` in examples/docs: `menu/action{action}`.
-5) Emit space registration events: `space/registered{spaceId}`, `space/unregistered{spaceId}`.
-6) Add a small client helper in `@sila/client` and refactor Dev Panel (or relevant UI) to listen to signals.
-7) Update docs and examples to prefer `silaSignals` over custom channels.
+MVP (now):
+1) Add `emitSignal()` in main and minimal preload bridge `window.silaSignals.on()`.
+2) Emit two updater events: `updater/available` and `updater/downloaded`.
+3) Update a single UI surface to consume them (e.g., Dev Panel or a toast).
+
+V2 (later):
+4) Add optional progress events and menu/space events.
+5) Introduce `SignalHub` + sticky replay if needed.
+6) Add typed helpers in `@sila/client` once event shapes stabilize.
 
 Backward compatibility: existing RPC (`ipcMain.handle/ipcRenderer.invoke`) stays; we only add push.
 
@@ -315,4 +342,4 @@ Backward compatibility: existing RPC (`ipcMain.handle/ipcRenderer.invoke`) stays
 ---
 
 ## Summary
-silaSignals introduces a single, typed, and minimal signaling path from Electron main to the client. It standardizes how backend modules publish events, supports sticky state replay for late subscribers, and integrates cleanly with Svelte 5 runes. It complements, not replaces, our existing RPC calls, and provides a straightforward migration for updater, menu, and space events.
+Start with the smallest thing: a single `sila:signal` channel, `emitSignal(type, payload)` in main, and `window.silaSignals.on(type, handler)` in the renderer. Add richer features (sticky replay, typed envelopes) only if/when needed.
