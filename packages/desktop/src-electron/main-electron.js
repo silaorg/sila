@@ -6,6 +6,7 @@ import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
 import { setUpdater, checkForUpdates } from './updates/updater.js';
+import { setupGitHubReleaseIPC } from './updates/githubReleaseManager.js';
 import { setupSilaProtocol } from './silaProtocol.js';
 import { spaceManager } from './spaceManager.js';
 
@@ -50,6 +51,9 @@ app.whenReady().then(async () => {
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();
+
+  // Setup IPC for desktop build management (GitHub releases)
+  setupGitHubReleaseIPC();
 
   // Setup updater to update the app package and client bundle
   setUpdater(isDev);

@@ -19,6 +19,20 @@ export class ElectronUpdater {
     this.autoUpdater = autoUpdater;
     this.autoUpdater.autoDownload = false;
     this.autoUpdater.autoInstallOnAppQuit = true;
+
+    // Helpful logs and future hooks
+    this.autoUpdater.on('update-available', (info) => {
+      console.log('ElectronUpdater / update-available:', info?.version);
+    });
+    this.autoUpdater.on('update-not-available', (info) => {
+      console.log('ElectronUpdater / update-not-available:', info?.version);
+    });
+    this.autoUpdater.on('update-downloaded', (event) => {
+      console.log('ElectronUpdater / update-downloaded:', event?.version);
+    });
+    this.autoUpdater.on('error', (err) => {
+      console.error('ElectronUpdater / error:', err);
+    });
   }
 
   /**

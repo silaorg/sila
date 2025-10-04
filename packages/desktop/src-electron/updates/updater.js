@@ -1,10 +1,15 @@
-import { dialog, BrowserWindow, autoUpdater, ipcMain } from 'electron';
+import { dialog, BrowserWindow, autoUpdater, ipcMain, app } from 'electron';
 import { updateCoordinator } from './updateCoordinator.js';
 import { ElectronUpdater } from './electronUpdater.js';
+import { DesktopBuildUpdater } from './desktopBuildUpdater.js';
+import { diff as semverDiff, coerce as semverCoerce } from 'semver';
 
 let electronUpdater = new ElectronUpdater();
+let desktopBuildUpdater = new DesktopBuildUpdater();
 
 const CHECK_FOR_UPDATES_INTERVAL = 1000 * 60 * 5;
+/** @type {boolean} */
+let isCheckingOrUpdating = false;
 
 /**
  * Set up the updater
@@ -41,9 +46,54 @@ function handleInstallElectronUpdate() {
 }
 
 export async function checkForUpdates() {
-  const electronAvailableUpdateVersion = await electronUpdater.checkForUpdates();
+  if (isCheckingOrUpdating) return;
+  isCheckingOrUpdating = true;
 
-  if (electronAvailableUpdateVersion) {
-    electronUpdater.downloadUpdate();
+  try {
+    // Fetch Electron update info and desktop builds concurrently
+    const [electronAvailableUpdateVersion, desktopBuilds] = await Promise.all([
+      electronUpdater.checkForUpdates(),
+      desktopBuildUpdater.getAllBuilds()
+    ]);
+
+    // If Electron has an update, decide based on semver whether to prefer desktop build
+    if (electronAvailableUpdateVersion) {
+      try {
+        const currentVersion = semverCoerce(app.getVersion());
+        const targetVersion = semverCoerce(electronAvailableUpdateVersion);
+        const diff = currentVersion && targetVersion ? semverDiff(currentVersion, targetVersion) : null;
+
+        if (diff === 'patch') {
+          // Prefer desktop build whose version matches Electron update version
+          const matchingBuild = desktopBuilds.find(b => b.version === electronAvailableUpdateVersion);
+          if (matchingBuild) {
+            // Ensure DesktopBuildUpdater is primed with the matching build using its public method
+            await desktopBuildUpdater.checkForUpdates(matchingBuild.version);
+            await desktopBuildUpdater.downloadUpdate();
+            return;
+          }
+          // Fallback to Electron if no matching desktop build found
+          await electronUpdater.downloadUpdate();
+          return;
+        }
+
+        // For minor/major diffs, download full Electron package
+        await electronUpdater.downloadUpdate();
+        return;
+      } catch (e) {
+        console.error('Updater / semver decision error, falling back to Electron update:', e);
+        await electronUpdater.downloadUpdate();
+        return;
+      }
+    }
+
+    // If no Electron update, still allow latest desktop build to be fetched (optional)
+    if (desktopBuilds && desktopBuilds.length > 0) {
+      // Prime and download the latest
+      await desktopBuildUpdater.checkForUpdates(desktopBuilds[0].version);
+      await desktopBuildUpdater.downloadUpdate();
+    }
+  } finally {
+    isCheckingOrUpdating = false;
   }
 }

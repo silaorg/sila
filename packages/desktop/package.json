@@ -119,13 +119,16 @@
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*",
+    "@types/semver": "^7.7.1",
     "adm-zip": "^0.5.16",
     "chokidar": "^4.0.3",
-    "electron-updater": "^6.1.7"
+    "electron-updater": "^6.1.7",
+    "semver": "^7.7.2"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@tsconfig/svelte": "^5.0.4",
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "^24.1.0",
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",
