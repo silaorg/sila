@@ -1,15 +1,13 @@
-import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 
-// Set the app name IMMEDIATELY before any other imports that might use app.getPath('userData')
 app.setName('Sila');
 
 import { setupDialogsInMain } from './dialogs/electronDialogsMain.js';
 import { setupElectronMenu } from './electronMenu.js';
 import { createWindow } from './electronWindow.js';
-import { setupAutoUpdater, checkForUpdates } from './autoUpdater.js';
+import { setUpdater, checkForUpdates } from './updates/updater.js';
+import { setupGitHubReleaseIPC } from './updates/githubReleaseManager.js';
 import { setupSilaProtocol } from './silaProtocol.js';
-import { setupGitHubReleaseIPC } from './githubReleaseManager.js';
-import { updateCoordinator } from './updateCoordinator.js';
 import { spaceManager } from './spaceManager.js';
 
 // Development mode check
@@ -48,37 +46,22 @@ const globalAny = global;
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
   
-  // Initialize update coordinator with current version
-  updateCoordinator.setCurrentVersion(app.getVersion());
-  
-  // Setup custom file protocol
+  // Setup custom protocol (sila://)
   setupSilaProtocol();
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();
+
+  // Setup IPC for desktop build management (GitHub releases)
+  setupGitHubReleaseIPC();
+
+  // Setup updater to update the app package and client bundle
+  setUpdater(isDev);
   
+  // Setup main window with menu and dialogs
   mainWindow = createWindow(isDev);
   setupElectronMenu();
   setupDialogsInMain();
-
-  if (!isDev) {
-    // Setup auto updater (standard approach) - Primary update system
-    setupAutoUpdater();
-    
-    // Setup GitHub release management - Secondary update system
-    // Delay client bundle updates to avoid conflicts with full app updates
-    setTimeout(() => {
-      if (updateCoordinator.canCheckClientUpdates()) {
-        setupGitHubReleaseIPC();
-        console.log('GitHub release manager initialized');
-      } else {
-        console.log('Skipping GitHub release manager - full app update in progress');
-      }
-    }, 10000); // 10s delay after full app update check
-  } else {
-    // In development mode, always setup GitHub release manager
-    setupGitHubReleaseIPC();
-  }
   
   // Expose manual update check for menu
   globalAny.checkForUpdates = checkForUpdates;

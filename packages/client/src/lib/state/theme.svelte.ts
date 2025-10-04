@@ -5,6 +5,9 @@ const DEFAULT_THEME = 'cerberus';
 export class ThemeStore {
   colorScheme: 'system' | 'light' | 'dark' = $state(localStorage.getItem('colorScheme') as 'system' | 'light' | 'dark' || 'system');
   themeName: string = $state(localStorage.getItem('themeName') || DEFAULT_THEME);
+  // Resolved scheme used by the UI; computed and set by ThemeManager
+  // It's like colorScheme but the "system" value is resolved to the actual system color scheme.
+  actualColorScheme: 'light' | 'dark' = $state('light');
 
   private currentSpaceId: string | null = null;
 
@@ -81,5 +84,9 @@ export class ThemeStore {
     if (this.currentSpaceId) {
       await saveSpaceColorScheme(this.currentSpaceId, colorScheme);
     }
+  }
+
+  setActualColorScheme(scheme: 'light' | 'dark') {
+    this.actualColorScheme = scheme;
   }
 }

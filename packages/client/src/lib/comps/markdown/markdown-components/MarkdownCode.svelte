@@ -7,7 +7,7 @@
 
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { getOSColorScheme } from "@sila/client/utils/updateColorScheme";
+  import { untrack } from "svelte";
 
   const clientState = useClientState();
 
@@ -15,14 +15,31 @@
   let lang = $derived(token.lang || "text");
   let isCopied = $state(false);
 
-  let generatedHtml = $derived.by(async () => {
-    const colorScheme =
-      clientState.theme.colorScheme !== "system"
-        ? clientState.theme.colorScheme
-        : getOSColorScheme();
+  let generatedHtml = $state<string | null>(null);
 
-    const codeTheme = colorScheme === "dark" ? "github-dark" : "github-light";
-    return await generatedHighlightedHtml(token.text, codeTheme, token.lang);
+  $effect(() => {
+    const codeTheme =
+      clientState.theme.actualColorScheme === "dark"
+        ? "github-dark"
+        : "github-light";
+
+    let cancelled = false;
+
+    generatedHighlightedHtml(token.text, codeTheme, token.lang)
+      .then((html) => {
+        if (cancelled) return;
+        untrack(() => {
+          generatedHtml = html;
+        });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("Error generating highlighted HTML:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   });
 
   async function generatedHighlightedHtml(
@@ -81,20 +98,13 @@
     </button>
   </div>
   <div class="min-w-0">
-    {#await generatedHtml}
-      <pre class="overflow-x-auto"><code class="block min-w-fit"
+    {#if generatedHtml}
+      {@html generatedHtml}
+    {:else}
+      <!-- Invisible (opacity-0) to avoid both a layout shift and a flicker when "generatedHtml" gets generated  -->
+      <pre class="overflow-x-auto opacity-0"><code class="block min-w-fit"
           >{token.text}</code
         ></pre>
-    {:then html}
-      {#if html}
-        {@html html}
-      {:else}
-        <pre class="overflow-x-auto"><code class="block min-w-fit"
-            >{token.text}</code
-          ></pre>
-      {/if}
-    {:catch error}
-      Error: {error}
-    {/await}
+    {/if}
   </div>
 </div>

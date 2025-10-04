@@ -11,6 +11,7 @@ export function setupFileSystemAPI() {
      * @param {string} spaceId - The space ID
      * @param {string} hash - The file hash
      * @param {string} mimeType - The MIME type (optional)
+     * @param {string} name - The file name (optional)
      * @returns {string} The file URL
      */
     getFileUrl: (spaceId, hash, mimeType, name) => {
@@ -67,14 +68,6 @@ export function setupFileSystemAPI() {
     },
 
     /**
-     * Check for updates with strategy consideration
-     * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
-     */
-    checkUpdatesWithStrategy: () => {
-      return ipcRenderer.invoke('check-updates-with-strategy');
-    },
-
-    /**
      * Download and extract a GitHub build
      * @param {string} downloadUrl - URL to download the zip file
      * @param {string} version - Version string for the build
@@ -117,11 +110,10 @@ export function setupFileSystemAPI() {
     },
 
     /**
-     * Get update coordinator state
-     * @returns {Promise<Object>} Update coordinator state
+     * Trigger a manual check for updates (Electron + desktop build)
      */
-    getUpdateCoordinatorState: () => {
-      return ipcRenderer.invoke('get-update-coordinator-state');
+    checkForUpdates: () => {
+      return ipcRenderer.invoke('sila:check-for-updates');
     }
   });
 }

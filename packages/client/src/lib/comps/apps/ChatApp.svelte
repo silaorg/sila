@@ -8,6 +8,10 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../forms/messageFormStatus";
+  import { ArrowDown } from "lucide-svelte";
+
+  const SCROLL_BUTTON_THRESHOLD_PX = 40;
+  const BOTTOM_THRESHOLD_PX = 0;
 
   let { data }: { data: ChatAppData } = $props();
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
@@ -15,30 +19,37 @@
   let shouldAutoScroll = $state(true);
   let formStatus: MessageFormStatus = $state("can-send-message");
   let isProgrammaticScroll = $state(true);
-  let lastMessageId = $derived.by(() =>
-    messages.length > 0 ? messages[messages.length - 1].id : undefined
-  );
+  let scrollTop = $state(0);
+  let scrollHeight = $state(0);
+  let clientHeight = $state(0);
 
   let lastMessageTxt: string | null = null;
   let programmaticScrollTimeout: (() => void) | undefined;
 
-  function isAtBottom() {
-    if (!scrollableElement) return false;
+  let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
 
-    const threshold = 0;
-    return (
-      scrollableElement.scrollHeight -
-        scrollableElement.scrollTop -
-        scrollableElement.clientHeight <=
-      threshold
-    );
+  let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+  
+  let lastMessageId = $derived.by(() =>
+    messages.length > 0 ? messages[messages.length - 1].id : undefined
+  );
+
+  let showScrollDown = $derived(distFromBottom > SCROLL_BUTTON_THRESHOLD_PX);
+
+  function updateScrollMetrics() {
+    if (!scrollableElement) return;
+    scrollTop = scrollableElement.scrollTop;
+    scrollHeight = scrollableElement.scrollHeight;
+    clientHeight = scrollableElement.clientHeight;
   }
 
   function handleScroll() {
     // We only detect when the user scrolls (not when it's scrolled programmatically)
     if (!isProgrammaticScroll) {
-      shouldAutoScroll = isAtBottom();
+      updateScrollMetrics();
+      shouldAutoScroll = isAtBottom;
     }
+    updateScrollMetrics();
   }
 
   $effect(() => {
@@ -84,35 +95,52 @@
     const msgsObs = data.observeNewMessages((vertices) => {
       scrollToBottom();
       messages = vertices;
+      tick().then(updateScrollMetrics);
     });
     // @TODO temporary: subscribe to message updates for edits/branch switching
     const updateObs = data.onUpdate((vertices) => {
       messages = vertices;
+      tick().then(updateScrollMetrics);
     });
 
     tick().then(() => {
       scrollToBottom();
+      updateScrollMetrics();
     });
+
+    const onResize = () => updateScrollMetrics();
+    window.addEventListener("resize", onResize);
 
     return () => {
       msgsObs();
       updateObs();
+      window.removeEventListener("resize", onResize);
     };
   });
 
-  function scrollToBottom() {
+  function scrollToBottom(smooth: boolean = false) {
     if (!scrollableElement) {
       console.warn("scrollable element not found");
       return;
     }
 
     isProgrammaticScroll = true;
-    scrollableElement.scrollTo(0, scrollableElement.scrollHeight);
+    if (smooth) {
+      scrollableElement.scrollTo({
+        top: scrollableElement.scrollHeight,
+        behavior: "smooth",
+      });
+    } else {
+      scrollableElement.scrollTo(0, scrollableElement.scrollHeight);
+    }
     // Reset the flag after the scroll animation would have completed
     programmaticScrollTimeout?.();
-    programmaticScrollTimeout = timeout(() => {
-      isProgrammaticScroll = false;
-    }, 100);
+    programmaticScrollTimeout = timeout(
+      () => {
+        isProgrammaticScroll = false;
+      },
+      smooth ? 400 : 100
+    );
   }
 
   function scrollOnlyIfAutoscroll() {
@@ -157,7 +185,10 @@
   }
 </script>
 
-<div class="flex flex-col w-full h-full overflow-hidden" data-component="chat-app">
+<div
+  class="flex flex-col w-full h-full overflow-hidden relative"
+  data-component="chat-app"
+>
   <div
     class="flex-grow overflow-y-auto pt-2"
     bind:this={scrollableElement}
@@ -169,6 +200,15 @@
       {/each}
     </div>
   </div>
+  {#if showScrollDown}
+    <button
+      class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
+      aria-label="Scroll to bottom"
+      onclick={() => scrollToBottom(true)}
+    >
+      <ArrowDown size={18} />
+    </button>
+  {/if}
   <div class="min-h-min">
     <section class="max-w-4xl mx-auto py-2 px-2">
       <SendMessageForm

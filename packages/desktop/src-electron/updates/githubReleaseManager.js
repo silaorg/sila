@@ -3,11 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import https from 'https';
 import { createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
-import { createGunzip } from 'zlib';
-import { createReadStream } from 'fs';
 import AdmZip from 'adm-zip';
-import { updateCoordinator } from './updateCoordinator.js';
 
 /**
  * GitHub Release Manager for downloading and managing desktop builds
@@ -32,12 +28,6 @@ export class GitHubReleaseManager {
    * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string} | null>}
    */
   async checkForLatestRelease() {
-    // Check if we can check for client updates (no full app update in progress)
-    if (!updateCoordinator.canCheckClientUpdates()) {
-      console.log('Skipping client bundle update check - full app update in progress');
-      return null;
-    }
-
     try {
       const url = `https://api.github.com/repos/${this.owner}/${this.repo}/releases/latest`;
       
@@ -45,7 +35,8 @@ export class GitHubReleaseManager {
       const release = JSON.parse(response);
       
       // Look for desktop-v{version}.zip asset
-      const desktopAsset = release.assets.find(asset => 
+      /** @type {{name:string,browser_download_url:string,size:number} | undefined} */
+      const desktopAsset = release.assets.find(/** @param {any} asset */(asset) => 
         asset.name.startsWith('desktop-v') && asset.name.endsWith('.zip')
       );
       
@@ -66,9 +57,7 @@ export class GitHubReleaseManager {
       return {
         version,
         downloadUrl: desktopAsset.browser_download_url,
-        publishedAt: release.published_at,
-        assetName: desktopAsset.name,
-        size: desktopAsset.size
+        publishedAt: release.published_at
       };
     } catch (error) {
       console.error('Error checking for latest release:', error);
@@ -92,7 +81,8 @@ export class GitHubReleaseManager {
       
       // Look through releases for desktop builds
       for (const release of releases) {
-        const desktopAsset = release.assets.find(asset => 
+        /** @type {{name:string,browser_download_url:string,size:number} | undefined} */
+        const desktopAsset = release.assets.find(/** @param {any} asset */(asset) => 
           asset.name.startsWith('desktop-v') && asset.name.endsWith('.zip')
         );
         
@@ -107,11 +97,7 @@ export class GitHubReleaseManager {
             return {
               version,
               downloadUrl: desktopAsset.browser_download_url,
-              publishedAt: release.published_at,
-              assetName: desktopAsset.name,
-              size: desktopAsset.size,
-              releaseTag: release.tag_name,
-              isFromRecentRelease: true
+              publishedAt: release.published_at
             };
           }
         }
@@ -132,15 +118,6 @@ export class GitHubReleaseManager {
    * @returns {Promise<boolean>} Success status
    */
   async downloadAndExtractBuild(downloadUrl, version) {
-    // Check if we can download client updates
-    if (!updateCoordinator.canCheckClientUpdates()) {
-      console.log('Skipping client bundle download - full app update in progress');
-      return false;
-    }
-
-    // Mark client bundle update as in progress
-    updateCoordinator.setClientBundleUpdate(true);
-
     let tempZipPath = null;
     try {
       const buildName = `desktop-v${version}`;
@@ -185,7 +162,16 @@ export class GitHubReleaseManager {
       tempZipPath = null;
       
       console.log(`Successfully downloaded and extracted build: ${buildName}`);
-      updateCoordinator.setClientBundleUpdate(false);
+
+      // Notify renderer that a desktop build update is ready to load
+      try {
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('sila:build:update:ready', { version });
+        }
+      } catch (e) {
+        console.error('Failed to notify renderer about desktop build update:', e);
+      }
       return true;
     } catch (error) {
       console.error('Error downloading and extracting build:', error);
@@ -199,7 +185,6 @@ export class GitHubReleaseManager {
         }
       }
       
-      updateCoordinator.setClientBundleUpdate(false);
       return false;
     }
   }
@@ -235,6 +220,9 @@ export class GitHubReleaseManager {
    * Get all available desktop builds from recent GitHub releases
    * @returns {Promise<Array<{version: string, downloadUrl: string, publishedAt: string, releaseTag: string}>>}
    */
+  /**
+   * @returns {Promise<Array<{version:string, downloadUrl:string, publishedAt:string}>>}
+   */
   async getAllAvailableDesktopBuilds() {
     try {
       console.log('Fetching all available desktop builds from recent releases...');
@@ -249,7 +237,8 @@ export class GitHubReleaseManager {
       
       // Look through releases for desktop builds
       for (const release of releases) {
-        const desktopAsset = release.assets.find(asset => 
+        /** @type {{name:string,browser_download_url:string,size:number} | undefined} */
+        const desktopAsset = release.assets.find(/** @param {any} asset */(asset) => 
           asset.name.startsWith('desktop-v') && asset.name.endsWith('.zip')
         );
         
@@ -262,10 +251,7 @@ export class GitHubReleaseManager {
             desktopBuilds.push({
               version,
               downloadUrl: desktopAsset.browser_download_url,
-              publishedAt: release.published_at,
-              releaseTag: release.tag_name,
-              assetName: desktopAsset.name,
-              size: desktopAsset.size
+              publishedAt: release.published_at
             });
           }
         }
@@ -293,39 +279,13 @@ export class GitHubReleaseManager {
   }
 
   /**
-   * Check for updates with strategy consideration
-   * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
-   */
-  async checkForUpdatesWithStrategy() {
-    // Check if we can check for client updates (no full app update in progress)
-    if (!updateCoordinator.canCheckClientUpdates()) {
-      console.log('Skipping client bundle update check - full app update in progress');
-      return null;
-    }
-
-    try {
-      const release = await this.checkForLatestRelease();
-      if (!release) {
-        return null;
-      }
-
-      // Determine update strategy
-      const strategy = updateCoordinator.determineUpdateStrategy(null, release.version);
-      
-      return {
-        ...release,
-        strategy
-      };
-    } catch (error) {
-      console.error('Error checking for updates with strategy:', error);
-      return null;
-    }
-  }
-
-  /**
    * Make HTTP request to GitHub API
    * @param {string} url - URL to request
    * @returns {Promise<string>} Response body
+   */
+  /**
+   * @param {string} url
+   * @returns {Promise<string>}
    */
   async makeHttpRequest(url) {
     return new Promise((resolve, reject) => {
@@ -344,6 +304,14 @@ export class GitHubReleaseManager {
         });
         
         res.on('end', () => {
+          if (res.statusCode && [301,302,303,307,308].includes(res.statusCode)) {
+            const location = res.headers.location;
+            if (location) {
+              // Follow redirect
+              this.makeHttpRequest(location).then(resolve).catch(reject);
+              return;
+            }
+          }
           if (res.statusCode === 200) {
             resolve(data);
           } else {
@@ -359,53 +327,84 @@ export class GitHubReleaseManager {
    * @param {string} url - URL to download from
    * @param {string} filePath - Local file path to save to
    */
+  /**
+   * @param {string} url
+   * @param {string} filePath
+   * @returns {Promise<void>}
+   */
   async downloadFile(url, filePath) {
     return new Promise((resolve, reject) => {
       const file = createWriteStream(filePath);
       let downloadedBytes = 0;
-      
-      https.get(url, (response) => {
-        if (response.statusCode !== 200) {
+
+      /**
+       * @param {string} targetUrl
+       * @param {number} redirectCount
+       */
+      const doRequest = (targetUrl, redirectCount = 0) => {
+        if (redirectCount > 5) {
           file.close();
-          fs.unlink(filePath).catch(() => {}); // Clean up partial file
-          reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+          fs.unlink(filePath).catch(() => {});
+          reject(new Error('Too many redirects'));
           return;
         }
-        
-        const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
-        
-        response.on('data', (chunk) => {
-          downloadedBytes += chunk.length;
-          if (totalBytes > 0) {
-            const progress = Math.round((downloadedBytes / totalBytes) * 100);
-            console.log(`Download progress: ${progress}%`);
+
+        https.get(targetUrl, (response) => {
+          // Handle redirects (302/301)
+          if (response.statusCode && [301, 302, 303, 307, 308].includes(response.statusCode)) {
+            const location = response.headers.location;
+            if (location) {
+              response.resume(); // discard data
+              doRequest(location, redirectCount + 1);
+              return;
+            }
           }
-        });
-        
-        response.pipe(file);
-        
-        file.on('finish', () => {
+
+          if (response.statusCode !== 200) {
+            file.close();
+            fs.unlink(filePath).catch(() => {});
+            reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+            return;
+          }
+
+          const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+
+          response.on('data', (chunk) => {
+            downloadedBytes += chunk.length;
+            if (totalBytes > 0) {
+              const progress = Math.round((downloadedBytes / totalBytes) * 100);
+              //console.log(`Download progress: ${progress}%`);
+              // @TODO: send progress to renderer
+            }
+          });
+
+          response.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            console.log(`Download completed: ${downloadedBytes} bytes`);
+            resolve();
+          });
+
+          file.on('error', (error) => {
+            file.close();
+            fs.unlink(filePath).catch(() => {});
+            reject(error);
+          });
+
+          response.on('error', (error) => {
+            file.close();
+            fs.unlink(filePath).catch(() => {});
+            reject(error);
+          });
+        }).on('error', (error) => {
           file.close();
-          console.log(`Download completed: ${downloadedBytes} bytes`);
-          resolve();
-        });
-        
-        file.on('error', (error) => {
-          file.close();
-          fs.unlink(filePath).catch(() => {}); // Clean up partial file
+          fs.unlink(filePath).catch(() => {});
           reject(error);
         });
-        
-        response.on('error', (error) => {
-          file.close();
-          fs.unlink(filePath).catch(() => {}); // Clean up partial file
-          reject(error);
-        });
-      }).on('error', (error) => {
-        file.close();
-        fs.unlink(filePath).catch(() => {}); // Clean up partial file
-        reject(error);
-      });
+      };
+
+      doRequest(url);
     });
   }
 
@@ -430,11 +429,6 @@ export function setupGitHubReleaseIPC() {
   // Check for latest release
   ipcMain.handle('check-github-release', async (event) => {
     return await githubReleaseManager.checkForLatestRelease();
-  });
-
-  // Check for updates with strategy
-  ipcMain.handle('check-updates-with-strategy', async (event) => {
-    return await githubReleaseManager.checkForUpdatesWithStrategy();
   });
 
   // Download and extract a specific build
@@ -462,15 +456,10 @@ export function setupGitHubReleaseIPC() {
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (mainWindow) {
       // Reload with the latest build
-      mainWindow.loadURL('sila://builds/desktop/index.html');
+      mainWindow.loadURL('sila://client/index.html');
       return true;
     }
     return false;
-  });
-
-  // Get update coordinator state
-  ipcMain.handle('get-update-coordinator-state', async (event) => {
-    return updateCoordinator.getState();
   });
 }
 

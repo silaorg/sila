@@ -9,7 +9,7 @@
     "email": "d@dkury.com"
   },
   "type": "module",
-  "main": "src-electron/main.js",
+  "main": "src-electron/main-electron.js",
   "build": {
     "appId": "com.silain.desktop",
     "productName": "Sila",
@@ -101,7 +101,7 @@
     "build": "npm run prepare-static-files && npm run build -w @sila/client && npm run build:vite",
     "build:vite": "vite build",
     "prepackage:mac": "npm run build",
-    "package:mac": ". .env && export APPLE_ID=\"$APPLE_ID\" APPLE_TEAM_ID=\"$APPLE_TEAM_ID\" APPLE_APP_SPECIFIC_PASSWORD=\"${APPLE_APP_SPECIFIC_PASSWORD:-$APPLE_ID_PASSWORD}\" && CSC_IDENTITY_AUTO_DISCOVERY=true electron-builder --mac",
+    "package:mac": ". .env && ./scripts/setup-macos-signing.sh && electron-builder --mac",
     "package:mac:unsigned": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac -c.mac.identity=null -c.mac.hardenedRuntime=false -c.mac.notarize=false",
     "prepackage:win": "npm run build",
     "package:win": "electron-builder --win",
@@ -119,13 +119,16 @@
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*",
+    "@types/semver": "^7.7.1",
     "adm-zip": "^0.5.16",
     "chokidar": "^4.0.3",
-    "electron-updater": "^6.1.7"
+    "electron-updater": "^6.1.7",
+    "semver": "^7.7.2"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@tsconfig/svelte": "^5.0.4",
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "^24.1.0",
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",

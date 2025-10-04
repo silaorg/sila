@@ -16,10 +16,9 @@
     "check": "svelte-check"
   },
   "dependencies": {
-    "@sila/core": "*",
-    "@markpage/svelte": "^0.1.1",
-    "ttabs-svelte": "^0.0.13",
     "@floating-ui/dom": "1.6.11",
+    "@markpage/svelte": "^0.1.1",
+    "@sila/core": "*",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/typography": "^0.5.15",
     "dexie": "^4.0.11",
@@ -28,8 +27,11 @@
     "katex": "^0.16.22",
     "lucide-svelte": "^0.453.0",
     "marked": "^15.0.6",
+    "runed": "^0.34.0",
     "shiki": "^2.0.3",
-    "svelte-persisted-store": "^0.12.0"
+    "svelte-persisted-store": "^0.12.0",
+    "svelte-sonner": "^1.0.5",
+    "ttabs-svelte": "^0.0.13"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^3.1.2",
