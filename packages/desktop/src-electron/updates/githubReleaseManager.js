@@ -287,33 +287,6 @@ export class GitHubReleaseManager {
   }
 
   /**
-   * Check for updates with strategy consideration
-   * @returns {Promise<{version: string, downloadUrl: string, publishedAt: string, strategy: Object} | null>}
-   */
-  async checkForUpdatesWithStrategy() {
-    // Check if we can check for client updates (no full app update in progress)
-    if (!updateCoordinator.canCheckClientUpdates()) {
-      console.log('Skipping client bundle update check - full app update in progress');
-      return null;
-    }
-
-    try {
-      const release = await this.checkForLatestRelease();
-      if (!release) {
-        return null;
-      }
-
-      // Determine update strategy
-      const strategy = updateCoordinator.determineUpdateStrategy('', release.version) || {};
-      
-      return Object.assign({}, release, { strategy });
-    } catch (error) {
-      console.error('Error checking for updates with strategy:', error);
-      return null;
-    }
-  }
-
-  /**
    * Make HTTP request to GitHub API
    * @param {string} url - URL to request
    * @returns {Promise<string>} Response body
@@ -408,7 +381,8 @@ export class GitHubReleaseManager {
             downloadedBytes += chunk.length;
             if (totalBytes > 0) {
               const progress = Math.round((downloadedBytes / totalBytes) * 100);
-              console.log(`Download progress: ${progress}%`);
+              //console.log(`Download progress: ${progress}%`);
+              // @TODO: send progress to renderer
             }
           });
 
@@ -465,11 +439,6 @@ export function setupGitHubReleaseIPC() {
     return await githubReleaseManager.checkForLatestRelease();
   });
 
-  // Check for updates with strategy
-  ipcMain.handle('check-updates-with-strategy', async (event) => {
-    return await githubReleaseManager.checkForUpdatesWithStrategy();
-  });
-
   // Download and extract a specific build
   ipcMain.handle('download-github-build', async (event, { downloadUrl, version }) => {
     return await githubReleaseManager.downloadAndExtractBuild(downloadUrl, version);
@@ -499,11 +468,6 @@ export function setupGitHubReleaseIPC() {
       return true;
     }
     return false;
-  });
-
-  // Get update coordinator state
-  ipcMain.handle('get-update-coordinator-state', async (event) => {
-    return updateCoordinator.getState();
   });
 }
 

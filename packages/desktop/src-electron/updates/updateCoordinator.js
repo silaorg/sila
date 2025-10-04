@@ -10,7 +10,6 @@ export class UpdateCoordinator {
     this.fullAppUpdate = false;
     this.clientBundleUpdate = false;
     this.dialogShown = false;
-    this.updateStrategy = null;
     this.currentVersion = null;
   }
 
@@ -40,22 +39,6 @@ export class UpdateCoordinator {
     return !this.fullAppUpdate;
   }
 
-  /**
-   * Check if any update dialog can be shown
-   * @returns {boolean} - True if dialog can be shown
-   */
-  canShowDialog() {
-    return !this.dialogShown;
-  }
-
-  /**
-   * Set dialog shown state
-   * @param {boolean} shown - Whether a dialog is currently shown
-   */
-  setDialogShown(shown) {
-    this.dialogShown = shown;
-    console.log(`Dialog shown state: ${shown}`);
-  }
 
   /**
    * Set current app version
@@ -63,52 +46,6 @@ export class UpdateCoordinator {
    */
   setCurrentVersion(version) {
     this.currentVersion = version;
-  }
-
-  /**
-   * Determine update strategy based on available versions
-   * @param {string} latestFullAppVersion - Latest full app version
-   * @param {string} latestClientBundleVersion - Latest client bundle version
-   * @returns {Object | null} Update strategy recommendation
-   */
-  determineUpdateStrategy(latestFullAppVersion, latestClientBundleVersion) {
-    if (!this.currentVersion) {
-      console.warn('Current version not set, cannot determine update strategy');
-      return null;
-    }
-
-    this.updateStrategy = updateStrategy.determineUpdateStrategy(
-      this.currentVersion,
-      latestFullAppVersion,
-      latestClientBundleVersion
-    );
-
-    console.log('Update strategy determined:', this.updateStrategy);
-    return this.updateStrategy;
-  }
-
-  /**
-   * Get current update state
-   * @returns {Object} - Current update state
-   */
-  getState() {
-    return {
-      fullAppUpdate: this.fullAppUpdate,
-      clientBundleUpdate: this.clientBundleUpdate,
-      dialogShown: this.dialogShown,
-      updateStrategy: this.updateStrategy,
-      currentVersion: this.currentVersion
-    };
-  }
-
-  /**
-   * Reset all update states
-   */
-  reset() {
-    this.fullAppUpdate = false;
-    this.clientBundleUpdate = false;
-    this.dialogShown = false;
-    console.log('Update coordinator reset');
   }
 }
 
