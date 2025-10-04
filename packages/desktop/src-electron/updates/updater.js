@@ -42,6 +42,17 @@ function handleInstallElectronUpdate() {
       return { ok: false, error: String(err) };
     }
   });
+
+  // IPC: handle manual check for updates from renderer
+  ipcMain.handle('sila:check-for-updates', async () => {
+    try {
+      await checkForUpdates();
+      return { ok: true };
+    } catch (err) {
+      console.error('Updater IPC check-for-updates error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
 }
 
 export async function checkForUpdates() {

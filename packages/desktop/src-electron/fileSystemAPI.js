@@ -107,6 +107,13 @@ export function setupFileSystemAPI() {
      */
     reloadToLatestBuild: () => {
       return ipcRenderer.invoke('reload-to-latest-build');
+    },
+
+    /**
+     * Trigger a manual check for updates (Electron + desktop build)
+     */
+    checkForUpdates: () => {
+      return ipcRenderer.invoke('sila:check-for-updates');
     }
   });
 }

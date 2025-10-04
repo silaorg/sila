@@ -7,7 +7,7 @@
 
   const isElectron = typeof window !== "undefined" && (window as any).electronFileSystem;
 
-  let currentVersion: string = $state("v(dev)");
+  let currentVersion: string = $state("...");
 
   onMount(async () => {
     if (!isElectron) return;
