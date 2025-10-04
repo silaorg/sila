@@ -10,39 +10,46 @@
   import type { MessageFormStatus } from "../forms/messageFormStatus";
   import { ArrowDown } from "lucide-svelte";
 
+  const SCROLL_BUTTON_THRESHOLD_PX = 40;
+  const BOTTOM_THRESHOLD_PX = 0;
+
   let { data }: { data: ChatAppData } = $props();
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
   let messages = $state<Vertex[]>([]);
   let shouldAutoScroll = $state(true);
   let formStatus: MessageFormStatus = $state("can-send-message");
   let isProgrammaticScroll = $state(true);
-  let canScrollDown = $state(false);
-  let lastMessageId = $derived.by(() =>
-    messages.length > 0 ? messages[messages.length - 1].id : undefined
-  );
-  let showScrollDown = $derived(canScrollDown && !shouldAutoScroll);
+  let scrollTop = $state(0);
+  let scrollHeight = $state(0);
+  let clientHeight = $state(0);
 
   let lastMessageTxt: string | null = null;
   let programmaticScrollTimeout: (() => void) | undefined;
 
-  function isAtBottom() {
-    if (!scrollableElement) return false;
+  let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
 
-    const threshold = 0;
-    return (
-      scrollableElement.scrollHeight -
-        scrollableElement.scrollTop -
-        scrollableElement.clientHeight <=
-      threshold
-    );
+  let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+  
+  let lastMessageId = $derived.by(() =>
+    messages.length > 0 ? messages[messages.length - 1].id : undefined
+  );
+
+  let showScrollDown = $derived(distFromBottom > SCROLL_BUTTON_THRESHOLD_PX);
+
+  function updateScrollMetrics() {
+    if (!scrollableElement) return;
+    scrollTop = scrollableElement.scrollTop;
+    scrollHeight = scrollableElement.scrollHeight;
+    clientHeight = scrollableElement.clientHeight;
   }
 
   function handleScroll() {
     // We only detect when the user scrolls (not when it's scrolled programmatically)
     if (!isProgrammaticScroll) {
-      shouldAutoScroll = isAtBottom();
+      updateScrollMetrics();
+      shouldAutoScroll = isAtBottom;
     }
-    updateScrollState();
+    updateScrollMetrics();
   }
 
   $effect(() => {
@@ -88,20 +95,20 @@
     const msgsObs = data.observeNewMessages((vertices) => {
       scrollToBottom();
       messages = vertices;
-      tick().then(updateScrollState);
+      tick().then(updateScrollMetrics);
     });
     // @TODO temporary: subscribe to message updates for edits/branch switching
     const updateObs = data.onUpdate((vertices) => {
       messages = vertices;
-      tick().then(updateScrollState);
+      tick().then(updateScrollMetrics);
     });
 
     tick().then(() => {
       scrollToBottom();
-      updateScrollState();
+      updateScrollMetrics();
     });
 
-    const onResize = () => updateScrollState();
+    const onResize = () => updateScrollMetrics();
     window.addEventListener("resize", onResize);
 
     return () => {
@@ -140,17 +147,6 @@
     if (shouldAutoScroll) {
       scrollToBottom();
     }
-  }
-
-  function updateScrollState() {
-    if (!scrollableElement) {
-      canScrollDown = false;
-      return;
-    }
-    const threshold = 40; // px before we consider it scrollable enough
-    canScrollDown =
-      scrollableElement.scrollHeight - scrollableElement.clientHeight >
-      threshold;
   }
 
   // Using shared AttachmentPreview from core
