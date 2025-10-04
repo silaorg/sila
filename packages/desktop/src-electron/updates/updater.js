@@ -1,8 +1,10 @@
-import { dialog, BrowserWindow, autoUpdater } from 'electron';
+import { dialog, BrowserWindow, autoUpdater, ipcMain } from 'electron';
 import { updateCoordinator } from './updateCoordinator.js';
 import { ElectronUpdater } from './electronUpdater.js';
 
 let electronUpdater = new ElectronUpdater();
+
+const CHECK_FOR_UPDATES_INTERVAL = 1000 * 60 * 5;
 
 /**
  * Set up the updater
@@ -10,17 +12,32 @@ let electronUpdater = new ElectronUpdater();
  */
 export async function setUpdater(isDev) {
 
-  await checkForUpdates();
-  
   /*
-  TODO:
-  - Check for updates - executable and build
+  @TODO:
+  - Check for updates - electron package and desktop build
   - Decide whether to update the electron package or the desktop build.
-  - Download the electron package with autoUpdater.downloadUpdate 
-  - Download the desktop build with 
+  - If it's only the patch change - we will download the desktop build, otherwise we will download the electron package.
   */
 
-  // @TODO: set periodic check for updates
+  handleInstallElectronUpdate();
+
+  await checkForUpdates();
+
+  setInterval(checkForUpdates, CHECK_FOR_UPDATES_INTERVAL);
+}
+
+function handleInstallElectronUpdate() {
+  // IPC: handle install request from renderer
+  ipcMain.handle('sila:update:install', async () => {
+    try {
+      // Quit and install the downloaded update
+      electronUpdater.autoUpdater.quitAndInstall();
+      return { ok: true };
+    } catch (err) {
+      console.error('Updater IPC install error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
 }
 
 export async function checkForUpdates() {
@@ -29,35 +46,4 @@ export async function checkForUpdates() {
   if (electronAvailableUpdateVersion) {
     electronUpdater.downloadUpdate();
   }
-
-} 
-
-function showInstallDialog(/** @type {any} */ info) {
-  /*
-  const mainWindow = BrowserWindow.getAllWindows()[0];
-  if (!mainWindow) return;
-
-  // Check if we can show dialog (prevent multiple dialogs)
-  if (!updateCoordinator.canShowDialog()) {
-    console.log('Update dialog already shown, skipping');
-    return;
-  }
-
-  updateCoordinator.setDialogShown(true);
-
-  dialog.showMessageBox(mainWindow, {
-    type: 'info',
-    title: 'Update Ready',
-    message: `Sila ${info.version} has been downloaded and is ready to install.`,
-    detail: 'The app will restart to install the update.',
-    buttons: ['Restart Now', 'Later'],
-    defaultId: 0,
-    cancelId: 1
-  }).then((result) => {
-    updateCoordinator.setDialogShown(false);
-    if (result.response === 0) {
-      autoUpdater.quitAndInstall();
-    }
-  });
-  */
 }

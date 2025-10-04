@@ -9,7 +9,7 @@
     "email": "d@dkury.com"
   },
   "type": "module",
-  "main": "src-electron/main.js",
+  "main": "src-electron/main-electron.js",
   "build": {
     "appId": "com.silain.desktop",
     "productName": "Sila",

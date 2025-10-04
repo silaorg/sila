@@ -1,3 +1,4 @@
+import { BrowserWindow, dialog } from 'electron';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 
@@ -16,6 +17,7 @@ export class ElectronUpdater {
   
   constructor() {
     this.autoUpdater = autoUpdater;
+    this.autoUpdater.autoDownload = false;
     this.autoUpdater.autoInstallOnAppQuit = true;
   }
 
@@ -45,5 +47,38 @@ export class ElectronUpdater {
     const downloadedFiles = await this.autoUpdater.downloadUpdate();
     console.log('ElectronUpdater / Update downloaded, files:', downloadedFiles);
     this.#isDownloading = false;
+
+    // Notify renderer that the update has been downloaded
+    try {
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('sila:update:downloaded', {
+          version: this.availableVersion
+        });
+      }
+    } catch (err) {
+      console.error('ElectronUpdater / Failed to notify renderer about downloaded update:', err);
+    }
+
+    //this.autoUpdater.quitAndInstall();
+  }
+
+  showInstallDialog(/** @type {any} */ info) {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (!mainWindow) return;
+
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Update Ready',
+      message: `Sila ${info.version} has been downloaded and is ready to install.`,
+      detail: 'The app will restart to install the update.',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
   }
 }

@@ -14,6 +14,7 @@ import { Space } from "@sila/core";
 import { AppFileSystem } from '../appFs';
 import type { AppDialogs } from '../appDialogs';
 import { uuid } from '@sila/core';
+import { toast } from "svelte-sonner";
 
 interface AuthTokens {
   access_token: string;
@@ -77,6 +78,10 @@ export class ClientState {
       return this._defaultTheme;
     }
   });
+
+  get toast() {
+    return toast;
+  }
 
   get fs(): AppFileSystem {
     if (!this._fs) {

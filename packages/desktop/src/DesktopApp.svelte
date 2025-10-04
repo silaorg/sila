@@ -1,10 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { SilaApp, type ClientStateConfig } from "@sila/client";
+  import { ClientState, SilaApp, type ClientStateConfig } from "@sila/client";
   import { electronFsWrapper } from "./electronFsWrapper";
   import { electronDialogsWrapper } from "./electronDialogsWrapper";
+  import ClientStateProvider from "@sila/client/state/ClientStateProvider.svelte";
+  import DesktopUpdateHandler from "./DesktopUpdateHandler.svelte";
 
-  let config: ClientStateConfig | null = $state(null);
+  let config: ClientStateConfig | null = $state({
+    initState: new ClientState(),
+    fs: electronFsWrapper,
+    dialog: electronDialogsWrapper
+  });
 
   onMount(() => {
     // Log Electron environment info
@@ -17,12 +23,6 @@
 
       console.log("⚛️ Electron info:", info);
     }
-    
-    // Initialize config with the Electron file system implementation
-    config = {
-      fs: electronFsWrapper,
-      dialog: electronDialogsWrapper
-    };
   });
 </script>
 
@@ -31,3 +31,7 @@
 </svelte:head>
 
 <SilaApp {config} />
+
+<ClientStateProvider instance={config.initState}>
+  <DesktopUpdateHandler />
+</ClientStateProvider>

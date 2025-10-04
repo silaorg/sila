@@ -45,9 +45,6 @@ const globalAny = global;
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
   
-  // Initialize update coordinator with current version
-  //updateCoordinator.setCurrentVersion(app.getVersion());
-  
   // Setup custom protocol (sila://)
   setupSilaProtocol();
 

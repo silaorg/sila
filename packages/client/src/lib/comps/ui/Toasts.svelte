@@ -4,25 +4,10 @@
   // clientState that lives in a shared context. So we would need to refactor
   // toasts at some point to use clientState as well.
   // Perhaps make our own version of https://github.com/wobsoriano/svelte-sonner/
-  import { Toaster, toast, useSonner } from "svelte-sonner";
+  import { Toaster } from "svelte-sonner";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { onMount } from "svelte";
 
   const clientState = useClientState();
-
-  onMount(() => {
-    toast.success("Yaaaay!", {
-      dismissable: true,
-      duration: Infinity,
-      closeButton: true,
-    });
-
-    toast("This is a regular toast!");
-    toast.success("Operation completed successfully.");
-    toast.error("Something went wrong.");
-    toast.info("Here is some information.");
-    toast.warning("This is a warning toast.");
-  });
 </script>
 
 <Toaster position="top-right" theme={clientState.theme.actualColorScheme} />
