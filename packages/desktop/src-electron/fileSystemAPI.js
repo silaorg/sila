@@ -107,14 +107,6 @@ export function setupFileSystemAPI() {
      */
     reloadToLatestBuild: () => {
       return ipcRenderer.invoke('reload-to-latest-build');
-    },
-
-    /**
-     * Get update coordinator state
-     * @returns {Promise<Object>} Update coordinator state
-     */
-    getUpdateCoordinatorState: () => {
-      return ipcRenderer.invoke('get-update-coordinator-state');
     }
   });
 }

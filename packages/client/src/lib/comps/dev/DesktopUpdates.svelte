@@ -9,15 +9,8 @@
     size?: number;
   };
 
-  type UpdateCoordinatorState = {
-    reason?: string;
-    priority?: string;
-    useFullAppUpdate?: boolean;
-    useClientBundleUpdate?: boolean;
-    fullAppUpdate?: boolean;
-    clientBundleUpdate?: boolean;
-    dialogShown?: boolean;
-  } | null;
+  // Coordinator removed
+  type UpdateCoordinatorState = null;
 
   type LatestRelease = {
     version: string;
@@ -42,7 +35,7 @@
 
     isChecking = true;
     try {
-      const updateInfo = await (window as any).electronFileSystem.checkUpdatesWithStrategy();
+      const updateInfo = await (window as any).electronFileSystem.checkGitHubRelease();
       if (updateInfo) {
         latestRelease = {
           version: updateInfo.version,
@@ -50,7 +43,7 @@
           publishedAt: updateInfo.publishedAt,
           size: updateInfo.size,
         };
-        updateCoordinatorState = updateInfo.strategy;
+        updateCoordinatorState = null;
       } else {
         latestRelease = null;
         updateCoordinatorState = null;
@@ -60,13 +53,7 @@
       availableBuilds = await (window as any).electronFileSystem.getAvailableBuilds();
       allAvailableDesktopBuilds = await (window as any).electronFileSystem.getAllAvailableDesktopBuilds();
 
-      if ((window as any).electronFileSystem.getUpdateCoordinatorState) {
-        const coordinatorState = await (window as any).electronFileSystem.getUpdateCoordinatorState();
-        updateCoordinatorState = {
-          ...updateCoordinatorState,
-          ...coordinatorState,
-        };
-      }
+      // coordinator removed
     } catch (error) {
       console.error("Error checking for latest release:", error);
     } finally {
@@ -164,30 +151,7 @@
         </div>
       {/if}
 
-      {#if updateCoordinatorState}
-        <div class="space-y-3 rounded border border-surface-200-700-token bg-surface-50-800-token p-3">
-          {#if updateCoordinatorState.reason}
-            <div class="space-y-1">
-              <div class="text-sm font-medium text-surface-900-100-token">Update strategy</div>
-              <div class="text-xs text-surface-600-300-token">
-                {updateCoordinatorState.reason}
-              </div>
-            </div>
-          {/if}
-
-          <div class="grid gap-2 text-xs text-surface-600-300-token sm:grid-cols-3">
-            <span>Priority: {updateCoordinatorState.priority ?? "—"}</span>
-            <span>Full app: {updateCoordinatorState.useFullAppUpdate ? "Yes" : "No"}</span>
-            <span>Client bundle: {updateCoordinatorState.useClientBundleUpdate ? "Yes" : "No"}</span>
-          </div>
-
-          <div class="grid gap-2 text-xs text-surface-600-300-token sm:grid-cols-3">
-            <span>{updateCoordinatorState.fullAppUpdate ? "Full app update ready" : "No full app update"}</span>
-            <span>{updateCoordinatorState.clientBundleUpdate ? "Client bundle ready" : "No client bundle"}</span>
-            <span>{updateCoordinatorState.dialogShown ? "Dialog shown" : "Dialog not shown"}</span>
-          </div>
-        </div>
-      {/if}
+      
 
       {#if latestRelease}
         <div class="space-y-3 rounded border border-surface-200-700-token bg-surface-50-800-token p-3">

@@ -1,5 +1,4 @@
 import { dialog, BrowserWindow, autoUpdater, ipcMain, app } from 'electron';
-import { updateCoordinator } from './updateCoordinator.js';
 import { ElectronUpdater } from './electronUpdater.js';
 import { DesktopBuildUpdater } from './desktopBuildUpdater.js';
 import { diff as semverDiff, coerce as semverCoerce } from 'semver';
