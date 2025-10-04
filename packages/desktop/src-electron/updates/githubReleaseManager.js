@@ -162,6 +162,16 @@ export class GitHubReleaseManager {
       tempZipPath = null;
       
       console.log(`Successfully downloaded and extracted build: ${buildName}`);
+
+      // Notify renderer that a desktop build update is ready to load
+      try {
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('sila:build:update:ready', { version });
+        }
+      } catch (e) {
+        console.error('Failed to notify renderer about desktop build update:', e);
+      }
       return true;
     } catch (error) {
       console.error('Error downloading and extracting build:', error);
@@ -446,7 +456,7 @@ export function setupGitHubReleaseIPC() {
     const mainWindow = BrowserWindow.getAllWindows()[0];
     if (mainWindow) {
       // Reload with the latest build
-      mainWindow.loadURL('sila://builds/desktop/index.html');
+      mainWindow.loadURL('sila://client/index.html');
       return true;
     }
     return false;

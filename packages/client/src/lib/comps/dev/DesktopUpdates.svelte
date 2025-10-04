@@ -74,7 +74,7 @@
 
       if (success) {
         downloadProgress = "Download complete! Reloading...";
-        window.location.href = "sila://builds/desktop/index.html";
+        window.location.href = "sila://client/index.html";
       } else {
         downloadProgress = "Download failed";
       }
@@ -99,7 +99,7 @@
 
       if (success) {
         downloadProgress = "Download complete! Reloading...";
-        window.location.href = "sila://builds/desktop/index.html";
+        window.location.href = "sila://client/index.html";
       } else {
         downloadProgress = "Download failed";
       }
