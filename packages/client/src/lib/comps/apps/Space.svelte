@@ -33,7 +33,7 @@
   });
 </script>
 
-<!-- Set a periodic check for Ollama running and setup it as a model provider if it is -->
+<!-- Set a periodic check for Ollama running and setup it as a model provider if it is setup -->
 <OllamaAutoConfig />
 
 {#if onboarding}
@@ -59,7 +59,7 @@
   </div>
 
   <!-- This sidebar works when the regular column-based sidebar is closed -->
-  <!--<HoverSidebar />-->
+  <HoverSidebar />
 
   {#if $isDevMode && $spaceInspectorOpen}
     <SpaceInspectorWindow />
