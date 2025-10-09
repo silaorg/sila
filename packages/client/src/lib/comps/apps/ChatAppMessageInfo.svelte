@@ -31,7 +31,7 @@
 
   <div>
     <span class="opacity-70">Created:</span>
-    {new Date(message.createdAt).toLocaleString()}
+    {new Date(message._c).toLocaleString()}
   </div>
 
   {#if message.updatedAt}

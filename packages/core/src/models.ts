@@ -6,7 +6,7 @@ export type ThreadMessage = {
   text: string | null;
   thinking?: string | null;
   inProgress: boolean | null;
-  createdAt: number;
+  _c: number;
   updatedAt: number | null;
   // Optional metadata
   configId?: string | null;

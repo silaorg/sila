@@ -139,7 +139,7 @@
       canRetry =
         isLast &&
         (msg.role === "error" ||
-          (isMoreThanOneMinuteOld(msg.createdAt) &&
+          (isMoreThanOneMinuteOld(msg._c) && isMoreThanOneMinuteOld(msg.updatedAt) &&
             data.isMessageInProgress(vertex.id)));
     });
 

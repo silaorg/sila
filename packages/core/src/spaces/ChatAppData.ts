@@ -172,7 +172,6 @@ export class ChatAppData {
 
     const properties: Record<string, any> = {
       _n: "message",
-      createdAt: Date.now(),
       text,
       role,
     };
@@ -263,7 +262,6 @@ export class ChatAppData {
       if (!current) {
         if (!createParents) throw new Error(`Path segment 'files' not found and createParents=false`);
         current = root.newNamedChild('files');
-        current.setProperty('createdAt', Date.now());
       }
       segments = segments.slice(1);
     } else {
@@ -279,7 +277,7 @@ export class ChatAppData {
         current = existing;
       } else {
         if (!createParents) throw new Error(`Path segment '${seg}' not found and createParents=false`);
-        current = appTree.tree.newVertex(current!.id, { _n: seg, createdAt: Date.now() });
+        current = appTree.tree.newVertex(current!.id, { _n: seg });
       }
     }
     return current!;
@@ -292,7 +290,6 @@ export class ChatAppData {
 
     const properties: Record<string, any> = {
       _n: "message",
-      createdAt: Date.now(),
       text,
       role,
     };
@@ -363,7 +360,6 @@ export class ChatAppData {
 
     const newProps: Record<string, any> = {
       _n: "message",
-      createdAt: Date.now(),
       text: newText,
       role: props.role,
       main: true,
