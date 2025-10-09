@@ -71,6 +71,9 @@ export class ChatAppData {
     this.space.setAppTreeName(this.threadId, newTitle);
   }
 
+  /**
+   * Get all messages from the main branches
+   */
   get messageVertices(): Vertex[] {
     const vs: Vertex[] = [];
     const start = this.messagesVertex;
@@ -88,6 +91,8 @@ export class ChatAppData {
     }
     return vs;
   }
+
+  // @TODO: consider having a function that allows to wrap the messages into reactive types of ChatMessage
 
   /**
    * Resolves file references in message files to data URLs
@@ -163,7 +168,7 @@ export class ChatAppData {
 
   async newMessage(
     role: "user" | "assistant" | "error",
-    text: string,
+    text?: string,
     thinking?: string,
     attachments?: Array<AttachmentPreview>,
     fileTarget?: { treeId?: string; path?: string; createParents?: boolean }
@@ -172,9 +177,12 @@ export class ChatAppData {
 
     const properties: Record<string, any> = {
       _n: "message",
-      text,
       role,
     };
+
+    if (text) {
+      properties.text = text;
+    }
 
     // If this is an assistant message, attach the assistant config information so the UI can display
     // the proper assistant name instead of a generic label. This is especially important for demo

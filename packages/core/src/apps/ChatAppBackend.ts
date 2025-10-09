@@ -1,15 +1,20 @@
-import { type AppConfig, type ThreadMessage } from "../models";
 import { Space } from "../spaces/Space";
 import { AgentServices } from "../agents/AgentServices";
-import { SimpleChatAgent } from "../agents/SimpleChatAgent";
-import { ThreadTitleAgent } from "../agents/ThreadTitleAgent";
 import { ChatAppData } from "../spaces/ChatAppData";
 import { AppTree } from "../spaces/AppTree";
-import { splitModelString } from "../utils/modelUtils";
+import { WrapChatAgent } from "../agents/WrapChatAgent";
 
 export default class ChatAppBackend {
   private data: ChatAppData;
-  private activeAgent: SimpleChatAgent | null = null;
+  //private activeAgent: SimpleChatAgent | null = null;
+  private agentServices: AgentServices;
+
+  private defaultChatAgent: WrapChatAgent;
+
+  // @TODO: should I have 3 agents here and run them in parallel or should the main agent invoke those?
+  // 1. the main agent replies to messages
+  // 2. the title agent updates the title
+  // 3. the summarizer agent summarizes conversations by adding summary messages
 
   get appTreeId(): string {
     return this.appTree.tree.root!.id;
@@ -17,7 +22,12 @@ export default class ChatAppBackend {
 
   constructor(private space: Space, private appTree: AppTree) {
     this.data = new ChatAppData(this.space, appTree);
+    this.agentServices = new AgentServices(this.space);
+    this.defaultChatAgent = new WrapChatAgent(this.data, this.agentServices);
 
+    this.defaultChatAgent.run();
+
+    /*
     this.processMessages(this.data.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>()));
 
     this.data.observeNewMessages((vertices) => {
@@ -62,8 +72,10 @@ export default class ChatAppBackend {
       }
 
     });
+    */
   }
 
+  /*
   private processMessages(messages: ThreadMessage[]) {
     if (messages.length === 0) {
       return;
@@ -92,6 +104,8 @@ export default class ChatAppBackend {
     }
 
     const agentServices = new AgentServices(this.space);
+
+
     const simpleChatAgent = new SimpleChatAgent(agentServices, config);
     this.activeAgent = simpleChatAgent;
     const threadTitleAgent = new ThreadTitleAgent(agentServices, config);
@@ -100,17 +114,9 @@ export default class ChatAppBackend {
     const lastMessage = messages[messages.length - 1];
     const messageToUse = lastMessage?.role === "error" ?
       lastMessage :
-      await this.data.newMessage("assistant", "thinking...");
+      await this.data.newMessage("assistant");
 
-    // @TODO: consider making TypedVertex<ThreadMessage> that can be used to set properties
-    // @TODO: or consider just having data.updateMessage(message)
-
-    // Set initial state
-    this.appTree.tree.setVertexProperty(messageToUse.id, "role", "assistant");
-    this.appTree.tree.setVertexProperty(messageToUse.id, "text", "thinking...");
     this.appTree.tree.setVertexProperty(messageToUse.id, "inProgress", true);
-    this.appTree.tree.setVertexProperty(messageToUse.id, "configId", config.id);
-    this.appTree.tree.setVertexProperty(messageToUse.id, "configName", config.name);
     // If targetLLM is explicitly set and not 'auto', pre-populate model info
     if (config.targetLLM && !config.targetLLM.endsWith("auto")) {
       const parts = splitModelString(config.targetLLM);
@@ -128,7 +134,6 @@ export default class ChatAppBackend {
 
       // Pass through FileReference[] and let the agent resolve as needed
       const messagesForLang = [
-        { role: "system", text: config.instructions },
         ...messagesToUse.map((m) => ({
           id: (m as any).id,
           role: m.role,
@@ -301,4 +306,5 @@ export default class ChatAppBackend {
       this.appTree.tree.setVertexProperty(newAssistant.id, 'inProgress', false);
     }
   }
+*/
 }
