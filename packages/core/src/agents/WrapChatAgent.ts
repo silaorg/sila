@@ -1,6 +1,6 @@
-import type { LangMessage, LangMessages, LangContentPart } from "aiwrapper";
-import { LangMessages as AiLangMessages } from "aiwrapper";
-import { ChatAgent } from "./ChatAgent";
+import type { LangMessage, LangContentPart } from "aiwrapper";
+import { LangMessages } from "aiwrapper";
+import { ChatAgent } from "./chatAgent";
 import { AgentServices } from "./AgentServices";
 import { ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
@@ -23,7 +23,7 @@ export class WrapChatAgent {
   private chatAgent: ChatAgent;
   private isRunning = false;
 
-  constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) { 
+  constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
     // Instantiate an agent
     this.chatAgent = new ChatAgent();
   }
@@ -76,7 +76,7 @@ export class WrapChatAgent {
     }
 
     // Create assistant placeholder and set in progress
-    const assistantMsg = await this.data.newMessage("assistant", "thinking...");
+    const assistantMsg = await this.data.newMessage("assistant");
     this.appTree.tree.setVertexProperty(assistantMsg.id, "inProgress", true);
 
     // Prefill model info if explicitly set and not 'auto'
@@ -92,7 +92,7 @@ export class WrapChatAgent {
       const lang = await this.agentServices.lang(config.targetLLM);
       const resolvedModel = this.agentServices.getLastResolvedModel();
 
-      // Build system prompt (mirrors SimpleChatAgent)
+      // Build system prompt
       let systemPrompt = (config.instructions || "");
       systemPrompt += "\n\n" +
         "Preferably use markdown for formatting. If you write code examples: use tick marks for inline code and triple tick marks for code blocks." +
@@ -111,14 +111,14 @@ export class WrapChatAgent {
 
       const remap = async (m: ThreadMessage): Promise<LangMessage> => {
         const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
-        const hasFiles = Array.isArray((m as any).files) && (m as any).files.length > 0;
+        const hasFiles = Array.isArray(m.files) && m.files.length > 0;
         if (!hasFiles) {
           return { role: normalizedRole, content: m.text || "" } as LangMessage;
         }
 
         const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
-        const images = (resolved as any).files?.filter((f: AttachmentPreview) => f?.kind === 'image') || [];
-        const textFiles = (resolved as any).files?.filter((f: AttachmentPreview) => f?.kind === 'text') || [];
+        const images = resolved.files?.filter((f) => f?.kind === 'image') || [];
+        const textFiles = resolved.files?.filter((f) => f?.kind === 'text') || [];
 
         if (supportsVision && images.length > 0) {
           const parts: LangContentPart[] = [];
@@ -126,13 +126,13 @@ export class WrapChatAgent {
             parts.push({ type: 'text', text: m.text });
           }
           for (const tf of textFiles) {
-            const content = this.extractTextFromDataUrl((tf as any).dataUrl);
+            const content = this.extractTextFromDataUrl(tf.dataUrl);
             if (content) {
               parts.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
             }
           }
           for (const img of images) {
-            const { base64, mimeType } = this.parseDataUrl((img as any).dataUrl as string);
+            const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
             parts.push({ type: 'image', image: { kind: 'base64', base64, mimeType } });
           }
           return { role: normalizedRole, content: parts } as LangMessage;
@@ -140,22 +140,23 @@ export class WrapChatAgent {
 
         let content = m.text || "";
         for (const tf of textFiles) {
-          const t = this.extractTextFromDataUrl((tf as any).dataUrl);
+          const t = this.extractTextFromDataUrl(tf.dataUrl);
           if (t) content += `\n\n--- File: ${tf.name} ---\n` + t;
         }
         if (images.length > 0) {
-          const names = images.map((a: any) => a.name).filter(Boolean).join(', ');
+          const names = images.map((a) => a.name).filter(Boolean).join(', ');
           content += `\n\n[User attached ${images.length} image(s): ${names}]`;
         }
         return { role: normalizedRole, content } as LangMessage;
       };
 
       const langMessagesArr: LangMessage[] = [
+        // @TODO: use instructions!
         { role: 'system', content: systemPrompt },
         ...await Promise.all(messages.map(remap)),
       ];
       // IMPORTANT: reset ChatAgent's internal state by passing a LangMessages instance
-      const langMessages = new AiLangMessages(langMessagesArr);
+      const langMessages = new LangMessages(langMessagesArr);
 
       // Wire streaming updates
       const unsubscribe = this.chatAgent.subscribe((event) => {
@@ -165,7 +166,7 @@ export class WrapChatAgent {
             this.appTree.tree.setTransientVertexProperty(assistantMsg.id, 'text', text);
           }
         } else if (event.type === 'finished') {
-          const final = this.extractAnswerText(event.output as AiLangMessages);
+          const final = this.extractAnswerText(event.output);
           if (typeof final === 'string') {
             this.appTree.tree.setVertexProperty(assistantMsg.id, 'text', final);
           }
@@ -192,17 +193,16 @@ export class WrapChatAgent {
     }
   }
 
-  private extractAnswerText(result: any): string | undefined {
+  // @TODO: huh? seems retarted; how about we make .answer a getter that takes the last message; rename it to lastAnswer
+  private extractAnswerText(messages: LangMessages): string | undefined {
     // Try common paths first
-    if (result && typeof result.answer === 'string') return result.answer;
+    if (messages && typeof messages.answer === 'string') return messages.answer;
     // If result is LangMessages, try the last assistant message content
     try {
-      const arr = Array.isArray(result) ? result : (result?.toArray ? result.toArray() : undefined);
-      const messages = Array.isArray(arr) ? arr : [];
       for (let i = messages.length - 1; i >= 0; i--) {
         const m = messages[i];
         if (m?.role === 'assistant') {
-          const c = (m as any).content;
+          const c = m.content;
           if (typeof c === 'string') return c;
           if (Array.isArray(c)) {
             // concatenate text parts
@@ -212,7 +212,7 @@ export class WrapChatAgent {
           break;
         }
       }
-    } catch {}
+    } catch { }
     return undefined;
   }
 
@@ -222,7 +222,7 @@ export class WrapChatAgent {
       if (match && match[2]) {
         return { mimeType: match[1], base64: match[2] };
       }
-    } catch {}
+    } catch { }
     return { base64: dataUrl };
   }
 
