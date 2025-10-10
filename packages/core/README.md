@@ -9,4 +9,9 @@ Core TypeScript shared across Sila apps and services.
 
 ```ts
 import { /* exports */ } from '@sila/core';
+
 ```
+
+## Test
+
+We test things from core in ./tests

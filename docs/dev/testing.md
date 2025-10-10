@@ -1,15 +1,16 @@
 # Testing in Sila
 
-This guide explains why we test and how to run the tests. It intentionally avoids details that change often.
+We have automated tests in two packages: `core` and `gallery`.
 
-## Why we test
-- Ensure core functionality remains stable as the product evolves
-- Catch regressions quickly with fast, local feedback
-- Ship confidently across desktop and mobile
+`packages/core/tests` is for testing core (without the UI or any client-server logic).
 
-## Where tests live
-- Core tests (unit/integration): `packages/core/tests/` (Vitest)
-- UI integration tests: `packages/gallery` (Playwright)
+`packages/gallery/tests` is for testing svelte components. The closest we get e2e testing.
+
+Perhaps we need to setup a proper testing for the `packages/desktop` (Electron app) but didn't do it yet.
+
+## Testing frameworks
+
+The core tests use Vitest and the gallery uses Playwright.
 
 ## Run tests
 From the repository root:
