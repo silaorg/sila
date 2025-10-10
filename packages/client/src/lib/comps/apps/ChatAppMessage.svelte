@@ -243,7 +243,7 @@
           </div>
         {:else}
           <div
-            class="relative p-3 rounded-lg preset-tonal group"
+            class="relative p-3 rounded-lg bg-surface-100-900/50"
             role="region"
             onpointerenter={beginHover}
             onpointerleave={endHover}

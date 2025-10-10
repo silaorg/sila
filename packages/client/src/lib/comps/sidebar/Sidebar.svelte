@@ -7,7 +7,7 @@
   import SidebarToggle from "./SidebarToggle.svelte";
 </script>
 
-<div class="space-sidebar flex flex-col h-full" data-testid="sidebar">
+<div class="flex flex-col h-full bg-surface-100-900/50" data-testid="sidebar">
   <div class="min-h-min py-2 px-2">
     <div class="flex items-center w-full gap-2 pb-3">
       <div class="flex-1 min-w-0">
@@ -28,11 +28,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  :global {
-    .space-sidebar {
-      background-color: var(--color-surface-100-900);
-    }
-  }
-</style>

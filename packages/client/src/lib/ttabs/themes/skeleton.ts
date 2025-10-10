@@ -9,7 +9,7 @@ export const SKELETON_THEME: TtabsTheme = {
   variables: {
     // Base
     '--ttabs-panel-bg': 'var(--color-surface-50-950)',
-    '--ttabs-tab-bar-bg': 'var(--color-surface-100-900)',
+    '--ttabs-tab-bar-bg': 'color-mix(in oklab, var(--color-surface-50-950) 50%, var(--color-surface-100-900) 50%)',
     '--ttabs-active-tab-bg': 'var(--color-surface-50-950)',
     '--ttabs-active-tab-indicator': 'var(--color-primary-500)',
     '--ttabs-grid-bg': 'var(--color-surface-200-800)',
