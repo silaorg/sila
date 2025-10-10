@@ -77,14 +77,14 @@ export class WrapChatAgent {
 
     // Create assistant placeholder and set in progress
     const assistantMsg = await this.data.newMessage("assistant");
-    this.appTree.tree.setVertexProperty(assistantMsg.id, "inProgress", true);
-
+    assistantMsg.inProgress = true;
+    
     // Prefill model info if explicitly set and not 'auto'
     if (config.targetLLM && !config.targetLLM.endsWith("auto")) {
       const parts = splitModelString(config.targetLLM);
       if (parts) {
-        this.appTree.tree.setVertexProperty(assistantMsg.id, "modelProvider", parts.providerId);
-        this.appTree.tree.setVertexProperty(assistantMsg.id, "modelId", parts.modelId);
+        assistantMsg.modelProvider = parts.providerId;
+        assistantMsg.modelId = parts.modelId;
       }
     }
 
@@ -168,16 +168,14 @@ export class WrapChatAgent {
         } else if (event.type === 'finished') {
           const final = this.extractAnswerText(event.output);
           if (typeof final === 'string') {
-            this.appTree.tree.setVertexProperty(assistantMsg.id, 'text', final);
+            assistantMsg.text = final;
           }
-          this.appTree.tree.setVertexProperty(assistantMsg.id, 'inProgress', false);
+          assistantMsg.inProgress = false;
 
           const info = this.agentServices.getLastResolvedModel();
           if (info) {
-            this.appTree.tree.setVertexProperty(assistantMsg.id, 'modelProvider', info.provider);
-            this.appTree.tree.setVertexProperty(assistantMsg.id, 'modelId', info.model);
-            this.appTree.tree.setVertexProperty(assistantMsg.id, 'modelProviderFinal', info.provider);
-            this.appTree.tree.setVertexProperty(assistantMsg.id, 'modelIdFinal', info.model);
+            assistantMsg.modelProvider = info.provider;
+            assistantMsg.modelId = info.model;
           }
         }
       });
@@ -187,9 +185,9 @@ export class WrapChatAgent {
       unsubscribe();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      this.appTree.tree.setVertexProperty(assistantMsg.id, 'role', 'error');
-      this.appTree.tree.setVertexProperty(assistantMsg.id, 'text', msg);
-      this.appTree.tree.setVertexProperty(assistantMsg.id, 'inProgress', false);
+      assistantMsg.role = 'error';
+      assistantMsg.text = msg;
+      assistantMsg.inProgress = false;
     }
   }
 

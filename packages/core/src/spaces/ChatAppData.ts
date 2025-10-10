@@ -1,7 +1,8 @@
-import type { Vertex } from "reptree";
+import { bindVertex, type Vertex } from "reptree";
 import type {Space } from "./Space";
 import type { VertexPropertyType } from "reptree";
-import type { ThreadMessage, ThreadMessageWithResolvedFiles } from "../models";
+import { ThreadMessage } from "../models";
+import type { ThreadMessageWithResolvedFiles } from "../models";
 import { AppTree } from "./AppTree";
 import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
@@ -235,8 +236,7 @@ export class ChatAppData {
     }
 
     const newMessageVertex = this.appTree.tree.newVertex(lastMsgVertex.id, properties);
-    const props = newMessageVertex.getProperties();
-    return { id: newMessageVertex.id, ...props } as ThreadMessage;
+    return newMessageVertex.bind<ThreadMessage>();
   }
 
   /** Resolve target app tree and parent folder for file saves based on optional fileTarget. Defaults to this chat tree under 'files'. */
