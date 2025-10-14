@@ -168,7 +168,7 @@ export class ChatAppData {
   }
 
   async newMessage(
-    role: "user" | "assistant" | "error",
+    role: "user" | "assistant" | "error" | "tool" | "tool-results",
     text?: string,
     thinking?: string,
     attachments?: Array<AttachmentPreview>,
