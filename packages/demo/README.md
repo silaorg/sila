@@ -22,7 +22,7 @@ npm run build-demo-space my-demo.json --output ./my-demo
 
 ```json
 {
-      "type": "sila-space",
+  "type": "sila-space",
   "version": "1",
   "name": "Demo Space Name",
   "createdAt": "2025-08-05T07:00:00.000Z",
@@ -50,7 +50,7 @@ npm run build-demo-space my-demo.json --output ./my-demo
       "assistant": "chat",
       "messages": {
         "role": "user",
-          "text": "Hello! Can you help me get started with Sila?",
+        "text": "Hello! Can you help me get started with Sila?",
         "createdAt": "2025-08-05T07:00:00.000Z",
         "main": true,
         "children": [
@@ -118,4 +118,4 @@ See `examples/getting-started.json` for a complete working example.
 - Only cleans directories containing space-related content
 - Protects against accidentally overwriting important files
 - Ignores hidden files (`.gitignore`, `.DS_Store`, etc.)
-- Clear error messages for invalid configurations 
+- Clear error messages for invalid configurations

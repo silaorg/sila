@@ -3,11 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import { env } from '$env/dynamic/private';
 import { config as dotenvConfig } from 'dotenv';
-import demo from '../../../../../../packages/demo/examples/citybean-coffee.json' assert { type: 'json' };
+import { citybeanCoffeeDemo as spaceConfig } from '@sila/demo';
 
 export const GET: RequestHandler = async () => {
-
-  // @TODO: load keys from .env file and map them to providers keys
 
   // Prefer SvelteKit env; also attempt to load a .env if present (repo root or local)
   const rootEnvPath = path.resolve(process.cwd(), '..', '..', '.env');
@@ -25,15 +23,15 @@ export const GET: RequestHandler = async () => {
     openrouter: 'OPENROUTER_API_KEY'
   };
 
-  const providers = Array.isArray((demo as any).providers)
-    ? (demo as any).providers.map((p: any) => {
+  const providers = Array.isArray(spaceConfig.providers)
+    ? spaceConfig.providers.map(p => {
         const envKey = providerEnvMap[p?.id];
         const mappedValue = envKey ? (env[envKey] ?? process.env[envKey]) : undefined;
         return mappedValue ? { ...p, apiKey: mappedValue } : p;
       })
-    : (demo as any).providers;
+    : spaceConfig.providers;
 
-  const demoWithKeys = { ...(demo as any), providers };
+  const demoWithKeys = { ...spaceConfig, providers };
 
   const body = JSON.stringify(demoWithKeys, null, 2);
   return new Response(body, {

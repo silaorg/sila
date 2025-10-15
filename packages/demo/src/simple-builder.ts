@@ -1,49 +1,10 @@
+import * as from from './demo-space-config';
 import { NodeFileSystem } from './node-file-system';
 import { Space, SpaceManager, uuid, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
 import { rm } from 'fs/promises';
 
-interface DemoSpaceConfig {
-  type: "sila-space";
-  version: "1";
-  name: string;
-  createdAt: string;
-  description?: string;
-  assistants: AssistantConfig[];
-  providers: ProviderConfig[];
-  conversations: ConversationConfig[];
-}
-
-interface AssistantConfig {
-  id: string;
-  name: string;
-  button: string;
-  visible?: boolean;
-  description: string;
-  instructions: string;
-  targetLLM?: string;
-}
-
-interface ProviderConfig {
-  id: string;
-  apiKey?: string;
-}
-
-interface ConversationConfig {
-  title: string;
-  assistant: string;
-  messages: MessageNode;
-}
-
-interface MessageNode {
-  role: "user" | "assistant";
-  text: string;
-  createdAt: string;
-  main?: boolean;
-  children?: MessageNode[];
-}
-
 export class SimpleDemoBuilder {
-  async buildFromConfig(config: DemoSpaceConfig, outputPath: string): Promise<string> {
+  async buildFromConfig(config: from.DemoSpaceConfig, outputPath: string): Promise<string> {
     console.log(`Building demo space: ${config.name}`);
     console.log(`Output path: ${outputPath}`);
     
@@ -167,12 +128,12 @@ export class SimpleDemoBuilder {
     }
   }
 
-  async addMessagesToChatData(chatData: ChatAppData, messageNode: MessageNode): Promise<void> {
+  async addMessagesToChatData(chatData: ChatAppData, messageNode: from.MessageNode): Promise<void> {
     // Add messages recursively, building the tree structure
     await this.addMessageToChatData(chatData, messageNode);
   }
 
-  private async addMessageToChatData(chatData: ChatAppData, messageNode: MessageNode): Promise<void> {
+  private async addMessageToChatData(chatData: ChatAppData, messageNode: from.MessageNode): Promise<void> {
     // Use ChatAppData's newMessage method to add the message
     const message = await chatData.newMessage(messageNode.role, messageNode.text);
     

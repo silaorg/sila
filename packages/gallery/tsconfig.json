@@ -1,30 +1,42 @@
 {
   "extends": "./.svelte-kit/tsconfig.json",
   "compilerOptions": {
-    "types": ["svelte", "@sveltejs/kit", "vite/client"],
-		"allowJs": true,
-		"checkJs": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true,
-		"skipLibCheck": true,
-		"sourceMap": true,
-		"strict": true,
-		"moduleResolution": "bundler",
+    "types": [
+      "svelte",
+      "@sveltejs/kit",
+      "vite/client"
+    ],
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "bundler",
     "paths": {
       "$lib": [
-				"./src/lib"
-			],
-			"$lib/*": [
-				"./src/lib/*"
-			],
-			"$app/types": [
-				"./types/index.d.ts"
-			],
-      "@sila/core":   ["../core/src/*"],
-      "@sila/client": ["../client/src/lib/index.ts"],
-      "@sila/client/*": ["../client/src/lib/*"]
+        "./src/lib"
+      ],
+      "$lib/*": [
+        "./src/lib/*"
+      ],
+      "$app/types": [
+        "./types/index.d.ts"
+      ],
+      "@sila/core": [
+        "../core/src/*"
+      ],
+      "@sila/client": [
+        "../client/src/lib/index.ts"
+      ],
+      "@sila/client/*": [
+        "../client/src/lib/*"
+      ],
+      "@sila/demo": [
+        "../demo/src/index.ts"
+      ],
     }
   }
 }
-
