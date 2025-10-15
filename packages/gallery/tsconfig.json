@@ -36,7 +36,7 @@
       ],
       "@sila/demo": [
         "../demo/src/index.ts"
-      ],
+      ]
     }
   }
 }

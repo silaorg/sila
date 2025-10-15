@@ -72,7 +72,9 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/packages/gallery"
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "trace": true
     }
   ],
   "compounds": [

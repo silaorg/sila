@@ -2,7 +2,7 @@ import type { LangMessage, LangContentPart } from "aiwrapper";
 import { LangMessages } from "aiwrapper";
 import { ChatAgent } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
-import { ChatAppData } from "@sila/core";
+import { BindedVertex, ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
 import type { AppConfig } from "../models";
 import type { ThreadMessageWithResolvedFiles } from "../models";
@@ -150,8 +150,8 @@ export class WrapChatAgent {
       langMessages.instructions = instructions;
 
       let targetMsgCount = -1;
-      let targetMsg: ThreadMessage | undefined;
-      let targetMessages: ThreadMessage[] = [];
+      let targetMsg: BindedVertex<ThreadMessage> | undefined;
+      let targetMessages: BindedVertex<ThreadMessage>[] = [];
       const unsubscribe = this.chatAgent.subscribe((event) => {
         if (event.type === 'streaming') {
           const incomingMsg = event.data.msg;
@@ -184,8 +184,7 @@ export class WrapChatAgent {
             }
 
             if (msg.role === "assistant") {
-              // @TODO: not sure about it; here i'm trying to make sure
-              // that we set it permanently
+              // @TODO: here i'm trying to make sure that we set it permanently. Don't know if it works. Looks ugly though.
               msg.text = msg.text;
             }
 

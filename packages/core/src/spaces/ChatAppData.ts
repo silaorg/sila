@@ -1,6 +1,6 @@
 import { bindVertex, type Vertex } from "reptree";
 import type {Space } from "./Space";
-import type { VertexPropertyType } from "reptree";
+import type { BindedVertex, VertexPropertyType } from "reptree";
 import { ThreadMessage } from "../models";
 import type { ThreadMessageWithResolvedFiles } from "../models";
 import { AppTree } from "./AppTree";
@@ -168,7 +168,7 @@ export class ChatAppData {
     });
   }
 
-  newMessageFromAI(role: "assistant" | "tool" | "tool-results"): ThreadMessage {
+  newMessageFromAI(role: "assistant" | "tool" | "tool-results"): BindedVertex<ThreadMessage> {
     const properties: Record<string, any> = {
       _n: "message",
       role,
