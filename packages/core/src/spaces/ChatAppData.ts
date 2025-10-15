@@ -172,6 +172,7 @@ export class ChatAppData {
     const properties: Record<string, any> = {
       _n: "message",
       role,
+      text: "",
       inProgress: true,
     };
 

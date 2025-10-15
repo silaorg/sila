@@ -29,7 +29,7 @@
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
 
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
-  
+
   let lastMessageId = $derived.by(() =>
     messages.length > 0 ? messages[messages.length - 1].id : undefined
   );

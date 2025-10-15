@@ -1,5 +1,6 @@
 import { Space } from "./Space";
 import ChatAppBackend from "../apps/ChatAppBackend";
+import { AppTree } from "./AppTree";
 
 /**
  * Monitors all incoming ops and sends them to back-ends specific to app trees.
@@ -15,22 +16,32 @@ export class Backend {
     }
     */
 
+    const loadedTrees = space.getLoadedAppTrees();
+
+    for (const appTree of loadedTrees) {
+      this.createAppBackend(appTree);
+    }
+
     space.observeTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId);
       if (!appTree) {
         throw new Error(`App tree with id ${appTreeId} not found`);
       }
 
-      const appId = appTree.getAppId();
-      
-      if (appId === "default-chat") {
-        this.appBackends.push(new ChatAppBackend(space, appTree));
-      } else if (appId === "files") {
-        // Files app trees don't need a backend for now
-        console.log(`Files app tree loaded: ${appTreeId}`);
-      } else {
-        console.warn(`There's no backend for app ${appId}`);
-      }
+      this.createAppBackend(appTree);
     });
+  }
+
+  createAppBackend(appTree: AppTree) {
+    const appId = appTree.getAppId();
+
+    if (appId === "default-chat") {
+      this.appBackends.push(new ChatAppBackend(this.space, appTree));
+    } else if (appId === "files") {
+      // Files app trees don't need a backend for now
+      console.log(`Files app tree loaded: ${appTree.getId()}`);
+    } else {
+      console.warn(`There's no backend for app ${appId}`);
+    }
   }
 }

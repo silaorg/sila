@@ -6,7 +6,6 @@ import { config as dotenvConfig } from 'dotenv';
 import { citybeanCoffeeDemo as spaceConfig } from '@sila/demo';
 
 export const GET: RequestHandler = async () => {
-
   // Prefer SvelteKit env; also attempt to load a .env if present (repo root or local)
   const rootEnvPath = path.resolve(process.cwd(), '..', '..', '.env');
   const localEnvPath = path.resolve(process.cwd(), '.env');

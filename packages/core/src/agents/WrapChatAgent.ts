@@ -173,7 +173,9 @@ export class WrapChatAgent {
           if (incomingMsg.role === "assistant") {
             const content = incomingMsg.content as string;
             if (content && targetMsg) {
-              this.appTree.tree.setTransientVertexProperty(targetMsg.id, 'text', content);
+              targetMsg.useTransient(m => { 
+                m.text = content;
+              });
             }
           }
 
@@ -184,8 +186,7 @@ export class WrapChatAgent {
             }
 
             if (msg.role === "assistant") {
-              // @TODO: here i'm trying to make sure that we set it permanently. Don't know if it works. Looks ugly though.
-              msg.text = msg.text;
+              msg.commitTransients();
             }
 
             const info = this.agentServices.getLastResolvedModel();

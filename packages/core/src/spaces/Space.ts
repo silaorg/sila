@@ -218,6 +218,10 @@ export class Space {
     return this.appTrees.get(appTreeId);
   }
 
+  getLoadedAppTrees(): ReadonlyArray<AppTree> {
+    return Array.from(this.appTrees.values());
+  }
+
   getAppTreeIds(): ReadonlyArray<string> {
     return this.appTreesVertex.children.map(v => v.id);
   }
