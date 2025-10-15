@@ -8,6 +8,7 @@ import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
 import type { FileReference } from "./files/FileResolver";
 import { FileResolver } from "./files/FileResolver";
+import { LangMessage } from "aiwrapper";
 
 export class ChatAppData {
   private root: Vertex;
@@ -165,6 +166,19 @@ export class ChatAppData {
     return this.appTree.tree.observeVertex(id, (vertex) => {
       callback(vertex.getAsTypedObject<ThreadMessage>());
     });
+  }
+
+  newMessageFromAI(role: "assistant" | "tool" | "tool-results"): ThreadMessage {
+    const properties: Record<string, any> = {
+      _n: "message",
+      role,
+      inProgress: true,
+    };
+
+    const lastMsgVertex = this.getLastMsgParentVertex();
+
+    const newMessageVertex = this.appTree.tree.newVertex(lastMsgVertex.id, properties);
+    return newMessageVertex.bind<ThreadMessage>();
   }
 
   async newMessage(
