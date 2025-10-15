@@ -1,6 +1,6 @@
 import type { LangMessage, LangContentPart } from "aiwrapper";
 import { LangMessages } from "aiwrapper";
-import { ChatAgent } from "./chatAgent";
+import { ChatAgent } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
 import { ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
@@ -75,37 +75,29 @@ export class WrapChatAgent {
       throw new Error("No config found");
     }
 
-    // Create assistant placeholder and set in progress
-    const assistantMsg = await this.data.newMessage("assistant");
-    assistantMsg.inProgress = true;
-    
-    // Prefill model info if explicitly set and not 'auto'
-    if (config.targetLLM && !config.targetLLM.endsWith("auto")) {
-      const parts = splitModelString(config.targetLLM);
-      if (parts) {
-        assistantMsg.modelProvider = parts.providerId;
-        assistantMsg.modelId = parts.modelId;
-      }
-    }
-
     try {
       const lang = await this.agentServices.lang(config.targetLLM);
       const resolvedModel = this.agentServices.getLastResolvedModel();
 
-      // Build system prompt
-      let systemPrompt = (config.instructions || "");
-      systemPrompt += "\n\n" +
+      let instructions = (config.instructions || "");
+      const now = new Date();
+      const localDateTime = now.toLocaleString();
+      const utcIso = now.toISOString();
+      instructions += "\n\n<formatting>\n" +
         "Preferably use markdown for formatting. If you write code examples: use tick marks for inline code and triple tick marks for code blocks." +
         "\n\n" +
         "For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters. If you want to show the source of TeX - wrap it in a code block" +
-        "\n\n" +
-        "Current date and time " + new Date().toLocaleString();
+        "\n</formatting>";
+
+      instructions += "\n\n<meta>";
+      instructions += "\nCurrent local date and time: " + localDateTime;
+      instructions += "\nCurrent UTC time (ISO): " + utcIso;
       if (resolvedModel) {
-        systemPrompt += `\n\n[Meta] Model: ${resolvedModel.provider}/${resolvedModel.model}`;
+        instructions += `\nModel: ${resolvedModel.provider}/${resolvedModel.model}`;
       }
-      if (config.name) {
-        systemPrompt += `\n[Meta] Assistant Config: ${config.name}`;
-      }
+      instructions += `\nCurrent assistant (your) name: ${config.name}`;
+      instructions += `\nEnvironment: Sila app (open alternative to ChatGPT where users own their data) - https://silain.com`;
+      instructions += `\n</meta>`;
 
       const supportsVision = true;
 
@@ -151,31 +143,57 @@ export class WrapChatAgent {
       };
 
       const langMessagesArr: LangMessage[] = [
-        // @TODO: use instructions!
-        { role: 'system', content: systemPrompt },
         ...await Promise.all(messages.map(remap)),
       ];
-      // IMPORTANT: reset ChatAgent's internal state by passing a LangMessages instance
-      const langMessages = new LangMessages(langMessagesArr);
 
-      // Wire streaming updates
+      const langMessages = new LangMessages(langMessagesArr);
+      langMessages.instructions = instructions;
+
+      let targetMsgCount = -1;
+      let targetMsg: ThreadMessage | undefined;
+      let targetMessages: ThreadMessage[] = [];
       const unsubscribe = this.chatAgent.subscribe((event) => {
         if (event.type === 'streaming') {
-          const text = this.extractAnswerText(event.data);
-          if (typeof text === 'string') {
-            this.appTree.tree.setTransientVertexProperty(assistantMsg.id, 'text', text);
-          }
-        } else if (event.type === 'finished') {
-          const final = this.extractAnswerText(event.output);
-          if (typeof final === 'string') {
-            assistantMsg.text = final;
-          }
-          assistantMsg.inProgress = false;
+          const incomingMsg = event.data.msg;
 
-          const info = this.agentServices.getLastResolvedModel();
-          if (info) {
-            assistantMsg.modelProvider = info.provider;
-            assistantMsg.modelId = info.model;
+          const isNewMsg = targetMsgCount != event.data.idx;
+          targetMsgCount = event.data.idx;
+          if (isNewMsg) {
+            if (targetMsg) {
+              targetMsg.inProgress = false;
+              if (targetMsg.role === "assistant") {
+                targetMsg.text = incomingMsg.content as string;
+              }
+            }
+
+            targetMsg = this.data.newMessageFromAI(incomingMsg.role as "assistant" | "tool" | "tool-results");
+            targetMessages.push(targetMsg);
+          }
+
+          if (incomingMsg.role === "assistant") {
+            const content = incomingMsg.content as string;
+            if (content && targetMsg) {
+              this.appTree.tree.setTransientVertexProperty(targetMsg.id, 'text', content);
+            }
+          }
+
+        } else if (event.type === 'finished') {
+          for (const msg of targetMessages) {
+            if (msg.inProgress) {
+              msg.inProgress = false;
+            }
+
+            if (msg.role === "assistant") {
+              // @TODO: not sure about it; here i'm trying to make sure
+              // that we set it permanently
+              msg.text = msg.text;
+            }
+
+            const info = this.agentServices.getLastResolvedModel();
+            if (info) {
+              msg.modelProvider = info.provider;
+              msg.modelId = info.model;
+            }
           }
         }
       });
@@ -185,33 +203,14 @@ export class WrapChatAgent {
       unsubscribe();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
+
+      // @TODO: in this case, create a new message with role "error" and text "msg"
+      /*
       assistantMsg.role = 'error';
       assistantMsg.text = msg;
       assistantMsg.inProgress = false;
+      */
     }
-  }
-
-  // @TODO: huh? seems retarted; how about we make .answer a getter that takes the last message; rename it to lastAnswer
-  private extractAnswerText(messages: LangMessages): string | undefined {
-    // Try common paths first
-    if (messages && typeof messages.answer === 'string') return messages.answer;
-    // If result is LangMessages, try the last assistant message content
-    try {
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const m = messages[i];
-        if (m?.role === 'assistant') {
-          const c = m.content;
-          if (typeof c === 'string') return c;
-          if (Array.isArray(c)) {
-            // concatenate text parts
-            const txt = c.filter((p: any) => p?.type === 'text').map((p: any) => p.text).join('');
-            if (txt) return txt;
-          }
-          break;
-        }
-      }
-    } catch { }
-    return undefined;
   }
 
   private parseDataUrl(dataUrl: string): { base64: string; mimeType?: string } {
