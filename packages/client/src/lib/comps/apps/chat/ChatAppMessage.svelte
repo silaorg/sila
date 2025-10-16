@@ -24,8 +24,8 @@
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
   import type { VisibleMessage } from "./chatTypes";
+  import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
 
-  // @TODO: try to use reactives ThreadMessage that will wrap the vertex data under the hood
   let {
     visibleMessage,
     data,
@@ -318,9 +318,7 @@
               <div
                 class="pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
               >
-                {#each visibleMessage.progressVertices as progressVertex (progressVertex.id)}
-                  <div>{progressVertex.getProperty("role")}</div>
-                {/each}
+                <ChatAppProcessMessages vertices={visibleMessage.progressVertices} />
               </div>
             </div>
           {/if}
