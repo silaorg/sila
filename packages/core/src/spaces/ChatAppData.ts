@@ -150,10 +150,15 @@ export class ChatAppData {
       const text = vertex.getProperty("text");
       const files = vertex.getProperty("files");
       
+      /*
+      // @NOTE: I commented it out because it caused new messages sometimes to be skipped
       // Trigger callback if there's text OR if there are attachments (files)
       if (text || (files && Array.isArray(files) && files.length > 0)) {
-        callback(this.messageVertices);
+        
       }
+      */
+
+      callback(this.messageVertices);
     });
   }
 
