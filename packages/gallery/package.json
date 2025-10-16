@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev": "concurrently \"npm run dev:client\" \"vite dev\"",
+    "dev:client": "npm run dev -w @sila/client",
     "build": "vite build",
     "preview": "vite preview",
     "test": "playwright test",
