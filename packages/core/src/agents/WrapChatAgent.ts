@@ -185,8 +185,15 @@ export class WrapChatAgent {
               msg.inProgress = false;
             }
 
-            if (msg.role === "assistant") {
-              msg.commitTransients();
+            switch (msg.role) {
+              case "tool":
+                // @TODO: save tool
+                break;
+              case "tool-results":
+                // @TODO: save retuls
+                break;
+              default:
+                break;
             }
 
             const info = this.agentServices.getLastResolvedModel();
@@ -194,6 +201,8 @@ export class WrapChatAgent {
               msg.modelProvider = info.provider;
               msg.modelId = info.model;
             }
+
+            msg.commitTransients();
           }
         }
       });

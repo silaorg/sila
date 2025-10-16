@@ -195,16 +195,6 @@
   }
 </script>
 
-{#if visibleMessage.progressVertices.length > 0}
-  <div class="px-4">
-    {#each visibleMessage.progressVertices as progressVertex (progressVertex.id)}
-      <div class="">
-        {progressVertex.getProperty("role")}
-      </div>
-    {/each}
-  </div>
-{/if}
-
 <div class="flex gap-3 px-4 py-2" class:justify-end={message.role === "user"}>
   {#if message.role !== "user"}
     <div class="flex-shrink-0 mt-1">
@@ -323,6 +313,18 @@
           onpointerenter={beginHover}
           onpointerleave={endHover}
         >
+          {#if visibleMessage.progressVertices.length > 0}
+            <div class="mb-3">
+              <div
+                class="pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
+              >
+                {#each visibleMessage.progressVertices as progressVertex (progressVertex.id)}
+                  <div>{progressVertex.getProperty("role")}</div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
           {#if hasThinking}
             <div class="mb-3">
               <button
