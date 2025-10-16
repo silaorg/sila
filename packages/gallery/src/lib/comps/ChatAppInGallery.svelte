@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { ClientStateProvider, type ClientState } from "@sila/client";
-  import ChatApp from "@sila/client/comps/apps/ChatApp.svelte";
+  import ChatApp from "@sila/client/comps/apps/chat/ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
   import { loadDemoSpace } from "$lib/loadDemoSpace";
 

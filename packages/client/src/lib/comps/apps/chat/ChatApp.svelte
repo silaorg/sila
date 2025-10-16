@@ -1,5 +1,5 @@
 <script lang="ts">
-  import SendMessageForm from "../forms/SendMessageForm.svelte";
+  import SendMessageForm from "../../forms/SendMessageForm.svelte";
   import ChatAppMessage from "./ChatAppMessage.svelte";
   import { onMount, tick } from "svelte";
   import { timeout } from "@sila/core";
@@ -7,8 +7,9 @@
   import type { Vertex } from "@sila/core";
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
-  import type { MessageFormStatus } from "../forms/messageFormStatus";
+  import type { MessageFormStatus } from "../../forms/messageFormStatus";
   import { ArrowDown } from "lucide-svelte";
+  import type { VisibleMessage } from "./chatTypes";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -29,6 +30,22 @@
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
 
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+
+  const visibleMessages = $derived.by(() => {
+    const messagesToShow: VisibleMessage[] = [];
+    let progressVertices: Vertex[] = [];
+
+    for (const vertex of messages) {
+      if (vertex.getProperty("role") === "assistant" || vertex.getProperty("role") === "user") {
+        messagesToShow.push({ vertex, progressVertices });
+        progressVertices = [];
+      } else {
+        progressVertices.push(vertex);
+      }
+    }
+
+    return messagesToShow;
+  });
 
   let lastMessageId = $derived.by(() =>
     messages.length > 0 ? messages[messages.length - 1].id : undefined
@@ -195,8 +212,8 @@
     onscroll={handleScroll}
   >
     <div class="w-full max-w-4xl mx-auto">
-      {#each messages as vertex (vertex.id)}
-        <ChatAppMessage {vertex} {data} />
+      {#each visibleMessages as visibleMessage (visibleMessage.vertex.id)}
+        <ChatAppMessage {visibleMessage} {data} />
       {/each}
     </div>
   </div>

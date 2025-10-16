@@ -7,8 +7,12 @@
   }: { message: ThreadMessage; assistantName?: string } = $props();
 
   function getModelInfo(): { provider: string; model: string } | null {
-    const provider = (message as any)?.modelProviderFinal || (message as any)?.modelProvider || null;
-    const model = (message as any)?.modelIdFinal || (message as any)?.modelId || null;
+    const provider =
+      (message as any)?.modelProviderFinal ||
+      (message as any)?.modelProvider ||
+      null;
+    const model =
+      (message as any)?.modelIdFinal || (message as any)?.modelId || null;
     if (provider && model) return { provider, model };
     return null;
   }
@@ -41,5 +45,3 @@
     </div>
   {/if}
 </div>
-
-

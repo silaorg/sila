@@ -1,5 +1,5 @@
 <script module lang="ts">
-  import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
+  import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
 </script>
 
 <script lang="ts">
@@ -17,17 +17,25 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
-  import ChatAppMessageInfo from "@sila/client/comps/apps/ChatAppMessageInfo.svelte";
-  import ChatAssistantInfo from "@sila/client/comps/apps/ChatAssistantInfo.svelte";
+  import ChatAppMessageInfo from "./ChatAppMessageInfo.svelte";
+  import ChatAssistantInfo from "./ChatAssistantInfo.svelte";
   import { Info } from "lucide-svelte";
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
-  import FilePreview from "../files/FilePreview.svelte";
+  import FilePreview from "../../files/FilePreview.svelte";
+  import type { VisibleMessage } from "./chatTypes";
 
   // @TODO: try to use reactives ThreadMessage that will wrap the vertex data under the hood
-  let { vertex, data }: { vertex: Vertex; data: ChatAppData } = $props();
+  let {
+    visibleMessage,
+    data,
+  }: { visibleMessage: VisibleMessage; data: ChatAppData } = $props();
 
-  let message: ThreadMessage = $state(vertex.getAsTypedObject<ThreadMessage>());
+  const vertex = $derived(visibleMessage.vertex);
+
+  let message: ThreadMessage = $state(
+    visibleMessage.vertex.getAsTypedObject<ThreadMessage>()
+  );
   let canRetry = $state(false);
   let isLast = $state(false);
   let configName = $state<string | undefined>(undefined);
@@ -139,7 +147,8 @@
       canRetry =
         isLast &&
         (msg.role === "error" ||
-          (isMoreThanOneMinuteOld(msg._c) && isMoreThanOneMinuteOld(msg.updatedAt) &&
+          (isMoreThanOneMinuteOld(msg._c) &&
+            isMoreThanOneMinuteOld(msg.updatedAt) &&
             data.isMessageInProgress(vertex.id)));
     });
 
@@ -185,6 +194,16 @@
     data.switchMain(siblings[branchIndex + 1].id);
   }
 </script>
+
+{#if visibleMessage.progressVertices.length > 0}
+  <div class="px-4">
+    {#each visibleMessage.progressVertices as progressVertex (progressVertex.id)}
+      <div class="">
+        {progressVertex.getProperty("role")}
+      </div>
+    {/each}
+  </div>
+{/if}
 
 <div class="flex gap-3 px-4 py-2" class:justify-end={message.role === "user"}>
   {#if message.role !== "user"}

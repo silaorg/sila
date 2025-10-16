@@ -1,4 +1,4 @@
-import ChatAppLoader from "@sila/client/comps/apps/ChatAppLoader.svelte";
+import ChatAppLoader from "@sila/client/comps/apps/chat/ChatAppLoader.svelte";
 import FilesAppLoader from "@sila/client/comps/apps/FilesAppLoader.svelte";
 import Sidebar from "@sila/client/comps/sidebar/Sidebar.svelte";
 import SidebarToggle from "@sila/client/comps/sidebar/SidebarToggle.svelte";
