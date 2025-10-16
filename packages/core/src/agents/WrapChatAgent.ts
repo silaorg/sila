@@ -199,7 +199,11 @@ export class WrapChatAgent {
       });
 
       this.chatAgent.setLanguageProvider(lang);
+
+      langMessages.availableTools = this.agentServices.getToolsForModel(resolvedModel);
+
       await this.chatAgent.run(langMessages);
+
       unsubscribe();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

@@ -3,6 +3,7 @@ import { providers } from "../providers";
 import { Space } from '../spaces/Space';
 import { getProviderModels } from '../tools/providerModels';
 import { splitModelString } from '../utils/modelUtils';
+import { LangTool } from 'aiwrapper/dist/lang/messages';
 
 export class AgentServices {
   readonly space: Space;
@@ -50,40 +51,6 @@ export class AgentServices {
     this.lastResolvedProvider = modelProvider;
     this.lastResolvedModel = modelName;
     return this.createLanguageProvider(modelProvider, modelName);
-  }
-
-  private async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
-    // Common configuration for API-based providers
-    const options: Record<string, any> = { model };
-
-    // Add API key for providers that require it (all except ollama)
-    if (provider !== "ollama") {
-      options.apiKey = await this.getKey(provider);
-    }
-
-    // Handle custom OpenAI-like providers
-    if (provider.startsWith('custom-')) {
-      const config = this.space.getModelProviderConfig(provider);
-      if (!config || !('baseApiUrl' in config)) {
-        throw new Error(`Invalid custom provider configuration for: ${provider}`);
-      }
-
-      // Create a custom OpenAI-like provider
-      return Lang.openaiLike({
-        apiKey: options.apiKey,
-        model: model,
-        baseURL: config.baseApiUrl as string,
-        headers: ('customHeaders' in config) ? config.customHeaders as Record<string, string> : undefined
-      });
-    }
-
-    // Check if the provider method exists on Lang
-    if (typeof Lang[provider as keyof typeof Lang] === 'function') {
-      // Dynamically call the provider method with the options
-      return Lang[provider as keyof typeof Lang](options);
-    }
-
-    throw new Error(`Invalid model provider: ${provider}`);
   }
 
   getLastResolvedModel(): { provider: string; model: string } | null {
@@ -170,7 +137,7 @@ export class AgentServices {
       } catch (error) {
         // Fall back to static provider config
       }
-      
+
       // Special case for OpenRouter - use static provider config since models are entered manually
       if (provider === "openrouter") {
         const staticProvider = providers.find(p => p.id === provider);
@@ -181,7 +148,7 @@ export class AgentServices {
           };
         }
       }
-      
+
       // Fall back to static provider config for other providers
       const staticProvider = providers.find(p => p.id === provider);
       if (staticProvider?.defaultModel) {
@@ -193,6 +160,58 @@ export class AgentServices {
     }
 
     return null;
+  }
+
+  getToolsForModel(model: { provider: string; model: string } | null): LangTool[] {
+    const tools: LangTool[] = [];
+
+    if (model && model.provider === "openai") {
+      tools.push({ name: "web_search" });
+    }
+
+    // @TODO: remove after testing
+    tools.push({
+      name: 'get_random_number',
+      description: 'Return a random number',
+      parameters: { type: 'object', properties: {} },
+      handler: () => 3131
+    });
+
+    return tools;
+  }
+
+  private async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
+    // Common configuration for API-based providers
+    const options: Record<string, any> = { model };
+
+    // Add API key for providers that require it (all except ollama)
+    if (provider !== "ollama") {
+      options.apiKey = await this.getKey(provider);
+    }
+
+    // Handle custom OpenAI-like providers
+    if (provider.startsWith('custom-')) {
+      const config = this.space.getModelProviderConfig(provider);
+      if (!config || !('baseApiUrl' in config)) {
+        throw new Error(`Invalid custom provider configuration for: ${provider}`);
+      }
+
+      // Create a custom OpenAI-like provider
+      return Lang.openaiLike({
+        apiKey: options.apiKey,
+        model: model,
+        baseURL: config.baseApiUrl as string,
+        headers: ('customHeaders' in config) ? config.customHeaders as Record<string, string> : undefined
+      });
+    }
+
+    // Check if the provider method exists on Lang
+    if (typeof Lang[provider as keyof typeof Lang] === 'function') {
+      // Dynamically call the provider method with the options
+      return Lang[provider as keyof typeof Lang](options);
+    }
+
+    throw new Error(`Invalid model provider: ${provider}`);
   }
 
   /**
