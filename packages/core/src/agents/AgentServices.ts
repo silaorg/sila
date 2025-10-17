@@ -166,7 +166,7 @@ export class AgentServices {
     const tools: LangTool[] = [];
 
     if (model && model.provider === "openai") {
-      tools.push({ name: "web_search" });
+      //tools.push({ name: "web_search" });
     }
 
     // @TODO: remove after testing
@@ -175,6 +175,17 @@ export class AgentServices {
       description: 'Return a random number',
       parameters: { type: 'object', properties: {} },
       handler: () => 3131
+    });
+
+    tools.push({
+      name: 'get_weather',
+      description: 'Search the web for information',
+      parameters: { type: 'object', properties: { query: { type: 'string', description: 'The query to search for' } } },
+      handler: async (args: { query: string }) => {
+        //const results = await fetch(`https://api.search.com/search?q=${args.query}`);
+        //return results.json();
+        return "The weather is fucking amazing";
+      }
     });
 
     return tools;

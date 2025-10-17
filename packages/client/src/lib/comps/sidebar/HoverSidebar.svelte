@@ -192,7 +192,7 @@
 <!-- Hover trigger area - only present when sidebar is closed and not recently (500ms or so) closed -->
 {#if !sidebarIsOpen && !recentlyClosed}
   <div
-    class="fixed z-10 w-10 h-[calc(100vh-2.5rem)] top-[2.5rem] left-0 opacity-0 cursor-auto"
+    class="fixed z-10 w-5 h-[calc(100vh-2.5rem)] top-[2.5rem] left-0 opacity-0 cursor-auto"
     onmouseenter={handleHoverEnter}
     onmouseleave={handleHoverLeave}
     tabindex="0"

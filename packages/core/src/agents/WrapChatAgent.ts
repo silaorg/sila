@@ -166,14 +166,14 @@ export class WrapChatAgent {
               }
             }
 
-            targetMsg = this.data.newMessageFromAI(incomingMsg.role as "assistant" | "tool" | "tool-results");
+            targetMsg = this.data.newLangMessage(incomingMsg);
             targetMessages.push(targetMsg);
           }
 
           if (incomingMsg.role === "assistant") {
             const content = incomingMsg.content as string;
             if (content && targetMsg) {
-              targetMsg.useTransient(m => { 
+              targetMsg.$useTransients(m => {
                 m.text = content;
               });
             }
@@ -185,24 +185,15 @@ export class WrapChatAgent {
               msg.inProgress = false;
             }
 
-            switch (msg.role) {
-              case "tool":
-                // @TODO: save tool
-                break;
-              case "tool-results":
-                // @TODO: save retuls
-                break;
-              default:
-                break;
+            if (msg.role === "assistant") {
+              const info = this.agentServices.getLastResolvedModel();
+              if (info) {
+                msg.modelProvider = info.provider;
+                msg.modelId = info.model;
+              }
             }
 
-            const info = this.agentServices.getLastResolvedModel();
-            if (info) {
-              msg.modelProvider = info.provider;
-              msg.modelId = info.model;
-            }
-
-            msg.commitTransients();
+            msg.$commitTransients();
           }
         }
       });

@@ -5,6 +5,8 @@ export type ThreadMessage = {
   role: string | null;
   text: string | null;
   thinking?: string | null;
+  toolRequests?: string | null;
+  toolResults?: string | null;
   inProgress: boolean | null;
   _c: number;
   updatedAt: number | null;

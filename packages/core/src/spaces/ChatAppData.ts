@@ -1,4 +1,4 @@
-import { bindVertex, type Vertex } from "reptree";
+import { type Vertex } from "reptree";
 import type {Space } from "./Space";
 import type { BindedVertex, VertexPropertyType } from "reptree";
 import { ThreadMessage } from "../models";
@@ -8,7 +8,7 @@ import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
 import type { FileReference } from "./files/FileResolver";
 import { FileResolver } from "./files/FileResolver";
-import { LangMessage } from "aiwrapper";
+import { LangMessage, ToolRequest, ToolResult } from "aiwrapper";
 
 export class ChatAppData {
   private root: Vertex;
@@ -173,17 +173,31 @@ export class ChatAppData {
     });
   }
 
-  newMessageFromAI(role: "assistant" | "tool" | "tool-results"): BindedVertex<ThreadMessage> {
+  newLangMessage(langMessage: LangMessage, inProgress: boolean = true): BindedVertex<ThreadMessage> {
+    const text = langMessage.content instanceof String ? langMessage.content : "";
+    const role = langMessage.role;
+
     const properties: Record<string, any> = {
       _n: "message",
       role,
-      text: "",
-      inProgress: true,
+      text,
+      inProgress,
     };
 
-    const lastMsgVertex = this.getLastMsgParentVertex();
+    if (role === "tool") {
+      //const toolRequests = langMessage.content as ToolRequest[];
+      const toolRequests = JSON.stringify(langMessage.content, null, 2);
+      properties.toolRequests = toolRequests;
+    }
 
-    const newMessageVertex = this.appTree.tree.newVertex(lastMsgVertex.id, properties);
+    if (role === "tool-results") {
+      //const toolResults = langMessage.content as ToolResult[];
+      const toolResults = JSON.stringify(langMessage.content, null, 2);
+      properties.toolResults = toolResults;
+    }
+
+    const lastMsgVertex = this.getLastMsgParentVertex();
+    const newMessageVertex = lastMsgVertex.newChild(properties);
     return newMessageVertex.bind<ThreadMessage>();
   }
 
