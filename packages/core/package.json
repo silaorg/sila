@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "aiwrapper": "^2.0.0-alpha.6",
-    "reptree": "^0.2.4"
+    "reptree": "^0.4.0"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
