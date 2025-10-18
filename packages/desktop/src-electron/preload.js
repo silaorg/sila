@@ -34,3 +34,15 @@ contextBridge.exposeInMainWorld('desktopUpdater', {
   },
   installUpdate: () => ipcRenderer.invoke('sila:update:install')
 });
+
+// Expose proxyFetch to renderer
+contextBridge.exposeInMainWorld('desktopNet', {
+  /**
+   * @param {string} url
+   * @param {RequestInit} [init]
+   */
+  proxyFetch: async (url, init) => {
+    // Return a plain serializable object across the context bridge
+    return await ipcRenderer.invoke('sila:proxyFetch', url, init);
+  }
+});

@@ -63,6 +63,18 @@ app.whenReady().then(async () => {
   setupElectronMenu();
   setupDialogsInMain();
   
+  // IPC: cors-less fetch for renderer
+  ipcMain.handle('sila:proxyFetch', async (event, url, init) => {
+    const res = await fetch(url, init);
+    const text = await res.text();
+    return {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Array.from(res.headers.entries()),
+      body: text,
+    };
+  });
+
   // Expose manual update check for menu
   globalAny.checkForUpdates = checkForUpdates;
 
