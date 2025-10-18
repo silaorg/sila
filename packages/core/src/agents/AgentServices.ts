@@ -4,8 +4,7 @@ import { Space } from '../spaces/Space';
 import { getProviderModels } from '../tools/providerModels';
 import { splitModelString } from '../utils/modelUtils';
 import { LangTool } from 'aiwrapper/dist/lang/messages';
-import Defuddle from 'defuddle/markdown';
-import { proxyFetch } from '../utils/proxyFetch';
+import { getToolRead } from './tools/toolRead';
 
 export class AgentServices {
   readonly space: Space;
@@ -167,6 +166,8 @@ export class AgentServices {
   getToolsForModel(model: { provider: string; model: string } | null): LangTool[] {
     const tools: LangTool[] = [];
 
+    // @TODO: choose what to use for "web search" automatically based on the model
+
     if (model && model.provider === "openai") {
       tools.push({ name: "web_search" });
     }
@@ -179,54 +180,7 @@ export class AgentServices {
       handler: () => 3131
     });
 
-    tools.push({
-      name: 'get_weather',
-      description: 'Search the web for information',
-      parameters: { type: 'object', properties: { query: { type: 'string', description: 'The query to search for' } } },
-      handler: async (args: { query: string }) => {
-        //const results = await fetch(`https://api.search.com/search?q=${args.query}`);
-        //return results.json();
-        return "The weather is fucking amazing";
-      }
-    });
-
-    tools.push({
-      name: 'read_url',
-      description: 'Fetch a URL and return its main content as markdown',
-      parameters: {
-        type: 'object',
-        properties: {
-          url: { type: 'string', description: 'The URL to fetch' }
-        },
-        required: ['url']
-      },
-      handler: async (args: { url: string }) => {
-        const { url } = args;
-
-        try {
-          // Validate URL
-          new URL(url);
-        } catch {
-          throw new Error('Invalid URL');
-        }
-
-        // Hint for mixed content to surface clearer errors
-        if (typeof location !== 'undefined' && location.protocol === 'https:' && url.startsWith('http:')) {
-          throw new Error('Blocked mixed content. Use https:// for the target URL');
-        }
-
-        const res = await proxyFetch(url);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch URL: ${res.status} ${res.statusText}`);
-        }
-        const html = await res.text();
-
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const defuddle = new Defuddle(doc, { url, separateMarkdown: true });
-        const parsed = defuddle.parse();
-        return parsed.contentMarkdown || parsed.content || '';
-      }
-    });
+    tools.push(getToolRead());
 
     return tools;
   }

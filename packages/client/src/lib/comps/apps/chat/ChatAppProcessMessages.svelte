@@ -1,84 +1,73 @@
 <script lang="ts">
   import type { ThreadMessage, Vertex } from "@sila/core";
-  import type { ToolRequest, ToolResult } from "aiwrapper";
+  import type { LangMessage, ToolRequest, ToolResult } from "aiwrapper";
+  import type { ToolUsageMessagePair, ToolPair } from "./chatTypes";
+  import ChatAppToolMessagePair from "./ChatAppToolMessagePair.svelte";
+  import { onMount } from "svelte";
 
   let { vertices }: { vertices: Vertex[] } = $props();
 
-  type ToolPair = {
-    name: string;
-    request: ToolRequest;
-    result: ToolResult;
-  };
+  onMount(() => {
+    console.log("vertices", vertices);
+  });
 
-  type ToolUsageMessagePair = {
-    id: string;
-    role: string;
-    toolPairs: ToolPair[];
-  };
+  const messages: (ToolUsageMessagePair | LangMessage)[] = $derived.by(() => {
+    const msgs: (ToolUsageMessagePair | LangMessage)[] = [];
 
-  const messages: ToolUsageMessagePair[] = $derived.by(() => {
-    const requestIndex = new Map<string, ToolRequest>();
-    const out: ToolUsageMessagePair[] = [];
+    for (let i = 0; i < vertices.length; i++) {
+      const vertex = vertices[i];
+      if (vertex.getProperty("role") === "tool") {
+        const toolRequests = JSON.parse(
+          vertex.getProperty("toolRequests") as string
+        ) as ToolRequest[];
 
-    for (const vertex of vertices) {
-      const msg = vertex.getAsTypedObject<ThreadMessage>();
+        let pairs: ToolUsageMessagePair[] = [];
+        for (const request of toolRequests) {
+          // @TODO: add pairs by callIds (to make sure we get the correctt restuls in any order)
 
-      let reqs: ToolRequest[] = [];
-      let results: ToolResult[] = [];
-      try {
-        reqs = msg.toolRequests ? (JSON.parse(msg.toolRequests) as ToolRequest[]) : [];
-      } catch {
-        reqs = [];
-      }
-      try {
-        results = msg.toolResults ? (JSON.parse(msg.toolResults) as ToolResult[]) : [];
-      } catch {
-        results = [];
-      }
-
-      const pairs: ToolPair[] = [];
-
-      if (msg.role === "tool" && reqs.length > 0) {
-        for (const r of reqs) {
-          requestIndex.set(r.callId, r);
-          pairs.push({ name: r.name, request: r, result: undefined as unknown as ToolResult });
+          pairs.push({
+            id: request.callId,
+            role: "tool",
+            toolPair: {
+              name: request.name,
+              request: request,
+              result: null, // Will add it later if it's present in the next vertex
+            },
+          });
         }
-      }
 
-      if (msg.role === "tool-results" && results.length > 0) {
-        for (const res of results) {
-          const matchedReq = requestIndex.get(res.toolId);
-          if (matchedReq) {
-            pairs.push({ name: res.name, request: matchedReq, result: res });
-          } else {
-            // Result without a known request (edge case)
-            pairs.push({ name: res.name, request: undefined as unknown as ToolRequest, result: res });
+        if (
+          vertices.length > i + 1 &&
+          vertices[i + 1].getProperty("role") === "tool-results"
+        ) {
+          const resultsVertex = vertices[i + 1];
+          const toolResults = JSON.parse(
+            resultsVertex.getProperty("toolResults") as string
+          ) as ToolResult[];
+
+          for (const result of toolResults) {
+            const pair = pairs.find((p) => p.id === result.toolId);
+            if (pair) {
+              pair.toolPair.result = result;
+            }
           }
         }
-      }
 
-      out.push({ id: vertex.id, role: msg.role!, toolPairs: pairs });
+        msgs.push(...pairs);
+      }
     }
 
-    return out;
+    return msgs;
   });
 </script>
 
-{#each messages as message (message.id)}
-  <div class="space-y-2">
-    {#each message.toolPairs as pair}
-      {#if pair.request && !pair.result}
-        Using tool: {pair.request.name}
-        {#if Object.keys(pair.request.arguments || {}).length > 0}
-          <ul class="ml-4">
-            {#each Object.entries(pair.request.arguments || {}) as [key, value]}
-              <li>{key}: {typeof value === 'object' ? JSON.stringify(value) : String(value)}</li>
-            {/each}
-          </ul>
-        {/if}
-      {/if}
-      {#if pair.result}
-        <strong>Result:</strong> {pair.result.result}
+{#each messages as message}
+  <div class="">
+    {#each messages as message}
+      {#if message.role === "tool"}
+      <div class="bg-surface-100-900/50 p-2 rounded-md">
+        <ChatAppToolMessagePair message={message as ToolUsageMessagePair} />
+      </div>
       {/if}
     {/each}
   </div>
