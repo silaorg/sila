@@ -17,7 +17,7 @@
     "test:svelte": "vitest run --config tests/vitest.config.svelte.ts"
   },
   "dependencies": {
-    "aiwrapper": "^2.0.0-alpha.6",
+    "aiwrapper": "^2.0.0-alpha.7",
     "reptree": "^0.4.0",
     "defuddle": "github:mitkury/defuddle#cd8c7f1d39dbd4800918472b880f96724c0a2441"
   },
