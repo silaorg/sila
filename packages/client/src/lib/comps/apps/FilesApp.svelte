@@ -43,12 +43,11 @@
     }
 
     children = currentFolder.children;
-    // Folders have _n as their name (not "folder"), files have _n: "file"
     folders = children.filter((v) => {
-      const n = v.getProperty("_n");
+      const n = v.name;
       return n && n !== "file";
     });
-    files = children.filter((v) => v.getProperty("_n") === "file");
+    files = children.filter((v) => v.name === "file");
   }
 
   function observeCurrentFolder() {
@@ -83,12 +82,11 @@
   });
 
   function displayName(v: Vertex): string {
-    // For folders, use _n property; for files, use name property
-    const folderName = v.getProperty("_n");
+    const folderName = v.name;
     if (folderName && folderName !== "file") {
-      return folderName as string;
+      return folderName;
     }
-    return (v.name as string | null) ?? "";
+    return v.name ?? "";
   }
 
   function isImageFile(file: Vertex): boolean {

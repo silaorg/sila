@@ -65,7 +65,7 @@ export class FilesAppData {
 
     const files: Vertex[] = [];
     const collectFiles = (vertex: Vertex) => {
-      if (vertex.getProperty("_n") === "file") {
+      if (vertex.name === "file") {
         files.push(vertex);
       }
       for (const child of vertex.children) {

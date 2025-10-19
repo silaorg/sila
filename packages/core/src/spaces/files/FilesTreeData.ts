@@ -23,7 +23,7 @@ export class FilesTreeData {
 		}
 		let cur = root as Vertex;
 		for (const seg of segments) {
-			const found = cur.children.find((c) => c.getProperty("_n") === seg);
+			const found = cur.children.find((c) => c.name === seg);
 			if (found) {
 				cur = found;
 				continue;

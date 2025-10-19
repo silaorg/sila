@@ -314,7 +314,7 @@ export class ChatAppData {
     }
     for (const seg of segments) {
       const children: Vertex[] = current!.children;
-      const existing: Vertex | undefined = children.find((c: Vertex) => c.getProperty('_n') === seg);
+      const existing: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
       if (existing) {
         current = existing;
       } else {

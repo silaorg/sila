@@ -32,7 +32,7 @@
 
     if (vertexId) {
       properties = tree.getVertexProperties(vertexId);
-      vertexName = properties.find((p) => p.key === "_n")?.value as
+      vertexName = properties.find((p) => p.key === "name")?.value as
         | string
         | null;
     }

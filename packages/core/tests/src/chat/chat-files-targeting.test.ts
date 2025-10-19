@@ -84,7 +84,7 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     expect(ref.tree).toBe(chatTree.getId());
 
     // Verify nested folders exist and contain the file vertex
-    const screenshotsFolder = chatTree.tree.getVertexByPath('files')?.children.find(c => c.getProperty('_n') === 'screenshots');
+    const screenshotsFolder = chatTree.tree.getVertexByPath('files')?.children.find(c => c.name === 'screenshots');
     expect(screenshotsFolder).toBeDefined();
     const fileVertex = chatTree.tree.getVertex(ref.vertex);
     expect(fileVertex).toBeDefined();

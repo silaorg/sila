@@ -11,14 +11,12 @@
   } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
-  import type { Vertex } from "@sila/core";
   import { onMount } from "svelte";
   import { Markdown } from "@markpage/svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
   import ChatAppMessageInfo from "./ChatAppMessageInfo.svelte";
-  import ChatAssistantInfo from "./ChatAssistantInfo.svelte";
   import { Info } from "lucide-svelte";
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";

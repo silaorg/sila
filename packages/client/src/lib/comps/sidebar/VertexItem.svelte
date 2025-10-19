@@ -57,7 +57,7 @@
   onMount(() => {
     const vertex = clientState.currentSpace?.getVertex(id);
     appTreeId = vertex?.getProperty("tid") as string | undefined;
-    name = vertex?.getProperty("_n") as string | undefined;
+    name = vertex?.name
     
     // Load the app tree to get the appId
     if (appTreeId) {
@@ -95,7 +95,7 @@
 
     if (events.some((e) => e.type === "property")) {
       const vertex = clientState.currentSpace?.getVertex(id);
-      name = vertex?.getProperty("_n") as string | undefined;
+      name = vertex?.name;
 
       // Update any open tab for this conversation with the new name
       if (appTreeId) {
