@@ -361,13 +361,27 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
         // Save parentId with quotes because it might be null
         str += `["m",${op.id.counter},"${op.targetId}",${JSON.stringify(op.parentId)}]\n`;
       } else if (isAnyPropertyOp(op)) {
-        // Convert undefined to empty object ({}) because JSON doesn't support undefined
-        const value = op.value === undefined ? {} : op.value;
+        // Encode property values to preserve undefined and empty objects distinctly
+        const value = this.encodePropertyValue(op.value);
         str += `["p",${op.id.counter},"${op.targetId}","${op.key}",${JSON.stringify(value)}]\n`;
       }
     }
 
     return str;
+  }
+
+  /**
+   * Encode property value for JSONL so that undefined and empty objects are unambiguous.
+   * - undefined => { __silaProp: ["u"] }
+   * - plain objects => { __silaProp: ["o", <object>] }
+   * - arrays, primitives => written as-is
+   */
+  private encodePropertyValue(value: any): any {
+    if (value === undefined) return { __silaProp: ["u"] };
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      return { __silaProp: ["o", value] };
+    }
+    return value;
   }
 
   private async turnJSONLinesIntoOps(lines: string[], peerId: string): Promise<VertexOperation[]> {

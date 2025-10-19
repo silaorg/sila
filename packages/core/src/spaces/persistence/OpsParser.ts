@@ -59,9 +59,9 @@ export class OpsParser {
           if (op.type === 'm') {
             return newMoveVertexOp(op.counter, op.peerId, op.targetId, op.parentId ?? null);
           } else {
-            // Convert empty object ({}) to undefined
-            const value = op.value && typeof op.value === 'object' && Object.keys(op.value).length === 0 ? undefined : op.value;
-            return newSetVertexPropertyOp(op.counter, op.peerId, op.targetId, op.key!, value);
+            // Decode encoded property values
+            const decoded = this.decodePropertyValue(op.value);
+            return newSetVertexPropertyOp(op.counter, op.peerId, op.targetId, op.key!, decoded);
           }
         });
         pending.resolve(vertexOps);
@@ -120,9 +120,8 @@ export class OpsParser {
           // value1 is the property key, value2 is the property value
           const key = value1 as string;
           const rawValue = value2;
-          // Convert empty object ({}) to undefined
-          const propValue = rawValue && typeof rawValue === 'object' && Object.keys(rawValue).length === 0 ? undefined : rawValue;
-          operations.push(newSetVertexPropertyOp(counter, peerId, targetId, key, propValue));
+          const decoded = this.decodePropertyValue(rawValue);
+          operations.push(newSetVertexPropertyOp(counter, peerId, targetId, key, decoded));
         }
       } catch (error) {
         console.warn('Failed to parse operation line:', line, error);
@@ -130,6 +129,24 @@ export class OpsParser {
     }
     
     return operations;
+  }
+
+  /**
+   * Decode property value previously encoded in FileSystemPersistenceLayer.
+   * Backward compatible with old encoding where undefined was represented as {}.
+   */
+  private decodePropertyValue(rawValue: any): any {
+    if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+      // New encoding
+      if (Array.isArray((rawValue as any).__silaProp)) {
+        const [tag, payload] = (rawValue as any).__silaProp as [string, any?];
+        if (tag === 'u') return undefined;
+        if (tag === 'o') return payload;
+      }
+      // Old encoding: empty object meant undefined
+      if (Object.keys(rawValue).length === 0) return undefined;
+    }
+    return rawValue;
   }
 
   /**
