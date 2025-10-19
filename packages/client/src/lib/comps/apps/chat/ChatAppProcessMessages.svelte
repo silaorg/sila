@@ -4,12 +4,11 @@
   import type { ToolUsageMessagePair, ToolPair } from "./chatTypes";
   import ChatAppToolMessagePair from "./ChatAppToolMessagePair.svelte";
   import { onMount } from "svelte";
+  import { ChevronDown, ChevronRight } from "lucide-svelte";
 
   let { vertices }: { vertices: Vertex[] } = $props();
 
-  onMount(() => {
-    console.log("vertices", vertices);
-  });
+  let isExpanded = $state(false);
 
   const messages: (ToolUsageMessagePair | LangMessage)[] = $derived.by(() => {
     const msgs: (ToolUsageMessagePair | LangMessage)[] = [];
@@ -54,6 +53,8 @@
         }
 
         msgs.push(...pairs);
+      } else {
+        msgs.push(vertex.getAsTypedObject<LangMessage>());
       }
     }
 
@@ -61,14 +62,14 @@
   });
 </script>
 
-{#each messages as message}
-  <div class="">
-    {#each messages as message}
-      {#if message.role === "tool"}
-      <div class="bg-surface-100-900/50 p-2 rounded-md">
+<div
+  class="flex flex-col gap-2 mt-2 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75"
+>
+  {#each messages as message}
+    {#if message.role === "tool"}
+      <div class="border border-surface-100-900 p-2 rounded-md">
         <ChatAppToolMessagePair message={message as ToolUsageMessagePair} />
       </div>
-      {/if}
-    {/each}
-  </div>
-{/each}
+    {/if}
+  {/each}
+</div>

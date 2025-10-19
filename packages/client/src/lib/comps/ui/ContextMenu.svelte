@@ -87,9 +87,9 @@
     {onOpenChange}
     positioning={{ placement }}
     triggerBase={`${triggerClassNames}`}
-    contentBase={`context-menu card bg-surface-200-800 shadow-lg p-2 space-y-2 max-w-[${maxWidth}]`}
+    contentBase={`context-menu card bg-surface-50-950 border border-surface-100-900 shadow-lg p-2 space-y-2 max-w-[${maxWidth}]`}
     {arrow}
-    arrowBackground="!bg-surface-200-800"
+    arrowBackground="!bg-surface-50-950"
     {closeOnInteractOutside}
     {closeOnEscape}
   >

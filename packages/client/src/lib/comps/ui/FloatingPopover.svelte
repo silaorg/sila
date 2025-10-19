@@ -10,7 +10,7 @@
     closeDelay = 150,
     interactive = true,
     zIndex = 1000,
-    contentClass = "card bg-surface-200-800 p-3 shadow-lg min-w-[260px]",
+    contentClass = "card bg-surface-50-950 border border-surface-100-900 p-3 shadow-lg min-w-[260px]",
     trigger,
     content,
     onContentEnter = undefined as undefined | (() => void),
@@ -114,16 +114,19 @@
     scheduleOpen();
     onTriggerEnter?.();
   }
+
   function onTriggerMouseLeave() {
     if (interactive && isOpen) return scheduleClose();
     scheduleClose();
     onTriggerLeave?.();
   }
+
   function onContentMouseEnter() {
     if (!interactive) return;
     clearTimers();
     onContentEnter?.();
   }
+
   function onContentMouseLeave() {
     if (!interactive) return;
     scheduleClose();

@@ -40,6 +40,7 @@
   let isLast = $state(false);
   let configName = $state<string | undefined>(undefined);
   let isThinkingExpanded = $state(false);
+  let isProcessMessagesExpanded = $state(false);
   let hasThinking = $derived(
     !!message?.thinking &&
       typeof message.thinking === "string" &&
@@ -216,20 +217,31 @@
       <div class="flex items-center justify-between gap-2 mt-2">
         <div class="flex items-center gap-2">
           {#if message.role === "assistant"}
-            <div class="relative">
-              <FloatingPopover placement="right">
-                {#snippet trigger()}
-                  <span class="font-bold cursor-default hover:opacity-90"
-                    >{configName || "AI"}</span
-                  >
-                {/snippet}
-                {#snippet content()}
-                  <ChatAssistantInfo
-                    configId={(vertex.getProperty("configId") as string) ||
-                      data.getMessageProperty(message.id, "configId")}
-                  />
-                {/snippet}
-              </FloatingPopover>
+            <div class="relative flex gap-2">
+              <span class="font-bold cursor-default hover:opacity-90"
+                >{configName || "AI"}
+              </span>
+              {#if visibleMessage.progressVertices.length > 0}
+                <span class="opacity-70">•</span>
+                <button
+                  class="flex items-center gap-1 group"
+                  onclick={() => (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
+                >
+                  <span class="opacity-70 group-hover:opacity-100">Acted</span>
+
+                  {#if isProcessMessagesExpanded}
+                    <ChevronDown
+                      size={12}
+                      class="opacity-70 group-hover:opacity-100"
+                    />
+                  {:else}
+                    <ChevronRight
+                      size={12}
+                      class="opacity-70 group-hover:opacity-100"
+                    />
+                  {/if}
+                </button>
+              {/if}
             </div>
           {:else}
             <p class="font-bold">Error</p>
@@ -313,14 +325,10 @@
           onpointerenter={beginHover}
           onpointerleave={endHover}
         >
-          {#if visibleMessage.progressVertices.length > 0}
-            <div class="mb-3">
-              <div
-                class="pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
-              >
-                <ChatAppProcessMessages vertices={visibleMessage.progressVertices} />
-              </div>
-            </div>
+          {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
+            <ChatAppProcessMessages
+              vertices={visibleMessage.progressVertices}
+            />
           {/if}
 
           {#if hasThinking}
