@@ -2,7 +2,7 @@ import { type Vertex } from "reptree";
 import type {Space } from "./Space";
 import type { BindedVertex, VertexPropertyType } from "reptree";
 import { ThreadMessage } from "../models";
-import type { ThreadMessageWithResolvedFiles } from "../models";
+import type { AppConfig, ThreadMessageWithResolvedFiles } from "../models";
 import { AppTree } from "./AppTree";
 import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
@@ -50,6 +50,17 @@ export class ChatAppData {
 
   get configId(): string | undefined {
     return this.root.getProperty("configId") as string;
+  }
+
+  get configAppConfig(): AppConfig | undefined {
+    const configId = this.configId;
+
+    if (!configId) return undefined;
+
+    const cfg = this.space.getAppConfig(configId);
+    if (!cfg) return undefined;
+
+    return cfg;
   }
 
   set configId(configId: string) {

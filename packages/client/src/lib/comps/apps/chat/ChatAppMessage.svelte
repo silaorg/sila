@@ -31,25 +31,23 @@
 
   const vertex = $derived(visibleMessage.vertex);
 
-  let message: ThreadMessage = $state(
-    visibleMessage.vertex.getAsTypedObject<ThreadMessage>()
-  );
+  let message: ThreadMessage | undefined = $state(undefined);
   let canRetry = $state(false);
   let isLast = $state(false);
   let configName = $state<string | undefined>(undefined);
   let isThinkingExpanded = $state(false);
   let isProcessMessagesExpanded = $state(false);
-  let hasThinking = $derived(
-    !!message?.thinking &&
-      typeof message.thinking === "string" &&
-      message.thinking.trim().length > 0
-  );
+  let hasThinking = $derived.by(() => {
+    const t = message?.thinking;
+    return typeof t === "string" && t.trim().length > 0;
+  });
   let fileRefs = $derived(
     ((message as any)?.files as Array<FileReference>) || []
   );
-  let isAIGenerating = $derived(
-    !!message?.inProgress && message?.role === "assistant"
-  );
+  let isAIGenerating = $derived.by(() => {
+    const m = message;
+    return !!m && m.role === "assistant" && !!m.inProgress;
+  });
   let isEditing = $state(false);
   let editText = $state("");
 
@@ -109,16 +107,28 @@
   }
   // Branch navigation: use siblings under the same parent
   let branchIndex = $derived.by(() => {
-    const parent = vertex.parent;
-    if (!parent) return 0;
+    const parent = vertex?.parent;
+    if (!parent || !vertex) return 0;
     const siblings = parent.children;
     const idx = siblings.findIndex((s) => s.id === vertex.id);
     return idx >= 0 ? idx : 0;
   });
 
+  // Update local message when vertex changes
+  $effect(() => {
+    if (vertex) {
+      message = vertex.getAsTypedObject<ThreadMessage>();
+    } else {
+      message = undefined;
+    }
+  });
+
   // Effect to update config name if config still exists
   $effect(() => {
-    if (message?.role === "assistant") {
+    if (!vertex) {
+      // @TODO: but actually let's pass config with the visible message (as optional targetConfigId)
+      configName = data.configAppConfig?.name || undefined;
+    } else if (message?.role === "assistant") {
       const configId = vertex.getProperty("configId") as string;
       if (configId && clientState.currentSpace) {
         const config = clientState.currentSpace.getAppConfig(configId);
@@ -128,7 +138,9 @@
         }
       }
       // If config doesn't exist anymore, use the saved name
-      configName = data.getMessageProperty(message.id, "configName");
+      if (message?.id) {
+        configName = data.getMessageProperty(message.id, "configName");
+      }
     }
   });
 
@@ -139,6 +151,7 @@
   });
 
   onMount(() => {
+    if (!vertex) return;
     const unobserve = data.observeMessage(vertex.id, (msg) => {
       message = msg;
       isLast = data.isLastMessage(vertex.id);
@@ -146,8 +159,8 @@
       canRetry =
         isLast &&
         (msg.role === "error" ||
-          (isMoreThanOneMinuteOld(msg._c) &&
-            isMoreThanOneMinuteOld(msg.updatedAt) &&
+          (isMoreThanOneMinuteOld(Number(msg._c || 0)) &&
+            isMoreThanOneMinuteOld(Number(msg.updatedAt || 0)) &&
             data.isMessageInProgress(vertex.id)));
     });
 
@@ -168,88 +181,195 @@
   }
 
   async function retry() {
+    if (!vertex) return;
     data.triggerEvent("retry-message", {
       messageId: vertex.id,
     });
   }
 
   function rerunInNewBranch() {
+    if (!vertex) return;
     data.triggerEvent("rerun-message", { messageId: vertex.id });
   }
 
   // Branch switching: use vertex.children and data.switchMain
   function prevBranch() {
-    const parent = vertex.parent;
-    if (!parent || branchIndex <= 0) return;
+    const parent = vertex?.parent;
+    if (!vertex || !parent || branchIndex <= 0) return;
     const siblings = parent.children;
     data.switchMain(siblings[branchIndex - 1].id);
   }
 
   function nextBranch() {
-    const parent = vertex.parent;
-    if (!parent) return;
+    const parent = vertex?.parent;
+    if (!vertex || !parent) return;
     const siblings = parent.children;
     if (branchIndex >= siblings.length - 1) return;
     data.switchMain(siblings[branchIndex + 1].id);
   }
 </script>
 
-<div class="flex gap-3 px-4 py-2" class:justify-end={message.role === "user"}>
-  {#if message.role !== "user"}
+{#if !vertex}
+  <div class="flex gap-3 px-4 py-2">
     <div class="flex-shrink-0 mt-1">
       <div class="w-8 h-8 rounded-full flex items-center justify-center">
-        {#if message.role === "assistant"}
-          <Sparkles size={18} />
-        {:else}
-          <CircleAlert size={18} />
+        <Sparkles size={18} />
+      </div>
+    </div>
+    <div class="min-w-0 max-w-[85%]">
+      <div class="flex gap-2 mt-2">
+        <span class="font-bold cursor-default hover:opacity-90"
+          >{configName || "AI"}
+        </span>
+        {#if visibleMessage.progressVertices.length > 0}
+          <span class="opacity-70">•</span>
+          <button
+            class="flex items-center gap-1 group"
+            onclick={() =>
+              (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
+          >
+            <span class="opacity-70 group-hover:opacity-100">Acting</span>
+
+            {#if isProcessMessagesExpanded}
+              <ChevronDown
+                size={12}
+                class="opacity-70 group-hover:opacity-100"
+              />
+            {:else}
+              <ChevronRight
+                size={12}
+                class="opacity-70 group-hover:opacity-100"
+              />
+            {/if}
+          </button>
+        {/if}
+      </div>
+
+      <div>
+        {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
+          <ChatAppProcessMessages vertices={visibleMessage.progressVertices} />
         {/if}
       </div>
     </div>
-  {/if}
+  </div>
+{:else}
   <div
-    class="min-w-0 max-w-[85%]"
-    class:ml-auto={message.role === "user"}
-    class:w-full={isEditing}
+    class="flex gap-3 px-4 py-2"
+    class:justify-end={message?.role === "user"}
   >
-    {#if message.role !== "user"}
-      <div class="flex items-center justify-between gap-2 mt-2">
-        <div class="flex items-center gap-2">
-          {#if message.role === "assistant"}
-            <div class="relative flex gap-2">
-              <span class="font-bold cursor-default hover:opacity-90"
-                >{configName || "AI"}
-              </span>
-              {#if visibleMessage.progressVertices.length > 0}
-                <span class="opacity-70">•</span>
-                <button
-                  class="flex items-center gap-1 group"
-                  onclick={() => (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
-                >
-                  <span class="opacity-70 group-hover:opacity-100">Acted</span>
-
-                  {#if isProcessMessagesExpanded}
-                    <ChevronDown
-                      size={12}
-                      class="opacity-70 group-hover:opacity-100"
-                    />
-                  {:else}
-                    <ChevronRight
-                      size={12}
-                      class="opacity-70 group-hover:opacity-100"
-                    />
-                  {/if}
-                </button>
-              {/if}
-            </div>
+    {#if message?.role !== "user"}
+      <div class="flex-shrink-0 mt-1">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center">
+          {#if message?.role === "assistant"}
+            <Sparkles size={18} />
           {:else}
-            <p class="font-bold">Error</p>
+            <CircleAlert size={18} />
           {/if}
         </div>
       </div>
     {/if}
-    <div>
-      {#if message.role === "user"}
-        {#if isEditing}
+    <div
+      class="min-w-0 max-w-[85%]"
+      class:ml-auto={message?.role === "user"}
+      class:w-full={isEditing}
+    >
+      {#if message?.role !== "user"}
+        <div class="flex items-center justify-between gap-2 mt-2">
+          <div class="flex items-center gap-2">
+            {#if message?.role === "assistant"}
+              <div class="relative flex gap-2">
+                <span class="font-bold cursor-default hover:opacity-90"
+                  >{configName || "AI"}
+                </span>
+                {#if visibleMessage.progressVertices.length > 0}
+                  <span class="opacity-70">•</span>
+                  <button
+                    class="flex items-center gap-1 group"
+                    onclick={() =>
+                      (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
+                  >
+                    <span class="opacity-70 group-hover:opacity-100">Acted</span
+                    >
+
+                    {#if isProcessMessagesExpanded}
+                      <ChevronDown
+                        size={12}
+                        class="opacity-70 group-hover:opacity-100"
+                      />
+                    {:else}
+                      <ChevronRight
+                        size={12}
+                        class="opacity-70 group-hover:opacity-100"
+                      />
+                    {/if}
+                  </button>
+                {/if}
+              </div>
+            {:else}
+              <p class="font-bold">Error</p>
+            {/if}
+          </div>
+        </div>
+      {/if}
+      <div>
+        {#if message?.role === "user"}
+          {#if isEditing}
+            <div class="block w-full">
+              <ChatAppMessageEditForm
+                initialValue={editText}
+                onSave={(text) => {
+                  data.editMessage(vertex.id, text);
+                  isEditing = false;
+                }}
+                onCancel={() => (isEditing = false)}
+              />
+            </div>
+          {:else}
+            <div
+              class="relative p-3 rounded-lg bg-surface-100-900/50"
+              role="region"
+              onpointerenter={beginHover}
+              onpointerleave={endHover}
+            >
+              {@html replaceNewlinesWithHtmlBrs(message?.text || "")}
+              {#if fileRefs && fileRefs.length > 0}
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {#each fileRefs as att}
+                    <FilePreview
+                      fileRef={att}
+                      showGallery={true}
+                      onGalleryOpen={(fileInfo) => {
+                        clientState.gallery.open(fileInfo);
+                      }}
+                    />
+                  {/each}
+                </div>
+              {/if}
+            </div>
+            <!-- Reserved toolbar row for user messages to avoid overlap/jump -->
+            <div
+              class="mt-1 h-6 flex items-center justify-end"
+              role="presentation"
+              onpointerenter={beginHover}
+              onpointerleave={endHover}
+            >
+              <div
+                class:invisible={!showEditAndCopyControls}
+                class:pointer-events-none={!showEditAndCopyControls}
+              >
+                <ChatAppMessageControls
+                  {showEditAndCopyControls}
+                  onCopyMessage={() => copyMessage()}
+                  onEditMessage={() => (isEditing = true)}
+                  {prevBranch}
+                  {nextBranch}
+                  {branchIndex}
+                  branchesNumber={vertex.parent?.children.length || 0}
+                />
+              </div>
+            </div>
+          {/if}
+        {:else if isEditing}
           <div class="block w-full">
             <ChatAppMessageEditForm
               initialValue={editText}
@@ -262,181 +382,128 @@
           </div>
         {:else}
           <div
-            class="relative p-3 rounded-lg bg-surface-100-900/50"
+            class="relative rounded-lg chat-message group"
             role="region"
             onpointerenter={beginHover}
             onpointerleave={endHover}
           >
-            {@html replaceNewlinesWithHtmlBrs(message.text || "")}
-            {#if fileRefs && fileRefs.length > 0}
-              <div class="mt-2 flex flex-wrap gap-2">
-                {#each fileRefs as att}
-                  <FilePreview
-                    fileRef={att}
-                    showGallery={true}
-                    onGalleryOpen={(fileInfo) => {
-                      clientState.gallery.open(fileInfo);
-                    }}
-                  />
-                {/each}
+            {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
+              <ChatAppProcessMessages
+                vertices={visibleMessage.progressVertices}
+              />
+            {/if}
+
+            {#if hasThinking}
+              <div class="mb-3">
+                <button
+                  class="flex items-center gap-1 text-surface-500-500-token hover:text-surface-700-300-token group"
+                  onclick={() => (isThinkingExpanded = !isThinkingExpanded)}
+                >
+                  <span class="opacity-70 group-hover:opacity-100">
+                    {#if isAIGenerating}
+                      <span class="animate-pulse">Thinking...</span>
+                    {:else}
+                      Thoughts
+                    {/if}
+                  </span>
+                  {#if isThinkingExpanded}
+                    <ChevronDown
+                      size={12}
+                      class="opacity-70 group-hover:opacity-100"
+                    />
+                  {:else}
+                    <ChevronRight
+                      size={12}
+                      class="opacity-70 group-hover:opacity-100"
+                    />
+                  {/if}
+                </button>
+                {#if isThinkingExpanded}
+                  <div
+                    class="pt-1.5 pb-1 pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
+                  >
+                    <Markdown
+                      source={message?.thinking || ""}
+                      options={chatMarkdownOptions}
+                    />
+                  </div>
+                {/if}
               </div>
             {/if}
-          </div>
-          <!-- Reserved toolbar row for user messages to avoid overlap/jump -->
-          <div
-            class="mt-1 h-6 flex items-center justify-end"
-            role="presentation"
-            onpointerenter={beginHover}
-            onpointerleave={endHover}
-          >
+            <Markdown
+              source={message?.text || ""}
+              options={chatMarkdownOptions}
+            />
+            <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
             <div
-              class:invisible={!showEditAndCopyControls}
-              class:pointer-events-none={!showEditAndCopyControls}
+              class="mt-1 h-6 flex items-center justify-start gap-2"
+              role="presentation"
+              onpointerenter={beginHover}
+              onpointerleave={endHover}
             >
-              <ChatAppMessageControls
-                {showEditAndCopyControls}
-                onCopyMessage={() => copyMessage()}
-                onEditMessage={() => (isEditing = true)}
-                {prevBranch}
-                {nextBranch}
-                {branchIndex}
-                branchesNumber={vertex.parent?.children.length || 0}
-              />
+              {#if showEditAndCopyControls}
+                <FloatingPopover
+                  placement="top"
+                  openDelay={200}
+                  closeDelay={150}
+                  interactive={true}
+                  onContentEnter={beginHover}
+                  onContentLeave={endHover}
+                  onOpenChange={forceKeepControls}
+                >
+                  {#snippet trigger()}
+                    <button
+                      class="inline-flex items-center justify-center p-1 transition opacity-70 hover:opacity-100"
+                      aria-label="Message info"
+                    >
+                      <Info size={14} />
+                    </button>
+                  {/snippet}
+                  {#snippet content()}
+                    {#if message}
+                      <ChatAppMessageInfo
+                        {message}
+                        assistantName={configName ||
+                          data.getMessageProperty(message.id, "configName") ||
+                          "AI"}
+                      />
+                    {/if}
+                  {/snippet}
+                </FloatingPopover>
+              {/if}
+              <div
+                class:invisible={!showEditAndCopyControls}
+                class:pointer-events-none={!showEditAndCopyControls}
+              >
+                <ChatAppMessageControls
+                  {showEditAndCopyControls}
+                  onCopyMessage={() => copyMessage()}
+                  onEditMessage={() => (isEditing = true)}
+                  onRerun={rerunInNewBranch}
+                  {prevBranch}
+                  {nextBranch}
+                  {branchIndex}
+                  branchesNumber={vertex.parent?.children.length || 0}
+                />
+              </div>
             </div>
           </div>
         {/if}
-      {:else if isEditing}
-        <div class="block w-full">
-          <ChatAppMessageEditForm
-            initialValue={editText}
-            onSave={(text) => {
-              data.editMessage(vertex.id, text);
-              isEditing = false;
-            }}
-            onCancel={() => (isEditing = false)}
-          />
-        </div>
-      {:else}
-        <div
-          class="relative rounded-lg chat-message group"
-          role="region"
-          onpointerenter={beginHover}
-          onpointerleave={endHover}
-        >
-          {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
-            <ChatAppProcessMessages
-              vertices={visibleMessage.progressVertices}
-            />
-          {/if}
 
-          {#if hasThinking}
-            <div class="mb-3">
-              <button
-                class="flex items-center gap-1 text-surface-500-500-token hover:text-surface-700-300-token group"
-                onclick={() => (isThinkingExpanded = !isThinkingExpanded)}
-              >
-                <span class="opacity-70 group-hover:opacity-100">
-                  {#if isAIGenerating}
-                    <span class="animate-pulse">Thinking...</span>
-                  {:else}
-                    Thoughts
-                  {/if}
-                </span>
-                {#if isThinkingExpanded}
-                  <ChevronDown
-                    size={12}
-                    class="opacity-70 group-hover:opacity-100"
-                  />
-                {:else}
-                  <ChevronRight
-                    size={12}
-                    class="opacity-70 group-hover:opacity-100"
-                  />
-                {/if}
-              </button>
-              {#if isThinkingExpanded}
-                <div
-                  class="pt-1.5 pb-1 pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
-                >
-                  <Markdown
-                    source={message.thinking || ""}
-                    options={chatMarkdownOptions}
-                  />
-                </div>
-              {/if}
-            </div>
-          {/if}
-          <Markdown
-            source={message.text ? message.text : ""}
-            options={chatMarkdownOptions}
-          />
-          <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
-          <div
-            class="mt-1 h-6 flex items-center justify-start gap-2"
-            role="presentation"
-            onpointerenter={beginHover}
-            onpointerleave={endHover}
-          >
-            {#if showEditAndCopyControls}
-              <FloatingPopover
-                placement="top"
-                openDelay={200}
-                closeDelay={150}
-                interactive={true}
-                onContentEnter={beginHover}
-                onContentLeave={endHover}
-                onOpenChange={forceKeepControls}
-              >
-                {#snippet trigger()}
-                  <button
-                    class="inline-flex items-center justify-center p-1 transition opacity-70 hover:opacity-100"
-                    aria-label="Message info"
-                  >
-                    <Info size={14} />
-                  </button>
-                {/snippet}
-                {#snippet content()}
-                  <ChatAppMessageInfo
-                    {message}
-                    assistantName={configName ||
-                      data.getMessageProperty(message.id, "configName") ||
-                      "AI"}
-                  />
-                {/snippet}
-              </FloatingPopover>
-            {/if}
-            <div
-              class:invisible={!showEditAndCopyControls}
-              class:pointer-events-none={!showEditAndCopyControls}
+        {#if canRetry}
+          <div class="flex gap-2">
+            <button class="btn preset-filled-surface-500" onclick={retry}
+              >Retry</button
             >
-              <ChatAppMessageControls
-                {showEditAndCopyControls}
-                onCopyMessage={() => copyMessage()}
-                onEditMessage={() => (isEditing = true)}
-                onRerun={rerunInNewBranch}
-                {prevBranch}
-                {nextBranch}
-                {branchIndex}
-                branchesNumber={vertex.parent?.children.length || 0}
-              />
-            </div>
+            <button class="btn preset-outline" onclick={rerunInNewBranch}
+              >Re-run (new branch)</button
+            >
           </div>
-        </div>
-      {/if}
-
-      {#if canRetry}
-        <div class="flex gap-2">
-          <button class="btn preset-filled-surface-500" onclick={retry}
-            >Retry</button
-          >
-          <button class="btn preset-outline" onclick={rerunInNewBranch}
-            >Re-run (new branch)</button
-          >
-        </div>
-      {/if}
+        {/if}
+      </div>
     </div>
   </div>
-</div>
+{/if}
 
 <style>
   :global {

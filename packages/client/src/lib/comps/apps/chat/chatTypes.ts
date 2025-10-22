@@ -5,7 +5,7 @@ export type VisibleMessage = {
   /**
    * The final message that is visible to the user
    */
-  vertex: Vertex;
+  vertex: Vertex | undefined;
   /**
    * Here go tools, reasoning, etc that leads the model to the final message
    */

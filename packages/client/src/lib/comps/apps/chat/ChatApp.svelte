@@ -44,6 +44,11 @@
       }
     }
 
+    // Or if we have progress vertices it means we don't have a final messaage at the end
+    if (progressVertices.length > 0) {
+      messagesToShow.push({ vertex: undefined, progressVertices });
+    }
+
     return messagesToShow;
   });
 
@@ -212,7 +217,7 @@
     onscroll={handleScroll}
   >
     <div class="w-full max-w-4xl mx-auto">
-      {#each visibleMessages as visibleMessage (visibleMessage.vertex.id)}
+      {#each visibleMessages as visibleMessage (visibleMessage.vertex?.id ?? "in-progress")}
         <ChatAppMessage {visibleMessage} {data} />
       {/each}
     </div>

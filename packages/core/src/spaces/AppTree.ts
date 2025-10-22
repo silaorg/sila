@@ -20,9 +20,7 @@ export class AppTree {
   static newAppTree(peerId: string, appId: string): AppTree {
     const tree = new RepTree(peerId);
     const root = tree.createRoot();
-    root.name = 'app-tree';
     root.setProperty('appId', appId);
-
     return new AppTree(tree);
   }
 
