@@ -8,6 +8,7 @@
     CircleAlert,
     ChevronDown,
     ChevronRight,
+    LoaderCircle,
   } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
@@ -218,7 +219,7 @@
     </div>
     <div class="min-w-0 max-w-[85%]">
       <div class="flex gap-2 mt-2">
-        <span class="font-bold cursor-default hover:opacity-90"
+        <span class="font-bold cursor-default"
           >{configName || "AI"}
         </span>
         {#if visibleMessage.progressVertices.length > 0}
@@ -228,17 +229,17 @@
             onclick={() =>
               (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
           >
-            <span class="opacity-70 group-hover:opacity-100">Acting</span>
+            <LoaderCircle size={12} class="animate-spin" /><span class="text-shimmer">Acting</span>
 
             {#if isProcessMessagesExpanded}
               <ChevronDown
                 size={12}
-                class="opacity-70 group-hover:opacity-100"
+                class="opacity-70"
               />
             {:else}
               <ChevronRight
                 size={12}
-                class="opacity-70 group-hover:opacity-100"
+                class="opacity-70"
               />
             {/if}
           </button>
