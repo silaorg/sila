@@ -1,5 +1,5 @@
 import type { LangMessage, LangContentPart } from "aiwrapper";
-import { LangMessages } from "aiwrapper";
+import { Agent, LangMessages } from "aiwrapper";
 import { ChatAgent } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
 import { BindedVertex, ChatAppData } from "@sila/core";
@@ -10,28 +10,23 @@ import type { AttachmentPreview } from "../spaces/files";
 import { splitModelString } from "../utils/modelUtils";
 import type { AppTree } from "../spaces/AppTree";
 
-export type ChatStreamingEvent = {
-  type: "streaming";
-  data: LangMessages;
-}
-
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
  * decides when to reply
  */
-export class WrapChatAgent {
+export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" }> {
   private chatAgent: ChatAgent;
   private isRunning = false;
 
   constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
-    // Instantiate an agent
+    super();
     this.chatAgent = new ChatAgent();
   }
 
   /**
    * We use the same agent convention with a "run" method that starts the agent
    */
-  run() {
+  protected async runInternal() {
     // Initial check: if the last message is by the user, reply
     this.maybeReplyToLatest();
 
@@ -195,6 +190,9 @@ export class WrapChatAgent {
 
             msg.$commitTransients();
           }
+          
+          // Emit custom event when message generation is complete
+          this.emit({ type: "messageGenerated" });
         }
       });
 

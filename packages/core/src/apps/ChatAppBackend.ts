@@ -3,6 +3,8 @@ import { AgentServices } from "../agents/AgentServices";
 import { ChatAppData } from "../spaces/ChatAppData";
 import { AppTree } from "../spaces/AppTree";
 import { WrapChatAgent } from "../agents/WrapChatAgent";
+import { ThreadTitleAgent } from "../agents/ThreadTitleAgent";
+import { ThreadMessage } from "../models";
 
 export default class ChatAppBackend {
   private data: ChatAppData;
@@ -24,6 +26,53 @@ export default class ChatAppBackend {
     this.agentServices = new AgentServices(this.space);
     this.defaultChatAgent = new WrapChatAgent(this.data, this.agentServices, this.appTree);
 
+    this.defaultChatAgent.subscribe((e) => {  
+      if (e.type === "messageGenerated") {
+        // Agent has finished generating messages
+        console.log("Chat agent finished generating messages");
+        this.runTitleAgent();
+      } else if (e.type === "error") {
+        console.error("Chat agent error:", e.error);
+      } else if (e.type === "state") {
+        console.log("Chat agent state changed to:", e.state);
+      }
+    });
+
     this.defaultChatAgent.run();
+  }
+
+  private async runTitleAgent(): Promise<void> {
+    try {
+      const messages = this.data.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>());
+      const currentTitle = this.data.title || "";
+      
+      // Get the same config that the chat agent uses
+      let config = this.data.configId ?
+        this.agentServices.space.getAppConfig(this.data.configId) : undefined;
+
+      if (!config) {
+        config = this.agentServices.space.getAppConfig("default");
+      }
+
+      if (!config) {
+        console.warn("No config found for title agent, skipping title generation");
+        return;
+      }
+
+      // Create a new title agent with the correct model
+      const titleAgent = new ThreadTitleAgent(this.agentServices, { targetLLM: config.targetLLM });
+      
+      const result = await titleAgent.run({
+        messages,
+        title: currentTitle
+      });
+      
+      if (result && result.title) {
+        this.data.title = result.title;
+        console.log("Title updated:", result.title);
+      }
+    } catch (error) {
+      console.error("Title agent error:", error);
+    }
   }
 }

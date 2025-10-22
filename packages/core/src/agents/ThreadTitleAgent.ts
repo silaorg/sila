@@ -1,17 +1,26 @@
 import { ThreadMessage } from "../models";
-import { Agent, AgentInput, AgentOutput } from "./Agent";
+import { Agent } from "aiwrapper";
 import { z } from "aiwrapper";
-import { AppConfigForChat } from "./SimpleChatAgent";
+import { AgentServices } from "./AgentServices";
 
-export class ThreadTitleAgent extends Agent<AppConfigForChat> {
-  // @TODO: decide if I can make input more specific for agents
-  async input(
-    payload: AgentInput,
-    onStream?: (output: AgentOutput) => void,
-  ): Promise<AgentOutput> {
-    const {messages, title} = payload as { messages: ThreadMessage[], title: string };
+export interface TitleAgentInput {
+  messages: ThreadMessage[];
+  title?: string;
+}
 
-    const lang = await this.services.lang(this.config.targetLLM);
+export interface TitleAgentOutput {
+  title: string;
+}
+
+export class ThreadTitleAgent extends Agent<TitleAgentInput, TitleAgentOutput, { type: "titleGenerated" }> {
+  constructor(private agentServices: AgentServices, private config: { targetLLM?: string }) {
+    super();
+  }
+
+  protected async runInternal(input: TitleAgentInput): Promise<TitleAgentOutput> {
+    const { messages, title } = input;
+
+    const lang = await this.agentServices.lang(this.config.targetLLM);
 
     const allMessagesInOneMessage = messages
       .map((m) => `**${m.role}**:\n${m.text}`)
@@ -37,12 +46,11 @@ export class ThreadTitleAgent extends Agent<AppConfigForChat> {
     const result = await lang.askForObject(prompt, schema);
 
     const answerObj = (result.object as { title: string } | null);
-    const finalTitle = answerObj?.title ?? result.answer?.trim() ?? title;
+    const finalTitle = answerObj?.title ?? result.answer?.trim() ?? title ?? "Untitled";
 
-    return { text: finalTitle };
-  }
+    // Emit event when title is generated
+    this.emit({ type: "titleGenerated" });
 
-  stop(): void {
-    throw new Error("Method not implemented.");
+    return { title: finalTitle };
   }
 }

@@ -68,13 +68,12 @@ export class ChatAppData {
   }
 
   get title(): string | undefined {
-    return this.root.getProperty("title") as string;
+    return this.root.name;
   }
 
   set title(title: string) {
-    console.log("setting title", title);
-    this.root.setProperty("title", title);
-    this.referenceInSpace.setProperty("title", title);
+    this.root.name = title;
+    this.referenceInSpace.name = title;
   }
 
   rename(newTitle: string) {
