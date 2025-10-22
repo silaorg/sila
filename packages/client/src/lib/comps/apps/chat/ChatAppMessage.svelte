@@ -36,19 +36,10 @@
   let canRetry = $state(false);
   let isLast = $state(false);
   let configName = $state<string | undefined>(undefined);
-  let isThinkingExpanded = $state(false);
   let isProcessMessagesExpanded = $state(false);
-  let hasThinking = $derived.by(() => {
-    const t = message?.thinking;
-    return typeof t === "string" && t.trim().length > 0;
-  });
   let fileRefs = $derived(
     ((message as any)?.files as Array<FileReference>) || []
   );
-  let isAIGenerating = $derived.by(() => {
-    const m = message;
-    return !!m && m.role === "assistant" && !!m.inProgress;
-  });
   let isEditing = $state(false);
   let editText = $state("");
 
@@ -230,18 +221,6 @@
               (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
           >
             <LoaderCircle size={12} class="animate-spin" /><span class="text-shimmer">Acting</span>
-
-            {#if isProcessMessagesExpanded}
-              <ChevronDown
-                size={12}
-                class="opacity-70"
-              />
-            {:else}
-              <ChevronRight
-                size={12}
-                class="opacity-70"
-              />
-            {/if}
           </button>
         {/if}
       </div>
@@ -392,44 +371,6 @@
               <ChatAppProcessMessages
                 vertices={visibleMessage.progressVertices}
               />
-            {/if}
-
-            {#if hasThinking}
-              <div class="mb-3">
-                <button
-                  class="flex items-center gap-1 text-surface-500-500-token hover:text-surface-700-300-token group"
-                  onclick={() => (isThinkingExpanded = !isThinkingExpanded)}
-                >
-                  <span class="opacity-70 group-hover:opacity-100">
-                    {#if isAIGenerating}
-                      <span class="animate-pulse">Thinking...</span>
-                    {:else}
-                      Thoughts
-                    {/if}
-                  </span>
-                  {#if isThinkingExpanded}
-                    <ChevronDown
-                      size={12}
-                      class="opacity-70 group-hover:opacity-100"
-                    />
-                  {:else}
-                    <ChevronRight
-                      size={12}
-                      class="opacity-70 group-hover:opacity-100"
-                    />
-                  {/if}
-                </button>
-                {#if isThinkingExpanded}
-                  <div
-                    class="pt-1.5 pb-1 pl-3 pr-0.5 mt-0.5 mb-2 max-h-[300px] overflow-y-auto text-sm opacity-75 border-l-[3px] border-surface-300-600-token/50"
-                  >
-                    <Markdown
-                      source={message?.thinking || ""}
-                      options={chatMarkdownOptions}
-                    />
-                  </div>
-                {/if}
-              </div>
             {/if}
             <Markdown
               source={message?.text || ""}
