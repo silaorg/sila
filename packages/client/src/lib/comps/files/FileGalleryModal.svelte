@@ -67,7 +67,7 @@
 
 {#if isOpen && activeFile && previewConfig}
   <div 
-    class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+    class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center cursor-default"
     onclick={handleBackdropClick}
     onkeydown={(e) => e.key === 'Escape' && handleBackdropClick(e)}
     tabindex="0"
