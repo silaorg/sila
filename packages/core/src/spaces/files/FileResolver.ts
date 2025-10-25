@@ -124,7 +124,7 @@ export class FileResolver {
 	 * Resolves file references in attachments to data URLs
 	 * Used for UI rendering and AI consumption
 	 */
-	async getFileData(fileRefs: Array<FileReference>): Promise<ResolvedFileWithData[]> {
+	async getFileData(fileRefs: FileReference[]): Promise<ResolvedFileWithData[]> {
 		if (!fileRefs || fileRefs.length === 0) {
 			return [];
 		}

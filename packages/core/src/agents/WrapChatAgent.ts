@@ -54,6 +54,56 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     }
   }
 
+  private async convertToLangMessage(m: ThreadMessage, supportsVision: boolean = true): Promise<LangMessage> {
+    const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
+    const hasFiles = Array.isArray(m.files) && m.files.length > 0;
+    if (!hasFiles) {
+      return { role: normalizedRole, content: m.text || "" } as LangMessage;
+    }
+
+    const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
+    const images = resolved.files?.filter((f) => f?.kind === 'image') || [];
+    const textFiles = resolved.files?.filter((f) => f?.kind === 'text') || [];
+
+    if (supportsVision && images.length > 0) {
+      const parts: LangContentPart[] = [];
+      if (m.text && m.text.trim().length > 0) {
+        parts.push({ type: 'text', text: m.text });
+      }
+      for (const tf of textFiles) {
+        const content = this.extractTextFromDataUrl(tf.dataUrl);
+        if (content) {
+          parts.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
+        }
+      }
+      for (const img of images) {
+        const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
+        parts.push({ type: 'image', image: { kind: 'base64', base64, mimeType } });
+      }
+      return { role: normalizedRole, content: parts } as LangMessage;
+    }
+
+    let content = m.text || "";
+    for (const tf of textFiles) {
+      const t = this.extractTextFromDataUrl(tf.dataUrl);
+      if (t) content += `\n\n--- File: ${tf.name} ---\n` + t;
+    }
+    if (images.length > 0) {
+      const names = images.map((a) => a.name).filter(Boolean).join(', ');
+      content += `\n\n[User attached ${images.length} image(s): ${names}]`;
+    }
+
+    return {
+      role: normalizedRole,
+      content,
+      meta: m.meta
+    } as LangMessage;
+  }
+
+  private async convertToLangMessages(messages: ThreadMessage[], supportsVision: boolean = true): Promise<LangMessage[]> {
+    return await Promise.all(messages.map(async (m) => await this.convertToLangMessage(m, supportsVision)));
+  }
+
   private async reply(messages: ThreadMessage[]): Promise<void> {
     // Resolve config
     let config: AppConfig | undefined = this.data.configId ?
@@ -91,57 +141,12 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
         instructions += `\nModel: ${resolvedModel.provider}/${resolvedModel.model}`;
       }
       instructions += `\nCurrent assistant (your) name: ${config.name}`;
-      instructions += `\nEnvironment: Sila app (open alternative to ChatGPT where users own their data) - https://silain.com`;
+      instructions += `\nEnvironment: a workspace in Sila app (open alternative to ChatGPT where users own their data) - https://silain.com`;
       instructions += `\n</meta>`;
 
       const supportsVision = true;
 
-      const remap = async (m: ThreadMessage): Promise<LangMessage> => {
-        const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
-        const hasFiles = Array.isArray(m.files) && m.files.length > 0;
-        if (!hasFiles) {
-          return { role: normalizedRole, content: m.text || "" } as LangMessage;
-        }
-
-        const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
-        const images = resolved.files?.filter((f) => f?.kind === 'image') || [];
-        const textFiles = resolved.files?.filter((f) => f?.kind === 'text') || [];
-
-        if (supportsVision && images.length > 0) {
-          const parts: LangContentPart[] = [];
-          if (m.text && m.text.trim().length > 0) {
-            parts.push({ type: 'text', text: m.text });
-          }
-          for (const tf of textFiles) {
-            const content = this.extractTextFromDataUrl(tf.dataUrl);
-            if (content) {
-              parts.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
-            }
-          }
-          for (const img of images) {
-            const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
-            parts.push({ type: 'image', image: { kind: 'base64', base64, mimeType } });
-          }
-          return { role: normalizedRole, content: parts } as LangMessage;
-        }
-
-        let content = m.text || "";
-        for (const tf of textFiles) {
-          const t = this.extractTextFromDataUrl(tf.dataUrl);
-          if (t) content += `\n\n--- File: ${tf.name} ---\n` + t;
-        }
-        if (images.length > 0) {
-          const names = images.map((a) => a.name).filter(Boolean).join(', ');
-          content += `\n\n[User attached ${images.length} image(s): ${names}]`;
-        }
-        return { role: normalizedRole, content } as LangMessage;
-      };
-
-      const langMessagesArr: LangMessage[] = [
-        ...await Promise.all(messages.map(remap)),
-      ];
-
-      const langMessages = new LangMessages(langMessagesArr);
+      const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
       langMessages.instructions = instructions;
 
       let targetMsgCount = -1;
@@ -190,7 +195,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
             msg.$commitTransients();
           }
-          
+
           // Emit custom event when message generation is complete
           this.emit({ type: "messageGenerated" });
         }

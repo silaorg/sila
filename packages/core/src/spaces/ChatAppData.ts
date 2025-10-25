@@ -104,14 +104,12 @@ export class ChatAppData {
     return vs;
   }
 
-  // @TODO: consider having a function that allows to wrap the messages into reactive types of ChatMessage
-
   /**
    * Resolves file references in message files to data URLs
    * Used for UI rendering and AI consumption
    */
   async resolveMessageFiles(message: ThreadMessage): Promise<ThreadMessageWithResolvedFiles> {
-    const fileRefs = (message as any).files as Array<FileReference>;
+    const fileRefs = message.files;
     if (!fileRefs || fileRefs.length === 0) {
       console.log('No files to resolve for message:', message.id);
       return message as ThreadMessageWithResolvedFiles;
@@ -193,6 +191,10 @@ export class ChatAppData {
       text,
       inProgress,
     };
+
+    if (langMessage.meta) {
+      properties.meta = langMessage.meta;
+    }
 
     if (role === "tool") {
       //const toolRequests = langMessage.content as ToolRequest[];
