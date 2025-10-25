@@ -48,7 +48,9 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
     this.isRunning = true;
     try {
-      await this.reply(vertices.map(v => v.getAsTypedObject<ThreadMessage>()));
+      const messages = vertices.map(v => v.bind<ThreadMessage>());
+
+      await this.reply(messages as ThreadMessage[]);
     } finally {
       this.isRunning = false;
     }
@@ -58,7 +60,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
     const hasFiles = Array.isArray(m.files) && m.files.length > 0;
     if (!hasFiles) {
-      return { role: normalizedRole, content: m.text || "" } as LangMessage;
+      return { role: normalizedRole, content: m.text || "", meta: m.meta } as LangMessage;
     }
 
     const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
@@ -146,6 +148,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
       const supportsVision = true;
 
+      // Remap messages from vertices into LangMessage[]
       const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
       langMessages.instructions = instructions;
 
