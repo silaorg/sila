@@ -31,8 +31,10 @@ export type ClientStateConfig = {
 type SpaceStatus = "disconnected" | "loading" | "ready" | "error";
 
 /**
- * Central orchestration hub for client-side state management.
- * Coordinates multiple focused stores and provides unified workflows.
+ * Central hub for client-side state management.
+ * We reference all client-related states here and pass them to components via a Svelte context.
+ * See: ClientStateProvider.svelte - this component takes a ClientState instance and shares it in a context 
+ * that components within ClientStateProvider.svelte can access.
  */
 export class ClientState {
   private _init: boolean = $state(false);
@@ -42,7 +44,7 @@ export class ClientState {
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
   private _dialog: AppDialogs | null = null;
-  
+
   currentSpaceState: SpaceState | null = $state(null); // @TODO: consider making it a derived state
   currentSpace: Space | null = $derived(this.currentSpaceState?.space || null);
 
@@ -119,13 +121,13 @@ export class ClientState {
     }
   };
 
-  async init(initState: ClientStateConfig): Promise<void> {
+  async init(initState?: ClientStateConfig): Promise<void> {
     if (this._init) {
       return;
     }
 
-    this._fs = initState.fs || null;
-    this._dialog = initState.dialog || null;
+    this._fs = initState?.fs || null;
+    this._dialog = initState?.dialog || null;
 
     await this.loadFromLocalDb();
 
@@ -191,7 +193,7 @@ export class ClientState {
    * Create a new local space using SpaceManager with URI-based persistence
    */
   async createSpace(uri?: string): Promise<string> {
-    const space = Space.newSpace(uuid()); 
+    const space = Space.newSpace(uuid());
     const spaceId = space.getId();
 
     // If no URI is provided, use the spaceId as the URI
@@ -217,9 +219,9 @@ export class ClientState {
     // Register space with electron file system for file protocol
     if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
       (window as any).electronFileSystem.registerSpace(
-        spaceId, 
-        pointer.uri, 
-        space.name || null, 
+        spaceId,
+        pointer.uri,
+        space.name || null,
         space.createdAt
       );
     }
@@ -472,7 +474,7 @@ export class ClientState {
     };
 
     // Create persistence layers based on URI (will be IndexedDB + FileSystem)
-      const persistenceLayers = createPersistenceLayersForURI(spaceId, spaceRootPath, this._fs);
+    const persistenceLayers = createPersistenceLayersForURI(spaceId, spaceRootPath, this._fs);
 
     // Load the space using SpaceManager
     const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
@@ -480,9 +482,9 @@ export class ClientState {
     // Register space with electron file system for file protocol
     if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
       (window as any).electronFileSystem.registerSpace(
-        spaceId, 
-        spaceRootPath, 
-        space.name || null, 
+        spaceId,
+        spaceRootPath,
+        space.name || null,
         space.createdAt
       );
     }
