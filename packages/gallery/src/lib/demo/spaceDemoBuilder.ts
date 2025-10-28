@@ -37,12 +37,12 @@ export class DemoSpace {
 
     const setMessages = async (messages: Partial<ThreadMessage>[]) => {
       for (const m of messages) {
-        await data.newMessage(m.role as "user" | "assistant" | "error" | "tool" | "tool-results", m.text ?? undefined, m.thinking ?? undefined);
+        await data.newMessage(m);
       }
     };
 
     const addMessage = async (message: Partial<ThreadMessage>) => {
-      await data.newMessage(message.role as "user" | "assistant" | "error" | "tool" | "tool-results", message.text ?? undefined, message.thinking ?? undefined);
+      await data.newMessage(message);
     };
 
     return {

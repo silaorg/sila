@@ -214,28 +214,28 @@ export class ChatAppData {
   }
 
   async newMessage(
-    role: "user" | "assistant" | "error" | "tool" | "tool-results",
-    text?: string,
-    thinking?: string,
-    attachments?: Array<AttachmentPreview>,
-    fileTarget?: { treeId?: string; path?: string; createParents?: boolean }
+    message: Partial<ThreadMessage> & { 
+      role: "user" | "assistant" | "error" | "tool" | "tool-results";
+      attachments?: Array<AttachmentPreview>;
+      fileTarget?: { treeId?: string; path?: string; createParents?: boolean };
+    }
   ): Promise<ThreadMessage> {
     const lastMsgVertex = this.getLastMsgParentVertex();
 
     const properties: Record<string, any> = {
       _n: "message",
-      role,
+      role: message.role,
     };
 
-    if (text) {
-      properties.text = text;
+    if (message.text) {
+      properties.text = message.text;
     }
 
     // If this is an assistant message, attach the assistant config information so the UI can display
     // the proper assistant name instead of a generic label. This is especially important for demo
     // spaces that are created programmatically and therefore never go through ChatAppBackend where
     // these fields are normally populated.
-    if (role === "assistant" && this.configId) {
+    if (message.role === "assistant" && this.configId) {
       properties.configId = this.configId;
       const cfg = this.space.getAppConfig(this.configId);
       if (cfg) {
@@ -243,19 +243,19 @@ export class ChatAppData {
       }
     }
 
-    if (thinking) {
-      properties.thinking = thinking;
+    if (message.thinking) {
+      properties.thinking = message.thinking;
     }
 
     // If there are attachments, persist to CAS and build refs BEFORE creating the message
-    if (attachments && attachments.length > 0) {
+    if (message.attachments && message.attachments.length > 0) {
       const store = this.space.getFileStore();
       if (!store) {
         throw new Error("FileStore is required to save attachments");
       }
-      const { targetTree, parentFolder } = await this.resolveFileTarget(fileTarget);
+      const { targetTree, parentFolder } = await this.resolveFileTarget(message.fileTarget);
       const refs: Array<FileReference> = [];
-      for (const att of attachments) {
+      for (const att of message.attachments) {
         if (att?.kind === 'image' && typeof att?.dataUrl === 'string') {
           const put = await store.putDataUrl(att.dataUrl);
           const fileVertex = FilesTreeData.saveFileInfoFromAttachment(

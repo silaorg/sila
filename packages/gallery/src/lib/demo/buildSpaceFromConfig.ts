@@ -64,7 +64,7 @@ export async function buildSpaceFromConfig(config: DemoConfig): Promise<Space> {
 }
 
 async function addMessages(chat: ChatAppData, node: MessageNode): Promise<void> {
-  const message = await chat.newMessage(node.role, node.text);
+  const message = await chat.newMessage({ role: node.role, text: node.text });
   if (node.children) {
     for (const child of node.children) {
       await addMessages(chat, child);

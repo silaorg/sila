@@ -36,6 +36,10 @@
       unobserve();
     };
   });
+
+  function retry() {
+    // Intentionally empty for now; wiring will be added later
+  }
 </script>
 
 <div class="flex gap-3 px-4 py-2">
@@ -49,6 +53,9 @@
       <div class="flex items-center gap-2">
         <p class="font-bold">{message?.text}</p>
       </div>
+    </div>
+    <div class="mt-2 flex gap-2">
+      <button class="btn preset-filled-surface-500" onclick={retry}>Retry</button>
     </div>
   </div>
 </div>

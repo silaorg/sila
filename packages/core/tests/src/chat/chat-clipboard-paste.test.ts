@@ -139,7 +139,7 @@ describe('Clipboard paste functionality', () => {
     };
 
     // Create a message with the pasted attachment
-    const msg = await chatData.newMessage('user', 'Message with pasted image', undefined, [imageAttachment]);
+    const msg = await chatData.newMessage({ role: 'user', text: 'Message with pasted image', attachments: [imageAttachment] });
 
     // Verify the message was created successfully
     expect(msg).toBeDefined();

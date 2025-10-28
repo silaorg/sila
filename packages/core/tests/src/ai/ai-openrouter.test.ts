@@ -89,7 +89,7 @@ describe('OpenRouter AI Integration', () => {
     await wait(1000);
 
     // Create a user message
-    const userMessage = await chatData.newMessage('user', 'Hello! Please respond with exactly "Hello from OpenRouter!"');
+    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Hello from OpenRouter!"' });
 
     // Wait for AI response
     await wait(15000);
@@ -165,7 +165,7 @@ describe('OpenRouter AI Integration', () => {
     await wait(1000);
 
     // Create a user message
-    const userMessage = await chatData.newMessage('user', 'Hello! Please respond with exactly "Using GPT-4o via OpenRouter!"');
+    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Using GPT-4o via OpenRouter!"' });
 
     // Wait for AI response
     await wait(15000);
@@ -241,7 +241,7 @@ describe('OpenRouter AI Integration', () => {
     await wait(1000);
 
     // Create a user message
-    const userMessage = await chatData.newMessage('user', 'Hello! Please respond with exactly "Hello from Claude via OpenRouter!"');
+    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Hello from Claude via OpenRouter!"' });
 
     // Wait for AI response
     await wait(15000);

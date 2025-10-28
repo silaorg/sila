@@ -1,12 +1,13 @@
 import { FileReference, JsonValue, ResolvedFileWithData } from "@sila/core";
+import { ToolRequest, ToolResult } from "aiwrapper";
 
 export type ThreadMessage = {
   id: string;
   role: string | null;
   text: string | null;
   thinking?: string | null;
-  toolRequests?: string | null;
-  toolResults?: string | null;
+  toolRequests?: ToolRequest[] | null;
+  toolResults?: ToolResult[] | null;
   inProgress: boolean | null;
   _c: number;
   updatedAt: number | null;

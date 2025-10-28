@@ -44,7 +44,7 @@ describe('WrapChatAgent basic reply', () => {
     const agent = new WrapChatAgent(chatData, services, chatTree);
     agent.run();
 
-    await chatData.newMessage('user', 'Please say OK');
+    await chatData.newMessage({ role: 'user', text: 'Please say OK' });
 
     // Wait briefly for reply
     await new Promise((r) => setTimeout(r, 100));

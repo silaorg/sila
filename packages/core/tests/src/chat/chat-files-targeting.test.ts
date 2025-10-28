@@ -41,9 +41,14 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const chatTree = ChatAppData.createNewChatTree(space, 'test-config');
     const chatData = new ChatAppData(space, chatTree);
 
-    const message = await chatData.newMessage('user', 'Here is an image', undefined, [
-      { id: 'att1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
-    ], { treeId: chatTree.getId() }); // no path provided -> defaults to 'files'
+    const message = await chatData.newMessage({ 
+      role: 'user', 
+      text: 'Here is an image', 
+      attachments: [
+        { id: 'att1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
+      ],
+      fileTarget: { treeId: chatTree.getId() }
+    });
 
     const atts = (message as any).files;
     expect(atts).toHaveLength(1);
@@ -74,9 +79,14 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const chatTree = ChatAppData.createNewChatTree(space, 'test-config');
     const chatData = new ChatAppData(space, chatTree);
 
-    const message = await chatData.newMessage('user', 'Nested path image', undefined, [
-      { id: 'att1', kind: 'image', name: 'nested.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
-    ], { treeId: chatTree.getId(), path: 'files/screenshots' });
+    const message = await chatData.newMessage({ 
+      role: 'user', 
+      text: 'Nested path image', 
+      attachments: [
+        { id: 'att1', kind: 'image', name: 'nested.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
+      ],
+      fileTarget: { treeId: chatTree.getId(), path: 'files/screenshots' }
+    });
 
     const atts = (message as any).files;
     expect(atts).toHaveLength(1);

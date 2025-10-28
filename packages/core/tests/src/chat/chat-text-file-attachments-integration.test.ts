@@ -98,7 +98,7 @@ function test() {
       };
 
       // Send message with text file attachment
-      const message = await chatData.newMessage('user', 'Please review this file', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'Please review this file', attachments: [attachment] });
 
       // Allow time for file store operations to complete
       await wait(1200);
@@ -156,7 +156,7 @@ function test() {
       };
 
       // Send message with both attachments
-      const message = await chatData.newMessage('user', 'Here are both files', undefined, [textAttachment, imageAttachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'Here are both files', attachments: [textAttachment, imageAttachment] });
 
       // Allow time for file store operations to complete
       await wait(1200);
@@ -200,7 +200,7 @@ function test() {
         alt: 'Plain Text'
       };
 
-      const message = await chatData.newMessage('user', 'Large file attached', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'Large file attached', attachments: [attachment] });
 
       // Allow time for file store operations to complete
       await wait(1200);
@@ -243,7 +243,7 @@ function test() {
         alt: 'JavaScript'
       };
 
-      const message = await chatData.newMessage('user', 'What does this code do?', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'What does this code do?', attachments: [attachment] });
 
       // The AI agent would process this message and include the text file content
       // This is tested in the SimpleChatAgent tests
@@ -279,7 +279,7 @@ function test() {
       };
 
       // Now throws: FileStore is required
-      await expect(chatData.newMessage('user', 'Test message', undefined, [attachment])).rejects.toThrow();
+      await expect(chatData.newMessage({ role: 'user', text: 'Test message', attachments: [attachment] })).rejects.toThrow();
 
       // Restore original method
       space.getFileStore = originalGetFileStore;
@@ -306,7 +306,7 @@ function test() {
         alt: 'Plain Text'
       };
 
-      const message = await chatData.newMessage('user', 'Empty file', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'Empty file', attachments: [attachment] });
 
       expect(message).toBeDefined();
       
@@ -375,7 +375,7 @@ function test() {
           alt: testCase.expectedLang
         };
 
-        const message = await chatData.newMessage('user', `Review this ${testCase.expectedLang} file`, undefined, [attachment]);
+        const message = await chatData.newMessage({ role: 'user', text: `Review this ${testCase.expectedLang} file`, attachments: [attachment] });
 
         expect(message).toBeDefined();
         

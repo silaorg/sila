@@ -19,13 +19,21 @@
       { role: "user", text: "Hey" },
       { role: "assistant", text: "Hello, what can I help you with?" },
       { role: "user", text: "What can you do?" },
-      { role: "assistant", text: "Calling tool: read(https://example.com)" },
+      {
+        role: "tool",
+        toolRequests: [
+          {
+            callId: "1",
+            name: "read",
+            arguments: { url: "https://example.com" },
+          },
+        ],
+      },
     ]);
 
     // Attach demo space to ClientState (in-memory) and set current chat data
     await state.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
     data = chat.get();
-
   });
 </script>
 

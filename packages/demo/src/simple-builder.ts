@@ -135,7 +135,7 @@ export class SimpleDemoBuilder {
 
   private async addMessageToChatData(chatData: ChatAppData, messageNode: from.MessageNode): Promise<void> {
     // Use ChatAppData's newMessage method to add the message
-    const message = await chatData.newMessage(messageNode.role, messageNode.text);
+    const message = await chatData.newMessage({ role: messageNode.role, text: messageNode.text });
     
     // If this message has children, add them as the next messages in the conversation
     if (messageNode.children && messageNode.children.length > 0) {

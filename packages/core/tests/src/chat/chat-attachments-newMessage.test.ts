@@ -75,7 +75,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     };
 
     // Create a message with attachments using ChatAppData.newMessage
-    const msg = await chatData.newMessage('user', 'Message with attachments', undefined, [imageAttachment, textAttachment]);
+    const msg = await chatData.newMessage({ role: 'user', text: 'Message with attachments', attachments: [imageAttachment, textAttachment] });
 
     // Message should persist only bare FileReference[]
     const refs = (msg as any).files as Array<{ tree: string; vertex: string }>;
@@ -140,7 +140,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     };
 
     // Create a message with only attachments (empty text)
-    const msg = await chatData.newMessage('user', '', undefined, [imageAttachment]);
+    const msg = await chatData.newMessage({ role: 'user', text: '', attachments: [imageAttachment] });
 
     // Message should persist only bare FileReference[]
     const refs = (msg as any).files as Array<{ tree: string; vertex: string }>;
@@ -207,7 +207,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     });
 
     // Create a message with only attachments (empty text)
-    const msg = await chatData.newMessage('user', '', undefined, [imageAttachment]);
+    const msg = await chatData.newMessage({ role: 'user', text: '', attachments: [imageAttachment] });
 
     // Wait a bit for the observation to trigger
     await wait(100);

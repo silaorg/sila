@@ -206,7 +206,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		];
 
 		// Create a message with attachments
-		const message = await chatData.newMessage('user', 'Here is an image', undefined, attachments);
+		const message = await chatData.newMessage({ role: 'user', text: 'Here is an image', attachments });
 
 		// Check that the message persists only file references (no dataUrl)
 		const messageAttachments = (message as any).files;
@@ -309,10 +309,10 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		};
 
 		// Create first message with attachment
-		const message1 = await chatData.newMessage('user', 'First message with image', undefined, [attachment1]);
+		const message1 = await chatData.newMessage({ role: 'user', text: 'First message with image', attachments: [attachment1] });
 		
 		// Create second message with attachment
-		const message2 = await chatData.newMessage('user', 'Second message with image', undefined, [attachment2]);
+		const message2 = await chatData.newMessage({ role: 'user', text: 'Second message with image', attachments: [attachment2] });
 
 		// Get the file references from both messages
 		const message1Attachments = (message1 as any).files;

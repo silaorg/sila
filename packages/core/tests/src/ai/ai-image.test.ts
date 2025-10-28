@@ -235,16 +235,20 @@ describe('AI Image Integration', () => {
     }
 
     // Create a user message with the cat image
-    const userMessage = await chatData.newMessage('user', 'What animal do you see in this image? Say only the animal name in one word.', undefined, [
-      {
-        id: 'cat-image',
-        kind: 'image',
-        name: 'cat.jpg',
-        mimeType: 'image/jpeg',
-        size: catImageBuffer.length,
-        dataUrl: catImageDataUrl
-      }
-    ]);
+    const userMessage = await chatData.newMessage({ 
+      role: 'user', 
+      text: 'What animal do you see in this image? Say only the animal name in one word.', 
+      attachments: [
+        {
+          id: 'cat-image',
+          kind: 'image',
+          name: 'cat.jpg',
+          mimeType: 'image/jpeg',
+          size: catImageBuffer.length,
+          dataUrl: catImageDataUrl
+        }
+      ]
+    });
 
     // Debug: Check if files were stored correctly
     console.log('User message created (test 2):', userMessage);
@@ -275,7 +279,7 @@ describe('AI Image Integration', () => {
     console.log('First AI Response:', firstResponseData.text);
 
     // Now create a follow-up question (without the image)
-    const followUpMessage = await chatData.newMessage('user', 'Are you sure? What animal did you see?');
+    const followUpMessage = await chatData.newMessage({ role: 'user', text: 'Are you sure? What animal did you see?' });
 
     // Wait for the follow-up response
     await wait(10000);
@@ -381,7 +385,7 @@ describe('AI Image Integration', () => {
     await wait(1000);
 
     // Create a user message WITHOUT any image
-    const userMessage = await chatData.newMessage('user', 'What do you see in this image?', undefined, []);
+    const userMessage = await chatData.newMessage({ role: 'user', text: 'What do you see in this image?', attachments: [] });
 
     // Wait for AI response
     await wait(10000);
@@ -463,16 +467,20 @@ describe('AI Image Integration', () => {
     const catImageBuffer = await readFile(catImagePath);
 
     // Create a user message with the cat image
-    const userMessage = await chatData.newMessage('user', 'What animal do you see in this image? Say only the animal name in one word.', undefined, [
-      {
-        id: 'cat-image',
-        kind: 'image',
-        name: 'cat.jpg',
-        mimeType: 'image/jpeg',
-        size: catImageBuffer.length,
-        dataUrl: `data:image/jpeg;base64,${catImageBuffer.toString('base64')}`
-      }
-    ]);
+    const userMessage = await chatData.newMessage({ 
+      role: 'user', 
+      text: 'What animal do you see in this image? Say only the animal name in one word.', 
+      attachments: [
+        {
+          id: 'cat-image',
+          kind: 'image',
+          name: 'cat.jpg',
+          mimeType: 'image/jpeg',
+          size: catImageBuffer.length,
+          dataUrl: `data:image/jpeg;base64,${catImageBuffer.toString('base64')}`
+        }
+      ]
+    });
 
     // Wait for AI response
     await wait(15000);

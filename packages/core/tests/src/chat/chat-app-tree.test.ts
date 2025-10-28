@@ -42,9 +42,9 @@ describe('Chat app tree creation and persistence', () => {
     chatData.title = 'My conversation';
 
     // Add a small chain of messages
-    await chatData.newMessage('user', 'Hello');
-    await chatData.newMessage('assistant', 'Hi!');
-    await chatData.newMessage('user', 'How are you?');
+    await chatData.newMessage({ role: 'user', text: 'Hello' });
+    await chatData.newMessage({ role: 'assistant', text: 'Hi!' });
+    await chatData.newMessage({ role: 'user', text: 'How are you?' });
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
     const manager = new SpaceManager();
@@ -87,9 +87,13 @@ describe('Chat app tree creation and persistence', () => {
     await manager.addNewSpace(space, [layer]);
 
     // Create a user message with one image attachment
-    const msg = await chatData.newMessage('user', 'Here is an image', undefined, [
-      { id: 'a1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: tinyPng }
-    ]);
+    const msg = await chatData.newMessage({ 
+      role: 'user', 
+      text: 'Here is an image', 
+      attachments: [
+        { id: 'a1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: tinyPng }
+      ]
+    });
 
     // Allow write to flush
     await wait(1200);

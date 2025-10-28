@@ -84,7 +84,7 @@ describe('Text File AI Integration', () => {
       };
 
       // Send message with text file attachment
-      const message = await chatData.newMessage('user', 'What number is in this file?', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'What number is in this file?', attachments: [attachment] });
 
       // Allow time for file store operations to complete
       await wait(1200);
@@ -198,7 +198,7 @@ function test() {
         alt: 'Markdown'
       };
 
-      const message = await chatData.newMessage('user', 'What is the number in this markdown file?', undefined, [attachment]);
+      const message = await chatData.newMessage({ role: 'user', text: 'What is the number in this markdown file?', attachments: [attachment] });
       await wait(1200);
 
       // Test content extraction
@@ -282,7 +282,7 @@ function test() {
         alt: 'Plain Text'
       };
 
-      const message = await chatData.newMessage('user', 'What are the contents of these files?', undefined, [attachment1, attachment2]);
+      const message = await chatData.newMessage({ role: 'user', text: 'What are the contents of these files?', attachments: [attachment1, attachment2] });
       await wait(1200);
 
       // Test content extraction

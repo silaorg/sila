@@ -178,7 +178,7 @@
 
   async function sendMsg(query: string, attachments?: AttachmentPreview[]) {
     // Wait for the message to be created and attachments to be saved
-    await data.newMessage("user", query, undefined, attachments);
+    await data.newMessage({ role: "user", text: query, attachments });
     timeout(scrollToBottom, 100);
   }
 
