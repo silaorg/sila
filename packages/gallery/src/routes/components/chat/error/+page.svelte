@@ -4,7 +4,6 @@
   import { ClientState } from "@sila/client";
   import type { ChatAppData } from "@sila/core";
   import { createDemoSpace } from "$lib/demo/spaceDemoBuilder";
-  import type { ThreadMessage } from "@sila/core";
 
   let state: ClientState | null = null;
   let data: ChatAppData | null = null;
@@ -25,7 +24,6 @@
     // Attach demo space to ClientState (in-memory) and set current chat data
     await state.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
     data = chat.get();
-
   });
 </script>
 

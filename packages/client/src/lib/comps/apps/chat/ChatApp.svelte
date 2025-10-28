@@ -36,7 +36,7 @@
     let progressVertices: Vertex[] = [];
 
     for (const vertex of messages) {
-      if (vertex.getProperty("role") === "assistant" || vertex.getProperty("role") === "user") {
+      if (vertex.getProperty("role") === "assistant" || vertex.getProperty("role") === "user" || vertex.getProperty("role") === "error") {
         messagesToShow.push({ vertex, progressVertices });
         progressVertices = [];
       } else {
