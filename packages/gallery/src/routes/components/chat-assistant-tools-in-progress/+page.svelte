@@ -19,6 +19,7 @@
       { role: "user", content: "Hey" },
       { role: "assistant", content: "Hello, what can I help you with?" },
       { role: "user", content: "What can you do?" },
+      { role: "tool", content: [{ callId: "1", name: "read", arguments: { uri: "https://example.com" } }] },
     ]);
     chat.setMessages(langMessages);
 

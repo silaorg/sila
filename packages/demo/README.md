@@ -1,5 +1,7 @@
 # Sila Demo Space Builder
 
+@TODO: consider renaming to json-to-space
+
 A tool for building demo spaces from JSON configuration files. Creates complete Sila spaces with assistants, providers, and conversations that can be opened directly in Sila.
 
 ## Usage
