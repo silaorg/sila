@@ -286,7 +286,7 @@ export class ChatAppData {
   }
 
   /** Resolve target app tree and parent folder for file saves based on optional fileTarget. Defaults to this chat tree under 'files'. */
-  private async resolveFileTarget(fileTarget?: { treeId?: string; path?: string; createParents?: boolean }): Promise<{ targetTree: AppTree; parentFolder: Vertex } > {
+  async resolveFileTarget(fileTarget?: { treeId?: string; path?: string; createParents?: boolean }): Promise<{ targetTree: AppTree; parentFolder: Vertex } > {
     // Default: save under the current chat tree at 'files'
     if (!fileTarget || (!fileTarget.treeId && !fileTarget.path)) {
       const targetTree = this.appTree;

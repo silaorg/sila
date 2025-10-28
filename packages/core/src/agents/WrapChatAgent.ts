@@ -7,6 +7,8 @@ import type { ThreadMessage } from "../models";
 import type { AppConfig } from "../models";
 import type { ThreadMessageWithResolvedFiles } from "../models";
 import type { AttachmentPreview } from "../spaces/files";
+import { FilesTreeData } from "../spaces/files";
+import type { FileReference } from "../spaces/files/FileResolver";
 import { splitModelString } from "../utils/modelUtils";
 import type { AppTree } from "../spaces/AppTree";
 
@@ -17,6 +19,7 @@ import type { AppTree } from "../spaces/AppTree";
 export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" }> {
   private chatAgent: ChatAgent;
   private isRunning = false;
+  private pendingAssistantImages = new Map<string, Array<{ dataUrl: string; mimeType?: string; name?: string; width?: number; height?: number }>>();
 
   constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
     super();
@@ -155,7 +158,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       let targetMsgCount = -1;
       let targetMsg: BindedVertex<ThreadMessage> | undefined;
       let targetMessages: BindedVertex<ThreadMessage>[] = [];
-      const unsubscribe = this.chatAgent.subscribe((event) => {
+      const unsubscribe = this.chatAgent.subscribe(async (event) => {
         if (event.type === 'streaming') {
           const incomingMsg = event.data.msg;
 
@@ -167,18 +170,33 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
               if (targetMsg.role === "assistant") {
                 targetMsg.text = incomingMsg.content as string;
               }
+
+              // Finished previous message
             }
 
             targetMsg = this.data.newLangMessage(incomingMsg);
             targetMessages.push(targetMsg);
           }
 
-          if (incomingMsg.role === "assistant") {
-            const content = incomingMsg.content as string;
-            if (content && targetMsg) {
-              targetMsg.$useTransients(m => {
-                m.text = content;
-              });
+          if (incomingMsg.role === "assistant" && targetMsg) {
+            // Update text for string content; for arrays, also update text by concatenating text parts
+            const c: any = incomingMsg.content as any;
+            if (typeof c === 'string') {
+              if (c) {
+                targetMsg.$useTransients(m => {
+                  m.text = c as string;
+                });
+              }
+            } else if (Array.isArray(c)) {
+              const textParts = (c as LangContentPart[]).filter(p => p?.type === 'text').map(p => (p as any).text).filter(Boolean);
+              if (textParts.length > 0) {
+                const combined = textParts.join('\n');
+                targetMsg.$useTransients(m => {
+                  m.text = combined;
+                });
+              }
+              // Collect images during streaming; persist on finish
+              this.collectAssistantImages(incomingMsg, targetMsg);
             }
           }
 
@@ -194,6 +212,9 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
                 msg.modelProvider = info.provider;
                 msg.modelId = info.model;
               }
+
+              // Persist any collected assistant images and attach refs
+              await this.persistPendingAssistantImages(msg);
             }
 
             msg.$commitTransients();
@@ -243,6 +264,89 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       return new TextDecoder().decode(bytes);
     } catch {
       return null;
+    }
+  }
+
+  /** Extract image content parts from a LangMessage when content is an array */
+  private extractImageParts(msg: LangMessage): Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> {
+    const result: Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> = [];
+    const c: any = (msg as any).content;
+    if (!Array.isArray(c)) return result;
+    for (const part of c as LangContentPart[]) {
+      if (part && (part as any).type === 'image') {
+        const img: any = (part as any).image;
+        if (!img) continue;
+        if (img.kind === 'data_url' && typeof img.dataUrl === 'string') {
+          result.push({ dataUrl: img.dataUrl, mimeType: img.mimeType, name: img.name, width: img.width, height: img.height });
+        } else if (img.kind === 'base64' && typeof img.base64 === 'string') {
+          const mime = img.mimeType || 'image/png';
+          const dataUrl = `data:${mime};base64,${img.base64}`;
+          result.push({ dataUrl, mimeType: mime, name: img.name, width: img.width, height: img.height });
+        }
+      }
+    }
+    return result;
+  }
+
+  /** During streaming, collect assistant images as data URLs on the transient map (no disk I/O yet) */
+  private collectAssistantImages(incomingMsg: LangMessage, targetMsg: BindedVertex<ThreadMessage>): void {
+    try {
+      const parts = this.extractImageParts(incomingMsg);
+      if (!parts || parts.length === 0) return;
+      const items = this.pendingAssistantImages.get(targetMsg.id) || [];
+      for (const p of parts) {
+        if (!p?.dataUrl) continue;
+        // Simple in-memory dedupe by dataUrl string
+        if (!items.some(x => x.dataUrl === p.dataUrl)) {
+          items.push({ dataUrl: p.dataUrl, mimeType: p.mimeType, name: p.name, width: p.width, height: p.height });
+        }
+      }
+      this.pendingAssistantImages.set(targetMsg.id, items);
+    } catch {
+      // ignore
+    }
+  }
+
+  /** On finish, persist collected assistant images and attach file refs once */
+  private async persistPendingAssistantImages(targetMsg: BindedVertex<ThreadMessage>): Promise<void> {
+    const items = this.pendingAssistantImages.get(targetMsg.id);
+    if (!items || items.length === 0) return;
+    this.pendingAssistantImages.delete(targetMsg.id);
+
+    try {
+      const store = this.agentServices.space.getFileStore();
+      if (!store) return;
+
+      const { targetTree, parentFolder } = await this.data.resolveFileTarget?.({ treeId: this.appTree.getId() })
+        ?? { targetTree: this.appTree, parentFolder: this.appTree.tree.getVertexByPath('files') || this.appTree.tree.root!.newNamedChild('files') };
+
+      const refs: FileReference[] = [];
+      for (const part of items) {
+        const put = await store.putDataUrl(part.dataUrl);
+        const att: AttachmentPreview = {
+          id: crypto.randomUUID(),
+          kind: 'image',
+          name: part.name || 'image',
+          mimeType: part.mimeType || 'image/png',
+          size: put.size,
+          dataUrl: part.dataUrl,
+          width: part.width,
+          height: part.height,
+        };
+        const fileVertex = FilesTreeData.saveFileInfoFromAttachment(parentFolder, att, put.hash);
+        refs.push({ tree: targetTree.getId(), vertex: fileVertex.id });
+      }
+
+      if (refs.length > 0) {
+        targetMsg.$useTransients((m) => {
+          const existing = Array.isArray(m.files) ? (m.files as any as FileReference[]) : [];
+          const existingSet = new Set(existing.map(r => r.tree + ':' + r.vertex));
+          const uniqueToAdd = refs.filter(r => !existingSet.has(r.tree + ':' + r.vertex));
+          m.files = [...existing, ...uniqueToAdd];
+        });
+      }
+    } catch {
+      // ignore failures
     }
   }
 

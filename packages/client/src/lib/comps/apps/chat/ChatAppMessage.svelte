@@ -376,6 +376,19 @@
               source={message?.text || ""}
               options={chatMarkdownOptions}
             />
+            {#if fileRefs && fileRefs.length > 0}
+              <div class="mt-2 flex flex-wrap gap-2">
+                {#each fileRefs as att}
+                  <FilePreview
+                    fileRef={att}
+                    showGallery={true}
+                    onGalleryOpen={(fileInfo) => {
+                      clientState.gallery.open(fileInfo);
+                    }}
+                  />
+                {/each}
+              </div>
+            {/if}
             <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
             <div
               class="mt-1 h-6 flex items-center justify-start gap-2"

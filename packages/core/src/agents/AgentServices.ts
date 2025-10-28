@@ -170,15 +170,10 @@ export class AgentServices {
 
     if (model && model.provider === "openai") {
       tools.push({ name: "web_search" });
-    }
 
-    // @TODO: remove after testing
-    tools.push({
-      name: 'get_random_number',
-      description: 'Return a random number',
-      parameters: { type: 'object', properties: {} },
-      handler: () => 3131
-    });
+      // @TODO: check if model can generate images
+      tools.push({ name: "image_generation" });
+    }
 
     tools.push(getToolRead());
 
