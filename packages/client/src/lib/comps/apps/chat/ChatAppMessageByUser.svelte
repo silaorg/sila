@@ -2,15 +2,12 @@
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import { onMount } from "svelte";
-  import { Markdown } from "@markpage/svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
   import type { VisibleMessage } from "./chatTypes";
-  import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
-  import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
 
   let {
     visibleMessage,
@@ -149,7 +146,7 @@
           <ChatAppMessageEditForm
             initialValue={editText}
             onSave={(text) => {
-              data.editMessage(vertex.id, text);
+              if (vertex) data.editMessage(vertex.id, text);
               isEditing = false;
             }}
             onCancel={() => (isEditing = false)}
@@ -195,53 +192,12 @@
               {prevBranch}
               {nextBranch}
               {branchIndex}
-              branchesNumber={vertex.parent?.children.length || 0}
+              branchesNumber={vertex?.parent?.children.length || 0}
             />
           </div>
         </div>
 
-        <div class="block w-full">
-          <ChatAppMessageEditForm
-            initialValue={editText}
-            onSave={(text) => {
-              data.editMessage(vertex.id, text);
-              isEditing = false;
-            }}
-            onCancel={() => (isEditing = false)}
-          />
-        </div>
       {/if}
-      <div
-        class="relative rounded-lg chat-message group"
-        role="region"
-        onpointerenter={beginHover}
-        onpointerleave={endHover}
-      >
-        {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
-          <ChatAppProcessMessages vertices={visibleMessage.progressVertices} />
-        {/if}
-        <Markdown source={message?.text || ""} options={chatMarkdownOptions} />
-        {#if fileRefs && fileRefs.length > 0}
-          <div class="mt-2 flex flex-wrap gap-2">
-            {#each fileRefs as att}
-              <FilePreview
-                fileRef={att}
-                showGallery={true}
-                onGalleryOpen={(fileInfo) => {
-                  clientState.gallery.open(fileInfo);
-                }}
-              />
-            {/each}
-          </div>
-        {/if}
-        <!-- Reserved toolbar row for assistant messages to avoid overlap/jump -->
-        <div
-          class="mt-1 h-6 flex items-center justify-start gap-2"
-          role="presentation"
-          onpointerenter={beginHover}
-          onpointerleave={endHover}
-        ></div>
-      </div>
     </div>
   </div>
 </div>

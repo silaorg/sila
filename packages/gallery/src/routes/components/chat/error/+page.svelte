@@ -18,6 +18,7 @@
     await chat.setMessages([
       { role: "user", text: "Hey" },
       { role: "assistant", text: "Hello, what can I help you with?" },
+      { role: "user", text: "What can you do?" },
       { role: "error", text: "Some error message here" },
     ]);
 
