@@ -10,6 +10,7 @@
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
   import { ArrowDown } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
+  import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -28,7 +29,6 @@
   let programmaticScrollTimeout: (() => void) | undefined;
 
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
-
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
 
   const visibleMessages = $derived.by(() => {
@@ -51,6 +51,9 @@
 
     return messagesToShow;
   });
+  const lastMessageIsByUser = $derived.by(() =>
+    visibleMessages.length > 0 ? visibleMessages[visibleMessages.length - 1].vertex?.getProperty("role") === "user" : false
+  );
 
   let lastMessageId = $derived.by(() =>
     messages.length > 0 ? messages[messages.length - 1].id : undefined
@@ -220,6 +223,9 @@
       {#each visibleMessages as visibleMessage (visibleMessage.vertex?.id ?? "in-progress")}
         <ChatAppMessage {visibleMessage} {data} />
       {/each}
+      {#if lastMessageIsByUser}
+        <ChatAppPendingAssistantMessage {data} />
+      {/if}
     </div>
   </div>
   {#if showScrollDown}

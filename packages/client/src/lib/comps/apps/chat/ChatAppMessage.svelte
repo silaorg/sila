@@ -210,9 +210,7 @@
     </div>
     <div class="min-w-0 max-w-[85%]">
       <div class="flex gap-2 mt-2">
-        <span class="font-bold cursor-default"
-          >{configName || "AI"}
-        </span>
+        <span class="font-bold cursor-default">{configName || "AI"} </span>
         {#if visibleMessage.progressVertices.length > 0}
           <span class="opacity-70">•</span>
           <button
@@ -220,7 +218,9 @@
             onclick={() =>
               (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
           >
-            <LoaderCircle size={12} class="animate-spin" /><span class="text-shimmer">Acting</span>
+            <LoaderCircle size={12} class="animate-spin" /><span
+              class="text-shimmer">Acting</span
+            >
           </button>
         {/if}
       </div>

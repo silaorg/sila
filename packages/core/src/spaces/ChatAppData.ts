@@ -182,7 +182,7 @@ export class ChatAppData {
   }
 
   newLangMessage(langMessage: LangMessage, inProgress: boolean = true): BindedVertex<ThreadMessage> {
-    const text = langMessage.content instanceof String ? langMessage.content : "";
+    const text = typeof langMessage.content === 'string' ? langMessage.content : "";
     const role = langMessage.role;
 
     const properties: Record<string, any> = {
