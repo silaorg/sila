@@ -4,7 +4,7 @@
   import { ClientState } from "@sila/client";
   import type { ChatAppData } from "@sila/core";
   import { createDemoSpace } from "$lib/demo/spaceDemoBuilder";
-  import { LangMessages } from "aiwrapper";
+  import type { ThreadMessage } from "@sila/core";
 
   let state: ClientState | null = null;
   let data: ChatAppData | null = null;
@@ -15,13 +15,11 @@
 
     const demoSpace = createDemoSpace({ name: "Assistant Responding" });
     const chat = demoSpace.newChat("Lang test");
-    const langMessages = new LangMessages([
-      { role: "user", content: "Hey" },
-      { role: "assistant", content: "Hello, what can I help you with?" },
-      { role: "user", content: "What can you do?" },
-      { role: "tool", content: [{ callId: "1", name: "read", arguments: { uri: "https://example.com" } }] },
+    await chat.setMessages([
+      { role: "user", text: "Hey" },
+      { role: "assistant", text: "Hello, what can I help you with?" },
+      { role: "error", text: "Some error message here" },
     ]);
-    chat.setMessages(langMessages);
 
     // Attach demo space to ClientState (in-memory) and set current chat data
     await state.addDemoSpace(demoSpace.getSpace(), demoSpace.name);

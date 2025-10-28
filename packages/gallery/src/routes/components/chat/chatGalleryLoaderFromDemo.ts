@@ -1,6 +1,4 @@
-import { onMount } from "svelte";
-import { ClientStateProvider, type ClientState } from "@sila/client";
-import ChatApp from "@sila/client/comps/apps/chat/ChatApp.svelte";
+import { type ClientState } from "@sila/client";
 import { ChatAppData } from "@sila/core";
 import { loadDemoSpace } from "$lib/loadDemoSpace";
 

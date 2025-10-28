@@ -1,10 +1,9 @@
-import { LangMessages, type LangMessage } from "aiwrapper";
-import { Space, ChatAppData, uuid } from "@sila/core";
+import { Space, ChatAppData, uuid, type ThreadMessage } from "@sila/core";
 
 export type DemoChatHandle = {
   id: string;
-  setMessages: (messages: LangMessages) => void;
-  addMessage: (message: LangMessage) => void;
+  setMessages: (messages: Partial<ThreadMessage>[]) => Promise<void> | void;
+  addMessage: (message: Partial<ThreadMessage>) => Promise<void> | void;
   get: () => ChatAppData;
   data: ChatAppData;
 };
@@ -36,14 +35,16 @@ export class DemoSpace {
     const entry = { id: data.threadId, title, data };
     this.chats.push(entry);
 
-    const setMessages = (messages: LangMessages) => {
+    const setMessages = async (messages: Partial<ThreadMessage>[]) => {
       for (const m of messages) {
-        data.newLangMessage(m, false);
+        const role = (m.role === "user" || m.role === "assistant" || m.role === "error" || m.role === "tool" || m.role === "tool-results") ? m.role : "assistant";
+        await data.newMessage(role, m.text ?? undefined, m.thinking ?? undefined);
       }
     };
 
-    const addMessage = (message: LangMessage) => {
-      data.newLangMessage(message, false);
+    const addMessage = async (message: Partial<ThreadMessage>) => {
+      const role = (message.role === "user" || message.role === "assistant" || message.role === "error" || message.role === "tool" || message.role === "tool-results") ? message.role : "assistant";
+      await data.newMessage(role, message.text ?? undefined, message.thinking ?? undefined);
     };
 
     return {
