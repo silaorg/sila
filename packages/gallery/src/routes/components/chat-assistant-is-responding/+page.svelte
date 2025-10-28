@@ -1,17 +1,24 @@
 <script lang="ts">
-  import ChatAppInGallery from "$lib/comps/ChatAppInGallery.svelte";
   import { onMount } from "svelte";
-  import { loadFromDemoSpace } from "./chatGalleryLoaderFromDemo";
-  import type { ClientState } from "@sila/client";
+  import ChatAppInGallery from "$lib/comps/ChatAppInGallery.svelte";
+  import { ClientState } from "@sila/client";
   import type { ChatAppData } from "@sila/core";
 
   let state: ClientState | undefined = $state(undefined);
   let data: ChatAppData | undefined = $state(undefined);
 
   onMount(async () => {
-    const stateAndData = await loadFromDemoSpace();
-    data = stateAndData.data;
-    state = stateAndData.state;
+    state = new ClientState();
+    state.init();
+
+    // @TODO: create a dummy space and then chat
+
+    /*
+    const chat =demoSpace.newChat():
+    chat.setMessages(langMessages);
+    demoSpace.chats.length > 0
+    */
+
   });
 </script>
 
