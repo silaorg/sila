@@ -23,12 +23,12 @@ export default class ChatAppBackend {
     this.defaultChatAgent.subscribe((e) => {  
       if (e.type === "messageGenerated") {
         // Agent has finished generating messages
-        console.log("Chat agent finished generating messages");
+        //console.log("Chat agent finished generating messages");
         this.runTitleAgent();
       } else if (e.type === "error") {
         console.error("Chat agent error:", e.error);
       } else if (e.type === "state") {
-        console.log("Chat agent state changed to:", e.state);
+        //console.log("Chat agent state changed to:", e.state);
       }
     });
 

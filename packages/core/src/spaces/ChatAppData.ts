@@ -197,14 +197,12 @@ export class ChatAppData {
     }
 
     if (role === "tool") {
-      //const toolRequests = langMessage.content as ToolRequest[];
-      const toolRequests = JSON.stringify(langMessage.content, null, 2);
+      const toolRequests = langMessage.content as ToolRequest[];
       properties.toolRequests = toolRequests;
     }
 
     if (role === "tool-results") {
-      //const toolResults = langMessage.content as ToolResult[];
-      const toolResults = JSON.stringify(langMessage.content, null, 2);
+      const toolResults = langMessage.content as ToolResult[];
       properties.toolResults = toolResults;
     }
 
@@ -229,6 +227,14 @@ export class ChatAppData {
 
     if (message.text) {
       properties.text = message.text;
+    }
+
+    if (message.toolRequests) {
+      properties.toolRequests = message.toolRequests;
+    }
+
+    if (message.toolResults) {
+      properties.toolResults = message.toolResults;
     }
 
     // If this is an assistant message, attach the assistant config information so the UI can display

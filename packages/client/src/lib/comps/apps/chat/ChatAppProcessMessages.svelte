@@ -12,9 +12,7 @@
     for (let i = 0; i < vertices.length; i++) {
       const vertex = vertices[i];
       if (vertex.getProperty("role") === "tool") {
-        const toolRequests = JSON.parse(
-          vertex.getProperty("toolRequests") as string
-        ) as ToolRequest[];
+        const toolRequests = vertex.getProperty("toolRequests") as ToolRequest[];
 
         let pairs: ToolUsageMessagePair[] = [];
         for (const request of toolRequests) {
@@ -34,9 +32,7 @@
           vertices[i + 1].getProperty("role") === "tool-results"
         ) {
           const resultsVertex = vertices[i + 1];
-          const toolResults = JSON.parse(
-            resultsVertex.getProperty("toolResults") as string
-          ) as ToolResult[];
+          const toolResults = resultsVertex.getProperty("toolResults") as ToolResult[];
 
           for (const result of toolResults) {
             const pair = pairs.find((p) => p.id === result.toolId);
