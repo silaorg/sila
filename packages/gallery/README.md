@@ -10,3 +10,7 @@ This package hosts a SvelteKit website used to:
 
 - From repo root: `npm run gallery`
 - Directly from package: `npm run dev -w packages/gallery`
+
+### Breakpoints
+
+If you want to use breakpoints in VSCode / Cursor - run "Debug Gallery" from the Debug section of the editor.
