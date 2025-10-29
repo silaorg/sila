@@ -4,7 +4,7 @@ We have automated tests in two packages: `core` and `gallery`.
 
 `packages/core/tests` is for testing core (without the UI or any client-server logic).
 
-`packages/gallery/tests` is for testing svelte components. The closest we get e2e testing.
+`packages/gallery/tests` is for testing svelte components. The closest we get to e2e testing.
 
 Perhaps we need to setup a proper testing for the `packages/desktop` (Electron app) but didn't do it yet.
 
@@ -42,7 +42,7 @@ npm -w packages/gallery run test:ui
 ```
 
 ## AI provider keys (optional)
-Some tests exercise AI integrations. Provide keys to enable them; tests auto-skip without keys.
+Some tests use AI providers. Add API keys to enable them; tests auto-skip without keys.
 
 - Create `.env` in repo root
 - Supported keys (set whichever you use):
@@ -63,5 +63,3 @@ packages/core/tests/assets/to-send/
   npm -w packages/core run test
   ```
 - AI tests without keys are expected to skip.
-
-Note: This document is deliberately brief and stable. See test files for current coverage.
