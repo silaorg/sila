@@ -234,13 +234,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       unsubscribe();
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-
-      // @TODO: in this case, create a new message with role "error" and text "msg"
-      /*
-      assistantMsg.role = 'error';
-      assistantMsg.text = msg;
-      assistantMsg.inProgress = false;
-      */
+      await this.data.newMessage({ role: "error", text: msg });
     }
   }
 
