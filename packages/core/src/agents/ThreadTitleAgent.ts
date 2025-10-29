@@ -2,6 +2,7 @@ import { ThreadMessage } from "../models";
 import { Agent, LangMessages } from "aiwrapper";
 import { z } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
+import { titleInstructions } from "./prompts/titleAgentInstructions";
 
 export interface TitleAgentInput {
   messages: ThreadMessage[];
@@ -35,23 +36,7 @@ export class ThreadTitleAgent extends Agent<TitleAgentInput, TitleAgentOutput, {
     const schema = z.object({ title: z.string() });
 
     const messagesForTitleAgent = new LangMessages();
-    messagesForTitleAgent.instructions = [
-      "You create and edit concise titles for chat threads.",
-      "Rules:",
-      "- Read the provided messages.",
-      "- If <currentTitle> exists and still reflects the messages, keep it unchanged. Don't do minor title changes.",
-      "- Otherwise, propose a new title:",
-      "  - Length: 1–4 words",
-      "  - Style: Title Case.",
-      "  - Language: match the user's message language.",
-      "- Do NOT add markdown, tags, quotes, or commentary.",
-      "- Output JSON matching schema { title: string } with just the title.",
-      "",
-      "Edge cases:",
-      "- If messages are empty or generic greetings, keep the current title if present; else use \"New Chat\".",
-      "\n",
-      `<currentTitle>${title ?? ""}</currentTitle>`
-    ].join("\n");
+    messagesForTitleAgent.instructions = titleInstructions({ title: title ?? "" });
 
     messagesForTitleAgent.addUserMessage(`<messages>\n${lastUserAndAssistantMessages}\n</messages>`);
 

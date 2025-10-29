@@ -11,6 +11,7 @@ import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import { splitModelString } from "../utils/modelUtils";
 import type { AppTree } from "../spaces/AppTree";
+import { chatAgentMetaInstructions, formattingInstructions } from "./prompts/wrapChatAgentInstructions";
 
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
@@ -129,25 +130,17 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const lang = await this.agentServices.lang(config.targetLLM);
       const resolvedModel = this.agentServices.getLastResolvedModel();
 
+      // Add the assistant (config) instructions
       let instructions = (config.instructions || "");
+
       const now = new Date();
       const localDateTime = now.toLocaleString();
       const utcIso = now.toISOString();
-      instructions += "\n\n<formatting>\n" +
-        "Preferably use markdown for formatting. If you write code examples: use tick marks for inline code and triple tick marks for code blocks." +
-        "\n\n" +
-        "For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters. If you want to show the source of TeX - wrap it in a code block" +
-        "\n</formatting>";
 
-      instructions += "\n\n<meta>";
-      instructions += "\nCurrent local date and time: " + localDateTime;
-      instructions += "\nCurrent UTC time (ISO): " + utcIso;
-      if (resolvedModel) {
-        instructions += `\nModel: ${resolvedModel.provider}/${resolvedModel.model}`;
-      }
-      instructions += `\nCurrent assistant (your) name: ${config.name}`;
-      instructions += `\nEnvironment: a workspace in Sila app (open alternative to ChatGPT where users own their data) - https://silain.com`;
-      instructions += `\n</meta>`;
+      // How to format messages
+      instructions += "\n\n" + formattingInstructions();
+      // Meta (context) for the agent to know the time, model, etc.
+      instructions += "\n\n" + chatAgentMetaInstructions({ localDateTime, utcIso, resolvedModel, config });
 
       const supportsVision = true;
 
