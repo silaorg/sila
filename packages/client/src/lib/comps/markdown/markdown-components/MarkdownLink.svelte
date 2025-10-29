@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Tokens } from "marked";
+  import type { Tokens } from "@markpage/svelte";
   import type { Snippet } from "svelte";
 
   let { token, children } = $props<{
