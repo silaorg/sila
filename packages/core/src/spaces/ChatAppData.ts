@@ -196,6 +196,16 @@ export class ChatAppData {
       properties.meta = langMessage.meta;
     }
 
+    // Ensure assistant messages created via streaming also carry assistant config info
+    // so that the UI can show the assistant's name instead of a generic label.
+    if (role === "assistant" && this.configId) {
+      properties.configId = this.configId;
+      const cfg = this.space.getAppConfig(this.configId);
+      if (cfg) {
+        properties.configName = cfg.name;
+      }
+    }
+
     if (role === "tool") {
       const toolRequests = langMessage.content as ToolRequest[];
       properties.toolRequests = toolRequests;
