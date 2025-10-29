@@ -28,6 +28,14 @@ node scripts/build-icons.js \
   [--linux-size 512]          # emit linux PNG at specific size
 ```
 
+Defaults if no flags are provided (so "node scripts/build-icons.js" just works):
+- Inputs:
+  - macOS: `packages/desktop/static-desktop/macos-icon-master.png`
+  - Windows: `packages/desktop/static-desktop/windows-icon-master.png`
+  - Linux: `packages/desktop/static-desktop/linux-icon-master.png`
+- Output directory: `packages/desktop/static-desktop`
+- The script throws if a required input is missing (unless the corresponding `--skip-*` flag is set).
+
 ## Inputs (recommended)
 - macOS: 1024×1024 PNG with safe padding (transparent background). File may be different from Windows/Linux to account for rounded squircle appearance.
 - Windows: 1024×1024 PNG (transparent). Script will generate multi-size ICO entries.
@@ -69,11 +77,8 @@ These match what our build expects:
 ```javascript
 // packages/desktop/scripts/build-icons.js
 // Usage:
-//   node packages/desktop/scripts/build-icons.js \
-//     --mac packages/desktop/static-desktop/macos-icon-master.png \
-//     --win packages/desktop/static-desktop/windows-icon-master.png \
-//     --linux packages/desktop/static-desktop/linux-icon-master.png \
-//     --out packages/desktop/static-desktop
+//   node packages/desktop/scripts/build-icons.js
+//   # optionally override with flags: --mac/--win/--linux/--out
 
 import { execFileSync, spawnSync } from 'child_process';
 import fs from 'fs';
@@ -97,13 +102,20 @@ function sipsResize(src, size, out) {
   if (res.status !== 0) throw new Error(`sips failed for ${size}px`);
 }
 
+// Defaults so the script can run without flags
+const defaultInputs = {
+  mac: 'packages/desktop/static-desktop/macos-icon-master.png',
+  win: 'packages/desktop/static-desktop/windows-icon-master.png',
+  linux: 'packages/desktop/static-desktop/linux-icon-master.png'
+};
 const outDir = path.resolve(arg('--out', 'packages/desktop/static-desktop'));
 ensureDir(outDir);
 
 // macOS .icns
 if (!flag('--skip-mac')) {
-  const macSrc = arg('--mac');
-  if (exists(macSrc)) {
+  const macSrc = path.resolve(arg('--mac', defaultInputs.mac));
+  if (!exists(macSrc)) throw new Error(`mac: source not found: ${macSrc}`);
+  {
     const iconsetDir = path.join(outDir, arg('--mac-name', 'App.iconset'));
     ensureDir(iconsetDir);
     for (const size of [16, 32, 128, 256, 512]) {
@@ -111,26 +123,22 @@ if (!flag('--skip-mac')) {
       sipsResize(macSrc, size * 2, path.join(iconsetDir, `icon_${size}x${size}@2x.png`));
     }
     execFileSync('iconutil', ['-c', 'icns', iconsetDir, '-o', path.join(outDir, 'icon.icns')], { stdio: 'inherit' });
-  } else {
-    console.warn('mac: source missing, skipping');
   }
 }
 
 // Linux icon.png
 if (!flag('--skip-linux')) {
-  const linuxSrc = arg('--linux');
+  const linuxSrc = path.resolve(arg('--linux', defaultInputs.linux));
   const size = Number(arg('--linux-size', '512'));
-  if (exists(linuxSrc)) {
-    sipsResize(linuxSrc, size, path.join(outDir, 'icon.png'));
-  } else {
-    console.warn('linux: source missing, skipping');
-  }
+  if (!exists(linuxSrc)) throw new Error(`linux: source not found: ${linuxSrc}`);
+  sipsResize(linuxSrc, size, path.join(outDir, 'icon.png'));
 }
 
 // Windows .ico (optional ImageMagick)
 if (!flag('--skip-win')) {
-  const winSrc = arg('--win');
-  if (exists(winSrc) && have('convert')) {
+  const winSrc = path.resolve(arg('--win', defaultInputs.win));
+  if (!exists(winSrc)) throw new Error(`win: source not found: ${winSrc}`);
+  if (have('convert')) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ico-'));
     const sizes = [16, 24, 32, 48, 64, 128, 256];
     const pngs = [];
@@ -141,7 +149,7 @@ if (!flag('--skip-win')) {
     }
     execFileSync('convert', [...pngs, path.join(outDir, 'icon.ico')], { stdio: 'inherit' });
   } else {
-    console.warn('win: source missing or ImageMagick `convert` not found, skipping');
+    console.warn('win: ImageMagick `convert` not found; skipping .ico generation');
   }
 }
 
@@ -160,9 +168,18 @@ console.log('Icons written to', outDir);
 - Optionally call `npm run icons` from `prepare-static-files` or before packaging commands.
 
 ## CI
-- macOS runners have `sips` and `iconutil`.
-- Add `brew install imagemagick` on macOS runners if we want `.ico` built in CI.
-- Cache is not critical; outputs are small.
+We will not wire this into CI initially. To make it reliable across different GitHub runners later:
+- macOS: `sips` and `iconutil` are available by default. Install ImageMagick for `.ico` if desired (`brew install imagemagick`).
+- Ubuntu: use `apt-get install -y imagemagick icnsutils` to get `convert` and `png2icns` (alternative to `iconutil`). Adjust the script to use `png2icns` when `iconutil` is unavailable.
+- Windows: use Chocolatey to install ImageMagick (`choco install imagemagick`). `.icns` generation is best done on macOS or Ubuntu with `icnsutils`.
+
+Recommended durable approach:
+- Build icons in a macOS job (authoritative outputs), upload as artifacts, and reuse in other matrix jobs; or
+- Use an Ubuntu job with `icnsutils` + ImageMagick to produce all formats; verify produced sizes with a small check step.
+
+Verification in CI:
+- Expand `.icns` back to an `.iconset` (`iconutil -c iconset` or `icns2png`) and assert expected files exist.
+- Validate dimensions with ImageMagick `identify -format "%w x %h %f\n" *.png`.
 
 ## Validation checklist
 - `icon.icns` contains: 16/32/128/256/512 and `@2x` variants up to 1024.
