@@ -40,7 +40,7 @@ export default class ChatAppBackend {
       const messages = this.data.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>());
       const currentTitle = this.data.title || "";
       
-      // Get the same config that the chat agent uses
+      // Get the same config that the chat agent uses. We would take only the targetLLM from it
       let config = this.data.configId ?
         this.agentServices.space.getAppConfig(this.data.configId) : undefined;
 
@@ -53,7 +53,6 @@ export default class ChatAppBackend {
         return;
       }
 
-      // Create a new title agent with the correct model
       const titleAgent = new ThreadTitleAgent(this.agentServices, { targetLLM: config.targetLLM });
       
       const result = await titleAgent.run({
