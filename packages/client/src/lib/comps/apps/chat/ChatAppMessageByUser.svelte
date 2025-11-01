@@ -159,9 +159,8 @@
           onpointerenter={beginHover}
           onpointerleave={endHover}
         >
-          {@html replaceNewlinesWithHtmlBrs(message?.text || "")}
           {#if fileRefs && fileRefs.length > 0}
-            <div class="mt-2 flex flex-wrap gap-2">
+            <div class="mb-4 flex flex-wrap gap-2">
               {#each fileRefs as att}
                 <FilePreview
                   fileRef={att}
@@ -173,6 +172,7 @@
               {/each}
             </div>
           {/if}
+          {@html replaceNewlinesWithHtmlBrs(message?.text || "")}
         </div>
 
         <div
@@ -196,7 +196,6 @@
             />
           </div>
         </div>
-
       {/if}
     </div>
   </div>
