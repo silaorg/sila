@@ -1,5 +1,5 @@
 import type { LangMessage, LangContentPart } from "aiwrapper";
-import { Agent, LangMessages } from "aiwrapper";
+import { Agent, LangMessages, HttpRequestError } from "aiwrapper";
 import { ChatAgent } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
 import { BindedVertex, ChatAppData } from "@sila/core";
@@ -226,8 +226,15 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
       unsubscribe();
     } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      await this.data.newMessage({ role: "error", text: msg });
+      let errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (error instanceof HttpRequestError) {
+        if (error.body) {
+          errorMessage = error.bodyText || errorMessage;
+        }
+      }
+
+      await this.data.newMessage({ role: "error", text: errorMessage });
     }
   }
 
