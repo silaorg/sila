@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Send, StopCircle, Paperclip, Plus, Image as ImageIcon } from "lucide-svelte";
+  import {
+    Send,
+    StopCircle,
+    Paperclip,
+    Plus,
+    Image as ImageIcon,
+  } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import AppConfigDropdown from "@sila/client/comps/apps/AppConfigDropdown.svelte";
   import AttachmentPreviewItem from "./AttachmentPreviewItem.svelte";
@@ -10,7 +16,17 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ChatAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
-  import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions, processTextFileForUpload, optimizeTextFile, readFileAsText, extractTextFileMetadata, type TextFileMetadata } from "@sila/client/utils/fileProcessing";
+  import {
+    processFileForUpload,
+    optimizeImageSize,
+    toDataUrl,
+    getImageDimensions,
+    processTextFileForUpload,
+    optimizeTextFile,
+    readFileAsText,
+    extractTextFileMetadata,
+    type TextFileMetadata,
+  } from "@sila/client/utils/fileProcessing";
   const clientState = useClientState();
 
   const TEXTAREA_BASE_HEIGHT = 40; // px
@@ -63,7 +79,9 @@
   let attachments = $state<(AttachmentPreview & { isLoading?: boolean })[]>([]);
 
   let canSendMessage = $derived(
-    !disabled && status === "can-send-message" && (query.trim().length > 0 || attachments.length > 0),
+    !disabled &&
+      status === "can-send-message" &&
+      (query.trim().length > 0 || attachments.length > 0)
   );
 
   let configId = $state("");
@@ -132,37 +150,46 @@
 
     for (const file of selected) {
       const processingId = crypto.randomUUID();
-      const isText = file.type.startsWith('text/') || file.name.match(/\.(txt|md|json|csv|js|ts|py|java|c|cpp|cs|php|rb|go|rs|swift|kt|scala|sh|bat|ps1|yml|yaml|toml|ini|cfg|conf|xml|html|css|log|tsv)$/i);
-      
+      const isText =
+        file.type.startsWith("text/") ||
+        file.name.match(
+          /\.(txt|md|json|csv|js|ts|py|java|c|cpp|cs|php|rb|go|rs|swift|kt|scala|sh|bat|ps1|yml|yaml|toml|ini|cfg|conf|xml|html|css|log|tsv)$/i
+        );
+
       // Add processing indicator immediately
-      attachments = [...attachments, {
-        id: processingId,
-        kind: isText ? 'text' : 'image',
-        name: file.name,
-        mimeType: file.type,
-        size: file.size,
-        isLoading: true
-      }];
+      attachments = [
+        ...attachments,
+        {
+          id: processingId,
+          kind: isText ? "text" : "image",
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          isLoading: true,
+        },
+      ];
 
       try {
         // Check if it's a text file first
-        const isTextFile = await processTextFileForUpload(file).then(() => true).catch(() => false);
-        
+        const isTextFile = await processTextFileForUpload(file)
+          .then(() => true)
+          .catch(() => false);
+
         if (isTextFile) {
           // Process text file
           const processedFile = await processTextFileForUpload(file);
           const optimizedFile = await optimizeTextFile(processedFile);
-          
+
           // Read text content
           const content = await readFileAsText(optimizedFile);
           const metadata = extractTextFileMetadata(optimizedFile, content);
-          
+
           // Replace processing indicator with completed attachment
-          attachments = attachments.map(att => 
-            att.id === processingId 
+          attachments = attachments.map((att) =>
+            att.id === processingId
               ? {
                   id: processingId,
-                  kind: 'text',
+                  kind: "text",
                   name: optimizedFile.name,
                   mimeType: optimizedFile.type,
                   size: optimizedFile.size,
@@ -171,7 +198,7 @@
                   width: metadata.charCount,
                   height: metadata.lineCount,
                   alt: metadata.language,
-                  isLoading: false
+                  isLoading: false,
                 }
               : att
           );
@@ -179,30 +206,30 @@
           // Process image file
           const processedFile = await processFileForUpload(file);
           const optimizedFile = await optimizeImageSize(processedFile);
-          
+
           // Only images for now
-          if (!optimizedFile.type.startsWith('image/')) {
+          if (!optimizedFile.type.startsWith("image/")) {
             // Remove processing indicator for unsupported files
-            attachments = attachments.filter(a => a.id !== processingId);
+            attachments = attachments.filter((a) => a.id !== processingId);
             continue;
           }
-          
+
           const dataUrl = await toDataUrl(optimizedFile);
           const dims = await getImageDimensions(dataUrl);
-          
+
           // Replace processing indicator with completed attachment
-          attachments = attachments.map(att => 
-            att.id === processingId 
+          attachments = attachments.map((att) =>
+            att.id === processingId
               ? {
                   id: processingId,
-                  kind: 'image',
+                  kind: "image",
                   name: optimizedFile.name,
                   mimeType: optimizedFile.type,
                   size: optimizedFile.size,
                   dataUrl,
                   width: dims?.width,
                   height: dims?.height,
-                  isLoading: false
+                  isLoading: false,
                 }
               : att
           );
@@ -210,24 +237,22 @@
       } catch (error) {
         console.error(`Failed to process ${file.name}:`, error);
         // Remove processing indicator on error
-        attachments = attachments.filter(a => a.id !== processingId);
+        attachments = attachments.filter((a) => a.id !== processingId);
       }
     }
-    
+
     // reset input to allow re-selecting the same file
     if (fileInputEl) fileInputEl.value = "";
     attachmentsMenuOpen = false;
   }
 
   function removeAttachment(id: string) {
-    attachments = attachments.filter(a => a.id !== id);
+    attachments = attachments.filter((a) => a.id !== id);
   }
 
   function openFilePicker() {
     fileInputEl?.click();
   }
-
-
 
   function adjustTextareaHeight() {
     if (!textareaElement) return;
@@ -296,7 +321,10 @@
       return;
     }
 
-    onSend(query, attachments.filter(att => !att.isLoading));
+    onSend(
+      query,
+      attachments.filter((att) => !att.isLoading)
+    );
     isSending = true;
     query = "";
     if (textareaElement) {
@@ -349,12 +377,15 @@
 
     // Check for any file-related content immediately and prevent default
     const files = Array.from(clipboardData.files || []);
-    const imageTypes = clipboardData.types.filter(type => type.startsWith('image/'));
-    const hasFileRelatedData = clipboardData.types.some(type => 
-      type === 'text/uri-list' || 
-      type === 'Files' ||
-      type.includes('file') ||
-      type.includes('Files')
+    const imageTypes = clipboardData.types.filter((type) =>
+      type.startsWith("image/")
+    );
+    const hasFileRelatedData = clipboardData.types.some(
+      (type) =>
+        type === "text/uri-list" ||
+        type === "Files" ||
+        type.includes("file") ||
+        type.includes("Files")
     );
 
     if (files.length > 0 || imageTypes.length > 0 || hasFileRelatedData) {
@@ -366,40 +397,49 @@
     // Check for files in clipboard
     if (files.length > 0) {
       hasProcessedContent = true;
-      
+
       for (const file of files) {
         const processingId = crypto.randomUUID();
-        const isText = file.type.startsWith('text/') || file.name.match(/\.(txt|md|json|csv|js|ts|py|java|c|cpp|cs|php|rb|go|rs|swift|kt|scala|sh|bat|ps1|yml|yaml|toml|ini|cfg|conf|xml|html|css|log|tsv)$/i);
-        
+        const isText =
+          file.type.startsWith("text/") ||
+          file.name.match(
+            /\.(txt|md|json|csv|js|ts|py|java|c|cpp|cs|php|rb|go|rs|swift|kt|scala|sh|bat|ps1|yml|yaml|toml|ini|cfg|conf|xml|html|css|log|tsv)$/i
+          );
+
         // Add processing indicator immediately
-        attachments = [...attachments, {
-          id: processingId,
-          kind: isText ? 'text' : 'image',
-          name: file.name,
-          mimeType: file.type,
-          size: file.size,
-          isLoading: true
-        }];
+        attachments = [
+          ...attachments,
+          {
+            id: processingId,
+            kind: isText ? "text" : "image",
+            name: file.name,
+            mimeType: file.type,
+            size: file.size,
+            isLoading: true,
+          },
+        ];
 
         try {
           // Check if it's a text file first
-          const isTextFile = await processTextFileForUpload(file).then(() => true).catch(() => false);
-          
+          const isTextFile = await processTextFileForUpload(file)
+            .then(() => true)
+            .catch(() => false);
+
           if (isTextFile) {
             // Process text file
             const processedFile = await processTextFileForUpload(file);
             const optimizedFile = await optimizeTextFile(processedFile);
-            
+
             // Read text content
             const content = await readFileAsText(optimizedFile);
             const metadata = extractTextFileMetadata(optimizedFile, content);
-            
+
             // Replace processing indicator with completed attachment
-            attachments = attachments.map(att => 
-              att.id === processingId 
+            attachments = attachments.map((att) =>
+              att.id === processingId
                 ? {
                     id: processingId,
-                    kind: 'text',
+                    kind: "text",
                     name: optimizedFile.name,
                     mimeType: optimizedFile.type,
                     size: optimizedFile.size,
@@ -408,7 +448,7 @@
                     width: metadata.charCount,
                     height: metadata.lineCount,
                     alt: metadata.language,
-                    isLoading: false
+                    isLoading: false,
                   }
                 : att
             );
@@ -416,30 +456,30 @@
             // Process image file
             const processedFile = await processFileForUpload(file);
             const optimizedFile = await optimizeImageSize(processedFile);
-            
+
             // Only images for now
-            if (!optimizedFile.type.startsWith('image/')) {
+            if (!optimizedFile.type.startsWith("image/")) {
               // Remove processing indicator for unsupported files
-              attachments = attachments.filter(a => a.id !== processingId);
+              attachments = attachments.filter((a) => a.id !== processingId);
               continue;
             }
-            
+
             const dataUrl = await toDataUrl(optimizedFile);
             const dims = await getImageDimensions(dataUrl);
-            
+
             // Replace processing indicator with completed attachment
-            attachments = attachments.map(att => 
-              att.id === processingId 
+            attachments = attachments.map((att) =>
+              att.id === processingId
                 ? {
                     id: processingId,
-                    kind: 'image',
+                    kind: "image",
                     name: optimizedFile.name,
                     mimeType: optimizedFile.type,
                     size: optimizedFile.size,
                     dataUrl,
                     width: dims?.width,
                     height: dims?.height,
-                    isLoading: false
+                    isLoading: false,
                   }
                 : att
             );
@@ -447,7 +487,7 @@
         } catch (error) {
           console.error(`Failed to process pasted file ${file.name}:`, error);
           // Remove processing indicator on error
-          attachments = attachments.filter(a => a.id !== processingId);
+          attachments = attachments.filter((a) => a.id !== processingId);
         }
       }
     }
@@ -458,56 +498,63 @@
       e.preventDefault();
       hasProcessedContent = true;
     }
-    
+
     for (const imageType of imageTypes) {
       let processingId: string | undefined;
       try {
         const dataUrl = clipboardData.getData(imageType);
-        if (dataUrl && dataUrl.startsWith('data:')) {
+        if (dataUrl && dataUrl.startsWith("data:")) {
           hasProcessedContent = true;
-          
+
           processingId = crypto.randomUUID();
-          
+
           // Add processing indicator immediately
-          attachments = [...attachments, {
-            id: processingId,
-            kind: 'image',
-            name: `pasted-image-${Date.now()}.${imageType.split('/')[1] || 'png'}`,
-            mimeType: imageType,
-            size: 0,
-            isLoading: true
-          }];
-          
+          attachments = [
+            ...attachments,
+            {
+              id: processingId,
+              kind: "image",
+              name: `pasted-image-${Date.now()}.${imageType.split("/")[1] || "png"}`,
+              mimeType: imageType,
+              size: 0,
+              isLoading: true,
+            },
+          ];
+
           // Convert data URL to blob
           const response = await fetch(dataUrl);
           const blob = await response.blob();
-          
+
           // Convert blob to file
-          const file = new File([blob], `pasted-image-${Date.now()}.${imageType.split('/')[1] || 'png'}`, {
-            type: imageType,
-            lastModified: Date.now()
-          });
-          
+          const file = new File(
+            [blob],
+            `pasted-image-${Date.now()}.${imageType.split("/")[1] || "png"}`,
+            {
+              type: imageType,
+              lastModified: Date.now(),
+            }
+          );
+
           // Process image file
           const processedFile = await processFileForUpload(file);
           const optimizedFile = await optimizeImageSize(processedFile);
-          
+
           const optimizedDataUrl = await toDataUrl(optimizedFile);
           const dims = await getImageDimensions(optimizedDataUrl);
-          
+
           // Replace processing indicator with completed attachment
-          attachments = attachments.map(att => 
-            att.id === processingId 
+          attachments = attachments.map((att) =>
+            att.id === processingId
               ? {
                   id: processingId,
-                  kind: 'image',
+                  kind: "image",
                   name: optimizedFile.name,
                   mimeType: optimizedFile.type,
                   size: optimizedFile.size,
                   dataUrl: optimizedDataUrl,
                   width: dims?.width,
                   height: dims?.height,
-                  isLoading: false
+                  isLoading: false,
                 }
               : att
           );
@@ -516,7 +563,7 @@
         console.error(`Failed to process pasted image ${imageType}:`, error);
         // Remove processing indicator on error
         if (processingId) {
-          attachments = attachments.filter(a => a.id !== processingId);
+          attachments = attachments.filter((a) => a.id !== processingId);
         }
       }
     }
@@ -536,13 +583,30 @@
 </script>
 
 {#if clientState.currentSpaceState?.hasModelProviders}
-  <form data-component="send-message-form" class="w-full" use:focusTrap={isFocused} onsubmit={handleSubmit}>
+  <form
+    data-component="send-message-form"
+    class="w-full"
+    use:focusTrap={isFocused}
+    onsubmit={handleSubmit}
+  >
     <div class="relative flex w-full items-center">
       <div
         class="flex w-full flex-col rounded-lg bg-surface-50-950 transition-colors ring"
         class:ring-primary-300-700={isTextareaFocused}
         class:ring-surface-300-700={!isTextareaFocused}
       >
+        <!-- Attachments previews (in-memory) -->
+        {#if attachments.length > 0}
+          <div class="flex flex-wrap gap-2 p-4">
+            {#each attachments as att (att.id)}
+              <AttachmentPreviewItem
+                attachment={att}
+                onRemove={removeAttachment}
+              />
+            {/each}
+          </div>
+        {/if}
+
         <textarea
           bind:this={textareaElement}
           class="block w-full resize-none border-0 bg-transparent p-2 leading-normal outline-none focus:ring-0"
@@ -557,31 +621,29 @@
           {disabled}
         ></textarea>
 
-        <!-- Attachments previews (in-memory) -->
-        {#if attachments.length > 0}
-          <div class="flex flex-wrap gap-2 px-2 pt-2">
-            {#each attachments as att (att.id)}
-              <AttachmentPreviewItem 
-                attachment={att}
-                onRemove={removeAttachment}
-              />
-            {/each}
-          </div>
-        {/if}
-
         <!-- Bottom toolbar -->
         <div class="flex items-center justify-between p-2 text-sm">
           <div class="flex items-center gap-2">
             {#if showConfigSelector}
-              <AppConfigDropdown {configId} onChange={handleConfigChange} highlighted={isTextareaFocused} />
+              <AppConfigDropdown
+                {configId}
+                onChange={handleConfigChange}
+                highlighted={isTextareaFocused}
+              />
             {/if}
 
             {#if attachEnabled}
-              <ContextMenu open={attachmentsMenuOpen} onOpenChange={(e: { open: boolean }) => attachmentsMenuOpen = e.open} placement="top" maxWidth="280px">
+              <ContextMenu
+                open={attachmentsMenuOpen}
+                onOpenChange={(e: { open: boolean }) =>
+                  (attachmentsMenuOpen = e.open)}
+                placement="top"
+                maxWidth="280px"
+              >
                 {#snippet trigger()}
-                  <button 
-                    class="flex items-center justify-center h-9 w-9 transition-colors" 
-                    aria-label="Add attachments (or paste files)" 
+                  <button
+                    class="flex items-center justify-center h-9 w-9 transition-colors"
+                    aria-label="Add attachments (or paste files)"
                     {disabled}
                   >
                     <Plus size={20} />
@@ -589,17 +651,29 @@
                 {/snippet}
                 {#snippet content()}
                   <div class="space-y-2">
-                    <button class="flex items-center gap-2 w-full text-left hover:bg-surface-300-700/30 rounded px-2 py-1" onclick={openFilePicker}>
+                    <button
+                      class="flex items-center gap-2 w-full text-left hover:bg-surface-300-700/30 rounded px-2 py-1"
+                      onclick={openFilePicker}
+                    >
                       <ImageIcon size={18} />
                       <span>Add photos & files</span>
                     </button>
-                    <div class="text-xs opacity-60 px-2 py-1 border-t border-surface-300-700/30">
+                    <div
+                      class="text-xs opacity-60 px-2 py-1 border-t border-surface-300-700/30"
+                    >
                       💡 You can also paste files directly into the text area
                     </div>
                   </div>
                 {/snippet}
               </ContextMenu>
-              <input type="file" accept="image/*,.txt,.md,.json,.csv,.js,.ts,.py,.java,.c,.cpp,.h,.cs,.php,.rb,.go,.rs,.swift,.kt,.scala,.sh,.bat,.ps1,.yml,.yaml,.toml,.ini,.cfg,.conf,.xml,.html,.css,.log,.tsv" multiple class="hidden" bind:this={fileInputEl} onchange={onFilesSelected} />
+              <input
+                type="file"
+                accept="image/*,.txt,.md,.json,.csv,.js,.ts,.py,.java,.c,.cpp,.h,.cs,.php,.rb,.go,.rs,.swift,.kt,.scala,.sh,.bat,.ps1,.yml,.yaml,.toml,.ini,.cfg,.conf,.xml,.html,.css,.log,.tsv"
+                multiple
+                class="hidden"
+                bind:this={fileInputEl}
+                onchange={onFilesSelected}
+              />
             {/if}
           </div>
           <div class="flex items-center gap-2">
