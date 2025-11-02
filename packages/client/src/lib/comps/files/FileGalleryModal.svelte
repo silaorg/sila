@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { X } from 'lucide-svelte';
-  import { getFilePreviewConfig, formatFileSize } from '@sila/client/utils/filePreview';
+  import { X, Download } from 'lucide-svelte';
+  import { getFilePreviewConfig, formatFileSize, FILE_PREVIEW_CONFIGS } from '@sila/client/utils/filePreview';
   import { useClientState } from '../../state/clientStateContext';
 
   const clientState = useClientState();
@@ -14,6 +14,27 @@
     if (!activeFile?.mimeType) return null;
     return getFilePreviewConfig(activeFile.mimeType);
   });
+
+  function getDownloadFilename(): string {
+    if (!activeFile) return 'file';
+    const name = activeFile.name;
+    const ext = name.split('.').pop();
+    
+    // If filename already has an extension, use it as is
+    if (ext && ext !== name) {
+      return name;
+    }
+    
+    // Otherwise, try to infer extension from mimeType
+    if (activeFile.mimeType) {
+      const config = FILE_PREVIEW_CONFIGS[activeFile.mimeType];
+      if (config && config.supportedFormats.length > 0) {
+        return `${name}.${config.supportedFormats[0]}`;
+      }
+    }
+    
+    return name;
+  }
 
   async function getLineCount(fileUrl: string): Promise<number | null> {
     try {
@@ -44,6 +65,32 @@
   function handleBackdropClick(event: Event) {
     if (event.target === event.currentTarget) {
       clientState.gallery.close();
+    }
+  }
+
+  async function handleDownload() {
+    if (!activeFile) return;
+    
+    try {
+      // Fetch the file as a blob
+      const response = await fetch(activeFile.url);
+      if (!response.ok) {
+        console.error('Failed to fetch file for download');
+        return;
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = getDownloadFilename();
+      link.click();
+      
+      // Clean up the object URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      console.error('Download failed:', error);
     }
   }
 
@@ -80,6 +127,14 @@
       onclick={() => clientState.gallery.close()}
     >
       <X size={20} />
+    </button>
+
+    <!-- Download button -->
+    <button 
+      class="absolute top-16 right-4 btn-icon bg-black/50 text-white hover:bg-black/70 z-10"
+      onclick={handleDownload}
+    >
+      <Download size={20} />
     </button>
 
     <!-- Content -->
@@ -119,12 +174,7 @@
           </div>
           <button 
             class="btn preset-filled-primary-500" 
-            onclick={() => {
-              const link = document.createElement('a');
-              link.href = activeFile.url;
-              link.download = activeFile.name;
-              link.click();
-            }}
+            onclick={handleDownload}
           >
             Download File
           </button>
@@ -138,12 +188,7 @@
           </p>
           <button 
             class="btn preset-filled-primary-500" 
-            onclick={() => {
-              const link = document.createElement('a');
-              link.href = activeFile.url;
-              link.download = activeFile.name;
-              link.click();
-            }}
+            onclick={handleDownload}
           >
             Download File
           </button>
