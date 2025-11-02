@@ -60,7 +60,7 @@
         tree: treeId,
         vertex: vertex.id,
       };
-      const fileInfo = await ClientFileResolver.resolveFileReference(fileRef);
+      const fileInfo = await ClientFileResolver.resolveFileReference(fileRef, clientState);
       if (fileInfo) {
         clientState.gallery.open(fileInfo);
       }
