@@ -216,7 +216,7 @@ interface AppInstanceRef {
 ```
 
 Notes:
-- `app-instances` replaces `app-forest` everywhere in code and docs.
+- `app-instances` replaces `app-instances` everywhere in code and docs.
 - Cross‑space references should always carry `{ spaceId, treeId, vertexId }` to be unambiguous.
 
 ### Loading model
@@ -337,17 +337,17 @@ class SecretsTree {
 ### Migration plan (incremental)
 
 1) **TreeSpec framework**: Implement TreeSpec registry and validation system alongside existing app tree creation.
-2) **App instances**: Introduce `app-instances` while continuing to populate `app-forest` as an alias.
+2) **App instances**: Introduce `app-instances` while continuing to populate `app-instances` as an alias.
 3) **Tree wrappers**: Create ChatTree wrapper and migrate ChatAppBackend to use it instead of direct AppTree access.
 4) **Mutable storage**: Add mutable/uuid store alongside existing `sha256` CAS; extend FileStore interface.
 5) **SecretsTree**: Implement SecretsTree as optional; migrate existing secrets persistence from SpaceManager to it.
-6) **UI updates**: Update loaders/UI to read from `app-instances` first, fallback to `app-forest`.
+6) **UI updates**: Update loaders/UI to read from `app-instances` first, fallback to `app-instances`.
 7) **Testing**: Migrate tests and docs to new naming and TreeSpec validation.
-8) **Cleanup**: Flip default to `app-instances`; remove `app-forest` after deprecation window.
+8) **Cleanup**: Flip default to `app-instances`; remove `app-instances` after deprecation window.
 
 ### Affected areas (high‑level)
 
-- **Core spaces API**: rename `app-forest` to `app-instances` in Space.ts and add typed wrappers.
+- **Core spaces API**: rename `app-instances` to `app-instances` in Space.ts and add typed wrappers.
 - **TreeSpec system**: implement TreeSpec registry, validation, and migration framework in core.
 - **Tree wrappers**: create ChatTree, FilesTree, SecretsTree with typed accessors that work with RepTree vertices.
 - **App backends**: refactor ChatAppBackend to use ChatTree wrapper instead of direct AppTree access.

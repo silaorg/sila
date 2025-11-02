@@ -30,7 +30,7 @@ export class Space {
       return false;
     }
 
-    const chats = tree.getVertexByPath('app-forest');
+    const chats = tree.getVertexByPath('app-instances');
     if (!chats) {
       return false;
     }
@@ -41,21 +41,34 @@ export class Space {
   static newSpace(peerId: string): Space {
     const tree = new RepTree(peerId);
 
-    const rootId = tree.createRoot().id;
+    /*
+    // @TODO: perhaps define the stucture like this:
+    ```js
+    {
+      version: '0',
+      onboarding: true,
+      $children: {
+        app-configs,
+        app-instances,
+        providers,
+        settings,
+        files
+      }
+    }
+    ```
+    */
 
-    tree.setVertexProperties(rootId, {
-      '_c': new Date().toISOString(),
+    const root = tree.createRoot();
+    root.setProperties({
       'version': '0',
       'onboarding': true
     });
-
-    const apps = tree.newNamedVertex(rootId, 'app-configs');
-    const defaultConfig = Space.getDefaultAppConfig();
-    tree.newVertex(apps.id, defaultConfig);
-
-    tree.newNamedVertex(rootId, 'app-forest');
-    tree.newNamedVertex(rootId, 'providers');
-    tree.newNamedVertex(rootId, 'settings');
+    const appConfigs = root.newNamedChild('app-configs');
+    appConfigs.newChild(Space.getDefaultAppConfig());
+    root.newNamedChild('app-instances');
+    root.newNamedChild('providers');
+    root.newNamedChild('settings');
+    root.newNamedChild('files');
 
     return new Space(tree);
   }
@@ -73,8 +86,7 @@ export class Space {
       throw new Error("Invalid tree structure");
     }
 
-    this.appTreesVertex = tree.getVertexByPath('app-forest') as Vertex;
-
+    this.appTreesVertex = tree.getVertexByPath('app-instances') as Vertex;
     this.appConfigs = new AppConfigsData(this.tree.getVertexByPath('app-configs')!);
   }
 
@@ -117,18 +129,29 @@ export class Space {
     return providersVertex ? providersVertex.children.length > 0 : false;
   }
 
-  newAppTree(appId: string): AppTree {
+  /**
+   * Create a new app tree and reference it in an outside vertex
+   * @param appId - The id of the app
+   * @param targetRefVertex - The vertex to reference the app tree (in 'tid' property)
+   * @returns The app tree
+   */
+  newAppTree(appId: string, targetRefVertex?: Vertex): AppTree {
     const appTree = AppTree.newAppTree(this.tree.peerId, appId);
 
-    const appsTrees = this.tree.getVertexByPath('app-forest');
+    if (targetRefVertex) {
+      targetRefVertex.setProperty('tid', appTree.getId());
+    }
+    // If no target vertex is provided, create a new vertex in 'app-instances' of the space and reference the app tree in it
+    else {
+      const appsTrees = this.tree.getVertexByPath('app-instances');
 
-    if (!appsTrees) {
-      throw new Error("Apps trees vertex not found");
+      if (!appsTrees) {
+        throw new Error("Apps trees vertex not found");
+      }
+
+      this.tree.newVertex(appsTrees.id, { tid: appTree.getId() });
     }
 
-    const newAppTree = this.tree.newVertex(appsTrees.id);
-
-    this.tree.setVertexProperty(newAppTree.id, 'tid', appTree.getId());
     this.appTrees.set(appTree.getId(), appTree);
 
     for (const listener of this.newTreeObservers) {

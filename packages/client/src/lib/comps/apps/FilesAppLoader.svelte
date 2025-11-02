@@ -1,22 +1,31 @@
 <script lang="ts">
   import FilesApp from "./FilesApp.svelte";
-  import { FilesAppData } from "@sila/core";
+  import { AppTree, FilesAppData } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
 
-  let { treeId }: { treeId: string } = $props();
+  let { treeId }: { treeId?: string } = $props();
 
   let data = $derived.by(async () => {
     if (!clientState.currentSpace) {
       throw new Error("No current space id");
     }
 
-    const appTree = await clientState.currentSpace.loadAppTree(treeId);
-    if (!appTree) {
+    let filesAppTree: AppTree | undefined;
+
+    if (treeId) {
+      filesAppTree = await clientState.currentSpace.loadAppTree(treeId);
+    } else {
+      filesAppTree = await FilesAppData.getOrCreateDefaultFilesTree(
+        clientState.currentSpace
+      );
+    }
+
+    if (!filesAppTree) {
       throw new Error("Failed to load app tree");
     }
 
-    return new FilesAppData(clientState.currentSpace, appTree);
+    return new FilesAppData(clientState.currentSpace, filesAppTree);
   });
 </script>
 

@@ -5,21 +5,21 @@ import { AppTree } from "../AppTree";
 export class FilesAppData {
   private root: Vertex;
 
-  static createNewFilesTree(space: Space): AppTree {
-    const appTree = space.newAppTree("files");
+  static createNewFilesTree(space: Space, targetRefVertex?: Vertex): AppTree {
+    const appTree = space.newAppTree("files", targetRefVertex);
     const root = appTree.tree.root;
 
     if (!root) {
       throw new Error("Root vertex not found");
     }
 
-    root.setProperty("name", "Files");
     root.newNamedChild("files");
 
     return appTree;
   }
 
   static async getOrCreateDefaultFilesTree(space: Space): Promise<AppTree> {
+    /*
     // First, try to find an existing files tree by checking all loaded app trees
     const appTrees = (space as any).appTrees;
     for (const [treeId, appTree] of appTrees) {
@@ -40,9 +40,24 @@ export class FilesAppData {
     } catch (error) {
       console.warn("Failed to load existing files tree:", error);
     }
+    */
 
-    // If no files tree exists, create one using createNewFilesTree to ensure proper structure
-    return FilesAppData.createNewFilesTree(space);
+    const filesVertex = space.tree.getVertexByPath('files');
+    if (!filesVertex) {
+      throw new Error("Files vertex not found");
+    }
+
+    const tid = filesVertex.getProperty('tid');
+
+    if (!tid) {
+      return FilesAppData.createNewFilesTree(space, filesVertex);
+    } else {
+      const appTree = await space.loadAppTree(tid as string);
+      if (!appTree) {
+        throw new Error("Failed to load app tree");
+      }
+      return appTree;
+    }
   }
 
   constructor(private space: Space, private appTree: AppTree) {

@@ -6,14 +6,6 @@ import type { AttachmentPreview } from "./AttachmentPreview";
 import type { FileInfo } from "./FileInfo";
 
 export class FilesTreeData {
-	static createNewFilesTree(space: Space): AppTree {
-		return FilesAppData.createNewFilesTree(space);
-	}
-
-	static async getOrCreateDefaultFilesTree(space: Space): Promise<AppTree> {
-		return FilesAppData.getOrCreateDefaultFilesTree(space);
-	}
-
 	static ensureFolderPath(filesTree: AppTree, segments: string[]): Vertex {
 		let root = filesTree.tree.getVertexByPath("files");
 		if (!root) {

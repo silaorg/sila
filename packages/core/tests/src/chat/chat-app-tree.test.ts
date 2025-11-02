@@ -60,7 +60,7 @@ describe('Chat app tree creation and persistence', () => {
     const loadedSpace = Space.existingSpaceFromOps(spaceOps);
 
     // Verify the app tree reference exists in space
-    const appForest = loadedSpace.getVertexByPath('app-forest');
+    const appForest = loadedSpace.getVertexByPath('app-instances');
     expect(appForest).toBeTruthy();
     expect((appForest as any).children.length).toBeGreaterThan(0);
 

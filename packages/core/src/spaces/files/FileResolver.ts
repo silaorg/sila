@@ -1,6 +1,4 @@
 import type { Space } from "../Space";
-import type { AppTree } from "../AppTree";
-import type { Vertex } from "reptree";
 
 export interface FileReference {
 	tree: string;
@@ -26,7 +24,7 @@ export interface ResolvedFileInfo {
 	size?: number;
 	width?: number;
 	height?: number;
-	url: string; // sila:// URL instead of dataUrl
+	url: string;
 	hash: string;
 }
 
@@ -38,7 +36,7 @@ export class FileResolver {
 	constructor(private space: Space) {}
 
 	/**
-	 * Resolves a single file reference to file information
+	 * Resolves a single file reference to file information - the reference will contain a URL to the file
 	 * Framework-agnostic method for resolving file references
 	 */
 	async resolveFileReference(fileRef: FileReference): Promise<ResolvedFileInfo | null> {
@@ -49,8 +47,8 @@ export class FileResolver {
 				return null;
 			}
 
-			// Load the files app tree
-			const filesTree = await this.loadAppTree(fileRef.tree);
+			// Load the files app tree      
+			const filesTree = await this.space.loadAppTree(fileRef.tree);
 			if (!filesTree) {
 				console.warn(`Files tree not found: ${fileRef.tree}`);
 				return null;
@@ -86,6 +84,9 @@ export class FileResolver {
 				params.push(`name=${encodeURIComponent(name)}`);
 			}
 			const query = params.length > 0 ? `?${params.join('&')}` : '';
+
+      // @TODO: we will need to generate a web-based URL if this method runs from the server
+      // e.g `api.silain.com/spaces/${spaceId}/files/${hash}${query}`;
 			const url = `sila://spaces/${spaceId}/files/${hash}${query}`;
 
 			return {
@@ -121,7 +122,7 @@ export class FileResolver {
 	}
   
 	/**
-	 * Resolves file references in attachments to data URLs
+	 * Resolves file references in attachments to data URLs - so the object itself contains the data
 	 * Used for UI rendering and AI consumption
 	 */
 	async getFileData(fileRefs: FileReference[]): Promise<ResolvedFileWithData[]> {
@@ -163,7 +164,7 @@ export class FileResolver {
 		fileStore: any
 	): Promise<ResolvedFileWithData | null> {
 		// Load the files app tree
-		const filesTree = await this.loadAppTree(fileRef.tree);
+		const filesTree = await this.space.loadAppTree(fileRef.tree);
 		if (!filesTree) {
 			throw new Error(`Files tree not found: ${fileRef.tree}`);
 		}
@@ -216,13 +217,5 @@ export class FileResolver {
 			width,
 			height,
 		};
-	}
-
-	/**
-	 * Loads an app tree by ID
-	 */
-	private async loadAppTree(treeId: string): Promise<AppTree | undefined> {
-		// Use the public loadAppTree method from Space
-		return await this.space.loadAppTree(treeId);
 	}
 }

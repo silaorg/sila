@@ -14,7 +14,6 @@
   let currentFolder = $state<Vertex | undefined>(undefined);
   let path = $state<Vertex[]>([]);
 
-  let children = $state<Vertex[]>([]);
   let folders = $state<Vertex[]>([]);
   let files = $state<Vertex[]>([]);
 
@@ -35,19 +34,20 @@
   });
 
   function refreshLists() {
-    if (!currentFolder) {
-      children = [];
-      folders = [];
-      files = [];
-      return;
-    }
+    folders = [];
+    files = [];
 
-    children = currentFolder.children;
-    folders = children.filter((v) => {
-      const n = v.name;
-      return n && n !== "file";
-    });
-    files = children.filter((v) => v.name === "file");
+    if (!currentFolder) return;
+
+    for (const child of currentFolder.children) {
+      const mimeType = child.getProperty("mimeType");
+
+      if (mimeType === undefined) {
+        folders.push(child);
+      } else {
+        files.push(child);
+      }
+    }
   }
 
   function observeCurrentFolder() {
@@ -138,8 +138,6 @@
         console.error("File store not available");
         return;
       }
-
-      const filesTree = await FilesAppData.getOrCreateDefaultFilesTree((data as any).space);
       
       for (const file of fileList) {
         try {
@@ -201,8 +199,6 @@
     }
   }
 
-
-
   // Drag and drop handlers
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
@@ -230,7 +226,7 @@
 
 <div class="flex flex-col w-full h-full overflow-hidden">
   <div 
-    class="flex-grow overflow-y-auto pt-2"
+    class="flex-grow overflow-y-auto pt-2 cursor-default"
     class:bg-blue-50={isDragOver}
     class:border-2={isDragOver}
     class:border-dashed={isDragOver}
@@ -243,7 +239,6 @@
   >
     <div class="w-full max-w-4xl mx-auto">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="h2">Files</h2>
         {#if currentFolder}
           <button
             class="btn btn-sm preset-outline flex items-center gap-2"
@@ -312,7 +307,7 @@
 
         <!-- Files -->
         {#if files.length > 0}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {#each files as file (file.id)}
               <div class="border rounded-lg p-3">
                 {#if isImageFile(file)}

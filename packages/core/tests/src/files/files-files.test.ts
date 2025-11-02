@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm, readFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, AttachmentKind } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, AttachmentKind, FilesAppData } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { FileResolver } from '@sila/core';
 import { ChatAppData } from '@sila/core';
@@ -76,7 +76,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(loadedDataUrl.startsWith('data:')).toBe(true);
 
 		// Create a files app tree and link file
-		const filesTree = FilesTreeData.createNewFilesTree(space);
+		const filesTree = FilesAppData.createNewFilesTree(space);
 		const now = new Date();
 		const folder = FilesTreeData.ensureFolderPath(filesTree, [
 			now.getUTCFullYear().toString(),
@@ -133,7 +133,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		const put = await fileStore!.putDataUrl(dataUrl);
 
 		// Create a files app tree and file vertex
-		const filesTree = FilesTreeData.createNewFilesTree(space);
+		const filesTree = FilesAppData.createNewFilesTree(space);
 		const folder = FilesTreeData.ensureFolderPath(filesTree, ['test']);
 		const fileVertex = FilesTreeData.saveFileInfo(
 			folder,
@@ -231,7 +231,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		// Test that files app trees are created with the correct appId and name
 		
 		const space = Space.newSpace(crypto.randomUUID());
-		const filesTree = FilesTreeData.createNewFilesTree(space);
+		const filesTree = FilesAppData.createNewFilesTree(space);
 		
 		// Check that the app tree has the correct appId
 		expect(filesTree.getAppId()).toBe('files');
@@ -251,15 +251,15 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		const space = Space.newSpace(crypto.randomUUID());
 		
 		// First call should create a new tree
-		const filesTree1 = await FilesTreeData.getOrCreateDefaultFilesTree(space);
+		const filesTree1 = await FilesAppData.getOrCreateDefaultFilesTree(space);
 		const treeId1 = filesTree1.getId();
 		
 		// Second call should return the same tree
-		const filesTree2 = await FilesTreeData.getOrCreateDefaultFilesTree(space);
+		const filesTree2 = await FilesAppData.getOrCreateDefaultFilesTree(space);
 		const treeId2 = filesTree2.getId();
 		
 		// Third call should also return the same tree
-		const filesTree3 = await FilesTreeData.getOrCreateDefaultFilesTree(space);
+		const filesTree3 = await FilesAppData.getOrCreateDefaultFilesTree(space);
 		const treeId3 = filesTree3.getId();
 		
 		// All should be the same tree

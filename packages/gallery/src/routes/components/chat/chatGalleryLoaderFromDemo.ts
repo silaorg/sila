@@ -16,7 +16,7 @@ async function loadChatAppDataFromState(state: ClientState): Promise<ChatAppData
     throw new Error("No space loaded");
   }
 
-  // Pick the first app-forest child and read its 'tid' (actual AppTree id)
+  // Pick the first app-instances child and read its 'tid' (actual AppTree id)
   const first = space.appTreesVertex.children[0];
   if (!first) {
     throw new Error("No apps found in space");

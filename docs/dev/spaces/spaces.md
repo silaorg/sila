@@ -5,7 +5,7 @@ A space is the primary unit of user data in Sila. It holds the state of the work
 ## Core concepts
 
 - **RepTree (CRDT)**: Every space and app tree is a RepTree instance. RepTree stores a tree of vertices with properties. All changes are represented as immutable operations (ops) with Lamport-style IDs and peer IDs. RepTree merges ops from multiple sources deterministically and deduplicates them by op ID.
-- **Space tree**: The root RepTree for a space. It contains global vertices such as `app-configs`, `app-forest` (references to app trees), `providers`, and `settings`.
+- **Space tree**: The root RepTree for a space. It contains global vertices such as `app-configs`, `app-instances` (references to app trees), `providers`, and `settings`.
 - **App trees**: Additional RepTree instances created for specific features. Today we commonly use:
   - Chat trees (one per conversation)
   - Files trees (logical view of files/metadata)
@@ -28,7 +28,7 @@ Developers interact with vertices at a high level (e.g., `setProperty`, `newName
 
 - **Space tree (single)**
   - Root metadata and global collections (e.g., `app-configs`, `providers`, `settings`)
-  - `app-forest` holds references to app trees by storing each app tree ID (tid) in a child vertex
+  - `app-instances` holds references to app trees by storing each app tree ID (tid) in a child vertex
 - **App trees (many)**
   - Each app tree is its own RepTree with its own root and ops
   - Created via `Space.newAppTree(appId)` where `appId` identifies the kind of app (e.g., `default-chat`)
@@ -68,7 +68,7 @@ UI may set transient properties (e.g., previews) that should not be persisted. T
 
 ## Referencing between trees
 
-Trees can reference each other by ID. The space tree keeps a list of app trees in `app-forest` and stores each app tree ID (tid). App trees may include JSON references to other trees (e.g., a chat message referencing a file vertex in a Files AppTree by `{ file: { tree: filesTreeId, vertex: fileVertexId } }`).
+Trees can reference each other by ID. The space tree keeps a list of app trees in `app-instances` and stores each app tree ID (tid). App trees may include JSON references to other trees (e.g., a chat message referencing a file vertex in a Files AppTree by `{ file: { tree: filesTreeId, vertex: fileVertexId } }`).
 
 ## Secrets
 
