@@ -10,7 +10,9 @@
   let sidebarElement: HTMLElement;
 
   const clientState = useClientState();
-  let sidebarIsOpen = $derived(clientState.currentSpaceState?.layout.sidebar.isOpen);
+  let sidebarIsOpen = $derived(
+    clientState.currentSpaceState?.layout.sidebar.isOpen
+  );
 
   function handleHoverEnter() {
     if (!sidebarIsOpen && !recentlyClosed) {
@@ -33,7 +35,7 @@
     // If no event provided, check current mouse position
     if (!event) {
       const openContextMenus = document.querySelectorAll(
-        ".context-menu, [data-popover-content]",
+        ".context-menu, [data-popover-content]"
       );
       for (const menu of openContextMenus) {
         const rect = menu.getBoundingClientRect();
@@ -51,7 +53,7 @@
 
     // Check for context menu classes and popover elements
     const popover = target.closest(
-      ".context-menu, [data-popover-content], [role='dialog']",
+      ".context-menu, [data-popover-content], [role='dialog']"
     );
     return !!popover;
   }
@@ -59,7 +61,7 @@
   function hasOpenContextMenu() {
     // Check if any context menus are currently open in the document
     const openContextMenus = document.querySelectorAll(
-      ".context-menu, [data-popover-content][data-state='open']",
+      ".context-menu, [data-popover-content][data-state='open']"
     );
     return openContextMenus.length > 0;
   }
@@ -80,7 +82,7 @@
 
   function isMouseOverAnyContextMenu(event: MouseEvent) {
     const openContextMenus = document.querySelectorAll(
-      ".context-menu, [data-popover-content]",
+      ".context-menu, [data-popover-content]"
     );
     const { clientX, clientY } = event;
 
@@ -204,17 +206,21 @@
 {#if !sidebarIsOpen}
   <div
     bind:this={sidebarElement}
-    class="hover-sidebar fixed top-0 h-full w-[300px] bg-surface-50-950 z-10"
+    class="hover-sidebar fixed top-0 h-full p-1 w-[300px] z-10 cursor-default"
     class:show-sidebar={showHoverSidebar}
-    class:border-r={showHoverSidebar}
-    class:border-surface-300-700={showHoverSidebar}
-    class:shadow-2xl={showHoverSidebar}
     onmouseenter={handleHoverEnter}
     onmouseleave={handleSidebarLeave}
     tabindex="0"
     role="button"
   >
-    <Sidebar />
+    <div
+      class="bg-surface-50-950 h-full rounded"
+      class:border={showHoverSidebar}
+      class:border-surface-300-700={showHoverSidebar}
+      class:shadow-2xl={showHoverSidebar}
+    >
+      <Sidebar />
+    </div>
   </div>
 {/if}
 
