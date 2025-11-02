@@ -52,7 +52,7 @@
   <li>
     <SwinsNavButton
     component="files"
-    title="Library"
+    title="Files"
     className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"
   >
     <span class="w-6 h-6 flex-shrink-0">
@@ -60,7 +60,7 @@
         <Images size={18} />
       </span>
     </span>
-    <span class="flex-grow text-left">Library</span>
+    <span class="flex-grow text-left">Files</span>
   </SwinsNavButton>
   </li>
 </ul>
