@@ -300,6 +300,7 @@
               <FileOrFolder
                 vertex={item}
                 onEnter={enterFolder}
+                treeId={((data as any).appTree?.getId()) || ""}
               />
             {/each}
           </div>

@@ -6,9 +6,11 @@
   let {
     vertex,
     onEnter,
+    treeId,
   }: {
     vertex: Vertex;
     onEnter: (folder: Vertex) => void;
+    treeId: string;
   } = $props();
 
   function isFolder(v: Vertex): boolean {
@@ -19,6 +21,6 @@
 {#if isFolder(vertex)}
   <FolderItem {vertex} {onEnter} />
 {:else}
-  <FileItem {vertex} />
+  <FileItem {vertex} {treeId} />
 {/if}
 

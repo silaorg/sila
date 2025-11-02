@@ -10,23 +10,17 @@
     onEnter: (folder: Vertex) => void;
   } = $props();
 
-  function displayName(v: Vertex): string {
-    const folderName = v.name;
-    if (folderName && folderName !== "file") {
-      return folderName;
-    }
-    return v.name ?? "";
-  }
+  const name = $derived(vertex.name ?? "Untitled");
 </script>
 
 <button
   class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32"
-  onclick={() => onEnter(vertex)}
+  ondblclick={() => onEnter(vertex)}
   type="button"
 >
   <div class="mb-2 flex items-center justify-center w-20 h-20">
     <Folder size={64} class="text-blue-500" />
   </div>
-  <span class="text-xs text-center truncate w-full">{displayName(vertex) || "Untitled folder"}</span>
+  <span class="text-xs text-center truncate w-full">{name}</span>
 </button>
 
