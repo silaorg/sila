@@ -3,7 +3,7 @@
   import { FilesAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { Vertex } from "@sila/core";
-  import { Folder, File as FileIcon, Upload, Plus } from "lucide-svelte";
+  import { Folder, File as FileIcon, Upload, Plus, FolderPlus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions } from "@sila/client/utils/fileProcessing";
   const clientState = useClientState();
@@ -114,6 +114,30 @@
   // Upload functions
   function openFilePicker() {
     fileInputEl?.click();
+  }
+
+  function createNewFolder() {
+    if (!currentFolder) return;
+    
+    /*
+    const folderName = prompt("Enter folder name:");
+    if (!folderName || !folderName.trim()) return;
+    const trimmedName = folderName.trim();
+    */
+    const trimmedName = "new folder";
+    
+    // Check if a folder with this name already exists
+    const existing = currentFolder.children.find((c) => {
+      const mimeType = c.getProperty("mimeType");
+      return mimeType === undefined && c.name === trimmedName;
+    });
+    
+    // Create new folder vertex (folders don't have mimeType)
+    currentFolder.newNamedChild(trimmedName, {
+      createdAt: Date.now()
+    });
+    
+    // The observation will automatically refresh the lists
   }
 
   async function onFilesSelected(e: Event) {
@@ -240,20 +264,30 @@
     <div class="w-full max-w-4xl mx-auto">
       <div class="flex items-center justify-between mb-2">
         {#if currentFolder}
-          <button
-            class="btn btn-sm preset-outline flex items-center gap-2"
-            onclick={openFilePicker}
-            disabled={isUploading}
-            type="button"
-          >
-            {#if isUploading}
-              <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
-              Uploading...
-            {:else}
-              <Plus size={16} />
-              Upload Files
-            {/if}
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="btn btn-sm preset-outline flex items-center gap-2"
+              onclick={openFilePicker}
+              disabled={isUploading}
+              type="button"
+            >
+              {#if isUploading}
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                Uploading...
+              {:else}
+                <Upload size={16} />
+                Upload Files
+              {/if}
+            </button>
+            <button
+              class="btn btn-sm preset-outline flex items-center gap-2"
+              onclick={createNewFolder}
+              type="button"
+            >
+              <FolderPlus size={16} />
+              New Folder
+            </button>
+          </div>
         {/if}
       </div>
       
@@ -307,7 +341,7 @@
 
         <!-- Files -->
         {#if files.length > 0}
-          <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-3">
             {#each files as file (file.id)}
               <div class="border rounded-lg p-3">
                 {#if isImageFile(file)}
