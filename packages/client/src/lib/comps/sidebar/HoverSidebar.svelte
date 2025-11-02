@@ -214,7 +214,7 @@
     role="button"
   >
     <div
-      class="bg-surface-50-950 h-full rounded"
+      class="bg-surface-50-950 h-full rounded-lg"
       class:border={showHoverSidebar}
       class:border-surface-300-700={showHoverSidebar}
       class:shadow-2xl={showHoverSidebar}

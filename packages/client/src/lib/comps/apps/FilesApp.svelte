@@ -3,9 +3,10 @@
   import { FilesAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { Vertex } from "@sila/core";
-  import { Folder, File as FileIcon, Upload, Plus, FolderPlus } from "lucide-svelte";
+  import { Upload, FolderPlus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions } from "@sila/client/utils/fileProcessing";
+  import FileOrFolder from "./FileOrFolder.svelte";
   const clientState = useClientState();
 
   let { data }: { data: FilesAppData } = $props();
@@ -14,8 +15,7 @@
   let currentFolder = $state<Vertex | undefined>(undefined);
   let path = $state<Vertex[]>([]);
 
-  let folders = $state<Vertex[]>([]);
-  let files = $state<Vertex[]>([]);
+  let items = $state<Vertex[]>([]);
 
   let unobserveCurrent: (() => void) | undefined;
   
@@ -34,20 +34,14 @@
   });
 
   function refreshLists() {
-    folders = [];
-    files = [];
+    items = [];
 
-    if (!currentFolder) return;
-
-    for (const child of currentFolder.children) {
-      const mimeType = child.getProperty("mimeType");
-
-      if (mimeType === undefined) {
-        folders.push(child);
-      } else {
-        files.push(child);
-      }
+    if (!currentFolder) {
+      return;
     }
+
+    // Use the natural order from currentFolder.children (will add custom sorting later)
+    items = [...currentFolder.children];
   }
 
   function observeCurrentFolder() {
@@ -87,28 +81,6 @@
       return folderName;
     }
     return v.name ?? "";
-  }
-
-  function isImageFile(file: Vertex): boolean {
-    const mimeType = file.getProperty("mimeType") as string;
-    return mimeType?.startsWith("image/") ?? false;
-  }
-
-  function getFileUrl(file: Vertex): string {
-    const hash = file.getProperty("hash") as string;
-    const mimeType = file.getProperty("mimeType") as string;
-    const name = file.getProperty("name") as string;
-    
-    // Get space ID from the space object, not the app tree
-    const spaceId = (data as any).space.getId();
-    
-    // Use the electron file system API if available
-    if ((window as any).electronFileSystem) {
-      return (window as any).electronFileSystem.getFileUrl(spaceId, hash, mimeType, name);
-    }
-    
-    // Fallback to data URL if electron API not available
-    return "";
   }
 
   // Upload functions
@@ -321,70 +293,17 @@
           {/if}
         </div>
 
-        <!-- Folders -->
-        {#if folders.length > 0}
-          <div class="mb-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {#each folders as folder (folder.id)}
-                <button
-                  class="border rounded-lg p-3 text-left hover:bg-surface-500/5"
-                  onclick={() => enterFolder(folder)}
-                  type="button"
-                >
-                  <div class="flex items-center gap-2">
-                    <Folder size={16} />
-                    <span class="text-sm font-medium">{displayName(folder) || "Untitled folder"}</span>
-                  </div>
-                </button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-
-        <!-- Files -->
-        {#if files.length > 0}
-          <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-4 gap-3">
-            {#each files as file (file.id)}
-              <div class="border rounded-lg p-3">
-                {#if isImageFile(file)}
-                  <!-- Image preview -->
-                  <div class="mb-2">
-                    <img 
-                      src={getFileUrl(file)} 
-                      alt={displayName(file)}
-                      class="w-full h-32 object-cover rounded border"
-                      loading="lazy"
-                    />
-                  </div>
-                {/if}
-                <div class="flex items-center gap-2 mb-1">
-                  <FileIcon size={16} />
-                  <span class="text-sm font-medium">{displayName(file) || "Untitled"}</span>
-                </div>
-                <div class="text-xs text-muted-foreground space-y-0.5">
-                  <div>Type: {file.getProperty("mimeType") || "Unknown"}</div>
-                  {#if file.getProperty("size")}
-                    <div>Size: {file.getProperty("size")} bytes</div>
-                  {/if}
-                  {#if file.getProperty("width") && file.getProperty("height")}
-                    <div>Dimensions: {file.getProperty("width")} × {file.getProperty("height")}</div>
-                  {/if}
-                  {#if file.getProperty("originalFormat")}
-                    <div class="text-blue-600">Converted from: {file.getProperty("originalFormat")}</div>
-                    {#if file.getProperty("originalFilename")}
-                      <div class="text-blue-600">Original: {file.getProperty("originalFilename")}</div>
-                    {/if}
-                  {/if}
-                  {#if file.getProperty("originalDimensions")}
-                    <div class="text-blue-600">Original dimensions: {file.getProperty("originalDimensions")}</div>
-                  {/if}
-                </div>
-              </div>
+        <!-- Files and Folders -->
+        {#if items.length > 0}
+          <div class="flex flex-wrap gap-3">
+            {#each items as item (item.id)}
+              <FileOrFolder
+                vertex={item}
+                onEnter={enterFolder}
+              />
             {/each}
           </div>
-        {/if}
-
-        {#if folders.length === 0 && files.length === 0}
+        {:else}
           <p class="text-muted-foreground">This folder is empty.</p>
         {/if}
       {/if}
