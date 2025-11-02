@@ -262,35 +262,6 @@
     ondrop={handleDrop}
   >
     <div class="w-full max-w-4xl mx-auto">
-      <div class="flex items-center justify-between mb-2">
-        {#if currentFolder}
-          <div class="flex items-center gap-2">
-            <button
-              class="btn btn-sm preset-outline flex items-center gap-2"
-              onclick={openFilePicker}
-              disabled={isUploading}
-              type="button"
-            >
-              {#if isUploading}
-                <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
-                Uploading...
-              {:else}
-                <Upload size={16} />
-                Upload Files
-              {/if}
-            </button>
-            <button
-              class="btn btn-sm preset-outline flex items-center gap-2"
-              onclick={createNewFolder}
-              type="button"
-            >
-              <FolderPlus size={16} />
-              New Folder
-            </button>
-          </div>
-        {/if}
-      </div>
-      
       <!-- Hidden file input -->
       <input 
         type="file" 
@@ -303,20 +274,51 @@
       {#if !filesRoot}
         <p class="text-muted-foreground">Files root not found.</p>
       {:else}
-        <!-- Breadcrumbs -->
-        <div class="flex flex-wrap items-center gap-1 text-sm mb-4">
-          {#each path as crumb, i (crumb.id)}
-            {#if i > 0}
-              <span class="opacity-50">/</span>
-            {/if}
-            <button
-              class="px-1 py-0.5 rounded hover:bg-surface-500/10"
-              onclick={() => goToCrumb(i)}
-              type="button"
-            >
-              {displayName(crumb) || (i === 0 ? "Files" : "Unnamed")}
-            </button>
-          {/each}
+        <!-- Breadcrumbs and buttons row -->
+        <div class="flex items-center justify-between mb-4">
+          <!-- Breadcrumbs -->
+          <div class="flex flex-wrap items-center gap-1.5 text-lg font-medium">
+            {#each path as crumb, i (crumb.id)}
+              {#if i > 0}
+                <span class="opacity-50">/</span>
+              {/if}
+              <button
+                class="px-1.5 py-1 rounded hover:bg-surface-500/10 transition-colors"
+                onclick={() => goToCrumb(i)}
+                type="button"
+              >
+                {displayName(crumb) || (i === 0 ? "Files" : "Unnamed")}
+              </button>
+            {/each}
+          </div>
+          
+          <!-- Action buttons -->
+          {#if currentFolder}
+            <div class="flex items-center gap-2">
+              <button
+                class="btn btn-sm preset-outline flex items-center gap-2"
+                onclick={openFilePicker}
+                disabled={isUploading}
+                type="button"
+              >
+                {#if isUploading}
+                  <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                  Uploading...
+                {:else}
+                  <Upload size={16} />
+                  Upload Files
+                {/if}
+              </button>
+              <button
+                class="btn btn-sm preset-outline flex items-center gap-2"
+                onclick={createNewFolder}
+                type="button"
+              >
+                <FolderPlus size={16} />
+                New Folder
+              </button>
+            </div>
+          {/if}
         </div>
 
         <!-- Folders -->
