@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import type { Vertex } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
@@ -22,6 +23,7 @@
   // Selection state
   let selectedIds = $state<Set<string>>(new Set());
   let focusedId = $state<string | null>(null);
+  let containerEl: HTMLDivElement | null = null;
 
   function isSelected(v: Vertex): boolean {
     return selectedIds.has(v.id);
@@ -143,9 +145,64 @@
       renamingId = renameId;
     }
   });
+
+  // --- Keyboard navigation (simple) ---
+  function getCurrentIndex(): number {
+    if (selectedIds.size === 0) return -1;
+    const id = Array.from(selectedIds)[0];
+    return items.findIndex((i) => i.id === id);
+  }
+
+  function selectIndex(newIndex: number) {
+    if (items.length === 0) return;
+    const clamped = Math.max(0, Math.min(items.length - 1, newIndex));
+    const v = items[clamped];
+    selectedIds = new Set([v.id]);
+    focusedId = v.id;
+    if (renamingId && renamingId !== v.id) renamingId = null;
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    // Ignore when context menu is open or renaming is active
+    if (menuOpen || renamingId) return;
+
+    const key = e.key;
+    if (key === "Enter") {
+      if (selectedIds.size === 0 && items.length > 0) {
+        selectIndex(0);
+      } else {
+        openSelected();
+      }
+      e.preventDefault();
+    } else if (key === "F2") {
+      if (selectedIds.size === 1) {
+        renameSelected();
+        e.preventDefault();
+      }
+    } else if (key === "ArrowLeft" || key === "ArrowUp") {
+      const idx = getCurrentIndex();
+      if (idx === -1) selectIndex(0);
+      else selectIndex(idx - 1);
+      e.preventDefault();
+    } else if (key === "ArrowRight" || key === "ArrowDown") {
+      const idx = getCurrentIndex();
+      if (idx === -1) selectIndex(0);
+      else selectIndex(idx + 1);
+      e.preventDefault();
+    }
+  }
+
+  onMount(() => {
+    // Attach to container for scoping
+    containerEl?.addEventListener("keydown", handleKeydown);
+  });
+
+  onDestroy(() => {
+    containerEl?.removeEventListener("keydown", handleKeydown);
+  });
 </script>
 
-<div class="flex flex-wrap gap-3">
+<div class="flex flex-wrap gap-3" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders">
   {#each items as item (item.id)}
     <button
       type="button"

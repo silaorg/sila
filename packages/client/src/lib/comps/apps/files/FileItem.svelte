@@ -96,7 +96,6 @@
   ondblclick={openFile}
   role="button"
   tabindex="0"
-  onkeydown={(e) => e.key === "Enter" && openFile()}
 >
   <div class="mb-2 flex items-center justify-center w-20 h-20">
     {#if isImage}
