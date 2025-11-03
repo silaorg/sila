@@ -20,6 +20,8 @@
   let filesRoot = $derived<Vertex | undefined>(undefined);
   let currentFolder = $state<Vertex | undefined>(undefined);
   let items = $state<Vertex[]>([]);
+  let selectIdForArea: string | undefined = $state(undefined);
+  let renameIdForArea: string | undefined = $state(undefined);
 
   let unobserveCurrent: (() => void) | undefined;
 
@@ -101,9 +103,13 @@
     });
 
     // Create new folder vertex (folders don't have mimeType)
-    currentFolder.newNamedChild(trimmedName, {
+    const v = currentFolder.newNamedChild(trimmedName, {
       createdAt: Date.now(),
     });
+
+    // Select and start renaming the newly created folder
+    selectIdForArea = v.id;
+    renameIdForArea = v.id;
 
     // The observation will automatically refresh the lists
   }
@@ -283,6 +289,8 @@
           <FilesSelectionArea
             items={items}
             onEnter={enterFolder}
+            selectId={selectIdForArea}
+            renameId={renameIdForArea}
           />
         {:else}
           <p class="text-muted-foreground">This folder is empty.</p>

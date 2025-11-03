@@ -7,9 +7,15 @@
   let {
     vertex,
     selected = false,
+    renaming = false,
+    onRename,
+    onCancelRename,
   }: {
     vertex: Vertex;
     selected?: boolean;
+    renaming?: boolean;
+    onRename?: (newName: string) => void;
+    onCancelRename?: () => void;
   } = $props();
 
   const clientState = useClientState();
@@ -18,6 +24,18 @@
   const name = $derived(vertex.name ?? "Untitled");
   const fileUrl = $derived(getFileUrl(vertex));
   const isImage = $derived(isImageFile(vertex));
+  let editName = $state(name);
+  let inputEl: HTMLInputElement | null = null;
+
+  $effect(() => {
+    if (renaming) {
+      editName = name;
+      queueMicrotask(() => {
+        inputEl?.focus();
+        inputEl?.select();
+      });
+    }
+  });
 
   function isImageFile(file: Vertex): boolean {
     const mimeType = file.getProperty("mimeType") as string;
@@ -94,7 +112,24 @@
       <FileIcon size={64} class="text-muted-foreground" />
     {/if}
   </div>
-  <span class="text-xs text-center truncate w-full mb-1">{name}</span>
+  {#if renaming}
+    <input
+      class="w-full mb-1 text-xs text-center p-0 m-0 bg-transparent border border-transparent focus:border-transparent focus:outline-none focus:ring-0"
+      bind:this={inputEl}
+      bind:value={editName}
+      onkeydown={(e) => {
+        if (e.key === 'Enter') {
+          const trimmed = editName.trim();
+          if (trimmed) onRename?.(trimmed);
+        } else if (e.key === 'Escape') {
+          onCancelRename?.();
+        }
+      }}
+      onblur={() => onCancelRename?.()}
+    />
+  {:else}
+    <span class="text-xs text-center truncate w-full mb-1">{name}</span>
+  {/if}
   {#if vertex.getProperty("size")}
     <span class="text-xs text-muted-foreground">{size}</span>
   {/if}

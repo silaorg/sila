@@ -10,9 +10,13 @@
   let {
     items,
     onEnter,
+    selectId,
+    renameId,
   }: {
     items: Vertex[];
     onEnter: (folder: Vertex) => void;
+    selectId?: string;
+    renameId?: string;
   } = $props();
 
   // Selection state
@@ -39,6 +43,7 @@
     else next.add(v.id);
     selectedIds = next;
     focusedId = v.id;
+    if (renamingId && !selectedIds.has(renamingId)) renamingId = null;
   }
 
   function selectRange(to: Vertex) {
@@ -55,6 +60,7 @@
     const [from, toIdx] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
     const range = items.slice(from, toIdx + 1).map((i) => i.id);
     selectedIds = new Set(range);
+    if (renamingId && !selectedIds.has(renamingId)) renamingId = null;
   }
 
   function onItemClick(event: MouseEvent, v: Vertex) {
@@ -66,6 +72,7 @@
     if (isShift) selectRange(v);
     else if (isMeta) toggleSelection(v);
     else selectSingle(v);
+    if (renamingId && !selectedIds.has(renamingId)) renamingId = null;
   }
 
   // Context menu (shared)
@@ -73,6 +80,7 @@
   let menuX = $state(0);
   let menuY = $state(0);
   let menuTarget: Vertex | null = null;
+  let renamingId: string | null = $state(null);
 
   function onItemContextMenu(event: MouseEvent, v: Vertex) {
     event.preventDefault();
@@ -105,12 +113,7 @@
 
   function renameSelected() {
     if (selectedIds.size !== 1) return;
-    const id = Array.from(selectedIds)[0];
-    const v = items.find((i) => i.id === id);
-    if (!v) return;
-    const current = v.name ?? "Untitled";
-    const next = prompt("Rename", current);
-    if (next && next.trim()) v.name = next.trim();
+    renamingId = Array.from(selectedIds)[0];
     menuOpen = false;
   }
 
@@ -129,6 +132,17 @@
       clearSelection();
     }
   }
+
+  // Apply externally requested selection/rename when props change
+  $effect(() => {
+    if (selectId) {
+      selectedIds = new Set([selectId]);
+      focusedId = selectId;
+    }
+    if (renameId) {
+      renamingId = renameId;
+    }
+  });
 </script>
 
 <div class="flex flex-wrap gap-3">
@@ -143,6 +157,14 @@
         vertex={item}
         onEnter={onEnter}
         selected={isSelected(item)}
+        renaming={renamingId === item.id}
+        onRename={(newName) => {
+          if (newName && newName.trim()) {
+            item.name = newName.trim();
+          }
+          renamingId = null;
+        }}
+        onCancelRename={() => { renamingId = null; }}
       />
     </button>
   {/each}

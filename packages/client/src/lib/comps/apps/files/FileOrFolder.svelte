@@ -7,10 +7,16 @@
     vertex,
     onEnter,
     selected = false,
+    renaming = false,
+    onRename,
+    onCancelRename,
   }: {
     vertex: Vertex;
     onEnter: (folder: Vertex) => void;
     selected?: boolean;
+    renaming?: boolean;
+    onRename?: (newName: string) => void;
+    onCancelRename?: () => void;
   } = $props();
 
   function isFolder(v: Vertex): boolean {
@@ -19,8 +25,8 @@
 </script>
 
 {#if isFolder(vertex)}
-  <FolderItem {vertex} {onEnter} selected={selected} />
+  <FolderItem {vertex} {onEnter} selected={selected} renaming={renaming} onRename={onRename} onCancelRename={onCancelRename} />
 {:else}
-  <FileItem {vertex} selected={selected} />
+  <FileItem {vertex} selected={selected} renaming={renaming} onRename={onRename} onCancelRename={onCancelRename} />
 {/if}
 

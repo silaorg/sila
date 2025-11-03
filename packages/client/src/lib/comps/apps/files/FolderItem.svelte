@@ -6,13 +6,32 @@
     vertex,
     onEnter,
     selected = false,
+    renaming = false,
+    onRename,
+    onCancelRename,
   }: {
     vertex: Vertex;
     onEnter: (folder: Vertex) => void;
     selected?: boolean;
+    renaming?: boolean;
+    onRename?: (newName: string) => void;
+    onCancelRename?: () => void;
   } = $props();
 
   const name = $derived(vertex.name ?? "Untitled");
+  let editName = $state(name);
+  let inputEl: HTMLInputElement | null = null;
+
+  $effect(() => {
+    if (renaming) {
+      editName = name;
+      // Focus and select all text after mount
+      queueMicrotask(() => {
+        inputEl?.focus();
+        inputEl?.select();
+      });
+    }
+  });
 </script>
 
 <button
@@ -25,6 +44,23 @@
   <div class="mb-2 flex items-center justify-center w-20 h-20">
     <Folder size={64} class="text-blue-500" />
   </div>
-  <span class="text-xs text-center truncate w-full">{name}</span>
+  {#if renaming}
+    <input
+      class="w-full text-xs text-center p-0 m-0 bg-transparent border border-transparent focus:border-transparent focus:outline-none focus:ring-0"
+      bind:this={inputEl}
+      bind:value={editName}
+      onkeydown={(e) => {
+        if (e.key === 'Enter') {
+          const trimmed = editName.trim();
+          if (trimmed) onRename?.(trimmed);
+        } else if (e.key === 'Escape') {
+          onCancelRename?.();
+        }
+      }}
+      onblur={() => onCancelRename?.()}
+    />
+  {:else}
+    <span class="text-xs text-center truncate w-full">{name}</span>
+  {/if}
 </button>
 
