@@ -24,8 +24,8 @@
   const name = $derived(vertex.name ?? "Untitled");
   const fileUrl = $derived(getFileUrl(vertex));
   const isImage = $derived(isImageFile(vertex));
-  let editName = $state(name);
-  let inputEl: HTMLInputElement | null = null;
+  let editName = $state("");
+  let inputEl: HTMLInputElement | null = $state(null);
 
   $effect(() => {
     if (renaming) {
@@ -90,12 +90,12 @@
 </script>
 
 <div
-  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 cursor-pointer"
+  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 cursor-pointer select-none"
   class:ring-2={selected}
   class:ring-primary-500={selected}
   ondblclick={openFile}
   role="button"
-  tabindex="0"
+  tabindex="-1"
 >
   <div class="mb-2 flex items-center justify-center w-20 h-20">
     {#if isImage}

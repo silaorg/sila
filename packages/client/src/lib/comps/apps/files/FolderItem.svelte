@@ -19,8 +19,8 @@
   } = $props();
 
   const name = $derived(vertex.name ?? "Untitled");
-  let editName = $state(name);
-  let inputEl: HTMLInputElement | null = null;
+  let editName = $state("");
+  let inputEl: HTMLInputElement | null = $state(null);
 
   $effect(() => {
     if (renaming) {
@@ -35,18 +35,19 @@
 </script>
 
 <button
-  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32"
+  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 select-none"
   class:ring-2={selected}
   class:ring-primary-500={selected}
   ondblclick={() => onEnter(vertex)}
   type="button"
+  tabindex="-1"
 >
   <div class="mb-2 flex items-center justify-center w-20 h-20">
     <Folder size={64} class="text-blue-500" />
   </div>
   {#if renaming}
     <input
-      class="w-full text-xs text-center p-0 m-0 bg-transparent border border-transparent focus:border-transparent focus:outline-none focus:ring-0"
+      class="w-full text-xs text-center p-0 m-0 bg-transparent border border-transparent focus:border-transparent focus:outline-none focus:ring-0 select-text"
       bind:this={inputEl}
       bind:value={editName}
       onkeydown={(e) => {

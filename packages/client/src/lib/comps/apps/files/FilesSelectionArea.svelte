@@ -66,6 +66,8 @@
   }
 
   function onItemClick(event: MouseEvent, v: Vertex) {
+    // Ensure container receives focus so arrow keys work
+    containerEl?.focus();
     // Avoid triggering on right click
     if (event.button === 2) return;
 
@@ -131,6 +133,8 @@
   // Close selection on empty area click
   function onEmptyAreaClick(e: MouseEvent) {
     if (e.target instanceof Element && e.currentTarget === e.target) {
+      // Keep focus on the grid for keyboard navigation
+      containerEl?.focus();
       clearSelection();
     }
   }
@@ -216,6 +220,10 @@
         e.preventDefault();
         e.stopPropagation();
       }
+    } else if (key === 'Tab') {
+      // Keep focus within grid; don't tab to per-item wrappers
+      e.preventDefault();
+      e.stopPropagation();
     }
   }
 
@@ -232,13 +240,24 @@
   });
 </script>
 
-<div class="flex flex-wrap gap-3" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders">
+<div class="flex flex-wrap gap-3 select-none focus:outline-none focus:ring-0 focus-visible:outline-none" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders">
   {#each items as item (item.id)}
-    <button
-      type="button"
+    <div
       oncontextmenu={(e) => onItemContextMenu(e, item)}
       onclick={(e) => onItemClick(e, item)}
-      class="p-0 m-0 bg-transparent border-0"
+      onmousedown={(e) => e.preventDefault()}
+      class="p-0 m-0 bg-transparent border-0 focus:outline-none focus:ring-0"
+      role="gridcell"
+      aria-selected={isSelected(item)}
+      tabindex="-1"
+      onkeydown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          // Delegate to container's handler
+          handleKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+        }
+      }}
     >
       <FileOrFolder
         vertex={item}
@@ -253,7 +272,7 @@
         }}
         onCancelRename={() => { renamingId = null; }}
       />
-    </button>
+    </div>
   {/each}
 
   <!-- Shared context menu -->
