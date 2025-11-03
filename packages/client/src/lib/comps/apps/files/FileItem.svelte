@@ -2,7 +2,7 @@
   import type { Vertex } from "@sila/core";
   import { File as FileIcon } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { ClientFileResolver } from "../../utils/fileResolver";
+  import { ClientFileResolver } from "../../../utils/fileResolver";
 
   let {
     vertex,

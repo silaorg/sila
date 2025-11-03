@@ -155,7 +155,7 @@
       {:else if previewConfig.previewType === 'pdf'}
         <iframe 
           src={activeFile.url} 
-          class="max-w-[calc(100vw-4rem)] max-h-[calc(100vh-4rem)] border-0"
+          class="border-0"
           title={activeFile.name}
         />
       {:else if previewConfig.previewType === 'text' || previewConfig.previewType === 'code'}

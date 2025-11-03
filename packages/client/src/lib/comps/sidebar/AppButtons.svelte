@@ -52,7 +52,7 @@
   <li>
     <SwinsNavButton
     component="files"
-    title="Files"
+    title="Workspace Files"
     className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"
   >
     <span class="w-6 h-6 flex-shrink-0">

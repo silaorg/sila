@@ -5,20 +5,24 @@
   import type { Vertex } from "@sila/core";
   import { Upload, FolderPlus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { processFileForUpload, optimizeImageSize, toDataUrl, getImageDimensions } from "@sila/client/utils/fileProcessing";
+  import {
+    processFileForUpload,
+    optimizeImageSize,
+    toDataUrl,
+    getImageDimensions,
+  } from "@sila/client/utils/fileProcessing";
   import FileOrFolder from "./FileOrFolder.svelte";
+  import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
   const clientState = useClientState();
 
   let { data }: { data: FilesAppData } = $props();
 
-  let filesRoot = $state<Vertex | undefined>(undefined);
+  let filesRoot = $derived<Vertex | undefined>(undefined);
   let currentFolder = $state<Vertex | undefined>(undefined);
-  let path = $state<Vertex[]>([]);
-
   let items = $state<Vertex[]>([]);
 
   let unobserveCurrent: (() => void) | undefined;
-  
+
   // Upload state
   let isDragOver = $state(false);
   let isUploading = $state(false);
@@ -27,13 +31,11 @@
   onMount(() => {
     filesRoot = data.filesVertex;
     if (!filesRoot) return;
-    path = [filesRoot];
     currentFolder = filesRoot;
-    refreshLists();
-    observeCurrentFolder();
+    refreshItems();
   });
 
-  function refreshLists() {
+  function refreshItems() {
     items = [];
 
     if (!currentFolder) {
@@ -44,6 +46,7 @@
     items = [...currentFolder.children];
   }
 
+  /*
   function observeCurrentFolder() {
     unobserveCurrent?.();
     if (!currentFolder) return;
@@ -53,21 +56,23 @@
       }
     });
   }
+  */
 
   function enterFolder(folder: Vertex) {
-    path = [...path, folder];
     currentFolder = folder;
-    refreshLists();
-    observeCurrentFolder();
+    refreshItems();
+    //observeCurrentFolder();
   }
 
-  function goToCrumb(index: number) {
-    if (index < 0 || index >= path.length) return;
-    path = path.slice(0, index + 1);
-    currentFolder = path[path.length - 1];
-    refreshLists();
-    observeCurrentFolder();
-  }
+  $effect(() => {
+    unobserveCurrent?.();
+    if (!currentFolder) return;
+    unobserveCurrent = currentFolder.observe((events) => {
+      if (events.some((e) => e.type === "children" || e.type === "property")) {
+        refreshItems();
+      }
+    });
+  });
 
   $effect(() => {
     return () => {
@@ -75,40 +80,31 @@
     };
   });
 
-  function displayName(v: Vertex): string {
-    const folderName = v.name;
-    if (folderName && folderName !== "file") {
-      return folderName;
-    }
-    return v.name ?? "";
-  }
-
-  // Upload functions
   function openFilePicker() {
     fileInputEl?.click();
   }
 
   function createNewFolder() {
     if (!currentFolder) return;
-    
+
     /*
     const folderName = prompt("Enter folder name:");
     if (!folderName || !folderName.trim()) return;
     const trimmedName = folderName.trim();
     */
     const trimmedName = "new folder";
-    
+
     // Check if a folder with this name already exists
     const existing = currentFolder.children.find((c) => {
       const mimeType = c.getProperty("mimeType");
       return mimeType === undefined && c.name === trimmedName;
     });
-    
+
     // Create new folder vertex (folders don't have mimeType)
     currentFolder.newNamedChild(trimmedName, {
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
-    
+
     // The observation will automatically refresh the lists
   }
 
@@ -116,49 +112,51 @@
     const input = e.target as HTMLInputElement;
     const files = input.files;
     if (!files || files.length === 0) return;
-    
+
     await uploadFiles(Array.from(files));
-    
+
     // Reset input to allow re-selecting the same file
     if (fileInputEl) fileInputEl.value = "";
   }
 
   async function uploadFiles(fileList: File[]) {
     if (isUploading || !currentFolder) return;
-    
+
     isUploading = true;
-    
+
     try {
       const store = (data as any).space.getFileStore();
       if (!store) {
         console.error("File store not available");
         return;
       }
-      
+
       for (const file of fileList) {
         try {
           // Step 1: Process file (convert HEIC if needed)
           const processedFile = await processFileForUpload(file);
-          
+
           // Step 2: Resize image if needed (2048x2048 max)
           const optimizedFile = await optimizeImageSize(processedFile);
-          
+
           // Step 3: Convert to data URL
           const dataUrl = await toDataUrl(optimizedFile);
-          
+
           // Step 4: Upload to CAS (deduplication happens here)
           const put = await store.putDataUrl(dataUrl);
-          
+
           // Step 5: Build an AttachmentPreview for simplified API usage
           let originalDimensions: string | undefined;
           let width: number | undefined;
           let height: number | undefined;
-          if (optimizedFile.type.startsWith('image/')) {
+          if (optimizedFile.type.startsWith("image/")) {
             const dims = await getImageDimensions(dataUrl);
             width = dims?.width;
             height = dims?.height;
             if (processedFile !== file || optimizedFile !== processedFile) {
-              const originalDims = await getImageDimensions(await toDataUrl(file));
+              const originalDims = await getImageDimensions(
+                await toDataUrl(file)
+              );
               if (originalDims) {
                 originalDimensions = `${originalDims.width}x${originalDims.height}`;
               }
@@ -167,7 +165,7 @@
 
           const preview: AttachmentPreview = {
             id: crypto.randomUUID(),
-            kind: 'image',
+            kind: "image",
             name: optimizedFile.name,
             mimeType: optimizedFile.type,
             size: optimizedFile.size,
@@ -183,7 +181,6 @@
             preview,
             put.hash
           );
-          
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
         }
@@ -212,7 +209,7 @@
     e.preventDefault();
     e.stopPropagation();
     isDragOver = false;
-    
+
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
       uploadFiles(Array.from(files));
@@ -221,7 +218,7 @@
 </script>
 
 <div class="flex flex-col w-full h-full overflow-hidden">
-  <div 
+  <div
     class="flex-grow overflow-y-auto pt-2 cursor-default"
     class:bg-blue-50={isDragOver}
     class:border-2={isDragOver}
@@ -235,12 +232,12 @@
   >
     <div class="w-full max-w-4xl mx-auto">
       <!-- Hidden file input -->
-      <input 
-        type="file" 
-        multiple 
-        class="hidden" 
-        bind:this={fileInputEl} 
-        onchange={onFilesSelected} 
+      <input
+        type="file"
+        multiple
+        class="hidden"
+        bind:this={fileInputEl}
+        onchange={onFilesSelected}
       />
 
       {#if !filesRoot}
@@ -248,24 +245,10 @@
       {:else}
         <!-- Breadcrumbs and buttons row -->
         <div class="flex items-center justify-between mb-4">
-          <!-- Breadcrumbs -->
-          <div class="flex flex-wrap items-center gap-1.5 text-lg font-medium">
-            {#each path as crumb, i (crumb.id)}
-              {#if i > 0}
-                <span class="opacity-50">/</span>
-              {/if}
-              <button
-                class="px-1.5 py-1 rounded hover:bg-surface-500/10 transition-colors"
-                onclick={() => goToCrumb(i)}
-                type="button"
-              >
-                {displayName(crumb) || (i === 0 ? "Files" : "Unnamed")}
-              </button>
-            {/each}
-          </div>
-          
-          <!-- Action buttons -->
           {#if currentFolder}
+            <FileFolderBreadcrumbs folder={currentFolder} root={filesRoot} onEnter={enterFolder} />
+
+            <!-- Action buttons -->
             <div class="flex items-center gap-2">
               <button
                 class="btn btn-sm preset-outline flex items-center gap-2"
@@ -274,7 +257,9 @@
                 type="button"
               >
                 {#if isUploading}
-                  <div class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                  <div
+                    class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"
+                  ></div>
                   Uploading...
                 {:else}
                   <Upload size={16} />
@@ -300,7 +285,7 @@
               <FileOrFolder
                 vertex={item}
                 onEnter={enterFolder}
-                treeId={((data as any).appTree?.getId()) || ""}
+                treeId={(data as any).appTree?.getId() || ""}
               />
             {/each}
           </div>
