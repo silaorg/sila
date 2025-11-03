@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "aiwrapper": "^2.1.3",
-    "reptree": "^0.7.0",
+    "reptree": "^0.8.0",
     "defuddle": "github:mitkury/defuddle#cd8c7f1d39dbd4800918472b880f96724c0a2441"
   },
   "devDependencies": {
