@@ -66,6 +66,16 @@
     //observeCurrentFolder();
   }
 
+  function goBack() {
+    if (!currentFolder || !filesRoot) return;
+    if (currentFolder.id === filesRoot.id) return;
+    const parent = currentFolder.parent;
+    if (parent) {
+      currentFolder = parent;
+      refreshItems();
+    }
+  }
+
   $effect(() => {
     unobserveCurrent?.();
     if (!currentFolder) return;
@@ -289,6 +299,7 @@
           <FilesSelectionArea
             items={items}
             onEnter={enterFolder}
+            onBack={goBack}
             selectId={selectIdForArea}
             renameId={renameIdForArea}
           />

@@ -13,11 +13,13 @@
     onEnter,
     selectId,
     renameId,
+    onBack,
   }: {
     items: Vertex[];
     onEnter: (folder: Vertex) => void;
     selectId?: string;
     renameId?: string;
+    onBack?: () => void;
   } = $props();
 
   // Selection state
@@ -201,6 +203,11 @@
         e.preventDefault();
         e.stopPropagation();
       }
+    } else if (key === "Backspace") {
+      // Navigate back (to parent) when not at root
+      onBack?.();
+      e.preventDefault();
+      e.stopPropagation();
     } else if (key === "ArrowLeft" || key === "ArrowUp") {
       const idx = getCurrentIndex();
       if (idx === -1) selectIndex(0);
