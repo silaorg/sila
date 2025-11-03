@@ -6,10 +6,10 @@
 
   let {
     vertex,
-    treeId,
+    selected = false,
   }: {
     vertex: Vertex;
-    treeId: string;
+    selected?: boolean;
   } = $props();
 
   const clientState = useClientState();
@@ -57,7 +57,7 @@
   async function openFile() {
     try {
       const fileRef = {
-        tree: treeId,
+        tree: vertex.root.id,
         vertex: vertex.id,
       };
       const fileInfo = await ClientFileResolver.resolveFileReference(fileRef, clientState);
@@ -68,10 +68,13 @@
       console.error("Failed to open file:", error);
     }
   }
+
 </script>
 
 <div
   class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 cursor-pointer"
+  class:ring-2={selected}
+  class:ring-primary-500={selected}
   ondblclick={openFile}
   role="button"
   tabindex="0"

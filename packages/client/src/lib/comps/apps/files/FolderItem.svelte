@@ -5,9 +5,11 @@
   let {
     vertex,
     onEnter,
+    selected = false,
   }: {
     vertex: Vertex;
     onEnter: (folder: Vertex) => void;
+    selected?: boolean;
   } = $props();
 
   const name = $derived(vertex.name ?? "Untitled");
@@ -15,6 +17,8 @@
 
 <button
   class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32"
+  class:ring-2={selected}
+  class:ring-primary-500={selected}
   ondblclick={() => onEnter(vertex)}
   type="button"
 >

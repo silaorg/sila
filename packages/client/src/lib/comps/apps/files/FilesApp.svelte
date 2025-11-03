@@ -11,7 +11,7 @@
     toDataUrl,
     getImageDimensions,
   } from "@sila/client/utils/fileProcessing";
-  import FileOrFolder from "./FileOrFolder.svelte";
+  import FilesSelectionArea from "./FilesSelectionArea.svelte";
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
   const clientState = useClientState();
 
@@ -280,15 +280,10 @@
 
         <!-- Files and Folders -->
         {#if items.length > 0}
-          <div class="flex flex-wrap gap-3">
-            {#each items as item (item.id)}
-              <FileOrFolder
-                vertex={item}
-                onEnter={enterFolder}
-                treeId={(data as any).appTree?.getId() || ""}
-              />
-            {/each}
-          </div>
+          <FilesSelectionArea
+            items={items}
+            onEnter={enterFolder}
+          />
         {:else}
           <p class="text-muted-foreground">This folder is empty.</p>
         {/if}
