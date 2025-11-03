@@ -21,74 +21,19 @@
     swins.clear();
   }
 
-  // @TODO: review and delete if we don't actually need this
-  // Function to check if we should ignore Esc key
-  function shouldIgnoreEsc(activeElement: Element | null): boolean {
-    if (!activeElement) return false;
-
-    const tagName = activeElement.tagName.toLowerCase();
-    
-    // Check for form elements that might be in use
-    if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
-      return true;
-    }
-
-    // Check for contenteditable elements
-    if (activeElement.getAttribute('contenteditable') === 'true') {
-      return true;
-    }
-
-    // Check for elements with textbox role
-    if (activeElement.getAttribute('role') === 'textbox') {
-      return true;
-    }
-
-    // Check if we're inside a modal or dialog (higher z-index than swins)
-    const elementZIndex = window.getComputedStyle(activeElement).zIndex;
-    if (elementZIndex && parseInt(elementZIndex) > 49) {
-      return true;
-    }
-
-    // Check if parent has a higher z-index (for nested modals)
-    let parent = activeElement.parentElement;
-    while (parent) {
-      const parentZIndex = window.getComputedStyle(parent).zIndex;
-      if (parentZIndex && parseInt(parentZIndex) > 49) {
-        return true;
-      }
-      parent = parent.parentElement;
-    }
-
-    return false;
-  }
-
-  // Handle Esc key to close current swin
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Escape' && swins.windows.length > 0) {
-      const activeElement = document.activeElement;
-      
-      if (true/*!shouldIgnoreEsc(activeElement)*/) {
-        event.preventDefault();
-        swins.pop(); // Close the current (top) swin
-      }
-    }
-  }
-
-  onMount(() => {
-    // Add global keydown listener when component mounts
-    document.addEventListener('keydown', handleKeydown);
-
-    // Cleanup on unmount
-    return () => {
-      document.removeEventListener('keydown', handleKeydown);
-    };
-  });
+  import { closeStack } from '@sila/client/utils/closeStack';
+  onMount(() => { return () => {}; });
 </script>
 
 {#if swins.windows.length > 0}
   <!-- Stack of pages -->
   <div
     class="fixed inset-0 z-49 flex flex-col items-center p-4 pt-20 pb-20 overflow-y-auto"
+    use:closeStack={() => {
+      if (swins.windows.length === 0) return false;
+      swins.pop();
+      return true;
+    }}
   >
     <div
       class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80"
@@ -128,22 +73,19 @@
                 <ol class="flex items-center gap-4">
                   {#each swins.windows.slice(0, i + 1) as breadcrumb, index}
                     {#if index > 0}
-                      <li class="opacity-50" aria-hidden>&rsaquo;</li>
+                      <li class="opacity-50" aria-hidden="true">&rsaquo;</li>
                     {/if}
                     {#if index === i}
                       <li>{breadcrumb.title || breadcrumb.componentId}</li>
                     {:else}
                       <li>
-                        <a
+                        <button
+                          type="button"
                           class="opacity-60 hover:underline"
-                          href="#"
-                          onclick={(e) => {
-                            e.preventDefault();
-                            handleBreadcrumbClick(index);
-                          }}
+                          onclick={() => handleBreadcrumbClick(index)}
                         >
                           {breadcrumb.title || breadcrumb.componentId}
-                        </a>
+                        </button>
                       </li>
                     {/if}
                   {/each}

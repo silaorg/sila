@@ -164,7 +164,23 @@
 
   function handleKeydown(e: KeyboardEvent) {
     // Ignore when context menu is open or renaming is active
-    if (menuOpen || renamingId) return;
+    if (menuOpen || renamingId) {
+      if (e.key === 'Escape') {
+        if (menuOpen) {
+          menuOpen = false;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        if (renamingId) {
+          renamingId = null;
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }
+      return;
+    }
 
     const key = e.key;
     if (key === "Enter") {
@@ -174,31 +190,45 @@
         openSelected();
       }
       e.preventDefault();
+      e.stopPropagation();
     } else if (key === "F2") {
       if (selectedIds.size === 1) {
         renameSelected();
         e.preventDefault();
+        e.stopPropagation();
       }
     } else if (key === "ArrowLeft" || key === "ArrowUp") {
       const idx = getCurrentIndex();
       if (idx === -1) selectIndex(0);
       else selectIndex(idx - 1);
       e.preventDefault();
+      e.stopPropagation();
     } else if (key === "ArrowRight" || key === "ArrowDown") {
       const idx = getCurrentIndex();
       if (idx === -1) selectIndex(0);
       else selectIndex(idx + 1);
       e.preventDefault();
+      e.stopPropagation();
+    } else if (key === 'Escape') {
+      // Clear selection when pressing Esc inside the grid
+      if (selectedIds.size > 0) {
+        clearSelection();
+        e.preventDefault();
+        e.stopPropagation();
+      }
     }
   }
 
   onMount(() => {
     // Attach to container for scoping
     containerEl?.addEventListener("keydown", handleKeydown);
+    return () => {
+      containerEl?.removeEventListener("keydown", handleKeydown);
+    };
   });
 
   onDestroy(() => {
-    containerEl?.removeEventListener("keydown", handleKeydown);
+    // handled via onMount return
   });
 </script>
 

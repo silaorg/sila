@@ -54,13 +54,7 @@
     }
   }
 
-  function handleKeydown(event: KeyboardEvent) {
-    if (!isOpen) return;
-
-    if (event.key === 'Escape') {
-      clientState.gallery.close();
-    }
-  }
+  import { closeStack } from '@sila/client/utils/closeStack';
 
   function handleBackdropClick(event: Event) {
     if (event.target === event.currentTarget) {
@@ -94,12 +88,7 @@
     }
   }
 
-  onMount(() => {
-    document.addEventListener('keydown', handleKeydown);
-    return () => {
-      document.removeEventListener('keydown', handleKeydown);
-    };
-  });
+  onMount(() => { return () => {}; });
 
   // Get line count when text file is opened
   $effect(() => {
@@ -116,7 +105,16 @@
   <div 
     class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center cursor-default"
     onclick={handleBackdropClick}
-    onkeydown={(e) => e.key === 'Escape' && handleBackdropClick(e)}
+    use:closeStack={() => {
+      if (!clientState.gallery.isOpen) return false;
+      clientState.gallery.close();
+      return true;
+    }}
+    onkeydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        handleBackdropClick(e);
+      }
+    }}
     tabindex="0"
     role="button"
     aria-label="Close gallery"
@@ -151,13 +149,15 @@
           controls 
           class="max-w-[calc(100vw-4rem)] max-h-[calc(100vh-4rem)]"
           autoplay
-        />
+        >
+          <track kind="captions" />
+        </video>
       {:else if previewConfig.previewType === 'pdf'}
         <iframe 
           src={activeFile.url} 
           class="border-0"
           title={activeFile.name}
-        />
+        ></iframe>
       {:else if previewConfig.previewType === 'text' || previewConfig.previewType === 'code'}
         <div class="bg-white text-black p-8 rounded text-center max-w-md">
           <div class="text-6xl mb-4">{previewConfig.icon}</div>

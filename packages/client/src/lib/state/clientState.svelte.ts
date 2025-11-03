@@ -15,6 +15,7 @@ import { AppFileSystem } from '../appFs';
 import type { AppDialogs } from '../appDialogs';
 import { uuid } from '@sila/core';
 import { toast } from "svelte-sonner";
+import { EventStacks } from '../utils/eventStacks';
 
 interface AuthTokens {
   access_token: string;
@@ -106,6 +107,14 @@ export class ClientState {
     spaceInspectorOpen
   };
   texts = txtStore;
+  // Generic LIFO event stacks (e.g., "close") that components can subscribe to
+  events = new EventStacks();
+
+  // Convenience to request a cascading close (used by the global Esc listener)
+  requestClose(): boolean {
+    return this.events.emit("close");
+  }
+
 
   // Gallery state for file previews
   gallery = setupGallery();

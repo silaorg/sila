@@ -292,6 +292,13 @@
       sendMsg();
 
       return;
+    } else if (event.key === "Escape") {
+      // Unfocus textarea on Esc to avoid triggering higher-level close handlers
+      event.preventDefault();
+      event.stopPropagation();
+      textareaElement?.blur();
+      clientState.requestClose();
+      return;
     }
     adjustTextareaHeight();
   }

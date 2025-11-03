@@ -118,9 +118,13 @@
       bind:value={editName}
       onkeydown={(e) => {
         if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
           const trimmed = editName.trim();
           if (trimmed) onRename?.(trimmed);
         } else if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
           onCancelRename?.();
         }
       }}
