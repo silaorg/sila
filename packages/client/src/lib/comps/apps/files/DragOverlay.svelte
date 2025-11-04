@@ -18,34 +18,23 @@
   class="fixed z-[9999] pointer-events-none"
   style={`left:${x + 12}px; top:${y + 12}px`}
 >
-  <div class="rounded-md shadow-lg border border-neutral-200/60 bg-white/95 backdrop-blur px-3 py-2 min-w-[220px] max-w-[360px]">
-    <div class="text-xs text-neutral-500 mb-1">
-      {#if totalCount === 1}
-        1 item
-      {:else}
-        {totalCount} items
-      {/if}
-      {#if foldersCount || filesCount}
-        · {foldersCount} folder{foldersCount === 1 ? "" : "s"}
-        {#if filesCount}
-          , {filesCount} file{filesCount === 1 ? "" : "s"}
-        {/if}
-      {/if}
+  <div class="min-w-[200px] max-w-[360px]">
+    <div class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary-600 text-white text-xs font-medium shadow-md">
+      {totalCount}
     </div>
-
-    <div class="flex flex-col gap-1">
+    <div class="mt-1 pl-4 flex flex-col gap-1">
       {#each topItems as item (item.id)}
-        <div class="flex items-center gap-2 text-sm truncate">
+        <div class="flex items-center gap-2 text-sm truncate opacity-50">
           {#if isFolder(item)}
-            <Folder size={16} class="text-neutral-600" />
+            <Folder size={16} class="text-neutral-700" />
           {:else}
-            <File size={16} class="text-neutral-600" />
+            <File size={16} class="text-neutral-700" />
           {/if}
           <span class="truncate">{item.name}</span>
         </div>
       {/each}
       {#if items.length > topItems.length}
-        <div class="text-[11px] text-neutral-500">+ {items.length - topItems.length} more…</div>
+        <div class="text-[11px] text-neutral-600 opacity-50">+ {items.length - topItems.length} more…</div>
       {/if}
     </div>
   </div>
