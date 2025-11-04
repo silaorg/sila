@@ -4,6 +4,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import FileOrFolder from "./FileOrFolder.svelte";
+  import DragOverlay from "./DragOverlay.svelte";
   import { ClientFileResolver } from "../../../utils/fileResolver";
 
   const clientState = useClientState();
@@ -31,6 +32,8 @@
   // Drag detection (for moving selected items later)
   let dragCandidate: { id: string; startX: number; startY: number } | null = $state(null);
   let isDragging = $state(false);
+  let mouseX = $state(0);
+  let mouseY = $state(0);
   // Marquee selection detection (empty space drag)
   let marqueeCandidate: { startX: number; startY: number } | null = $state(null);
   let isMarqueeSelecting = $state(false);
@@ -110,6 +113,8 @@
         console.log('[FilesSelectionArea] drag-start', Array.from(selectedIds));
       }
     }
+    mouseX = e.clientX;
+    mouseY = e.clientY;
     // When dragging, detect a potential drop target under the cursor
     if (isDragging) {
       const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
@@ -149,14 +154,16 @@
       });
 
       const destinationVertex = items.find((i) => i.id === dropTargetId);
-      if (!destinationVertex) return;
-      
-      const selectedVertices = items.filter((i) => selectedIds.has(i.id));
-      moveVertices(selectedVertices, destinationVertex);
+      if (destinationVertex) {
+        const selectedVertices = items.filter((i) => selectedIds.has(i.id));
+        moveVertices(selectedVertices, destinationVertex);
+      }
     }
     isDragging = false;
     dragCandidate = null;
     dropTargetId = null;
+    mouseX = 0;
+    mouseY = 0;
     // Marquee end handling
     if (isMarqueeSelecting) {
       console.log('[FilesSelectionArea] marquee-end', { at: { x: e.clientX, y: e.clientY } });
@@ -415,6 +422,14 @@
         {/snippet}
       </ContextMenu>
     </div>
+  {/if}
+
+  {#if isDragging}
+    <DragOverlay
+      items={items.filter((i) => selectedIds.has(i.id))}
+      x={mouseX}
+      y={mouseY}
+    />
   {/if}
 </div>
 
