@@ -26,6 +26,14 @@
   let selectedIds = $state<Set<string>>(new Set());
   let focusedId = $state<string | null>(null);
   let containerEl: HTMLDivElement | null = null;
+  // Live drop target id (folder under cursor during drag)
+  let dropTargetId: string | null = $state(null);
+  // Drag detection (for moving selected items later)
+  let dragCandidate: { id: string; startX: number; startY: number } | null = $state(null);
+  let isDragging = $state(false);
+  // Marquee selection detection (empty space drag)
+  let marqueeCandidate: { startX: number; startY: number } | null = $state(null);
+  let isMarqueeSelecting = $state(false);
 
   function isSelected(v: Vertex): boolean {
     return selectedIds.has(v.id);
@@ -79,6 +87,65 @@
     else if (isMeta) toggleSelection(v);
     else selectSingle(v);
     if (renamingId && !selectedIds.has(renamingId)) renamingId = null;
+  }
+
+  function onItemMouseDown(event: MouseEvent, v: Vertex) {
+    // Only left button, ignore during rename/menu
+    if (event.button !== 0 || menuOpen || renamingId) return;
+    // Prevent native selections/drag
+    event.preventDefault();
+    // Record drag candidate
+    dragCandidate = { id: v.id, startX: event.clientX, startY: event.clientY };
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp, { once: true });
+  }
+
+  function onWindowMouseMove(e: MouseEvent) {
+    if (!dragCandidate) return;
+    if (!isDragging) {
+      const dx = Math.abs(e.clientX - dragCandidate.startX);
+      const dy = Math.abs(e.clientY - dragCandidate.startY);
+      if (dx > 4 || dy > 4) {
+        isDragging = true;
+        console.log('[FilesSelectionArea] drag-start', Array.from(selectedIds));
+      }
+    }
+    // When dragging, detect a potential drop target under the cursor
+    if (isDragging) {
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      const tile = el?.closest('[data-file-tile]') as HTMLElement | null;
+      const id = tile?.dataset.itemId || null;
+      if (id) {
+        const target = items.find((i) => i.id === id);
+        if (target && isFolder(target) && !selectedIds.has(id)) {
+          if (dropTargetId !== id) dropTargetId = id;
+        } else {
+          if (dropTargetId !== null) dropTargetId = null;
+        }
+      } else {
+        if (dropTargetId !== null) dropTargetId = null;
+      }
+    }
+  }
+
+  function onWindowMouseUp(e: MouseEvent) {
+    window.removeEventListener('mousemove', onWindowMouseMove);
+    if (isDragging) {
+      console.log('[FilesSelectionArea] drag-end', {
+        items: Array.from(selectedIds),
+        at: { x: e.clientX, y: e.clientY },
+        dropTargetId
+      });
+    }
+    isDragging = false;
+    dragCandidate = null;
+    dropTargetId = null;
+    // Marquee end handling
+    if (isMarqueeSelecting) {
+      console.log('[FilesSelectionArea] marquee-end', { at: { x: e.clientX, y: e.clientY } });
+    }
+    isMarqueeSelecting = false;
+    marqueeCandidate = null;
   }
 
   // Context menu (shared)
@@ -247,16 +314,39 @@
   });
 </script>
 
-<div class="flex flex-wrap gap-3 select-none focus:outline-none focus:ring-0 focus-visible:outline-none" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders">
+<div class="flex flex-wrap gap-3 select-none focus:outline-none focus:ring-0 focus-visible:outline-none" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders"
+  onmousedown={(e) => {
+    // Start marquee if user clicks empty space (not on item)
+    if (e.button !== 0) return;
+    if (e.target === containerEl) {
+      e.preventDefault();
+      marqueeCandidate = { startX: e.clientX, startY: e.clientY };
+      window.addEventListener('mousemove', (ev) => {
+        if (!marqueeCandidate) return;
+        if (!isMarqueeSelecting) {
+          const dx = Math.abs(ev.clientX - marqueeCandidate.startX);
+          const dy = Math.abs(ev.clientY - marqueeCandidate.startY);
+          if (dx > 3 || dy > 3) {
+            isMarqueeSelecting = true;
+            console.log('[FilesSelectionArea] marquee-start', { at: { x: ev.clientX, y: ev.clientY } });
+          }
+        }
+      }, { once: false });
+      window.addEventListener('mouseup', onWindowMouseUp, { once: true });
+    }
+  }}
+>
   {#each items as item (item.id)}
     <div
       oncontextmenu={(e) => onItemContextMenu(e, item)}
       onclick={(e) => onItemClick(e, item)}
-      onmousedown={(e) => e.preventDefault()}
+      onmousedown={(e) => onItemMouseDown(e, item)}
       class="p-0 m-0 bg-transparent border-0 focus:outline-none focus:ring-0"
       role="gridcell"
       aria-selected={isSelected(item)}
       tabindex="-1"
+      data-file-tile
+      data-item-id={item.id}
       onkeydown={(e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -271,6 +361,7 @@
         onEnter={onEnter}
         selected={isSelected(item)}
         renaming={renamingId === item.id}
+        dropTarget={dropTargetId === item.id}
         onRename={(newName) => {
           if (newName && newName.trim()) {
             item.name = newName.trim();

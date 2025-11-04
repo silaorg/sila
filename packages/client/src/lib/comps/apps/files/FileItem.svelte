@@ -10,12 +10,14 @@
     renaming = false,
     onRename,
     onCancelRename,
+    dropTarget = false,
   }: {
     vertex: Vertex;
     selected?: boolean;
     renaming?: boolean;
     onRename?: (newName: string) => void;
     onCancelRename?: () => void;
+    dropTarget?: boolean;
   } = $props();
 
   const clientState = useClientState();
@@ -92,6 +94,9 @@
 <div
   class="flex flex-col items-center p-3 hover:bg-surface-100-900 rounded-lg w-32 cursor-pointer select-none"
   class:bg-surface-100-900={selected}
+  class:outline={dropTarget}
+  class:outline-2={dropTarget}
+  class:outline-primary-500={dropTarget}
   ondblclick={openFile}
   role="button"
   tabindex="-1"
