@@ -30,12 +30,14 @@
   // Live drop target id (folder under cursor during drag)
   let dropTargetId: string | null = $state(null);
   // Drag detection (for moving selected items later)
-  let dragCandidate: { id: string; startX: number; startY: number } | null = $state(null);
+  let dragCandidate: { id: string; startX: number; startY: number } | null =
+    $state(null);
   let isDragging = $state(false);
   let mouseX = $state(0);
   let mouseY = $state(0);
   // Marquee selection detection (empty space drag)
-  let marqueeCandidate: { startX: number; startY: number } | null = $state(null);
+  let marqueeCandidate: { startX: number; startY: number } | null =
+    $state(null);
   let isMarqueeSelecting = $state(false);
 
   function isSelected(v: Vertex): boolean {
@@ -72,7 +74,8 @@
       selectSingle(to);
       return;
     }
-    const [from, toIdx] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+    const [from, toIdx] =
+      startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
     const range = items.slice(from, toIdx + 1).map((i) => i.id);
     selectedIds = new Set(range);
     if (renamingId && !selectedIds.has(renamingId)) renamingId = null;
@@ -99,8 +102,8 @@
     event.preventDefault();
     // Record drag candidate
     dragCandidate = { id: v.id, startX: event.clientX, startY: event.clientY };
-    window.addEventListener('mousemove', onWindowMouseMove);
-    window.addEventListener('mouseup', onWindowMouseUp, { once: true });
+    window.addEventListener("mousemove", onWindowMouseMove);
+    window.addEventListener("mouseup", onWindowMouseUp, { once: true });
   }
 
   function onWindowMouseMove(e: MouseEvent) {
@@ -110,32 +113,40 @@
       const dy = Math.abs(e.clientY - dragCandidate.startY);
       if (dx > 4 || dy > 4) {
         isDragging = true;
-        console.log('[FilesSelectionArea] drag-start', Array.from(selectedIds));
+        console.log("[FilesSelectionArea] drag-start", Array.from(selectedIds));
       }
     }
     mouseX = e.clientX;
     mouseY = e.clientY;
     // When dragging, detect a potential drop target under the cursor
     if (isDragging) {
-      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-      const tile = el?.closest('[data-file-tile]') as HTMLElement | null;
-      const id = tile?.dataset.itemId || null;
+      const el = document.elementFromPoint(
+        e.clientX,
+        e.clientY
+      ) as HTMLElement | null;
+      const targetEl = el?.closest("[data-vertex-id]") as HTMLElement | null;
+      const id = targetEl?.dataset.vertexId ?? null;
       if (id) {
-        const target = items.find((i) => i.id === id);
+        // Resolve using the tree from the first item when available
+        const tree = items[0]?.tree;
+        let target =
+          items.find((i) => i.id === id) || (tree ? tree.getVertex(id) : null);
         if (target && isFolder(target) && !selectedIds.has(id)) {
           if (dropTargetId !== id) dropTargetId = id;
         } else {
           if (dropTargetId !== null) dropTargetId = null;
         }
-      } else {
-        if (dropTargetId !== null) dropTargetId = null;
+      } else if (dropTargetId !== null) {
+        dropTargetId = null;
       }
     }
   }
 
   function moveVertices(vertices: Vertex[], destination: Vertex) {
     if (vertices.some((v) => v.id === destination.id)) {
-      console.error('One of the vertices is the destination folder. Cannot do that');
+      console.error(
+        "One of the vertices is the destination folder. Cannot do that"
+      );
       return;
     }
 
@@ -145,15 +156,18 @@
   }
 
   function onWindowMouseUp(e: MouseEvent) {
-    window.removeEventListener('mousemove', onWindowMouseMove);
+    window.removeEventListener("mousemove", onWindowMouseMove);
     if (isDragging) {
-      console.log('[FilesSelectionArea] drag-end', {
+      console.log("[FilesSelectionArea] drag-end", {
         items: Array.from(selectedIds),
         at: { x: e.clientX, y: e.clientY },
-        dropTargetId
+        dropTargetId,
       });
 
-      const destinationVertex = items.find((i) => i.id === dropTargetId);
+      const destinationVertex = dropTargetId
+        ? items[0]?.tree.getVertex(dropTargetId)
+        : undefined;
+
       if (destinationVertex) {
         const selectedVertices = items.filter((i) => selectedIds.has(i.id));
         moveVertices(selectedVertices, destinationVertex);
@@ -166,7 +180,9 @@
     mouseY = 0;
     // Marquee end handling
     if (isMarqueeSelecting) {
-      console.log('[FilesSelectionArea] marquee-end', { at: { x: e.clientX, y: e.clientY } });
+      console.log("[FilesSelectionArea] marquee-end", {
+        at: { x: e.clientX, y: e.clientY },
+      });
     }
     isMarqueeSelecting = false;
     marqueeCandidate = null;
@@ -202,7 +218,10 @@
     if (isFolder(v)) onEnter(v);
     else {
       const fileRef = { tree: v.root.id, vertex: v.id } as any;
-      const fileInfo = await ClientFileResolver.resolveFileReference(fileRef, clientState);
+      const fileInfo = await ClientFileResolver.resolveFileReference(
+        fileRef,
+        clientState
+      );
       if (fileInfo) clientState.gallery.open(fileInfo);
     }
     menuOpen = false;
@@ -262,7 +281,7 @@
   function handleKeydown(e: KeyboardEvent) {
     // Ignore when context menu is open or renaming is active
     if (menuOpen || renamingId) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (menuOpen) {
           menuOpen = false;
           e.preventDefault();
@@ -311,14 +330,14 @@
       else selectIndex(idx + 1);
       e.preventDefault();
       e.stopPropagation();
-    } else if (key === 'Escape') {
+    } else if (key === "Escape") {
       // Clear selection when pressing Esc inside the grid
       if (selectedIds.size > 0) {
         clearSelection();
         e.preventDefault();
         e.stopPropagation();
       }
-    } else if (key === 'Tab') {
+    } else if (key === "Tab") {
       // Keep focus within grid; don't tab to per-item wrappers
       e.preventDefault();
       e.stopPropagation();
@@ -338,25 +357,36 @@
   });
 </script>
 
-<div class="flex flex-wrap gap-3 select-none focus:outline-none focus:ring-0 focus-visible:outline-none" bind:this={containerEl} tabindex="0" role="grid" aria-label="Files and folders"
+<div
+  class="flex flex-wrap gap-3 select-none focus:outline-none focus:ring-0 focus-visible:outline-none"
+  bind:this={containerEl}
+  tabindex="0"
+  role="grid"
+  aria-label="Files and folders"
   onmousedown={(e) => {
     // Start marquee if user clicks empty space (not on item)
     if (e.button !== 0) return;
     if (e.target === containerEl) {
       e.preventDefault();
       marqueeCandidate = { startX: e.clientX, startY: e.clientY };
-      window.addEventListener('mousemove', (ev) => {
-        if (!marqueeCandidate) return;
-        if (!isMarqueeSelecting) {
-          const dx = Math.abs(ev.clientX - marqueeCandidate.startX);
-          const dy = Math.abs(ev.clientY - marqueeCandidate.startY);
-          if (dx > 3 || dy > 3) {
-            isMarqueeSelecting = true;
-            console.log('[FilesSelectionArea] marquee-start', { at: { x: ev.clientX, y: ev.clientY } });
+      window.addEventListener(
+        "mousemove",
+        (ev) => {
+          if (!marqueeCandidate) return;
+          if (!isMarqueeSelecting) {
+            const dx = Math.abs(ev.clientX - marqueeCandidate.startX);
+            const dy = Math.abs(ev.clientY - marqueeCandidate.startY);
+            if (dx > 3 || dy > 3) {
+              isMarqueeSelecting = true;
+              console.log("[FilesSelectionArea] marquee-start", {
+                at: { x: ev.clientX, y: ev.clientY },
+              });
+            }
           }
-        }
-      }, { once: false });
-      window.addEventListener('mouseup', onWindowMouseUp, { once: true });
+        },
+        { once: false }
+      );
+      window.addEventListener("mouseup", onWindowMouseUp, { once: true });
     }
   }}
 >
@@ -369,20 +399,19 @@
       role="gridcell"
       aria-selected={isSelected(item)}
       tabindex="-1"
-      data-file-tile
-      data-item-id={item.id}
+      data-vertex-id={item.id}
       onkeydown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
           e.preventDefault();
           e.stopPropagation();
           // Delegate to container's handler
-          handleKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+          handleKeydown(new KeyboardEvent("keydown", { key: "Enter" }));
         }
       }}
     >
       <FileOrFolder
         vertex={item}
-        onEnter={onEnter}
+        {onEnter}
         selected={isSelected(item)}
         renaming={renamingId === item.id}
         dropTarget={dropTargetId === item.id}
@@ -392,17 +421,16 @@
           }
           renamingId = null;
         }}
-        onCancelRename={() => { renamingId = null; }}
+        onCancelRename={() => {
+          renamingId = null;
+        }}
       />
     </div>
   {/each}
 
   <!-- Shared context menu -->
   {#if menuOpen}
-    <div
-      class="fixed"
-      style={`left:${menuX}px; top:${menuY}px`}
-    >
+    <div class="fixed" style={`left:${menuX}px; top:${menuY}px`}>
       <ContextMenu
         open={menuOpen}
         onOpenChange={(e) => (menuOpen = e.open)}
@@ -411,13 +439,25 @@
       >
         {#snippet trigger()}
           <!-- invisible trigger element at the requested coordinates -->
-          <button type="button" class="w-0 h-0 p-0 m-0" aria-hidden="true"></button>
+          <button type="button" class="w-0 h-0 p-0 m-0" aria-hidden="true"
+          ></button>
         {/snippet}
         {#snippet content()}
           <div class="flex flex-col gap-1 w-48">
-            <button class="btn btn-sm text-left" onclick={openSelected} disabled={selectedIds.size !== 1}>Open</button>
-            <button class="btn btn-sm text-left" onclick={renameSelected} disabled={selectedIds.size !== 1}>Rename</button>
-            <button class="btn btn-sm preset-filled-error-500 text-left" onclick={deleteSelected}>Delete</button>
+            <button
+              class="btn btn-sm text-left"
+              onclick={openSelected}
+              disabled={selectedIds.size !== 1}>Open</button
+            >
+            <button
+              class="btn btn-sm text-left"
+              onclick={renameSelected}
+              disabled={selectedIds.size !== 1}>Rename</button
+            >
+            <button
+              class="btn btn-sm preset-filled-error-500 text-left"
+              onclick={deleteSelected}>Delete</button
+            >
           </div>
         {/snippet}
       </ContextMenu>
@@ -432,5 +472,3 @@
     />
   {/if}
 </div>
-
-

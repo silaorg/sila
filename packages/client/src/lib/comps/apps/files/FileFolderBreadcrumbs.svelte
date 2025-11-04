@@ -45,6 +45,7 @@
     {/if}
     <button
       class="px-1.5 py-1 rounded hover:bg-surface-500/10 transition-colors"
+      data-vertex-id={crumb.id}
       onclick={() => goToCrumb(i)}
       type="button"
     >
