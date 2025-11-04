@@ -39,6 +39,27 @@
   let marqueeCandidate: { startX: number; startY: number } | null =
     $state(null);
   let isMarqueeSelecting = $state(false);
+  let marqueeRect: { x: number; y: number; w: number; h: number } | null =
+    $state(null);
+  let suppressNextEmptyClick = $state(false);
+
+  function rectFromPoints(x1: number, y1: number, x2: number, y2: number) {
+    const left = Math.min(x1, y2 === undefined ? x1 : x2);
+    const top = Math.min(y1, x2 === undefined ? y1 : y2);
+    const right = Math.max(x1, x2);
+    const bottom = Math.max(y1, y2);
+    return { x: left, y: top, w: right - left, h: bottom - top };
+  }
+
+  function intersects(r: { x: number; y: number; w: number; h: number }, el: DOMRect) {
+    const r2 = { x: el.left, y: el.top, w: el.width, h: el.height };
+    return !(
+      r.x + r.w < r2.x ||
+      r2.x + r2.w < r.x ||
+      r.y + r.h < r2.y ||
+      r2.y + r2.h < r.y
+    );
+  }
 
   function isSelected(v: Vertex): boolean {
     return selectedIds.has(v.id);
@@ -112,13 +133,14 @@
   }
 
   function onWindowMouseMove(e: MouseEvent) {
-    if (!dragCandidate) return;
+    if (!dragCandidate && !marqueeCandidate) return;
     if (!isDragging) {
-      const dx = Math.abs(e.clientX - dragCandidate.startX);
-      const dy = Math.abs(e.clientY - dragCandidate.startY);
-      if (dx > 4 || dy > 4) {
-        isDragging = true;
-        console.log("[FilesSelectionArea] drag-start", Array.from(selectedIds));
+      if (dragCandidate) {
+        const dx = Math.abs(e.clientX - dragCandidate.startX);
+        const dy = Math.abs(e.clientY - dragCandidate.startY);
+        if (dx > 4 || dy > 4) {
+          isDragging = true;
+        }
       }
     }
     mouseX = e.clientX;
@@ -145,6 +167,42 @@
         dropTargetId = null;
       }
     }
+
+    // Handle marquee activation threshold and live selection
+    if (marqueeCandidate && !isMarqueeSelecting) {
+      const dx = Math.abs(e.clientX - marqueeCandidate.startX);
+      const dy = Math.abs(e.clientY - marqueeCandidate.startY);
+      if (dx > 3 || dy > 3) {
+        isMarqueeSelecting = true;
+        console.log("[FilesSelectionArea] marquee-start", {
+          at: { x: e.clientX, y: e.clientY },
+        });
+      }
+    }
+    if (isMarqueeSelecting && marqueeCandidate) {
+      const r = rectFromPoints(
+        marqueeCandidate.startX,
+        marqueeCandidate.startY,
+        e.clientX,
+        e.clientY
+      );
+      marqueeRect = r;
+
+      const tiles = (containerEl?.querySelectorAll(
+        '[data-vertex-id]'
+      ) || []) as NodeListOf<HTMLElement>;
+      const next = new Set<string>();
+      tiles.forEach((el) => {
+        const box = el.getBoundingClientRect();
+        if (intersects(r, box)) {
+          const id = el.dataset.vertexId;
+          if (id) next.add(id);
+        }
+      });
+      selectedIds = next;
+      // Keep focus on grid for keyboard
+      containerEl?.focus();
+    }
   }
 
   function moveVertices(vertices: Vertex[], destination: Vertex) {
@@ -163,12 +221,6 @@
   function onWindowMouseUp(e: MouseEvent) {
     window.removeEventListener("mousemove", onWindowMouseMove);
     if (isDragging) {
-      console.log("[FilesSelectionArea] drag-end", {
-        items: Array.from(selectedIds),
-        at: { x: e.clientX, y: e.clientY },
-        dropTargetId,
-      });
-
       const destinationVertex = dropTargetId
         ? items[0]?.tree.getVertex(dropTargetId)
         : undefined;
@@ -188,9 +240,12 @@
       console.log("[FilesSelectionArea] marquee-end", {
         at: { x: e.clientX, y: e.clientY },
       });
+      // Prevent the subsequent click on the container from clearing selection
+      suppressNextEmptyClick = true;
     }
     isMarqueeSelecting = false;
     marqueeCandidate = null;
+    marqueeRect = null;
   }
 
   // Context menu (shared)
@@ -250,6 +305,12 @@
   // Close selection on empty area click
   function onEmptyAreaClick(e: MouseEvent) {
     if (e.target instanceof Element && e.currentTarget === e.target) {
+      if (suppressNextEmptyClick) {
+        suppressNextEmptyClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       // Keep focus on the grid for keyboard navigation
       containerEl?.focus();
       clearSelection();
@@ -366,23 +427,7 @@
     if (e.target === containerEl) {
       e.preventDefault();
       marqueeCandidate = { startX: e.clientX, startY: e.clientY };
-      window.addEventListener(
-        "mousemove",
-        (ev) => {
-          if (!marqueeCandidate) return;
-          if (!isMarqueeSelecting) {
-            const dx = Math.abs(ev.clientX - marqueeCandidate.startX);
-            const dy = Math.abs(ev.clientY - marqueeCandidate.startY);
-            if (dx > 3 || dy > 3) {
-              isMarqueeSelecting = true;
-              console.log("[FilesSelectionArea] marquee-start", {
-                at: { x: ev.clientX, y: ev.clientY },
-              });
-            }
-          }
-        },
-        { once: false }
-      );
+      window.addEventListener("mousemove", onWindowMouseMove);
       window.addEventListener("mouseup", onWindowMouseUp, { once: true });
     }
   }}
@@ -459,6 +504,13 @@
         {/snippet}
       </ContextMenu>
     </div>
+  {/if}
+
+  {#if marqueeRect}
+    <div
+      class="fixed pointer-events-none border border-blue-500/60 bg-blue-500/10 z-[9998]"
+      style={`left:${marqueeRect.x}px; top:${marqueeRect.y}px; width:${marqueeRect.w}px; height:${marqueeRect.h}px`}
+    ></div>
   {/if}
 
   {#if isDragging}
