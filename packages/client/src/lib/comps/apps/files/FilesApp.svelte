@@ -304,7 +304,7 @@
             renameId={renameIdForArea}
           />
         {:else}
-          <p class="text-muted-foreground">This folder is empty.</p>
+          <p class="text-muted-foreground">You can <button class="anchor cursor-pointer" onclick={openFilePicker}>upload</button> or <span class="href">move</span> files in this folder.</p>
         {/if}
       {/if}
     </div>
