@@ -174,9 +174,6 @@
       const dy = Math.abs(e.clientY - marqueeCandidate.startY);
       if (dx > 3 || dy > 3) {
         isMarqueeSelecting = true;
-        console.log("[FilesSelectionArea] marquee-start", {
-          at: { x: e.clientX, y: e.clientY },
-        });
       }
     }
     if (isMarqueeSelecting && marqueeCandidate) {
@@ -237,9 +234,6 @@
     mouseY = 0;
     // Marquee end handling
     if (isMarqueeSelecting) {
-      console.log("[FilesSelectionArea] marquee-end", {
-        at: { x: e.clientX, y: e.clientY },
-      });
       // Prevent the subsequent click on the container from clearing selection
       suppressNextEmptyClick = true;
     }
