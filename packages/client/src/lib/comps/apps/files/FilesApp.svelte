@@ -11,7 +11,7 @@
     toDataUrl,
     getImageDimensions,
   } from "@sila/client/utils/fileProcessing";
-  import FilesSelectionArea from "./FilesSelectionArea.svelte";
+  import FolderView from "./FolderView.svelte";
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
   const clientState = useClientState();
 
@@ -262,7 +262,11 @@
         <!-- Breadcrumbs and buttons row -->
         <div class="flex items-center justify-between mb-4">
           {#if currentFolder}
-            <FileFolderBreadcrumbs folder={currentFolder} root={filesRoot} onEnter={enterFolder} />
+            <FileFolderBreadcrumbs
+              folder={currentFolder}
+              root={filesRoot}
+              onEnter={enterFolder}
+            />
 
             <!-- Action buttons -->
             <div class="flex items-center gap-2">
@@ -295,16 +299,21 @@
         </div>
 
         <!-- Files and Folders -->
-        {#if items.length > 0}
-          <FilesSelectionArea
-            items={items}
-            onEnter={enterFolder}
-            onBack={goBack}
-            selectId={selectIdForArea}
-            renameId={renameIdForArea}
-          />
-        {:else}
-          <p class="text-muted-foreground">You can <button class="anchor cursor-pointer" onclick={openFilePicker}>upload</button> or <span class="href">move</span> files in this folder.</p>
+        <FolderView
+          {items}
+          onEnter={enterFolder}
+          onBack={goBack}
+          selectId={selectIdForArea}
+          renameId={renameIdForArea}
+        />
+        {#if items.length === 0}
+          <p class="text-muted-foreground">
+            You can <button
+              class="anchor cursor-pointer"
+              onclick={openFilePicker}>upload</button
+            >
+            or <span class="href">move</span> files in this folder.
+          </p>
         {/if}
       {/if}
     </div>

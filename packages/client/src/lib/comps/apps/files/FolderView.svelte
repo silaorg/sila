@@ -128,6 +128,17 @@
     }
   }
 
+  function moveVertices(vertices: Vertex[], destination: Vertex) {
+    if (vertices.some((v) => v.id === destination.id)) {
+      console.error('One of the vertices is the destination folder. Cannot do that');
+      return;
+    }
+
+    for (const vertex of vertices) {
+      vertex.moveTo(destination);
+    }
+  }
+
   function onWindowMouseUp(e: MouseEvent) {
     window.removeEventListener('mousemove', onWindowMouseMove);
     if (isDragging) {
@@ -136,6 +147,12 @@
         at: { x: e.clientX, y: e.clientY },
         dropTargetId
       });
+
+      const destinationVertex = items.find((i) => i.id === dropTargetId);
+      if (!destinationVertex) return;
+      
+      const selectedVertices = items.filter((i) => selectedIds.has(i.id));
+      moveVertices(selectedVertices, destinationVertex);
     }
     isDragging = false;
     dragCandidate = null;
