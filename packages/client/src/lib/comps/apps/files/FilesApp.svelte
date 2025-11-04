@@ -246,7 +246,7 @@
     ondragleave={handleDragLeave}
     ondrop={handleDrop}
   >
-    <div class="w-full max-w-4xl mx-auto">
+    <div class="w-full max-w-4xl mx-auto p-1">
       <!-- Hidden file input -->
       <input
         type="file"

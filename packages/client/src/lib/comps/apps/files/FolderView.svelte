@@ -100,6 +100,11 @@
     if (event.button !== 0 || menuOpen || renamingId) return;
     // Prevent native selections/drag
     event.preventDefault();
+    // If plain click (no modifiers) and the item isn't selected yet, select it
+    // Avoid interfering with Shift/Meta multiselect which is handled on click
+    if (!selectedIds.has(v.id) && !event.shiftKey && !(event.metaKey || event.ctrlKey)) {
+      selectSingle(v);
+    }
     // Record drag candidate
     dragCandidate = { id: v.id, startX: event.clientX, startY: event.clientY };
     window.addEventListener("mousemove", onWindowMouseMove);
@@ -344,17 +349,7 @@
     }
   }
 
-  onMount(() => {
-    // Attach to container for scoping
-    containerEl?.addEventListener("keydown", handleKeydown);
-    return () => {
-      containerEl?.removeEventListener("keydown", handleKeydown);
-    };
-  });
-
-  onDestroy(() => {
-    // handled via onMount return
-  });
+  // Keyboard handling is bound directly on the container element
 </script>
 
 <div
@@ -363,6 +358,8 @@
   tabindex="0"
   role="grid"
   aria-label="Files and folders"
+  onkeydown={handleKeydown}
+  onclick={onEmptyAreaClick}
   onmousedown={(e) => {
     // Start marquee if user clicks empty space (not on item)
     if (e.button !== 0) return;
