@@ -90,9 +90,8 @@
 </script>
 
 <div
-  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 cursor-pointer select-none"
-  class:ring-2={selected}
-  class:ring-primary-500={selected}
+  class="flex flex-col items-center p-3 hover:bg-surface-100-900 rounded-lg w-32 cursor-pointer select-none"
+  class:bg-surface-100-900={selected}
   ondblclick={openFile}
   role="button"
   tabindex="-1"
@@ -103,7 +102,7 @@
       <img
         src={fileUrl}
         alt={name}
-        class="w-full h-full object-cover rounded"
+        class="w-full h-full object-cover"
         loading="lazy"
       />
     {:else}

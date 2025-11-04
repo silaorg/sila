@@ -35,9 +35,8 @@
 </script>
 
 <button
-  class="flex flex-col items-center p-3 hover:bg-surface-500/5 rounded-lg transition-colors w-32 select-none"
-  class:ring-2={selected}
-  class:ring-primary-500={selected}
+  class="flex flex-col items-center p-3 hover:bg-surface-100-900 rounded-lg w-32 select-none"
+  class:bg-surface-100-900={selected}
   ondblclick={() => onEnter(vertex)}
   type="button"
   tabindex="-1"
