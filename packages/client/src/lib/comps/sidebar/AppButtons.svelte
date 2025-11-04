@@ -60,7 +60,7 @@
         <Images size={18} />
       </span>
     </span>
-    <span class="flex-grow text-left">Files</span>
+    <span class="flex-grow text-left">Assets</span>
   </SwinsNavButton>
   </li>
 </ul>
