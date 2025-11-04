@@ -56,7 +56,7 @@
 
     if (!configId) {
       const newConfigId = uuid();
-      clientState.currentSpace?.insertIntoArray("app-configs", {
+      clientState.currentSpace?.insertIntoArray("configs", {
         id: newConfigId,
         name: name,
         description: description,

@@ -12,14 +12,14 @@
 - **Root space tree** (single root space per workspace)
   - Global metadata (settings, providers, app‑configs)
   - `users/` branch containing user space references
-  - `app-instances` for root-level app instances (shared across users)
-  - Organization: `users/`, `app-configs/`, `app-instances/{public,private}`
+  - `threads` for root-level app instances (shared across users)
+  - Organization: `users/`, `configs/`, `threads/{public,private}`
 
 - **User space tree** (one per user)
   - User-specific metadata and settings
-  - `app-instances` for user-owned app instances
+  - `threads` for user-owned app instances
   - **No `users/` branch** - user spaces don't contain other users
-  - Organization: `app-configs/`, `app-instances/{public,private}`, `settings/`
+  - Organization: `configs/`, `threads/{public,private}`, `settings/`
 
 - **App instances (many)**
   - Each instance points to an app kind and its app tree (or a nested space)
@@ -36,16 +36,16 @@ root-space
   - users
       - dmitry  (app kind: space, points to user space)
       - alice   (app kind: space, points to user space)
-  - app-configs
-  - app-instances
+  - configs
+  - threads
       - public
           - shared-chat  (shared across all users)
       - private
           - admin-tools  (root-only tools)
 
 user-space (dmitry)
-  - app-configs
-  - app-instances
+  - configs
+  - threads
       - public
           - chat-1
           - files-1
@@ -128,7 +128,7 @@ TreeSpecs enable typed tree wrappers that provide convenient, validated access:
 - **ChatTree**: typed interface for messages, attachments, refs to files
 - **FilesTree**: typed interface for file metadata and organization  
 - **SecretsTree**: lightweight tree that references encrypted secrets
-- **RootSpaceTree**: typed accessors for `app-configs`, `app-instances`, `users`, `providers`, `settings` (root space only)
+- **RootSpaceTree**: typed accessors for `configs`, `threads`, `users`, `providers`, `settings` (root space only)
 - **UserSpaceTree**: typed subset for user‑owned app instances and settings (user spaces only)
 
 #### Tree validation and migration
@@ -199,7 +199,7 @@ Apps can hook to any tree that matches their TreeSpec, enabling:
 
 ### App instance model
 
-Conceptual interface for the child vertex under `app-instances`:
+Conceptual interface for the child vertex under `threads`:
 
 ```ts
 interface AppInstanceRef {
@@ -208,7 +208,7 @@ interface AppInstanceRef {
   appKind: 'chat' | 'files' | 'space' | 'secrets' | string;
   treeId?: string;            // for normal app trees
   spaceId?: string;           // for appKind === 'space'
-  configId?: string;          // link to app-configs
+  configId?: string;          // link to configs
   visibility?: 'public' | 'private';
   createdAt?: number;
   icon?: string;
@@ -216,7 +216,7 @@ interface AppInstanceRef {
 ```
 
 Notes:
-- `app-instances` replaces `app-instances` everywhere in code and docs.
+- `threads` replaces `threads` everywhere in code and docs.
 - Cross‑space references should always carry `{ spaceId, treeId, vertexId }` to be unambiguous.
 
 ### Loading model
@@ -337,17 +337,17 @@ class SecretsTree {
 ### Migration plan (incremental)
 
 1) **TreeSpec framework**: Implement TreeSpec registry and validation system alongside existing app tree creation.
-2) **App instances**: Introduce `app-instances` while continuing to populate `app-instances` as an alias.
+2) **App instances**: Introduce `threads` while continuing to populate `threads` as an alias.
 3) **Tree wrappers**: Create ChatTree wrapper and migrate ChatAppBackend to use it instead of direct AppTree access.
 4) **Mutable storage**: Add mutable/uuid store alongside existing `sha256` CAS; extend FileStore interface.
 5) **SecretsTree**: Implement SecretsTree as optional; migrate existing secrets persistence from SpaceManager to it.
-6) **UI updates**: Update loaders/UI to read from `app-instances` first, fallback to `app-instances`.
+6) **UI updates**: Update loaders/UI to read from `threads` first, fallback to `threads`.
 7) **Testing**: Migrate tests and docs to new naming and TreeSpec validation.
-8) **Cleanup**: Flip default to `app-instances`; remove `app-instances` after deprecation window.
+8) **Cleanup**: Flip default to `threads`; remove `threads` after deprecation window.
 
 ### Affected areas (high‑level)
 
-- **Core spaces API**: rename `app-instances` to `app-instances` in Space.ts and add typed wrappers.
+- **Core spaces API**: rename `threads` to `threads` in Space.ts and add typed wrappers.
 - **TreeSpec system**: implement TreeSpec registry, validation, and migration framework in core.
 - **Tree wrappers**: create ChatTree, FilesTree, SecretsTree with typed accessors that work with RepTree vertices.
 - **App backends**: refactor ChatAppBackend to use ChatTree wrapper instead of direct AppTree access.
@@ -372,7 +372,7 @@ class SecretsTree {
 
 - **TreeSpec framework**: Implement TreeSpec registry, validation, and migration system.
 - **ChatTree wrapper**: Create ChatTree with typed accessors and migrate ChatAppBackend to use it.
-- **App instances**: Prototype `app-instances` alias and typed wrappers in core.
+- **App instances**: Prototype `threads` alias and typed wrappers in core.
 - **Mutable storage**: Add `mutable/uuid` store with a minimal API and wire a basic `SecretsTree` to it.
 - **Space viewer**: Build a simple Space Viewer tab to render a space's vertices for inspection.
 - **Testing**: Update tests and docs; run both naming schemes during transition.
@@ -381,8 +381,8 @@ class SecretsTree {
 
 ```
 / (root space tree root)
-  app-configs/
-  app-instances/
+  configs/
+  threads/
     public/
       shared-chat { appKind: 'chat', treeId: 't-shared-chat', treeSpecId: 'chat-v1' }
     private/
@@ -394,8 +394,8 @@ class SecretsTree {
   settings/
 
 / (user space tree root - dmitry)
-  app-configs/
-  app-instances/
+  configs/
+  threads/
     public/
       chat-1 { appKind: 'chat', treeId: 't-chat-1', treeSpecId: 'chat-v1' }
       files-1 { appKind: 'files', treeId: 't-files-1', treeSpecId: 'files-v1' }

@@ -36,10 +36,10 @@ export class AppTree {
     return this.tree.root!.id;
   }
 
-  getAppId(): string {
+  getAppId(): string | undefined {
     const appId = this.tree.root!.getProperty('appId');
     if (!appId) {
-      throw new Error("App ID is not set");
+      return undefined;
     }
 
     return appId as string;

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { FilesAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { Vertex } from "@sila/core";
   import { Upload, FolderPlus } from "lucide-svelte";
@@ -15,9 +14,8 @@
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
   const clientState = useClientState();
 
-  let { data }: { data: FilesAppData } = $props();
+  const { filesRoot }: { filesRoot: Vertex } = $props();
 
-  let filesRoot = $derived<Vertex | undefined>(undefined);
   let currentFolder = $state<Vertex | undefined>(undefined);
   let items = $state<Vertex[]>([]);
   let selectIdForArea: string | undefined = $state(undefined);
@@ -31,7 +29,6 @@
   let fileInputEl: HTMLInputElement | null = $state(null);
 
   onMount(() => {
-    filesRoot = data.filesVertex;
     if (!filesRoot) return;
     currentFolder = filesRoot;
     refreshItems();
@@ -47,18 +44,6 @@
     // Use the natural order from currentFolder.children (will add custom sorting later)
     items = [...currentFolder.children];
   }
-
-  /*
-  function observeCurrentFolder() {
-    unobserveCurrent?.();
-    if (!currentFolder) return;
-    unobserveCurrent = currentFolder.observe((events) => {
-      if (events.some((e) => e.type === "children" || e.type === "property")) {
-        refreshLists();
-      }
-    });
-  }
-  */
 
   function enterFolder(folder: Vertex) {
     currentFolder = folder;
@@ -99,11 +84,6 @@
   function createNewFolder() {
     if (!currentFolder) return;
 
-    /*
-    const folderName = prompt("Enter folder name:");
-    if (!folderName || !folderName.trim()) return;
-    const trimmedName = folderName.trim();
-    */
     const trimmedName = "new folder";
 
     // Check if a folder with this name already exists
@@ -141,7 +121,7 @@
     isUploading = true;
 
     try {
-      const store = (data as any).space.getFileStore();
+      const store = clientState.currentSpace?.getFileStore();
       if (!store) {
         console.error("File store not available");
         return;

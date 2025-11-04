@@ -2,7 +2,7 @@ import { SWins } from "../swins/Swins.svelte";
 import Settings from "../swins/routes/Settings.svelte";
 import Spaces from "../swins/routes/Spaces.svelte";
 import Apps from "../swins/routes/Apps.svelte";
-import AppConfigEditing from "@sila/client/comps/app-configs/AppConfigEditing.svelte";
+import AppConfigEditing from "@sila/client/comps/configs/AppConfigEditing.svelte";
 import NewThreadSwins from "../swins/routes/NewThreadSwins.svelte";
 import HowToSetupModelProider from "@sila/client/comps/models/HowToSetupModelProider.svelte";
 import SelectModelPopup from "@sila/client/comps/popups/SelectModelPopup.svelte";

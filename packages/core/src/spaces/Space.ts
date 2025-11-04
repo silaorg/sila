@@ -25,12 +25,12 @@ export class Space {
   readonly appConfigs: AppConfigsData;
 
   static isValid(tree: RepTree): boolean {
-    const apps = tree.getVertexByPath('app-configs');
+    const apps = tree.getVertexByPath('configs');
     if (!apps) {
       return false;
     }
 
-    const chats = tree.getVertexByPath('app-instances');
+    const chats = tree.getVertexByPath('threads');
     if (!chats) {
       return false;
     }
@@ -48,8 +48,8 @@ export class Space {
       version: '0',
       onboarding: true,
       $children: {
-        app-configs,
-        app-instances,
+        configs,
+        threads,
         providers,
         settings,
         files
@@ -63,12 +63,12 @@ export class Space {
       'version': '0',
       'onboarding': true
     });
-    const appConfigs = root.newNamedChild('app-configs');
+    const appConfigs = root.newNamedChild('configs');
     appConfigs.newChild(Space.getDefaultAppConfig());
-    root.newNamedChild('app-instances');
+    root.newNamedChild('threads');
     root.newNamedChild('providers');
     root.newNamedChild('settings');
-    root.newNamedChild('files');
+    root.newNamedChild('assets');
 
     return new Space(tree);
   }
@@ -86,8 +86,8 @@ export class Space {
       throw new Error("Invalid tree structure");
     }
 
-    this.appTreesVertex = tree.getVertexByPath('app-instances') as Vertex;
-    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath('app-configs')!);
+    this.appTreesVertex = tree.getVertexByPath('threads') as Vertex;
+    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath('configs')!);
   }
 
   /** Space id is the same as the root vertex id of the space tree */
@@ -141,9 +141,9 @@ export class Space {
     if (targetRefVertex) {
       targetRefVertex.setProperty('tid', appTree.getId());
     }
-    // If no target vertex is provided, create a new vertex in 'app-instances' of the space and reference the app tree in it
+    // If no target vertex is provided, create a new vertex in 'threads' of the space and reference the app tree in it
     else {
-      const appsTrees = this.tree.getVertexByPath('app-instances');
+      const appsTrees = this.tree.getVertexByPath('threads');
 
       if (!appsTrees) {
         throw new Error("Apps trees vertex not found");
@@ -292,11 +292,11 @@ export class Space {
   }
 
   getAppConfigs(): AppConfig[] {
-    return this.getArray<AppConfig>('app-configs');
+    return this.getArray<AppConfig>('configs');
   }
 
   getAppConfig(configId: string): AppConfig | undefined {
-    const config = this.findObjectWithPropertyAtPath('app-configs', 'id', configId);
+    const config = this.findObjectWithPropertyAtPath('configs', 'id', configId);
 
     if (configId === "default") {
       const defaultConfig = Space.getDefaultAppConfig();
@@ -435,11 +435,11 @@ export class Space {
 
   // Example usage methods:
   addAppConfig(config: AppConfig): Vertex {
-    return this.insertIntoArray('app-configs', config);
+    return this.insertIntoArray('configs', config);
   }
 
   updateAppConfig(configId: string, updates: Partial<AppConfig>): void {
-    const vertexId = this.getFirstVertexWithPropertyAtPath('app-configs', 'id', configId);
+    const vertexId = this.getFirstVertexWithPropertyAtPath('configs', 'id', configId);
     if (!vertexId) {
       throw new Error(`App config ${configId} not found`);
     }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import AppConfigTableCell from "@sila/client/comps/app-configs/AppConfigTableCell.svelte";
+  import AppConfigTableCell from "@sila/client/comps/configs/AppConfigTableCell.svelte";
   import { txtStore } from "@sila/client/state/txtStore";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { AppConfig } from "@sila/core";

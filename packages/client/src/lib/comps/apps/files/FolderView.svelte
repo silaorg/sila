@@ -225,6 +225,10 @@
       if (destinationVertex) {
         const selectedVertices = items.filter((i) => selectedIds.has(i.id));
         moveVertices(selectedVertices, destinationVertex);
+      } else {
+        // We released after a drag but did not drop into a folder
+        // Prevent the click that follows from clearing the current selection
+        suppressNextEmptyClick = true;
       }
     }
     isDragging = false;

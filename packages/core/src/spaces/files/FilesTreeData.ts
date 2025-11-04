@@ -1,7 +1,5 @@
 import type { Vertex } from "reptree";
 import { AppTree } from "../AppTree";
-import type { Space } from "../Space";
-import { FilesAppData } from "./FilesAppData";
 import type { AttachmentPreview } from "./AttachmentPreview";
 import type { FileInfo } from "./FileInfo";
 

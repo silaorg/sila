@@ -50,7 +50,7 @@
       type="button"
     >
       {#if i === 0}
-        Workspace
+        Assets
       {:else}
         {crumb.name ?? "Unnamed"}
       {/if}

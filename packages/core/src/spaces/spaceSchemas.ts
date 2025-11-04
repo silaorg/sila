@@ -12,10 +12,10 @@ space itself is an applet
     - admin (app: "user-space")
     - dmitry (app: "user-space")
   - settings (app: "space-settings")
-  - app-configs
+  - configs
     - chat
       - assistant-v1 (app: "app-config")
-  - app-instances
+  - threads
     - chat-1 (app: "chat")
     - chat-2 (app: "chat")
     - folder-1 (app: "project")
