@@ -3,7 +3,7 @@
   import type { AppConfig } from "@sila/core";
   import { txtStore } from "@sila/client/state/txtStore.ts";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
-  import { ChevronUp, Pencil, Plus } from "lucide-svelte";
+  import { ChevronDown, ChevronUp, Pencil, Plus } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
@@ -75,7 +75,7 @@
           {$txtStore.appConfigDropdown.placeholder}
         {/if}
       </span>
-      <ChevronUp size={18} class="text-surface-200-800" />
+      <ChevronDown size={18} class="text-surface-300-700" />
     </button>
   {/snippet}
   {#snippet content()}
