@@ -3,7 +3,7 @@
   import type { AppConfig } from "@sila/core";
   import { txtStore } from "@sila/client/state/txtStore.ts";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
-  import { ChevronDown, ChevronUp, Pencil, Plus } from "lucide-svelte";
+  import { ChevronDown, Pencil, Plus } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
