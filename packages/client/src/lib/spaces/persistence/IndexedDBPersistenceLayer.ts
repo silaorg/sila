@@ -1,5 +1,6 @@
 import type { PersistenceLayer } from "@sila/core";
 import type { VertexOperation } from "@sila/core";
+import { isAnyPropertyOp } from "@sila/core";
 import {
   getTreeOps,
   appendTreeOps,
@@ -56,8 +57,12 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
 
     if (ops.length === 0) return;
 
+    // Do not persist transient property ops
+    const opsToSave = ops.filter(op => !isAnyPropertyOp(op) || !op.transient);
+    if (opsToSave.length === 0) return;
+
     // Save operations to IndexedDB
-    await appendTreeOps(this.spaceId, treeId, ops);
+    await appendTreeOps(this.spaceId, treeId, opsToSave);
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {

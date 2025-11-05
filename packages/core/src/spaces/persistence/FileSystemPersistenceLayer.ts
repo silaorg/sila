@@ -9,6 +9,7 @@ import {
 import { type WatchEvent, type UnwatchFn, type FileHandle, type AppFileSystem } from "@sila/core";
 import { interval } from "@sila/core";
 import { OpsParser } from "./OpsParser";
+import { equalsOpId } from "reptree";
 
 export const LOCAL_SPACE_MD_FILE = 'sila.md';
 export const TEXT_INSIDE_LOCAL_SPACE_MD_FILE = `# Sila Space
@@ -72,6 +73,10 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
       this.saveSecretsTimer = null;
     }
 
+    // Ensure any pending ops and secrets are flushed before teardown
+    await this.saveOps();
+    await this.secretsWriteChain;
+
     // Clean up the ops parser
     this.opsParser.destroy();
   }
@@ -84,7 +89,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     return await this.loadAllTreeOps(this.spaceId);
   }
 
-  async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
+  async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {    
     if (!this.isConnected()) {
       throw new Error('FileSystemPersistenceLayer not connected');
     }
@@ -96,8 +101,6 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     if (opsToSave.length === 0) return;
 
     this.addOpsToSave(treeId, opsToSave);
-    // Flush immediately to avoid background writes interfering with test cleanup
-    await this.saveOps();
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
@@ -297,6 +300,18 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     return allOps;
   }
 
+  private removeSavedOpsFromOpsToSave(treeId: string, ops: VertexOperation[]) {
+    const opsToSave = this.treeOpsToSave.get(treeId);
+    
+    if (!opsToSave) {
+      return;
+    }
+
+    // Filter out ops that are already saved
+    const filteredOps = opsToSave.filter(op => !ops.some(o => equalsOpId(o.id, op.id)));
+    this.treeOpsToSave.set(treeId, filteredOps);
+  }
+
   private addOpsToSave(treeId: string, ops: ReadonlyArray<VertexOperation>) {
     let opsToSave = this.treeOpsToSave.get(treeId);
     if (!opsToSave) {
@@ -305,9 +320,14 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     }
 
     // Exclude ops that are already in the opsToSave
-    const newOps = ops.filter(op => !opsToSave.some(o => o.id.counter === op.id.counter && o.id.peerId === op.id.peerId));
+    const newOps = ops.filter(op => !opsToSave.some(o => equalsOpId(o.id, op.id)));
 
     opsToSave.push(...newOps);
+
+    // Start periodic save if not already running
+    if (!this.saveOpsTimer) {
+      this.saveOpsTimer = interval(() => this.saveOps(), this.saveOpsIntervalMs);
+    }
   }
 
   private async saveOps() {
@@ -337,13 +357,19 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
       // Save ops for each peerId
       for (const [peerId, opsForPeerId] of opsByPeerId.entries()) {
         try {
-          const opsJSONLines = this.turnOpsIntoJSONLines(opsForPeerId);
+          // Copy the ops to avoid modifying the original array while saving 
+          // because saving is async.
+          const ops = [...opsForPeerId];
+          const opsJSONLines = this.turnOpsIntoJSONLines(ops);
           const opsFile = await this.openFileToCurrentTreeOpsJSONLFile(treeId, peerId);
           await opsFile.write(new TextEncoder().encode(opsJSONLines));
-          this.treeOpsToSave.set(treeId, []);
           await opsFile.close();
-          // Track that we've saved ops for this peerId
+          
+          // We remove precisely the ops that we just saved
+          this.removeSavedOpsFromOpsToSave(treeId, ops);
+
           this.savedPeerIds.add(peerId);
+
         } catch (error) {
           console.error("Error saving ops to file", error);
         }
@@ -351,6 +377,19 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     }
 
     this.savingOpsToFile = false;
+
+    // Stop the timer if there are no pending ops
+    if (!this.hasPendingOps() && this.saveOpsTimer) {
+      this.saveOpsTimer();
+      this.saveOpsTimer = null;
+    }
+  }
+
+  private hasPendingOps(): boolean {
+    for (const ops of this.treeOpsToSave.values()) {
+      if (ops.length > 0) return true;
+    }
+    return false;
   }
 
   private turnOpsIntoJSONLines(ops: VertexOperation[]): string {
