@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, type Snippet } from "svelte";
   import { type ClientStateConfig } from "@sila/client";
   import ClientStateProvider from "@sila/client/comps/ClientStateProvider.svelte";
   import { ClientState } from "@sila/client";
@@ -18,7 +18,8 @@
   let {
     config,
     state,
-  }: { config: ClientStateConfig | null; state?: ClientState } = $props();
+    children,
+  }: { config: ClientStateConfig | null; state?: ClientState; children?: Snippet } = $props();
 
   const providedState = $derived(state || new ClientState());
 
@@ -67,6 +68,9 @@
     <!-- A modal for viewing files, such as images, videos, PDFs, etc -->
     <FileGalleryModal />
     <VertexViewerModal />
+
+    <!-- Render whatever components passed from the wrappers of SilaApp (e.g Desktop, Mobile, etc)-->
+    {@render children?.()}
   </ClientStateProvider>
 {:else}
   Loading...

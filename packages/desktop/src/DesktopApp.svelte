@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ClientState, SilaApp, ClientStateProvider, type ClientStateConfig } from "@sila/client";
+  import { ClientState, SilaApp, type ClientStateConfig } from "@sila/client";
   import { electronFsWrapper } from "./electronFsWrapper";
   import { electronDialogsWrapper } from "./electronDialogsWrapper";
   import DesktopUpdateHandler from "./DesktopUpdateHandler.svelte";
@@ -29,8 +29,6 @@
   <title>Sila</title>
 </svelte:head>
 
-<SilaApp {config} />
-
-<ClientStateProvider instance={config.initState}>
+<SilaApp {config}>
   <DesktopUpdateHandler />
-</ClientStateProvider>
+</SilaApp>
