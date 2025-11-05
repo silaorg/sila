@@ -76,14 +76,7 @@
 
   async function openFile() {
     try {
-      const fileRef = {
-        tree: vertex.root.id,
-        vertex: vertex.id,
-      };
-      const fileInfo = await ClientFileResolver.resolveFileReference(fileRef, clientState);
-      if (fileInfo) {
-        clientState.gallery.open(fileInfo);
-      }
+      clientState.currentSpaceState?.vertexViewer.openVertex(vertex);
     } catch (error) {
       console.error("Failed to open file:", error);
     }

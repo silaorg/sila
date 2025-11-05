@@ -275,12 +275,8 @@
     if (!v) return;
     if (isFolder(v)) onEnter(v);
     else {
-      const fileRef = { tree: v.root.id, vertex: v.id } as any;
-      const fileInfo = await ClientFileResolver.resolveFileReference(
-        fileRef,
-        clientState
-      );
-      if (fileInfo) clientState.gallery.open(fileInfo);
+
+      clientState.currentSpaceState?.vertexViewer.openVertex(v);
     }
     menuOpen = false;
   }

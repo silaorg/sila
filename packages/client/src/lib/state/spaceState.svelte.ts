@@ -1,7 +1,7 @@
 import { ThemeStore } from "./theme.svelte";
 import { LayoutStore } from "./layout.svelte";
 import type { SpacePointer } from "../spaces/SpacePointer";
-import type { Space } from "@sila/core";
+import type { Space, Vertex } from "@sila/core";
 import type { SpaceManager } from "@sila/core";
 import type { PersistenceLayer } from "@sila/core";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
@@ -15,7 +15,8 @@ import {
   getSecret,
   setSecret
 } from "@sila/client/localDb";
-import { Backend } from "@sila/core";
+import { Backend, FileResolver } from "@sila/core";
+import VertexViewer from "./vertexViewer.svelte";
 
 export class SpaceState {
   pointer: SpacePointer;
@@ -23,6 +24,8 @@ export class SpaceState {
   space: Space | null = null;
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
+  vertexViewer = new VertexViewer();
+  fileResolver: FileResolver;
   isConnected: boolean = $state(false);
   private persistenceLayers: PersistenceLayer[] = [];
   private getAppFs: () => AppFileSystem | null;
@@ -36,24 +39,28 @@ export class SpaceState {
     this.layout.spaceId = pointer.id;
 
     const space = this.spaceManager.getSpace(pointer.id);
-    if (space) {
-      this.space = space;
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
-
-      let allConnected = true;
-      for (const layer of this.persistenceLayers) {
-        if (!layer.isConnected()) {
-          allConnected = false;
-          break;
-        }
-      }
-
-      if (allConnected) {
-        this.initBackend();
-      }
-
-      this.isConnected = allConnected;
+    if (!space) {
+      throw new Error(`Space not found: ${pointer.id}`);
     }
+
+    this.space = space;
+    this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
+    this.fileResolver = new FileResolver(space);
+
+    let allConnected = true;
+    for (const layer of this.persistenceLayers) {
+      if (!layer.isConnected()) {
+        allConnected = false;
+        break;
+      }
+    }
+
+    if (allConnected) {
+      this.initBackend();
+    }
+
+    this.isConnected = allConnected;
+
   }
 
   /**

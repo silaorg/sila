@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { provideClientState } from "./clientStateContext";
-  import { ClientState } from "./clientState.svelte";
+  import { provideClientState } from "../state/clientStateContext";
+  import { ClientState } from "../state/clientState.svelte";
   import type { Snippet } from "svelte";
 
   let {

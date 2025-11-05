@@ -19,6 +19,7 @@ export class ClientFileResolver {
   /**
    * Resolves a file reference to file information using the current space state
    */
+  // @TODO: Delete and replace with fileResolver from spaceState
   static async resolveFileReference(fileRef: FileReference, clientStateParam?: ClientState): Promise<ResolvedFileInfo | null> {
     const clientState = clientStateParam || useClientState();
     if (!clientState.currentSpace) {
@@ -28,19 +29,5 @@ export class ClientFileResolver {
 
     const fileResolver = new FileResolver(clientState.currentSpace);
     return await fileResolver.resolveFileReference(fileRef);
-  }
-
-  /**
-   * Resolves multiple file references
-   */
-  static async getFilesInfo(fileRefs: FileReference[]): Promise<ResolvedFileInfo[]> {
-    const clientState = useClientState();
-    if (!clientState.currentSpace) {
-      console.warn('No current space available for file resolution');
-      return [];
-    }
-
-    const fileResolver = new FileResolver(clientState.currentSpace);
-    return await fileResolver.getFilesInfo(fileRefs);
   }
 }
