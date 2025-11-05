@@ -246,7 +246,7 @@
                   fileRef={att}
                   showGallery={true}
                   onGalleryOpen={(fileInfo) => {
-                    clientState.gallery.open(fileInfo);
+                    clientState.currentSpaceState?.vertexViewer.openFileRef(att);
                   }}
                 />
               {/each}

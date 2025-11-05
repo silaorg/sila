@@ -24,7 +24,7 @@ export class SpaceState {
   space: Space | null = null;
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
-  vertexViewer = new VertexViewer();
+  vertexViewer: VertexViewer;
   fileResolver: FileResolver;
   isConnected: boolean = $state(false);
   private persistenceLayers: PersistenceLayer[] = [];
@@ -46,6 +46,7 @@ export class SpaceState {
     this.space = space;
     this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
     this.fileResolver = new FileResolver(space);
+    this.vertexViewer = new VertexViewer(space);
 
     let allConnected = true;
     for (const layer of this.persistenceLayers) {
