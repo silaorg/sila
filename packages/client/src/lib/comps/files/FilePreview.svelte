@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { getFilePreviewConfig } from "@sila/client/utils/filePreview";
-  import { ClientFileResolver } from "../../utils/fileResolver";
   import ImageFilePreview from "./ImageFilePreview.svelte";
   import RegularFilePreview from "./RegularFilePreview.svelte";
-  import type {
-    FileReference,
-    ResolvedFileInfo,
-  } from "../../utils/fileResolver";
+  import type { FileReference, ResolvedFileInfo } from "@sila/core";
+
+  import { useClientState } from "@sila/client/state/clientStateContext";
+
+  const clientState = useClientState();
+  const fileResolver = $derived(clientState.currentSpaceState?.fileResolver);
 
   let {
     fileRef,
@@ -44,17 +45,9 @@
         return;
       }
 
-      const fileInfo = await ClientFileResolver.resolveFileReference(fileRef);
+      const fileInfo = await fileResolver?.resolveFileReference(fileRef);
       if (fileInfo) {
         resolvedFile = fileInfo;
-        console.log("FilePreview resolved file info:", {
-          id: fileInfo.id,
-          name: fileInfo.name,
-          mimeType: fileInfo.mimeType,
-          size: fileInfo.size,
-          url: fileInfo.url,
-          hash: fileInfo.hash,
-        });
       } else {
         hasError = true;
         errorMessage = "Failed to load file";

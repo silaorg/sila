@@ -36,7 +36,11 @@ export interface ResolvedFileInfoWithKind extends ResolvedFileInfo {
 export class FileResolver {
   private space: Space | null = null;
 
-  constructor() { }
+  constructor(space?: Space) { 
+    if (space) {
+      this.setSpace(space);
+    }
+  }
 
   setSpace(space: Space) {
     this.space = space;
@@ -46,42 +50,36 @@ export class FileResolver {
    * Resolves a single file reference to file information - the reference will contain a URL to the file
    * Framework-agnostic method for resolving file references
    */
-  async resolveFileReference(target: Vertex | FileReference): Promise<ResolvedFileInfo | null> {
+  async resolveFileReference(fileRef: FileReference): Promise<ResolvedFileInfo | null> {
     if (!this.space) {
-      console.warn('No space available for file resolution');
+      console.error('No space available for file resolution');
       return null;
     }
 
     try {
-      let fileVertex: Vertex | undefined;
-
-      if (target instanceof Vertex) {
-        fileVertex = target;
-      } else {
-
-        // Validate fileRef before proceeding
-        if (!target || !target.tree || !target.vertex) {
-          console.warn('Invalid file reference:', target);
-          return null;
-        }
-
-        // Load the files app tree      
-        const filesTree = await this.space.loadAppTree(target.tree);
-        if (!filesTree) {
-          console.warn(`Files tree not found: ${target.tree}`);
-          return null;
-        }
-
-        // Get the file vertex
-        fileVertex = filesTree.tree.getVertex(target.vertex);
-        if (!fileVertex) {
-          console.warn(`File vertex not found: ${target.vertex}`);
-          return null;
-        }
+      // Validate fileRef before proceeding
+      if (!fileRef.tree || !fileRef.vertex) {
+        console.error('Invalid file reference:', fileRef);
+        return null;
       }
 
+      // Load the files app tree      
+      const filesTree = await this.space.loadAppTree(fileRef.tree);
+      if (!filesTree) {
+        console.error(`Files tree not found: ${fileRef.tree}`);
+        return null;
+      }
+
+      // Get the file vertex
+      const fileVertex = filesTree.tree.getVertex(fileRef.vertex);
       if (!fileVertex) {
-        console.warn('File vertex not found:', target);
+        console.error(`File vertex not found: ${fileRef.vertex}`);
+        return null;
+      }
+
+
+      if (!fileVertex) {
+        console.error('File vertex not found:', fileRef);
         return null;
       }
 
@@ -94,7 +92,7 @@ export class FileResolver {
       const height = fileVertex.getProperty('height') as number;
 
       if (!hash) {
-        console.warn(`File vertex missing hash: ${fileVertex.id}`);
+        console.error(`File vertex missing hash: ${fileVertex.id}`);
         return null;
       }
 
@@ -131,7 +129,7 @@ export class FileResolver {
 
   resolveVertexToFileReference(fileVertex: Vertex): ResolvedFileInfo | null {
     if (!this.space) {
-      console.warn('No space available for file resolution');
+      console.error('No space available for file resolution');
       return null;
     }
 
@@ -145,7 +143,7 @@ export class FileResolver {
       const height = fileVertex.getProperty('height') as number;
 
       if (!hash) {
-        console.warn(`File vertex missing hash: ${fileVertex.id}`);
+        console.error(`File vertex missing hash: ${fileVertex.id}`);
         return null;
       }
 
@@ -202,7 +200,7 @@ export class FileResolver {
    */
   async getFileData(fileRefs: FileReference[]): Promise<ResolvedFileWithData[]> {
     if (!this.space) {
-      console.warn('No space available for file resolution');
+      console.error('No space available for file resolution');
       return [];
     }
 
@@ -225,7 +223,7 @@ export class FileResolver {
             resolved.push(resolvedAttachment);
           }
         } catch (error) {
-          console.warn("Failed to resolve file reference:", error);
+          console.error("Failed to resolve file reference:", error);
           // Skip attachments that failed to resolve instead of including empty dataUrl
           // This prevents AI from receiving invalid base64 data
         }
@@ -244,7 +242,7 @@ export class FileResolver {
     fileStore: any
   ): Promise<ResolvedFileWithData | null> {
     if (!this.space) {
-      console.warn('No space available for file resolution');
+      console.error('No space available for file resolution');
       return null;
     }
 

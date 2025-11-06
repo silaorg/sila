@@ -1,10 +1,14 @@
-import { FileReference, Space, Vertex } from "@sila/core";
+import type { FileReference } from "@sila/core";
+import { Space, Vertex } from "@sila/core";
 
 export default class VertexViewer {
 
   private space: Space | null = null;
 
-  constructor() {
+  constructor(space?: Space) {
+    if (space) {
+      this.setSpace(space);
+    }
   }
 
   setSpace(space: Space) {

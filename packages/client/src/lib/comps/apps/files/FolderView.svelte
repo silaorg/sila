@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import type { Vertex } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import FileOrFolder from "./FileOrFolder.svelte";
   import DragOverlay from "./DragOverlay.svelte";
-  import { ClientFileResolver } from "../../../utils/fileResolver";
 
   const clientState = useClientState();
 
