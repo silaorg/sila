@@ -2,7 +2,13 @@ import { FileReference, Space, Vertex } from "@sila/core";
 
 export default class VertexViewer {
 
-  constructor(private space: Space) {
+  private space: Space | null = null;
+
+  constructor() {
+  }
+
+  setSpace(space: Space) {
+    this.space = space;
   }
 
   vertices: Vertex[] = $state([]);
@@ -11,6 +17,10 @@ export default class VertexViewer {
   activeVertex: Vertex | undefined = $derived(this.vertices[this.activeVertexIndex]);
 
   openFileRef(fileRef: FileReference) {
+    if (!this.space) {
+      console.warn('No space available for vertex viewer');
+      return;
+    }
 
     // @TODO: refactor this when we start storing space in "trees" of the space
     if (fileRef.tree === this.space.getId()) {
@@ -35,6 +45,11 @@ export default class VertexViewer {
   }
 
   openVertices(vertices: Vertex[], activeVertexIndex: number = 0) {
+    if (!this.space) {
+      console.warn('No space available for vertex viewer');
+      return;
+    }
+
     if (vertices.length === 0) {
       throw new Error("Cannot open an empty list of vertices");
     }

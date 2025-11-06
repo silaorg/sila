@@ -37,31 +37,32 @@ export class SpaceState {
     this.spaceManager = spaceManager;
     this.getAppFs = getAppFs;
     this.layout.spaceId = pointer.id;
+    this.fileResolver = new FileResolver();
+    this.vertexViewer = new VertexViewer();
 
     const space = this.spaceManager.getSpace(pointer.id);
-    if (!space) {
-      throw new Error(`Space not found: ${pointer.id}`);
-    }
 
-    this.space = space;
-    this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
-    this.fileResolver = new FileResolver(space);
-    this.vertexViewer = new VertexViewer(space);
+    // We allow space to be null before it loads (see loadSpace method)
+    if (space) {
+      this.space = space;
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
+      this.fileResolver.setSpace(space);
+      this.vertexViewer.setSpace(space);
 
-    let allConnected = true;
-    for (const layer of this.persistenceLayers) {
-      if (!layer.isConnected()) {
-        allConnected = false;
-        break;
+      let allConnected = true;
+      for (const layer of this.persistenceLayers) {
+        if (!layer.isConnected()) {
+          allConnected = false;
+          break;
+        }
       }
+
+      if (allConnected) {
+        this.initBackend();
+      }
+
+      this.isConnected = allConnected;
     }
-
-    if (allConnected) {
-      this.initBackend();
-    }
-
-    this.isConnected = allConnected;
-
   }
 
   /**
@@ -75,6 +76,9 @@ export class SpaceState {
       this.space = await this.loadSpace();
 
       if (this.space) {
+        this.fileResolver.setSpace(this.space);
+        this.vertexViewer.setSpace(this.space);
+
         // Load space-specific theme and layout
         await this.theme.loadSpaceTheme(this.pointer.id);
         await this.layout.loadSpaceLayout();

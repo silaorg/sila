@@ -34,13 +34,24 @@ export interface ResolvedFileInfoWithKind extends ResolvedFileInfo {
 }
 
 export class FileResolver {
-  constructor(private space: Space) { }
+  private space: Space | null = null;
+
+  constructor() { }
+
+  setSpace(space: Space) {
+    this.space = space;
+  }
 
   /**
    * Resolves a single file reference to file information - the reference will contain a URL to the file
    * Framework-agnostic method for resolving file references
    */
   async resolveFileReference(target: Vertex | FileReference): Promise<ResolvedFileInfo | null> {
+    if (!this.space) {
+      console.warn('No space available for file resolution');
+      return null;
+    }
+
     try {
       let fileVertex: Vertex | undefined;
 
@@ -119,6 +130,11 @@ export class FileResolver {
   }
 
   resolveVertexToFileReference(fileVertex: Vertex): ResolvedFileInfo | null {
+    if (!this.space) {
+      console.warn('No space available for file resolution');
+      return null;
+    }
+
     try {
       // Extract metadata from the file vertex
       const hash = fileVertex.getProperty('hash') as string;
@@ -185,6 +201,11 @@ export class FileResolver {
    * Used for UI rendering and AI consumption
    */
   async getFileData(fileRefs: FileReference[]): Promise<ResolvedFileWithData[]> {
+    if (!this.space) {
+      console.warn('No space available for file resolution');
+      return [];
+    }
+
     if (!fileRefs || fileRefs.length === 0) {
       return [];
     }
@@ -222,6 +243,11 @@ export class FileResolver {
     fileRef: FileReference,
     fileStore: any
   ): Promise<ResolvedFileWithData | null> {
+    if (!this.space) {
+      console.warn('No space available for file resolution');
+      return null;
+    }
+
     // Load the files app tree
     const filesTree = await this.space.loadAppTree(fileRef.tree);
     if (!filesTree) {
