@@ -64,7 +64,7 @@
     <!-- Setup toasts for notifications -->
     <Toasts />
 
-    <!-- A modal for viewing files, such as images, videos, PDFs, etc -->
+    <!-- A modal for viewing vertices that reference files, such as images, videos, PDFs, etc -->
     <VertexViewerModal />
 
     <!-- Render whatever components passed from the wrappers of SilaApp (e.g Desktop, Mobile, etc)-->
