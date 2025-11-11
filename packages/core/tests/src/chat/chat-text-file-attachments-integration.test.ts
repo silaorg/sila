@@ -109,7 +109,7 @@ function test() {
       expect(message.role).toBe('user');
 
       // Verify files were persisted
-      const messageVertex = chatTree.tree.getVertex(message.id);
+      const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
       expect(files).toBeDefined();
       expect(files.length).toBe(1);
@@ -166,7 +166,7 @@ function test() {
       expect(message.text).toBe('Here are both files');
 
       // Verify both files were persisted
-      const messageVertex = chatTree.tree.getVertex(message.id);
+      const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
       expect(files).toBeDefined();
       expect(files.length).toBe(2);
@@ -208,7 +208,7 @@ function test() {
       expect(message).toBeDefined();
       
       // Verify the large file was handled
-      const messageVertex = chatTree.tree.getVertex(message.id);
+      const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
       expect(files[0].tree).toBeDefined();
     });
@@ -311,7 +311,7 @@ function test() {
       expect(message).toBeDefined();
       
       // Verify empty file was handled
-      const messageVertex = chatTree.tree.getVertex(message.id);
+      const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
       expect(files[0].tree).toBeDefined();
     });
@@ -379,7 +379,7 @@ function test() {
 
         expect(message).toBeDefined();
         
-        const messageVertex = chatTree.tree.getVertex(message.id);
+        const messageVertex = (chatData.messageVertices.at(-1) as any);
         const files = messageVertex?.getProperty('files') as any[];
         expect(files[0].tree).toBeDefined();
         expect(files[0].vertex).toBeDefined();

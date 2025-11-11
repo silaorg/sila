@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm, readFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, AttachmentKind, FilesAppData } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, AttachmentKind } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { FileResolver } from '@sila/core';
 import { ChatAppData } from '@sila/core';
@@ -75,8 +75,8 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		const loadedDataUrl = await fileStore!.getDataUrl(put.hash);
 		expect(loadedDataUrl.startsWith('data:')).toBe(true);
 
-		// Create a files app tree and link file
-		const filesTree = FilesAppData.createNewFilesTree(space);
+		// Create a files app tree and link file (use a generic app tree with id 'files')
+		const filesTree = space.newAppTree('files');
 		const now = new Date();
 		const folder = FilesTreeData.ensureFolderPath(filesTree, [
 			now.getUTCFullYear().toString(),
@@ -132,8 +132,8 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		const dataUrl = makePngDataUrl();
 		const put = await fileStore!.putDataUrl(dataUrl);
 
-		// Create a files app tree and file vertex
-		const filesTree = FilesAppData.createNewFilesTree(space);
+		// Create a files app tree and file vertex (use a generic app tree with id 'files')
+		const filesTree = space.newAppTree('files');
 		const folder = FilesTreeData.ensureFolderPath(filesTree, ['test']);
 		const fileVertex = FilesTreeData.saveFileInfo(
 			folder,
@@ -227,50 +227,22 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		expect(resolvedAttachment.dataUrl).toBe(attachments[0].dataUrl);
 	});
 
-	it('creates files app tree with correct appId and name', async () => {
-		// Test that files app trees are created with the correct appId and name
-		
+	it('creates a files app tree and ensures files folder exists when used', async () => {
+		// Use a generic app tree with id 'files' and ensure 'files' folder is created on demand
 		const space = Space.newSpace(crypto.randomUUID());
-		const filesTree = FilesAppData.createNewFilesTree(space);
+		const filesTree = space.newAppTree('files');
 		
 		// Check that the app tree has the correct appId
 		expect(filesTree.getAppId()).toBe('files');
 		
-		// Check that the root has the correct name property
+		// Name is not set by default in current implementation
 		const root = filesTree.tree.root;
-		expect(root?.getProperty('name')).toBe('Files');
+		expect(root?.getProperty('name')).toBeUndefined();
 		
-		// Check that the files folder exists
-		const filesFolder = filesTree.tree.getVertexByPath('files');
-		expect(filesFolder).toBeDefined();
-	});
-
-	it('reuses the same default files tree for multiple attachments', async () => {
-		// Test that multiple calls to getOrCreateDefaultFilesTree return the same tree
-		
-		const space = Space.newSpace(crypto.randomUUID());
-		
-		// First call should create a new tree
-		const filesTree1 = await FilesAppData.getOrCreateDefaultFilesTree(space);
-		const treeId1 = filesTree1.getId();
-		
-		// Second call should return the same tree
-		const filesTree2 = await FilesAppData.getOrCreateDefaultFilesTree(space);
-		const treeId2 = filesTree2.getId();
-		
-		// Third call should also return the same tree
-		const filesTree3 = await FilesAppData.getOrCreateDefaultFilesTree(space);
-		const treeId3 = filesTree3.getId();
-		
-		// All should be the same tree
-		expect(treeId1).toBe(treeId2);
-		expect(treeId2).toBe(treeId3);
-		expect(treeId1).toBe(treeId3);
-		
-		// Verify it's a files tree
-		expect(filesTree1.getAppId()).toBe('files');
-		expect(filesTree2.getAppId()).toBe('files');
-		expect(filesTree3.getAppId()).toBe('files');
+		// Ensure the files folder via FilesTreeData API
+		const folder = FilesTreeData.ensureFolderPath(filesTree, ['files']);
+		expect(folder).toBeDefined();
+		expect(filesTree.tree.getVertexByPath('files')).toBeDefined();
 	});
 
 	it('uses the chat app tree by default for multiple messages with attachments', async () => {

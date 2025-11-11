@@ -66,7 +66,7 @@ describe('Local assets persisted in workspace CAS', () => {
     const files = entries.filter(e => e.isFile() && (/(\.b64|\.png|\.jpg|\.jpeg|\.webp)$/i).test(e.name));
     expect(files.length).toBeGreaterThan(0);
 
-    const filesTree = FilesTreeData.createNewFilesTree(space);
+    const filesTree = space.newAppTree('files');
     const now = new Date();
     const folder = FilesTreeData.ensureFolderPath(filesTree, [
       now.getUTCFullYear().toString(),

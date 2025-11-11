@@ -146,8 +146,8 @@ describe('HEIC Conversion Pipeline', () => {
     expect(dimensions!.width).toBeGreaterThan(0);
     expect(dimensions!.height).toBeGreaterThan(0);
 
-    // Create files tree and link file
-    const filesTree = FilesTreeData.createNewFilesTree(space);
+    // Create files tree and link file (use a generic app tree with id 'files')
+    const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['heic-test']);
     
     const fileVertex = FilesTreeData.saveFileInfo(
@@ -230,8 +230,8 @@ describe('HEIC Conversion Pipeline', () => {
     // Should have the same hash due to deduplication
     expect(put1.hash).toBe(put2.hash);
 
-    // Create files tree
-    const filesTree = FilesTreeData.createNewFilesTree(space);
+    // Create files tree (use a generic app tree with id 'files')
+    const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['dedup-test']);
     
     // Create two file vertices with different names but same hash
@@ -296,8 +296,8 @@ describe('HEIC Conversion Pipeline', () => {
     const dataUrl = await toDataUrl(processedFile);
     const put = await fileStore!.putDataUrl(dataUrl);
 
-    // Create files tree
-    const filesTree = FilesTreeData.createNewFilesTree(space);
+    // Create files tree (use a generic app tree with id 'files')
+    const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['png-test']);
     
     const fileVertex = FilesTreeData.saveFileInfo(
@@ -359,8 +359,8 @@ describe('HEIC Conversion Pipeline', () => {
       const dataUrl = await toDataUrl(optimizedFile);
       const put = await fileStore!.putDataUrl(dataUrl);
 
-      // Create files tree
-      const filesTree = FilesTreeData.createNewFilesTree(space);
+    // Create files tree (use a generic app tree with id 'files')
+    const filesTree = space.newAppTree('files');
       const folder = FilesTreeData.ensureFolderPath(filesTree, ['resize-test']);
       
       const fileVertex = FilesTreeData.saveFileInfo(

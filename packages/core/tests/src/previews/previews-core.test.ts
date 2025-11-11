@@ -81,8 +81,9 @@ describe('Simplified File Previews (Core)', () => {
       testSpace.setFileStoreProvider(layer.getFileStoreProvider());
     }
 
-    // Create files tree using the proper API
-    filesTree = FilesTreeData.createNewFilesTree(testSpace);
+    // Create files tree using generic app tree with id 'files' and ensure folder
+    filesTree = testSpace.newAppTree('files');
+    FilesTreeData.ensureFolderPath(filesTree, ['files']);
     
     // Create file store
     const fileStore = createFileStore({

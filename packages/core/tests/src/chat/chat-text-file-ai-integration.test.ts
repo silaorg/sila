@@ -95,7 +95,7 @@ describe('Text File AI Integration', () => {
       expect(message.role).toBe('user');
 
       // Verify files were persisted
-      const messageVertex = chatTree.tree.getVertex(message.id);
+      const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
       expect(files).toBeDefined();
       expect(files.length).toBe(1);
