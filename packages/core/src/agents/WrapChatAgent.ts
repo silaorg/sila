@@ -1,6 +1,4 @@
-import type { LangMessage, LangContentPart } from "aiwrapper";
-import { Agent, LangMessages, HttpRequestError } from "aiwrapper";
-import { ChatAgent } from "aiwrapper";
+import { Agent, ChatAgent, HttpRequestError, LangMessage, LangMessages } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
 import { BindedVertex, ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
@@ -9,7 +7,6 @@ import type { ThreadMessageWithResolvedFiles } from "../models";
 import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
-import { splitModelString } from "../utils/modelUtils";
 import type { AppTree } from "../spaces/AppTree";
 import { chatAgentMetaInstructions, formattingInstructions } from "./prompts/wrapChatAgentInstructions";
 
@@ -64,7 +61,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
     const hasFiles = Array.isArray(m.files) && m.files.length > 0;
     if (!hasFiles) {
-      return { role: normalizedRole, content: m.text || "", meta: m.meta } as LangMessage;
+      return new LangMessage(normalizedRole, m.text || "", m.meta ?? {});
     }
 
     const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
@@ -72,21 +69,31 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     const textFiles = resolved.files?.filter((f) => f?.kind === 'text') || [];
 
     if (supportsVision && images.length > 0) {
-      const parts: LangContentPart[] = [];
+      const items: Array<
+        | { type: "text"; text: string }
+        | { type: "image"; base64: string; mimeType?: string; width?: number; height?: number; metadata?: Record<string, any> }
+      > = [];
       if (m.text && m.text.trim().length > 0) {
-        parts.push({ type: 'text', text: m.text });
+        items.push({ type: 'text', text: m.text });
       }
       for (const tf of textFiles) {
         const content = this.extractTextFromDataUrl(tf.dataUrl);
         if (content) {
-          parts.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
+          items.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
         }
       }
       for (const img of images) {
         const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
-        parts.push({ type: 'image', image: { kind: 'base64', base64, mimeType } });
+        items.push({
+          type: 'image',
+          base64,
+          mimeType,
+          width: img.width,
+          height: img.height,
+          metadata: img.name ? { name: img.name } : undefined,
+        });
       }
-      return { role: normalizedRole, content: parts } as LangMessage;
+      return new LangMessage(normalizedRole, items, m.meta ?? {});
     }
 
     let content = m.text || "";
@@ -99,11 +106,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       content += `\n\n[User attached ${images.length} image(s): ${names}]`;
     }
 
-    return {
-      role: normalizedRole,
-      content,
-      meta: m.meta
-    } as LangMessage;
+    return new LangMessage(normalizedRole, content, m.meta ?? {});
   }
 
   private async convertToLangMessages(messages: ThreadMessage[], supportsVision: boolean = true): Promise<LangMessage[]> {
@@ -161,7 +164,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
             if (targetMsg) {
               targetMsg.inProgress = false;
               if (targetMsg.role === "assistant") {
-                targetMsg.text = incomingMsg.content as string;
+                targetMsg.text = incomingMsg.text;
               }
 
               // Finished previous message
@@ -172,25 +175,28 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
           }
 
           if (incomingMsg.role === "assistant" && targetMsg) {
-            // Update text for string content; for arrays, also update text by concatenating text parts
-            const c: any = incomingMsg.content as any;
-            if (typeof c === 'string') {
-              if (c) {
-                targetMsg.$useTransients(m => {
-                  m.text = c as string;
-                });
+            const contentText = incomingMsg.text;
+            const toolRequests = incomingMsg.toolRequests ?? [];
+            const toolResults = incomingMsg.toolResults ?? [];
+            targetMsg.$useTransients(m => {
+              m.text = contentText;
+              if (toolRequests.length > 0) {
+                m.toolRequests = toolRequests.map(request => ({
+                  callId: request.callId,
+                  name: request.name,
+                  arguments: request.arguments
+                }));
               }
-            } else if (Array.isArray(c)) {
-              const textParts = (c as LangContentPart[]).filter(p => p?.type === 'text').map(p => (p as any).text).filter(Boolean);
-              if (textParts.length > 0) {
-                const combined = textParts.join('\n');
-                targetMsg.$useTransients(m => {
-                  m.text = combined;
-                });
+              if (toolResults.length > 0) {
+                m.toolResults = toolResults.map(result => ({
+                  toolId: (result as any).toolId ?? result.callId ?? "",
+                  name: result.name,
+                  result: result.result
+                }));
               }
-              // Collect images during streaming; persist on finish
-              this.collectAssistantImages(incomingMsg, targetMsg);
-            }
+            });
+            // Collect images during streaming; persist on finish
+            this.collectAssistantImages(incomingMsg, targetMsg);
           }
 
         } else if (event.type === 'finished') {
@@ -264,19 +270,15 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   /** Extract image content parts from a LangMessage when content is an array */
   private extractImageParts(msg: LangMessage): Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> {
     const result: Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> = [];
-    const c: any = (msg as any).content;
-    if (!Array.isArray(c)) return result;
-    for (const part of c as LangContentPart[]) {
-      if (part && (part as any).type === 'image') {
-        const img: any = (part as any).image;
-        if (!img) continue;
-        if (img.kind === 'data_url' && typeof img.dataUrl === 'string') {
-          result.push({ dataUrl: img.dataUrl, mimeType: img.mimeType, name: img.name, width: img.width, height: img.height });
-        } else if (img.kind === 'base64' && typeof img.base64 === 'string') {
-          const mime = img.mimeType || 'image/png';
-          const dataUrl = `data:${mime};base64,${img.base64}`;
-          result.push({ dataUrl, mimeType: mime, name: img.name, width: img.width, height: img.height });
-        }
+    const items: any[] = Array.isArray((msg as any).items) ? (msg as any).items : [];
+    for (const item of items) {
+      if (!item || item.type !== 'image') continue;
+      if (typeof item.base64 === "string") {
+        const mime = item.mimeType || 'image/png';
+        const dataUrl = `data:${mime};base64,${item.base64}`;
+        result.push({ dataUrl, mimeType: mime, base64: item.base64, name: item.metadata?.name, width: item.width, height: item.height });
+      } else if (typeof item.url === "string" && item.url.startsWith("data:")) {
+        result.push({ dataUrl: item.url, mimeType: item.mimeType, name: item.metadata?.name, width: item.width, height: item.height });
       }
     }
     return result;

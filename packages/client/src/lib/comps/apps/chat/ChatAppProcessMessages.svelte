@@ -11,31 +11,30 @@
 
     for (let i = 0; i < vertices.length; i++) {
       const vertex = vertices[i];
-      if (vertex.getProperty("role") === "tool") {
-        const toolRequests = vertex.getProperty("toolRequests") as ToolRequest[];
+      const role = vertex.getProperty("role");
 
-        let pairs: ToolUsageMessagePair[] = [];
-        for (const request of toolRequests) {
-          pairs.push({
-            id: request.callId,
-            role: "tool",
-            toolPair: {
-              name: request.name,
-              request: request,
-              result: null, // Will add it later if it's present in the next vertex
-            },
-          });
-        }
+      // Legacy support: dedicated tool messages
+      if (role === "tool") {
+        const toolRequests = (vertex.getProperty("toolRequests") as ToolRequest[]) ?? [];
+        const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => ({
+          id: request.callId,
+          role: "tool",
+          toolPair: {
+            name: request.name,
+            request,
+            result: null,
+          },
+        }));
 
         if (
           vertices.length > i + 1 &&
           vertices[i + 1].getProperty("role") === "tool-results"
         ) {
           const resultsVertex = vertices[i + 1];
-          const toolResults = resultsVertex.getProperty("toolResults") as ToolResult[];
+          const toolResults = (resultsVertex.getProperty("toolResults") as ToolResult[]) ?? [];
 
           for (const result of toolResults) {
-            const pair = pairs.find((p) => p.id === result.toolId);
+            const pair = pairs.find((p) => p.id === (result.toolId ?? (result as any).callId));
             if (pair) {
               pair.toolPair.result = result;
             }
@@ -43,9 +42,44 @@
         }
 
         msgs.push(...pairs);
-      } else {
-        msgs.push(vertex.getAsTypedObject<LangMessage>());
+        continue;
       }
+
+      const toolRequests = (vertex.getProperty("toolRequests") as ToolRequest[]) ?? [];
+      if (toolRequests.length > 0) {
+        const currentResults = (vertex.getProperty("toolResults") as ToolResult[]) ?? [];
+        let nextResults: ToolResult[] = [];
+
+        if (
+          currentResults.length === 0 &&
+          vertices.length > i + 1 &&
+          vertices[i + 1].getProperty("role") === "tool-results"
+        ) {
+          nextResults = (vertices[i + 1].getProperty("toolResults") as ToolResult[]) ?? [];
+        }
+
+        const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => {
+          const match =
+            currentResults.find((r) => (r.toolId ?? (r as any).callId) === request.callId) ??
+            nextResults.find((r) => (r.toolId ?? (r as any).callId) === request.callId) ??
+            null;
+
+          return {
+            id: request.callId,
+            role: "tool",
+            toolPair: {
+              name: request.name,
+              request,
+              result: match,
+            },
+          };
+        });
+
+        msgs.push(...pairs);
+        continue;
+      }
+
+      msgs.push(vertex.getAsTypedObject<LangMessage>());
     }
 
     return msgs;

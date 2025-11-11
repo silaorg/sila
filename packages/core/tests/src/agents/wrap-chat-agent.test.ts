@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { Space } from '../../src/spaces/Space';
-import { ChatAppData } from '../../src/spaces/ChatAppData';
-import { WrapChatAgent } from '../../src/agents/WrapChatAgent';
-import { AgentServices } from '../../src/agents/AgentServices';
-import type { LanguageProvider, LangMessage } from 'aiwrapper';
-import { LangMessages } from 'aiwrapper';
+import { Space, ChatAppData, WrapChatAgent, AgentServices } from '@sila/core';
+import { LangMessage, LangMessages } from 'aiwrapper';
+import type { LanguageProvider } from 'aiwrapper';
 
 // Basic smoke test: creating a user message results in an assistant reply
 describe('WrapChatAgent basic reply', () => {
@@ -26,16 +23,20 @@ describe('WrapChatAgent basic reply', () => {
 
     // Mock AgentServices.lang to return a fake provider that streams and finalizes
     const services = new AgentServices(space);
-    // @ts-expect-error override for test
     services.lang = async (_model?: string): Promise<LanguageProvider> => {
       return {
         chat: async (input: LangMessages | LangMessage[], opts?: any) => {
           // simulate streaming
-          opts?.onResult?.({ answer: 'O' });
-          opts?.onResult?.({ answer: 'OK' });
+          opts?.onResult?.(new LangMessage('assistant', 'O'));
+          opts?.onResult?.(new LangMessage('assistant', 'OK'));
           // finalize: return LangMessages with assistant OK
-          const arr: LangMessage[] = Array.isArray(input) ? input : (input as any).toArray?.() ?? [];
-          const result = new LangMessages([ ...arr, { role: 'assistant', content: 'OK' } as any ]);
+          const arr: LangMessage[] = input instanceof LangMessages
+            ? Array.from(input)
+            : Array.isArray(input)
+              ? input.map((msg: any) => msg instanceof LangMessage ? msg : new LangMessage(msg.role, msg.items ?? msg.text ?? ''))
+              : [];
+          const result = new LangMessages(arr);
+          result.addAssistantMessage('OK');
           return result as any;
         },
       } as any as LanguageProvider;

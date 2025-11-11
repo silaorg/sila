@@ -182,7 +182,7 @@ export class ChatAppData {
   }
 
   newLangMessage(langMessage: LangMessage, inProgress: boolean = true): BindedVertex<ThreadMessage> {
-    const text = typeof langMessage.content === 'string' ? langMessage.content : "";
+    const text = langMessage.text || "";
     const role = langMessage.role;
 
     const properties: Record<string, any> = {
@@ -206,14 +206,22 @@ export class ChatAppData {
       }
     }
 
-    if (role === "tool") {
-      const toolRequests = langMessage.content as ToolRequest[];
-      properties.toolRequests = toolRequests;
+    const toolRequests = langMessage.toolRequests;
+    if (toolRequests.length > 0) {
+      properties.toolRequests = toolRequests.map((request) => ({
+        callId: request.callId,
+        name: request.name,
+        arguments: request.arguments,
+      })) as ToolRequest[];
     }
 
-    if (role === "tool-results") {
-      const toolResults = langMessage.content as ToolResult[];
-      properties.toolResults = toolResults;
+    const toolResults = langMessage.toolResults;
+    if (toolResults.length > 0) {
+      properties.toolResults = toolResults.map((result) => ({
+        toolId: (result as any).toolId ?? result.callId ?? "",
+        name: result.name,
+        result: result.result,
+      })) as ToolResult[];
     }
 
     const lastMsgVertex = this.getLastMsgParentVertex();
