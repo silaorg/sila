@@ -36,10 +36,23 @@
     let progressVertices: Vertex[] = [];
 
     for (const vertex of messages) {
-      if (vertex.getProperty("role") === "assistant" || vertex.getProperty("role") === "user" || vertex.getProperty("role") === "error") {
+      const role = vertex.getProperty("role");
+
+      if (role === "user" || role === "error") {
         messagesToShow.push({ vertex, progressVertices });
         progressVertices = [];
+      } else if (role === "tool-results") {
+        progressVertices.push(vertex);
+        continue;
       } else {
+        // If we have tool requests, consider tht message as a progress message
+        const toolRequests = vertex.getProperty("toolRequests");
+        if (toolRequests === undefined) {
+          messagesToShow.push({ vertex, progressVertices });
+          progressVertices = [];
+          continue;
+        }
+
         progressVertices.push(vertex);
       }
     }
@@ -52,7 +65,11 @@
     return messagesToShow;
   });
   const lastMessageIsByUser = $derived.by(() =>
-    visibleMessages.length > 0 ? visibleMessages[visibleMessages.length - 1].vertex?.getProperty("role") === "user" : false
+    visibleMessages.length > 0
+      ? visibleMessages[visibleMessages.length - 1].vertex?.getProperty(
+          "role"
+        ) === "user"
+      : false
   );
 
   let lastMessageId = $derived.by(() =>
