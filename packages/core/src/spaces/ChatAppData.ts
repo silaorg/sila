@@ -196,6 +196,10 @@ export class ChatAppData {
       properties.meta = langMessage.meta;
     }
 
+    if (langMessage.reasoning) {
+      properties.thinking = langMessage.reasoning;
+    }
+
     // Ensure assistant messages created via streaming also carry assistant config info
     // so that the UI can show the assistant's name instead of a generic label.
     if (role === "assistant" && this.configId) {
