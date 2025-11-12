@@ -20,9 +20,7 @@
 
       <span class="opacity-70">•</span>
       <div class="flex items-center gap-1 group">
-        <LoaderCircle size={12} class="animate-spin" /><span
-          class="text-shimmer">Processing</span
-        >
+        <span class="text-shimmer">Processing</span>
       </div>
     </div>
   </div>

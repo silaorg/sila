@@ -3,7 +3,12 @@
 </script>
 
 <script lang="ts">
-  import { Sparkles, ChevronDown, ChevronRight, LoaderCircle } from "lucide-svelte";
+  import {
+    Sparkles,
+    ChevronDown,
+    ChevronRight,
+    LoaderCircle,
+  } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import { onMount } from "svelte";
@@ -184,9 +189,7 @@
           {#if message?.inProgress && (message?.text === "" || message?.thinking !== undefined)}
             <span class="opacity-70">•</span>
             <div class="flex items-center gap-1 group">
-              <LoaderCircle size={12} class="animate-spin" /><span
-                class="text-shimmer">Thinking</span
-              >
+              <span class="text-shimmer">Thinking</span>
             </div>
           {:else if visibleMessage.progressVertices.length > 0}
             <span class="opacity-70">•</span>
