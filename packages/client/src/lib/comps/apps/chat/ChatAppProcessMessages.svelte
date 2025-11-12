@@ -86,14 +86,10 @@
   });
 </script>
 
-<div
-  class="flex flex-col gap-2 mt-2 mb-2 max-h-[500px] overflow-y-auto text-sm opacity-75"
->
-  {#each messages as message}
-    {#if message.role === "tool"}
-      <div class="border border-surface-100-900 p-2 rounded-md">
-        <ChatAppToolMessagePair message={message as ToolUsageMessagePair} />
-      </div>
-    {/if}
-  {/each}
-</div>
+{#each messages as message}
+  {#if message.role === "tool"}
+    <div class="border border-surface-100-900 p-2 rounded-md">
+      <ChatAppToolMessagePair message={message as ToolUsageMessagePair} />
+    </div>
+  {/if}
+{/each}

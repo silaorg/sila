@@ -3,11 +3,7 @@
 </script>
 
 <script lang="ts">
-  import {
-    Sparkles,
-    ChevronDown,
-    ChevronRight,
-  } from "lucide-svelte";
+  import { Sparkles, ChevronDown, ChevronRight, LoaderCircle } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import { onMount } from "svelte";
@@ -185,15 +181,21 @@
           <span class="font-bold cursor-default hover:opacity-90"
             >{configName || "AI"}
           </span>
-          {#if visibleMessage.progressVertices.length > 0}
+          {#if message?.text === "" || message?.thinking !== undefined}
+            <span class="opacity-70">•</span>
+            <div class="flex items-center gap-1 group">
+              <LoaderCircle size={12} class="animate-spin" /><span
+                class="text-shimmer">Thinking</span
+              >
+            </div>
+          {:else if visibleMessage.progressVertices.length > 0}
             <span class="opacity-70">•</span>
             <button
               class="flex items-center gap-1 group"
               onclick={() =>
                 (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
             >
-              <span class="opacity-70 group-hover:opacity-100">Acted</span
-              >
+              <span class="opacity-70 group-hover:opacity-100">Acted</span>
 
               {#if isProcessMessagesExpanded}
                 <ChevronDown
@@ -231,9 +233,19 @@
           onpointerleave={endHover}
         >
           {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
-            <ChatAppProcessMessages
-              vertices={visibleMessage.progressVertices}
-            />
+            <div
+              class="flex flex-col gap-2 mt-2 mb-2 max-h-[500px] overflow-y-auto text-sm opacity-75"
+            >
+              {#if message?.thinking}
+                <Markdown
+                  source={message.thinking}
+                  options={chatMarkdownOptions}
+                />
+              {/if}
+              <ChatAppProcessMessages
+                vertices={visibleMessage.progressVertices}
+              />
+            </div>
           {/if}
           <Markdown
             source={message?.text || ""}
@@ -246,7 +258,9 @@
                   fileRef={att}
                   showGallery={true}
                   onGalleryOpen={(fileInfo) => {
-                    clientState.currentSpaceState?.vertexViewer.openFileRef(att);
+                    clientState.currentSpaceState?.vertexViewer.openFileRef(
+                      att
+                    );
                   }}
                 />
               {/each}

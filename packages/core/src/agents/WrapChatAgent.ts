@@ -174,10 +174,11 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
             targetMessages.push(targetMsg);
           }
 
-          if (incomingMsg.role === "assistant" && targetMsg) {
+          if (targetMsg && (incomingMsg.role === "assistant" || incomingMsg.role === "tool-results")) {
             const contentText = incomingMsg.text;
             const toolRequests = incomingMsg.toolRequests ?? [];
             const toolResults = incomingMsg.toolResults ?? [];
+            const reasoning = incomingMsg.reasoning;
             targetMsg.$useTransients(m => {
               m.text = contentText;
               if (toolRequests.length > 0) {
@@ -193,6 +194,10 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
                   name: result.name,
                   result: result.result
                 }));
+              }
+              if (reasoning) {
+                // We call "reasoning" the "thinking" property
+                m.thinking = reasoning;
               }
             });
             // Collect images during streaming; persist on finish
