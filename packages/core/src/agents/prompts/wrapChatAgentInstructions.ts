@@ -2,7 +2,7 @@ export function formattingInstructions(): string {
   return `<formatting>
 Use markdown for formatting. If you write code examples: use tick marks for inline code and triple tick marks for code blocks.
 
-For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters. If you want to show the source of TeX - wrap it in a code block.
+For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters.
 </formatting>`;
 }
 

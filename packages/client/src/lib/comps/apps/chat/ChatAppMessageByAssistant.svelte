@@ -44,6 +44,19 @@
   let showEditAndCopyControls = $state(false);
   let hideControlsTimeout: ReturnType<typeof setTimeout> | null = null;
 
+  const canExpandMessage = $derived.by(() => visibleMessage.progressVertices.length > 0 || message?.thinking);
+  const expandLabel = $derived.by(() => {
+    if (visibleMessage.progressVertices.length > 0 && message?.thinking) {
+      return "Thought, acted";
+    }
+    
+    if (visibleMessage.progressVertices.length > 0) {
+      return "Acted";
+    }
+
+    return "Thought";
+  });
+
   function getModelDisplayForMessage(): {
     provider: string;
     model: string;
@@ -191,14 +204,14 @@
             <div class="flex items-center gap-1 group">
               <span class="text-shimmer">Thinking</span>
             </div>
-          {:else if visibleMessage.progressVertices.length > 0}
+          {:else if canExpandMessage}
             <span class="opacity-70">•</span>
             <button
               class="flex items-center gap-1 group"
               onclick={() =>
                 (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
             >
-              <span class="opacity-70 group-hover:opacity-100">Acted</span>
+              <span class="opacity-70 group-hover:opacity-100">{expandLabel}</span>
 
               {#if isProcessMessagesExpanded}
                 <ChevronDown
@@ -235,7 +248,7 @@
           onpointerenter={beginHover}
           onpointerleave={endHover}
         >
-          {#if visibleMessage.progressVertices.length > 0 && isProcessMessagesExpanded}
+          {#if isProcessMessagesExpanded}
             <div
               class="flex flex-col gap-2 mt-2 mb-2 max-h-[500px] overflow-y-auto text-sm opacity-75"
             >
@@ -245,9 +258,11 @@
                   options={chatMarkdownOptions}
                 />
               {/if}
+              {#if visibleMessage.progressVertices.length > 0}
               <ChatAppProcessMessages
                 vertices={visibleMessage.progressVertices}
               />
+              {/if}
             </div>
           {/if}
           <Markdown
