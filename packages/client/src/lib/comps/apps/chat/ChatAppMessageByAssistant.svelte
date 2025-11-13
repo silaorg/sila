@@ -44,12 +44,24 @@
   let showEditAndCopyControls = $state(false);
   let hideControlsTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  const canExpandMessage = $derived.by(() => visibleMessage.progressVertices.length > 0 || message?.thinking);
+  const canExpandMessage = $derived.by(
+    () => visibleMessage.progressVertices.length > 0 || message?.thinking
+  );
   const expandLabel = $derived.by(() => {
+    if (message?.inProgress) {
+      if (message?.thinking) {
+        return "Thinking";
+      }
+
+      if (visibleMessage.progressVertices.length > 0) {
+        return "Acting";
+      }
+    }
+
     if (visibleMessage.progressVertices.length > 0 && message?.thinking) {
       return "Thought, acted";
     }
-    
+
     if (visibleMessage.progressVertices.length > 0) {
       return "Acted";
     }
@@ -199,7 +211,7 @@
           <span class="font-bold cursor-default hover:opacity-90"
             >{configName || "AI"}
           </span>
-          {#if message?.inProgress && (message?.text === "" || message?.thinking !== undefined)}
+          {#if !canExpandMessage && message?.inProgress}
             <span class="opacity-70">•</span>
             <div class="flex items-center gap-1 group">
               <span class="text-shimmer">Thinking</span>
@@ -211,8 +223,10 @@
               onclick={() =>
                 (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
             >
-              <span class="opacity-70 group-hover:opacity-100">{expandLabel}</span>
-
+              <span
+                class="opacity-70 group-hover:opacity-100"
+                class:text-shimmer={message?.inProgress}>{expandLabel}</span
+              >
               {#if isProcessMessagesExpanded}
                 <ChevronDown
                   size={12}
@@ -259,9 +273,9 @@
                 />
               {/if}
               {#if visibleMessage.progressVertices.length > 0}
-              <ChatAppProcessMessages
-                vertices={visibleMessage.progressVertices}
-              />
+                <ChatAppProcessMessages
+                  vertices={visibleMessage.progressVertices}
+                />
               {/if}
             </div>
           {/if}
