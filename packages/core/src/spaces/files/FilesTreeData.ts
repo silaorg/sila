@@ -4,6 +4,26 @@ import type { AttachmentPreview } from "./AttachmentPreview";
 import type { FileInfo } from "./FileInfo";
 
 export class FilesTreeData {
+	private static ensureUniqueName(folder: Vertex, desiredName: string): string {
+		const baseName = desiredName || "file";
+		const childrenNames = new Set(folder.children.map((c) => c.name));
+		if (!childrenNames.has(baseName)) {
+			return baseName;
+		}
+
+		const dotIndex = baseName.lastIndexOf(".");
+		const namePart = dotIndex === -1 ? baseName : baseName.slice(0, dotIndex);
+		const extPart = dotIndex === -1 ? "" : baseName.slice(dotIndex);
+
+		let counter = 2;
+		let candidate = `${namePart} (${counter})${extPart}`;
+		while (childrenNames.has(candidate)) {
+			counter += 1;
+			candidate = `${namePart} (${counter})${extPart}`;
+		}
+		return candidate;
+	}
+
 	static ensureFolderPath(filesTree: AppTree, segments: string[]): Vertex {
 		let root = filesTree.tree.getVertexByPath("files");
 		if (!root) {
@@ -28,18 +48,21 @@ export class FilesTreeData {
 		folder: Vertex,
 		fileInfo: Partial<FileInfo>
 	): Vertex {
+		const hash = fileInfo.hash?.trim();
+		if (hash) {
+			const existingByHash = folder.children.find((c) => c.getProperty("hash") === hash);
+			if (existingByHash) return existingByHash;
+		}
+
 		const name = fileInfo.name ?? "file";
-		const hash = fileInfo.hash ?? "";
+		const uniqueName = this.ensureUniqueName(folder, name);
 		const mimeType = fileInfo.mimeType;
 		const size = fileInfo.size;
 		const width = fileInfo.width;
 		const height = fileInfo.height;
 
-		const existing = folder.children.find((c) => c.getProperty("hash") === hash || c.name === name);
-		if (existing) return existing;
-		
-		return folder.newNamedChild(name, {
-			name,
+		return folder.newNamedChild(uniqueName, {
+			name: uniqueName,
 			hash,
 			mimeType,
 			size,
@@ -53,17 +76,22 @@ export class FilesTreeData {
 		attachment: AttachmentPreview,
 		hash: string
 	): Vertex {
+		const normalizedHash = hash?.trim();
+		if (normalizedHash) {
+			const existingByHash = folder.children.find((c) => c.getProperty("hash") === normalizedHash);
+			if (existingByHash) return existingByHash;
+		}
+
 		const name = attachment.name ?? "file";
+		const uniqueName = this.ensureUniqueName(folder, name);
 		const mimeType = attachment.mimeType;
 		const size = attachment.size;
 		const width = attachment.width;
 		const height = attachment.height;
 
-		const existing = folder.children.find((c) => c.getProperty("hash") === hash || c.name === name);
-		if (existing) return existing;
-		
-		return folder.newNamedChild(name, {
-			hash,
+		return folder.newNamedChild(uniqueName, {
+			name: uniqueName,
+			hash: normalizedHash,
 			mimeType,
 			size,
 			width,
