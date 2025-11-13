@@ -334,6 +334,24 @@ export class ChatAppData {
     return { targetTree, parentFolder };
   }
 
+  getFilesRoot(createIfMissing: boolean = false): Vertex | undefined {
+    const existing = this.appTree.tree.getVertexByPath('files') as Vertex | undefined;
+    if (existing) {
+      return existing;
+    }
+
+    if (!createIfMissing) {
+      return undefined;
+    }
+
+    return this.ensureFolderPathInTree(this.appTree, ['files'], true);
+  }
+
+  hasStoredFiles(): boolean {
+    const root = this.appTree.tree.getVertexByPath('files') as Vertex | undefined;
+    return !!(root && root.children.length > 0);
+  }
+
   /** Ensure a slash-separated path exists inside the given app tree, creating folders if allowed. Returns the final folder vertex. */
   private ensureFolderPathInTree(appTree: AppTree, segments: string[], createParents: boolean): Vertex {
     const root = appTree.tree.root!;

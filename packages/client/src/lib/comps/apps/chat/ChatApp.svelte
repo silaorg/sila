@@ -9,13 +9,16 @@
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
   import { ArrowDown } from "lucide-svelte";
+  import { Images } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
+  import { useClientState } from "@sila/client/state/clientStateContext";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
 
   let { data }: { data: ChatAppData } = $props();
+  const clientState = useClientState();
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
   let messages = $state<Vertex[]>([]);
   let shouldAutoScroll = $state(true);
@@ -24,6 +27,7 @@
   let scrollTop = $state(0);
   let scrollHeight = $state(0);
   let clientHeight = $state(0);
+  let hasFiles = $state(false);
 
   let lastMessageTxt: string | null = null;
   let programmaticScrollTimeout: (() => void) | undefined;
@@ -112,6 +116,10 @@
     };
   });
 
+  function refreshHasFiles() {
+    hasFiles = data.hasStoredFiles();
+  }
+
   function updateFormStatus(lastMessage: ThreadMessage | undefined) {
     if (!lastMessage) {
       formStatus = "can-send-message";
@@ -133,15 +141,18 @@
 
   onMount(() => {
     messages = data.messageVertices;
+    refreshHasFiles();
 
     const msgsObs = data.observeNewMessages((vertices) => {
       scrollToBottom();
       messages = vertices;
+      refreshHasFiles();
       tick().then(updateScrollMetrics);
     });
     // @TODO temporary: subscribe to message updates for edits/branch switching
     const updateObs = data.onUpdate((vertices) => {
       messages = vertices;
+      refreshHasFiles();
       tick().then(updateScrollMetrics);
     });
 
@@ -203,6 +214,16 @@
     data.triggerEvent("stop-message", {});
   }
 
+  function openChatFiles() {
+    const filesRoot = data.getFilesRoot(true);
+    if (!filesRoot) {
+      console.warn("Chat files root not found");
+      return;
+    }
+
+    clientState.layout.swins.open("files", { filesRoot }, "Chat files");
+  }
+
   export async function scrollToMessage(messageId: string) {
     if (!scrollableElement) {
       console.warn("scrollToMessage: scrollable element not found");
@@ -231,6 +252,16 @@
   class="flex flex-col w-full h-full overflow-hidden relative"
   data-component="chat-app"
 >
+  {#if hasFiles}
+    <button
+      class="btn-icon btn-sm preset-outline absolute top-3 right-3 z-10 flex items-center gap-2"
+      type="button"
+      aria-label="View chat files"
+      onclick={openChatFiles}
+    >
+      <Images size={16} />
+    </button>
+  {/if}
   <div
     class="flex-grow overflow-y-auto pt-2"
     bind:this={scrollableElement}
