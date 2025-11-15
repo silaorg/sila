@@ -9,6 +9,7 @@ import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
 import { chatAgentMetaInstructions, formattingInstructions } from "./prompts/wrapChatAgentInstructions";
+import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
 
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
@@ -231,7 +232,8 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
       this.chatAgent.setLanguageProvider(lang);
 
-      langMessages.availableTools = this.agentServices.getToolsForModel(resolvedModel);
+      const fetchForAgent = createWorkspaceProxyFetch(this.agentServices.space, this.appTree);
+      langMessages.availableTools = this.agentServices.getToolsForModel(resolvedModel, fetchForAgent);
 
       await this.chatAgent.run(langMessages);
 

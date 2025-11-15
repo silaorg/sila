@@ -5,6 +5,7 @@ import { getProviderModels } from '../tools/providerModels';
 import { splitModelString } from '../utils/modelUtils';
 import { LangTool } from 'aiwrapper/dist/lang/messages';
 import { getToolRead } from './tools/toolRead';
+import type { ProxyFetch } from "../utils/proxyFetch";
 
 export class AgentServices {
   readonly space: Space;
@@ -163,7 +164,10 @@ export class AgentServices {
     return null;
   }
 
-  getToolsForModel(model: { provider: string; model: string } | null): LangTool[] {
+  getToolsForModel(
+    model: { provider: string; model: string } | null,
+    fetchImpl?: ProxyFetch
+  ): LangTool[] {
     const tools: LangTool[] = [];
 
     // @TODO: choose what to use for "web search" automatically based on the model
@@ -175,7 +179,7 @@ export class AgentServices {
       tools.push({ name: "image_generation" });
     }
 
-    tools.push(getToolRead());
+    tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
 
     return tools;
   }
