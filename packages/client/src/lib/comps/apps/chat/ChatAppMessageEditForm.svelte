@@ -20,7 +20,7 @@
   let view: EditorView | null = null;
   let currentText = initialValue;
   let mentionAnchor = { left: 0, top: 0 };
-  let mentionPos: number | null = null;
+  let mentionInsertPos: number | null = null;
   let mentionMenuOpen = false;
 
   const fakeFiles: FileMention[] = [
@@ -43,9 +43,13 @@
 
   $: isSaveDisabled = currentText.trim().length === 0;
 
-  function openMention(payload: { view: EditorView; pos: number }) {
-    mentionPos = payload.pos;
-    const coords = payload.view.coordsAtPos(payload.pos);
+  function openMention(payload: {
+    view: EditorView;
+    anchorPos: number;
+    insertPos: number;
+  }) {
+    mentionInsertPos = payload.insertPos;
+    const coords = payload.view.coordsAtPos(payload.anchorPos);
     const hostRect = editorHost.getBoundingClientRect();
     mentionAnchor = {
       left: coords.left - hostRect.left,
@@ -56,7 +60,7 @@
 
   function closeMention() {
     mentionMenuOpen = false;
-    mentionPos = null;
+    mentionInsertPos = null;
   }
 
   function mentionIsOpen() {
@@ -64,8 +68,8 @@
   }
 
   function handleFilePick(file: FileMention) {
-    if (!view || mentionPos === null) return;
-    insertFileMention(view, mentionPos, file);
+    if (!view || mentionInsertPos === null) return;
+    insertFileMention(view, mentionInsertPos, file);
     currentText = view.state.doc.textContent;
     closeMention();
     requestAnimationFrame(() => view?.focus());

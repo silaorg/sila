@@ -81,7 +81,7 @@
     let editorView: EditorView | null = null;
     let mentionMenuOpen = $state(false);
     let mentionAnchor = $state({ left: 0, top: 0 });
-    let mentionPos = $state<number | null>(null);
+    let mentionInsertPos = $state<number | null>(null);
     let editorPlugins: Plugin[] = [];
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
@@ -133,10 +133,14 @@
       requestAnimationFrame(() => editorView?.focus());
     }
 
-    function openMention(payload: { view: EditorView; pos: number }) {
-      mentionPos = payload.pos;
+    function openMention(payload: {
+      view: EditorView;
+      anchorPos: number;
+      insertPos: number;
+    }) {
+      mentionInsertPos = payload.insertPos;
       if (!editorHost) return;
-      const coords = payload.view.coordsAtPos(payload.pos);
+      const coords = payload.view.coordsAtPos(payload.anchorPos);
       const hostRect = editorHost.getBoundingClientRect();
       mentionAnchor = {
         left: coords.left - hostRect.left,
@@ -147,7 +151,7 @@
 
     function closeMention() {
       mentionMenuOpen = false;
-      mentionPos = null;
+      mentionInsertPos = null;
     }
 
     function mentionIsOpen() {
@@ -155,8 +159,8 @@
     }
 
     function handleFilePick(file: FileMention) {
-      if (!editorView || mentionPos === null) return;
-      insertFileMention(editorView, mentionPos, file);
+      if (!editorView || mentionInsertPos === null) return;
+      insertFileMention(editorView, mentionInsertPos, file);
       query = editorView.state.doc.textContent;
       persistDraftContent(query);
       closeMention();
