@@ -14,11 +14,14 @@ type MentionHandlers = {
 };
 
 export function createFileMentionPlugin(handlers: MentionHandlers) {
-  return new Plugin({
+    return new Plugin({
     props: {
-      handleTextInput(view, from, _to, text) {
+        handleTextInput(view, _from, _to, text) {
         if (text === "@") {
-          handlers.open({ view, pos: from + text.length });
+            requestAnimationFrame(() => {
+              const pos = view.state.selection.from;
+              handlers.open({ view, pos });
+            });
         }
         return false;
       },
