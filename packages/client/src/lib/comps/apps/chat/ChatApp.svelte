@@ -292,7 +292,6 @@
         onStop={stopMsg}
         status={formStatus}
         draftId={data.threadId}
-        maxLines={10}
         {data}
       />
     </section>
