@@ -111,7 +111,9 @@
     {/if}
 
     <!-- Content -->
-    <div class="relative max-w-full max-h-full p-8">
+    <div
+      class="relative max-w-full max-h-[calc(100vh-8rem)] p-8 overflow-auto"
+    >
       {#if activeFile}
         <FileView file={activeFile} />
       {:else}
