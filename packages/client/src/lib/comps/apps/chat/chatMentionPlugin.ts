@@ -1,3 +1,8 @@
+// ProseMirror plugin for detecting `@file`-style mentions in the chat editor.
+// - Tracks the current `@` + query range near the cursor
+// - Notifies the UI when a mention context opens/closes or changes
+// - Provides `insertFileMention` to replace the typed `@query` with an inline mention node
+
 import type { EditorView } from "prosemirror-view";
 import { Plugin, type EditorState } from "prosemirror-state";
 
@@ -24,8 +29,10 @@ type MentionContext = {
   query: string;
 };
 
+// Max number of characters to look back from the cursor when searching for a `@` trigger
 const LOOKBACK_LIMIT = 80;
 
+// Safely reads a text slice between positions, clamped to the document size.
 function getTextSlice(
   state: EditorState,
   from: number,
@@ -37,10 +44,12 @@ function getTextSlice(
   return state.doc.textBetween(start, end, "\n", "\n");
 }
 
+// Word boundary characters that allow a mention trigger to start
 function isBoundaryChar(char: string): boolean {
   return char === "" || /\s/.test(char);
 }
 
+// Basic validation for the text typed after `@` that should count as a mention query
 function isValidMentionQuery(query: string): boolean {
   if (query === "") return true;
   if (query.includes("\n") || query.includes("\t")) return false;
@@ -51,6 +60,8 @@ function isValidMentionQuery(query: string): boolean {
   return true;
 }
 
+// Returns the current mention context (`@` position, head, query) if the cursor is inside one.
+// Otherwise returns null, meaning the mention menu should be closed.
 function getMentionContext(state: EditorState): MentionContext | null {
   const head = state.selection.from;
   const charAtHead = getTextSlice(state, head, head + 1);
@@ -76,6 +87,7 @@ function getMentionContext(state: EditorState): MentionContext | null {
   return { head, triggerPos, query };
 }
 
+// Small helper to defer sync work to the next frame
 function schedule(fn: () => void) {
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(fn);
@@ -87,6 +99,7 @@ function schedule(fn: () => void) {
 export function createFileMentionPlugin(handlers: MentionHandlers) {
   let lastContextKey: string | null = null;
 
+  // Computes the latest mention context from editor state and calls handlers accordingly.
   function syncFromState(view: EditorView) {
     const context = getMentionContext(view.state);
     if (!context) {
@@ -117,7 +130,8 @@ export function createFileMentionPlugin(handlers: MentionHandlers) {
     schedule(() => syncFromState(view));
   }
 
-    return new Plugin({
+  // Core ProseMirror plugin that watches text / selection changes and drives the mention menu.
+  return new Plugin({
     props: {
       handleTextInput(view) {
         deferSync(view);
@@ -160,7 +174,8 @@ export function insertFileMention(
   pos: number,
   file: FileMention
 ) {
-  const mentionNode = view.state.schema.nodes.mention?.create({
+  const { state } = view;
+  const mentionNode = state.schema.nodes.mention?.create({
     id: file.id,
     type: file.kind,
     label: file.name,
@@ -168,10 +183,22 @@ export function insertFileMention(
 
   if (!mentionNode) return;
 
-  const tr = view.state.tr
-    .delete(pos - 1, pos)
-    .insert(pos - 1, mentionNode)
-    .scrollIntoView();
+  // Replace the entire "@query" range (from the `@` trigger to the cursor) with the mention node.
+  const context = getMentionContext(state);
+  let from = pos - 1;
+  let to = pos;
+
+  if (context) {
+    from = context.triggerPos;
+    to = context.head;
+  }
+
+  let tr = state.tr.replaceWith(from, to, mentionNode);
+
+  // Insert a trailing space so the caret sits after the mention on the same line.
+  const after = from + mentionNode.nodeSize;
+  tr = tr.insert(after, state.schema.text(" "));
+  tr = tr.scrollIntoView();
 
   view.dispatch(tr);
 }

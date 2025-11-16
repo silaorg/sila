@@ -3,6 +3,12 @@
   import { EditorState, Plugin } from "prosemirror-state";
   import { EditorView } from "prosemirror-view";
   import {
+    computePosition,
+    offset as fuiOffset,
+    flip,
+    shift,
+  } from "@floating-ui/dom";
+  import {
     chatEditorSchema,
     createDocFromText,
   } from "./chatEditorSchema";
@@ -45,10 +51,12 @@
   let plugins: Plugin[] = [];
   let isFocused = $state(false);
   let mentionMenuOpen = $state(false);
-  let mentionAnchor = $state({ left: 0, top: 0 });
+  let mentionCoords = $state({ x: 0, y: 0 });
   let mentionFileInsert: ((file: FileMention) => void) | null = null;
   let mentionFiles = $state<FileMention[]>([]);
+  let mentionSelectedIndex = $state(0);
   let lastQueryToken = 0;
+  let mentionMenuEl: HTMLDivElement | null = null;
 
   async function loadMentionFiles(query: string) {
     if (!getFileMentions) {
@@ -74,12 +82,11 @@
     insertPos: number;
     query: string;
   }) {
-    if (!host) return;
     const coords = payload.view.coordsAtPos(payload.anchorPos);
-    const hostRect = host.getBoundingClientRect();
-    mentionAnchor = {
-      left: coords.left - hostRect.left,
-      top: coords.bottom - hostRect.top + 4,
+    // coords are already viewport-relative, perfect for a fixed-position popover
+    mentionCoords = {
+      x: coords.left,
+      y: coords.bottom + 4,
     };
 
     mentionFileInsert = (file: FileMention) => {
@@ -88,8 +95,13 @@
       onChange?.(text);
     };
 
+    mentionSelectedIndex = 0;
     loadMentionFiles(payload.query);
     mentionMenuOpen = true;
+    // Defer so the menu element exists in the DOM
+    requestAnimationFrame(() => {
+      void updateMentionPosition();
+    });
   }
 
   function closeMention() {
@@ -103,6 +115,42 @@
     closeMention();
     // Restore focus to editor after inserting mention
     requestAnimationFrame(() => view?.focus());
+  }
+
+  async function updateMentionPosition() {
+    if (!mentionMenuEl) return;
+
+    const virtualReference = {
+      getBoundingClientRect() {
+        const x = mentionCoords.x;
+        const y = mentionCoords.y;
+        return {
+          x,
+          y,
+          left: x,
+          right: x,
+          top: y,
+          bottom: y,
+          width: 0,
+          height: 0,
+        } as DOMRect;
+      },
+    };
+
+    const { x, y } = await computePosition(
+      virtualReference as any,
+      mentionMenuEl,
+      {
+        placement: "bottom-start",
+        strategy: "fixed",
+        middleware: [fuiOffset(4), flip(), shift({ padding: 8 })],
+      }
+    );
+
+    Object.assign(mentionMenuEl.style, {
+      left: `${x}px`,
+      top: `${y}px`,
+    });
   }
 
   function syncFromExternalValue(newValue: string) {
@@ -133,6 +181,33 @@
     const submitPlugin = new Plugin({
       props: {
         handleKeyDown(_view, event) {
+          if (mentionMenuOpen && mentionFiles.length > 0) {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              mentionSelectedIndex =
+                (mentionSelectedIndex + 1) % mentionFiles.length;
+              return true;
+            }
+
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              mentionSelectedIndex =
+                (mentionSelectedIndex - 1 + mentionFiles.length) %
+                mentionFiles.length;
+              return true;
+            }
+
+            if (event.key === "Enter" && !event.shiftKey) {
+              const chosen =
+                mentionFiles[mentionSelectedIndex] ?? mentionFiles[0];
+              if (chosen) {
+                event.preventDefault();
+                handleFilePick(chosen);
+                return true;
+              }
+            }
+          }
+
           if (event.key === "Enter" && !event.shiftKey) {
             if (disabled) {
               return false;
@@ -229,8 +304,8 @@
 
   {#if mentionMenuOpen}
     <div
-      class="mention-menu absolute z-20 min-w-[240px] rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800"
-      style={`left:${mentionAnchor.left}px;top:${mentionAnchor.top}px;`}
+      bind:this={mentionMenuEl}
+      class="mention-menu z-20 min-w-[240px] rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800"
     >
       <p
         class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500"
@@ -238,10 +313,12 @@
         Insert file
       </p>
       <div class="flex flex-col gap-1">
-        {#each mentionFiles as file}
+        {#each mentionFiles as file, index}
           <button
             type="button"
             class="mention-option flex items-center gap-2 rounded px-2 py-1 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-100 dark:hover:bg-slate-700"
+            class:bg-slate-100={index === mentionSelectedIndex}
+            class:dark:bg-slate-700={index === mentionSelectedIndex}
             onclick={() => handleFilePick(file)}
           >
             <span
@@ -271,6 +348,10 @@
 
   .chat-editor-host :global(.ProseMirror p) {
     margin: 0;
+  }
+
+  .mention-menu {
+    position: fixed;
   }
 </style>
 
