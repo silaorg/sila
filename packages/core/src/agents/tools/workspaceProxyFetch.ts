@@ -113,9 +113,11 @@ async function readTextFromFileVertex(
     throw new Error("FileStore is not configured for this space");
   }
 
+  const mutableId = (fileVertex.getProperty("id") as string | undefined)?.trim();
   const hash = (fileVertex.getProperty("hash") as string | undefined)?.trim();
-  if (!hash) {
-    throw new Error(`File vertex missing hash for ${logicalPath}`);
+
+  if (!mutableId && !hash) {
+    throw new Error(`File vertex missing id/hash for ${logicalPath}`);
   }
 
   const mimeType = fileVertex.getProperty("mimeType") as string | undefined;
@@ -125,7 +127,9 @@ async function readTextFromFileVertex(
     );
   }
 
-  const bytes = await store.getBytes(hash);
+  const bytes = mutableId
+    ? await store.getMutable(mutableId)
+    : await store.getBytes(hash as string);
   if (bytes.byteLength > MAX_TEXT_BYTES) {
     throw new Error(
       `File at ${logicalPath} is too large for read tool (size=${bytes.byteLength} bytes, limit=${MAX_TEXT_BYTES})`
