@@ -1,11 +1,11 @@
-## Chat Mentions with ProseMirror
+## Chat File Mentions with ProseMirror
 
 ### Why
 The current `ChatAppMessageEditForm.svelte` textarea cannot detect `@` or render inline UI. Swapping it for a minimal ProseMirror setup gives us structured text, extensible key handling, and reusable plugins we can later drop into long-form document editing.
 
 ### Plan
 1. **Embed a tiny editor view** – replace the `<textarea>` with a `<div bind:this={editorHost}>` and initialize a `EditorView` on mount. Keep the model as plain text for now; we only need the `doc` node plus `text`.
-2. **Add a mention plugin** – watch transactions for the `@` character, capture the current position, and open a floating suggestion panel. When the user picks a person, dispatch a transaction that inserts an inline atom with attrs `{ id, label }` plus a `toDOM` render hook.
+2. **Add a mention plugin** – watch transactions for the `@` character, capture the current position, and open a floating suggestion panel. When the user picks a workspace asset or chat file, dispatch a transaction that inserts an inline atom with attrs `{ id, type, label }` plus a `toDOM` render hook.
 3. **Expose the value** – listen to `view.state.doc.textContent` for `onSave`, and destroy the view on unmount so it stays lightweight.
 4. **Reuse infra** – the same schema + plugin works for future document editors; we just add marks/nodes, but the mention extension stays identical.
 
@@ -68,24 +68,25 @@ export function mentionPlugin() {
 }
 ```
 
-`openMentionMenu` can emit a `CustomEvent` to Svelte to render a Tailwind popover. Selecting a user calls `insertMention(view, pos, user)` which dispatches a single transaction:
+`openMentionMenu` can emit a `CustomEvent` to Svelte to render a Tailwind popover backed by our existing workspace file search. Selecting a file calls `insertMention(view, pos, file)` which dispatches a single transaction:
 
 ```ts
-function insertMention(view, pos, user) {
+function insertMention(view, pos, file) {
   view.dispatch(
     view.state.tr
       .delete(pos - 1, pos) // remove "@"
-      .insert(
-        pos - 1,
-        view.state.schema.nodes.mention.create({ id: user.id, label: user.name })
-      )
+      .insert(pos - 1, view.state.schema.nodes.mention.create({
+        id: file.id,
+        type: file.kind, // "workspace-asset" | "chat-file"
+        label: file.name,
+      }))
       .scrollIntoView()
   );
 }
 ```
 
 ### Future-ready
-- Mentions become an inline node, so any ProseMirror surface (chat, notes, docs) can share the same schema + plugin.
-- To enable document editing later, extend the schema with marks (bold, link, code) and add toolbar plugins; the mention implementation stays untouched.
+- Mentions become inline file references, so any ProseMirror surface (chat, notes, docs) can share the same schema + plugin and resolve metadata via a single file registry.
+- When we enable document editing, the same mention node lets users reference workspace/chat files inline without extra implementation—only the formatting toolbar changes.
 
 With this plan we only add ~40 lines inside `ChatAppMessageEditForm.svelte`, gain structured input, and unlock a path toward full ProseMirror-powered editors.
