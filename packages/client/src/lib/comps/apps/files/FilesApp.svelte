@@ -1,14 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { AttachmentPreview } from "@sila/core";
-  import type { Vertex } from "@sila/core";
+  import { FilesTreeData, type AttachmentPreview, type Vertex } from "@sila/core";
   import { Upload, FolderPlus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import {
     processFileForUpload,
+    processTextFileForUpload,
     optimizeImageSize,
+    optimizeTextFile,
     toDataUrl,
     getImageDimensions,
+    isTextFile,
+    readFileAsText,
+    extractTextFileMetadata,
   } from "@sila/client/utils/fileProcessing";
   import FolderView from "./FolderView.svelte";
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
@@ -129,54 +133,80 @@
 
       for (const file of fileList) {
         try {
-          // Step 1: Process file (convert HEIC if needed)
-          const processedFile = await processFileForUpload(file);
+          // Detect if this is a text file first
+          const textLike = await isTextFile(file).catch(() => false);
 
-          // Step 2: Resize image if needed (2048x2048 max)
-          const optimizedFile = await optimizeImageSize(processedFile);
+          if (textLike) {
+            // Text files: store as mutable UUID-backed documents
+            const processedText = await processTextFileForUpload(file);
+            const optimizedText = await optimizeTextFile(processedText);
+            const content = await readFileAsText(optimizedText);
+            const metadata = extractTextFileMetadata(optimizedText, content);
 
-          // Step 3: Convert to data URL
-          const dataUrl = await toDataUrl(optimizedFile);
+            const uuid = crypto.randomUUID();
+            const textBytes = new TextEncoder().encode(content);
+            await store.putMutable(uuid, textBytes);
 
-          // Step 4: Upload to CAS (deduplication happens here)
-          const put = await store.putDataUrl(dataUrl);
+            const preview: AttachmentPreview = {
+              id: uuid,
+              kind: "text",
+              name: optimizedText.name,
+              mimeType: optimizedText.type || "text/plain",
+              size: content.length,
+              content,
+              metadata,
+              width: metadata.charCount,
+              height: metadata.lineCount,
+              alt: metadata.language,
+            };
 
-          // Step 5: Build an AttachmentPreview for simplified API usage
-          let originalDimensions: string | undefined;
-          let width: number | undefined;
-          let height: number | undefined;
-          if (optimizedFile.type.startsWith("image/")) {
-            const dims = await getImageDimensions(dataUrl);
-            width = dims?.width;
-            height = dims?.height;
-            if (processedFile !== file || optimizedFile !== processedFile) {
-              const originalDims = await getImageDimensions(
-                await toDataUrl(file)
-              );
-              if (originalDims) {
-                originalDimensions = `${originalDims.width}x${originalDims.height}`;
+            FilesTreeData.saveFileInfoFromAttachment(
+              currentFolder,
+              preview,
+              uuid
+            );
+          } else {
+            // Images and other non-text files: store in immutable CAS via data URL
+            const processedFile = await processFileForUpload(file);
+            const optimizedFile = await optimizeImageSize(processedFile);
+            const dataUrl = await toDataUrl(optimizedFile);
+
+            const put = await store.putDataUrl(dataUrl);
+
+            let originalDimensions: string | undefined;
+            let width: number | undefined;
+            let height: number | undefined;
+            if (optimizedFile.type.startsWith("image/")) {
+              const dims = await getImageDimensions(dataUrl);
+              width = dims?.width;
+              height = dims?.height;
+              if (processedFile !== file || optimizedFile !== processedFile) {
+                const originalDims = await getImageDimensions(
+                  await toDataUrl(file)
+                );
+                if (originalDims) {
+                  originalDimensions = `${originalDims.width}x${originalDims.width}`;
+                }
               }
             }
+
+            const preview: AttachmentPreview = {
+              id: crypto.randomUUID(),
+              kind: "image",
+              name: optimizedFile.name,
+              mimeType: optimizedFile.type,
+              size: optimizedFile.size,
+              dataUrl,
+              width,
+              height,
+            };
+
+            FilesTreeData.saveFileInfoFromAttachment(
+              currentFolder,
+              preview,
+              put.hash
+            );
           }
-
-          const preview: AttachmentPreview = {
-            id: crypto.randomUUID(),
-            kind: "image",
-            name: optimizedFile.name,
-            mimeType: optimizedFile.type,
-            size: optimizedFile.size,
-            dataUrl,
-            width,
-            height,
-          };
-
-          // Step 6: Create/link file using the simplified API with attachment
-          const { FilesTreeData } = await import("@sila/core");
-          FilesTreeData.saveFileInfoFromAttachment(
-            currentFolder,
-            preview,
-            put.hash
-          );
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
         }

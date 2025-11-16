@@ -48,10 +48,12 @@ export class FilesTreeData {
 		folder: Vertex,
 		fileInfo: Partial<FileInfo>
 	): Vertex {
-		const hash = fileInfo.hash?.trim();
-		if (hash) {
-			const existingByHash = folder.children.find((c) => c.getProperty("hash") === hash);
-			if (existingByHash) return existingByHash;
+		const storageId = (fileInfo.id ?? fileInfo.hash)?.trim();
+		if (storageId) {
+			const existing = folder.children.find((c) =>
+				c.getProperty("hash") === storageId || c.getProperty("id") === storageId
+			);
+			if (existing) return existing;
 		}
 
 		const name = fileInfo.name ?? "file";
@@ -61,25 +63,37 @@ export class FilesTreeData {
 		const width = fileInfo.width;
 		const height = fileInfo.height;
 
-		return folder.newNamedChild(uniqueName, {
+		const props: Record<string, any> = {
 			name: uniqueName,
-			hash,
 			mimeType,
 			size,
 			width,
 			height
-		});
+		};
+
+		if (fileInfo.hash) {
+			props.hash = fileInfo.hash.trim();
+		}
+		if (fileInfo.id) {
+			props.id = fileInfo.id.trim();
+		}
+
+		return folder.newNamedChild(uniqueName, props);
 	}
 
 	static saveFileInfoFromAttachment(
 		folder: Vertex,
 		attachment: AttachmentPreview,
-		hash: string
+		storageId: string
 	): Vertex {
-		const normalizedHash = hash?.trim();
-		if (normalizedHash) {
-			const existingByHash = folder.children.find((c) => c.getProperty("hash") === normalizedHash);
-			if (existingByHash) return existingByHash;
+		const normalizedId = storageId?.trim();
+		if (normalizedId) {
+			const existing = folder.children.find(
+				(c) =>
+					c.getProperty("hash") === normalizedId ||
+					c.getProperty("id") === normalizedId
+			);
+			if (existing) return existing;
 		}
 
 		const name = attachment.name ?? "file";
@@ -89,21 +103,32 @@ export class FilesTreeData {
 		const width = attachment.width;
 		const height = attachment.height;
 
-		return folder.newNamedChild(uniqueName, {
+		const props: Record<string, any> = {
 			name: uniqueName,
-			hash: normalizedHash,
 			mimeType,
 			size,
 			width,
 			height
-		});
+		};
+
+		// For text attachments we treat storageId as a mutable UUID (`id`); for others as CAS `hash`.
+		if (attachment.kind === "text") {
+			props.id = normalizedId;
+		} else {
+			props.hash = normalizedId;
+		}
+
+		return folder.newNamedChild(uniqueName, props);
 	}
 
 	/** Returns normalized file info from a file vertex */
 	static getFileInfo(fileVertex: Vertex): FileInfo {
+		const hash = fileVertex.getProperty('hash') as string | undefined;
+		const id = fileVertex.getProperty('id') as string | undefined;
 		return {
 			name: fileVertex.name ?? '',
-			hash: (fileVertex.getProperty('hash') as string) ?? '',
+			hash: hash,
+			id: id,
 			mimeType: fileVertex.getProperty('mimeType') as string,
 			size: fileVertex.getProperty('size') as number,
 			width: fileVertex.getProperty('width') as number,

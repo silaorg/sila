@@ -94,12 +94,24 @@ async function handleCreateOrUpdate(
   // Create or load existing content
   let currentContent = "";
   let mimeType: string | undefined;
-  if (!isCreate && target.fileVertex) {
-    const hash = (target.fileVertex.getProperty("hash") as string | undefined)?.trim();
-    if (hash) {
-      const bytes = await store.getBytes(hash);
+  let mutableId: string | undefined;
+
+  if (target.fileVertex) {
+    const existingId = (target.fileVertex.getProperty("id") as string | undefined)?.trim();
+    const existingHash = (target.fileVertex.getProperty("hash") as string | undefined)?.trim();
+
+    if (existingId) {
+      // Mutable file: load from uuid-based storage
+      const bytes = await store.getMutable(existingId);
       currentContent = new TextDecoder("utf-8").decode(bytes);
+      mutableId = existingId;
+    } else if (existingHash) {
+      // Static file: load from CAS, then treat as base for mutable editing
+      const bytes = await store.getBytes(existingHash);
+      currentContent = new TextDecoder("utf-8").decode(bytes);
+      // We'll create a new mutable id when writing back
     }
+
     mimeType = target.fileVertex.getProperty("mimeType") as string | undefined;
   }
 
@@ -109,19 +121,38 @@ async function handleCreateOrUpdate(
   const bytes = new TextEncoder().encode(updated);
   const inferredMime =
     mimeType || inferTextMimeFromPath(target.fileName) || "text/plain";
-  const put = await store.putBytes(bytes);
+
+  // Only allow text-like files
+  if (!inferredMime.startsWith("text/") && inferredMime !== "application/json") {
+    throw new Error(
+      `apply_patch: only text files can be edited (got mimeType='${inferredMime}')`
+    );
+  }
+
+  if (!mutableId) {
+    // No existing mutable id: create one
+    mutableId = crypto.randomUUID();
+  }
+
+  // Write updated content into mutable storage
+  await store.putMutable(mutableId, bytes);
 
   if (target.fileVertex) {
-    // Update existing file vertex
-    target.fileVertex.setProperty("hash", put.hash);
+    // Update existing file vertex to point to mutable id
+    const existingHash = (target.fileVertex.getProperty("hash") as string | undefined)?.trim();
+    if (existingHash) {
+      // Preserve original immutable hash separately for reference if needed
+      target.fileVertex.setProperty("originalHash", existingHash);
+    }
+    target.fileVertex.setProperty("id", mutableId);
     target.fileVertex.setProperty("mimeType", inferredMime);
     target.fileVertex.setProperty("size", bytes.byteLength);
   } else {
-    // Create new file vertex
+    // Create new file vertex pointing to mutable id
     const folder = target.folder;
     folder.newNamedChild(target.fileName, {
       name: target.fileName,
-      hash: put.hash,
+      id: mutableId,
       mimeType: inferredMime,
       size: bytes.byteLength,
     });

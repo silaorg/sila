@@ -84,19 +84,21 @@ export class FileResolver {
       }
 
       // Extract metadata from the file vertex
-      const hash = fileVertex.getProperty('hash') as string;
+      const hash = fileVertex.getProperty('hash') as string | undefined;
+      const id = fileVertex.getProperty('id') as string | undefined;
+      const storageId = hash ?? id;
       const name = fileVertex.name;
       const mimeType = fileVertex.getProperty('mimeType') as string;
       const size = fileVertex.getProperty('size') as number;
       const width = fileVertex.getProperty('width') as number;
       const height = fileVertex.getProperty('height') as number;
 
-      if (!hash) {
-        console.error(`File vertex missing hash: ${fileVertex.id}`);
+      if (!storageId) {
+        console.error(`File vertex missing storage id (hash/id): ${fileVertex.id}`);
         return null;
       }
 
-      // Generate sila:// URL instead of loading bytes
+      // Generate sila:// URL instead of loading bytes (hash or uuid)
       const spaceId = this.space.getId();
       const params: string[] = [];
       if (mimeType) {
@@ -108,8 +110,8 @@ export class FileResolver {
       const query = params.length > 0 ? `?${params.join('&')}` : '';
 
       // @TODO: we will need to generate a web-based URL if this method runs from the server
-      // e.g `api.silain.com/spaces/${spaceId}/files/${hash}${query}`;
-      const url = `sila://spaces/${spaceId}/files/${hash}${query}`;
+      // e.g `api.silain.com/spaces/${spaceId}/files/${storageId}${query}`;
+      const url = `sila://spaces/${spaceId}/files/${storageId}${query}`;
 
       return {
         id: fileVertex.id,
@@ -119,7 +121,7 @@ export class FileResolver {
         width,
         height,
         url,
-        hash,
+        hash: storageId,
       };
     } catch (error) {
       console.error('Failed to resolve file reference:', error);
@@ -135,19 +137,21 @@ export class FileResolver {
 
     try {
       // Extract metadata from the file vertex
-      const hash = fileVertex.getProperty('hash') as string;
+      const hash = fileVertex.getProperty('hash') as string | undefined;
+      const id = fileVertex.getProperty('id') as string | undefined;
+      const storageId = hash ?? id;
       const name = fileVertex.name;
       const mimeType = fileVertex.getProperty('mimeType') as string;
       const size = fileVertex.getProperty('size') as number;
       const width = fileVertex.getProperty('width') as number;
       const height = fileVertex.getProperty('height') as number;
 
-      if (!hash) {
-        console.error(`File vertex missing hash: ${fileVertex.id}`);
+      if (!storageId) {
+        console.error(`File vertex missing storage id (hash/id): ${fileVertex.id}`);
         return null;
       }
 
-      // Generate sila:// URL instead of loading bytes
+      // Generate sila:// URL instead of loading bytes (hash or uuid)
       const spaceId = this.space.getId();
       const params: string[] = [];
       if (mimeType) {
@@ -159,8 +163,8 @@ export class FileResolver {
       const query = params.length > 0 ? `?${params.join('&')}` : '';
 
       // @TODO: we will need to generate a web-based URL if this method runs from the server
-      // e.g `api.silain.com/spaces/${spaceId}/files/${hash}${query}`;
-      const url = `sila://spaces/${spaceId}/files/${hash}${query}`;
+      // e.g `api.silain.com/spaces/${spaceId}/files/${storageId}${query}`;
+      const url = `sila://spaces/${spaceId}/files/${storageId}${query}`;
 
       return {
         id: fileVertex.id,
@@ -170,7 +174,7 @@ export class FileResolver {
         width,
         height,
         url,
-        hash,
+        hash: storageId,
       };
     } catch (error) {
       console.error('Failed to resolve file reference:', error);
@@ -258,10 +262,12 @@ export class FileResolver {
       throw new Error(`File vertex not found: ${fileRef.vertex}`);
     }
 
-    // Get the hash from the file vertex
-    const hash = fileVertex.getProperty("hash") as string;
-    if (!hash) {
-      throw new Error(`File vertex missing hash: ${fileRef.vertex}`);
+    // Get storage id from the file vertex
+    const hash = fileVertex.getProperty("hash") as string | undefined;
+    const id = fileVertex.getProperty("id") as string | undefined;
+    const storageId = hash ?? id;
+    if (!storageId) {
+      throw new Error(`File vertex missing storage id for ${fileRef.vertex}`);
     }
 
     // If no FileStore available, we can't load the bytes
@@ -269,8 +275,13 @@ export class FileResolver {
       throw new Error("FileStore not available for resolving file references");
     }
 
-    // Load the bytes from CAS
-    const bytes = await fileStore.getBytes(hash);
+    // Load the bytes from CAS or mutable store depending on identifier
+    let bytes: Uint8Array;
+    if (hash) {
+      bytes = await fileStore.getBytes(hash);
+    } else {
+      bytes = await fileStore.getMutable(id as string);
+    }
 
     // Get metadata from the file vertex
     const mimeType = fileVertex.getProperty("mimeType") as string;

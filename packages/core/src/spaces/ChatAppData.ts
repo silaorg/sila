@@ -285,6 +285,7 @@ export class ChatAppData {
       const refs: Array<FileReference> = [];
       for (const att of message.attachments) {
         if (att?.kind === 'image' && typeof att?.dataUrl === 'string') {
+          // Images remain immutable (hash-based CAS)
           const put = await store.putDataUrl(att.dataUrl);
           const fileVertex = FilesTreeData.saveFileInfoFromAttachment(
             parentFolder,
@@ -293,12 +294,14 @@ export class ChatAppData {
           );
           refs.push({ tree: targetTree.getId(), vertex: fileVertex.id });
         } else if (att?.kind === 'text' && typeof att?.content === 'string') {
+          // Text attachments are stored as mutable UUID-backed documents
           const textBytes = new TextEncoder().encode(att.content);
-          const put = await store.putBytes(textBytes);
+          const uuid = crypto.randomUUID();
+          await store.putMutable(uuid, textBytes);
           const fileVertex = FilesTreeData.saveFileInfoFromAttachment(
             parentFolder,
             att,
-            put.hash
+            uuid
           );
           refs.push({ tree: targetTree.getId(), vertex: fileVertex.id });
         } else {
