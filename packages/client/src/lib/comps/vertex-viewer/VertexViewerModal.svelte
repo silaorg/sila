@@ -112,7 +112,7 @@
 
     <!-- Content -->
     <div
-      class="relative max-w-full max-h-[calc(100vh-8rem)] p-8 overflow-auto"
+      class="relative max-w-full max-h-full p-8"
     >
       {#if activeFile}
         <FileView file={activeFile} />
