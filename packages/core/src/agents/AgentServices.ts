@@ -6,6 +6,8 @@ import { splitModelString } from '../utils/modelUtils';
 import { LangTool } from 'aiwrapper/dist/lang/messages';
 import { getToolRead } from './tools/toolRead';
 import type { ProxyFetch } from "../utils/proxyFetch";
+import type { AppTree } from "../spaces/AppTree";
+import { getToolLs } from "./tools/toolLs";
 
 export class AgentServices {
   readonly space: Space;
@@ -166,7 +168,7 @@ export class AgentServices {
 
   getToolsForModel(
     model: { provider: string; model: string } | null,
-    fetchImpl?: ProxyFetch
+    opts?: { fetchImpl?: ProxyFetch; appTree?: AppTree }
   ): LangTool[] {
     const tools: LangTool[] = [];
 
@@ -179,7 +181,13 @@ export class AgentServices {
       tools.push({ name: "image_generation" });
     }
 
+    const fetchImpl = opts?.fetchImpl;
+    const appTree = opts?.appTree;
+
     tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
+
+    // Files tools (ls) available for all providers; rely on space + optional appTree
+    tools.push(getToolLs(this.space, appTree));
 
     return tools;
   }
