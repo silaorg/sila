@@ -47,6 +47,7 @@
     view: EditorView;
     anchorPos: number;
     insertPos: number;
+    query: string;
   }) {
     mentionInsertPos = payload.insertPos;
     const coords = payload.view.coordsAtPos(payload.anchorPos);

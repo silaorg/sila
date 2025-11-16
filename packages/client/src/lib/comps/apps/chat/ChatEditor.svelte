@@ -21,6 +21,9 @@
     onSubmit?: () => void;
     onEscape?: () => void;
     onFocusChange?: (focused: boolean) => void;
+    getFileMentions?: (
+      query: string
+    ) => Promise<FileMention[]> | FileMention[];
     onPaste?: (e: ClipboardEvent) => void;
   }
 
@@ -33,6 +36,7 @@
     onSubmit,
     onEscape,
     onFocusChange,
+    getFileMentions,
     onPaste,
   }: ChatEditorProps = $props();
 
@@ -43,29 +47,32 @@
   let mentionMenuOpen = $state(false);
   let mentionAnchor = $state({ left: 0, top: 0 });
   let mentionFileInsert: ((file: FileMention) => void) | null = null;
+  let mentionFiles = $state<FileMention[]>([]);
+  let lastQueryToken = 0;
 
-  const fakeFiles: FileMention[] = [
-    {
-      id: "workspace-style-guide",
-      kind: "workspace-asset",
-      name: "Brand Style Guide.pdf",
-    },
-    {
-      id: "workspace-roadmap",
-      kind: "workspace-asset",
-      name: "2025 Roadmap.canvas",
-    },
-    {
-      id: "chat-ai-spec",
-      kind: "chat-file",
-      name: "AI Mentions Spec.md",
-    },
-  ];
+  async function loadMentionFiles(query: string) {
+    if (!getFileMentions) {
+      mentionFiles = [];
+      return;
+    }
+    const token = ++lastQueryToken;
+    try {
+      const result = await getFileMentions(query);
+      if (token !== lastQueryToken) return;
+      mentionFiles = result ?? [];
+    } catch (err) {
+      console.error("Failed to load file mentions", err);
+      if (token === lastQueryToken) {
+        mentionFiles = [];
+      }
+    }
+  }
 
   function openMention(payload: {
     view: EditorView;
     anchorPos: number;
     insertPos: number;
+    query: string;
   }) {
     if (!host) return;
     const coords = payload.view.coordsAtPos(payload.anchorPos);
@@ -81,6 +88,7 @@
       onChange?.(text);
     };
 
+    loadMentionFiles(payload.query);
     mentionMenuOpen = true;
   }
 
@@ -230,7 +238,7 @@
         Insert file
       </p>
       <div class="flex flex-col gap-1">
-        {#each fakeFiles as file}
+        {#each mentionFiles as file}
           <button
             type="button"
             class="mention-option flex items-center gap-2 rounded px-2 py-1 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-100 dark:hover:bg-slate-700"

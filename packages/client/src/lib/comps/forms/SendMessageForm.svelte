@@ -22,6 +22,8 @@
     type TextFileMetadata,
   } from "@sila/client/utils/fileProcessing";
   import ChatEditor from "@sila/client/comps/apps/chat/ChatEditor.svelte";
+  import type { FileMention } from "../apps/chat/chatMentionPlugin";
+  import type { Vertex } from "@sila/core";
   const clientState = useClientState();
 
   // Using shared AttachmentPreview type from core
@@ -78,6 +80,51 @@
 
   function setEditorContent(text: string) {
     query = text;
+  }
+
+  async function searchFileMentions(query: string): Promise<FileMention[]> {
+    const trimmed = query.trim().toLowerCase();
+    const results: FileMention[] = [];
+    const limit = 10;
+
+    function collectFromRoot(root: Vertex | undefined, kind: FileMention["kind"]) {
+      if (!root || results.length >= limit) return;
+      const stack: Vertex[] = [root];
+
+      while (stack.length > 0 && results.length < limit) {
+        const v = stack.pop() as Vertex;
+        const mimeType = v.getProperty("mimeType") as string | undefined;
+        const name = v.name ?? "";
+
+        if (mimeType) {
+          if (!trimmed || name.toLowerCase().includes(trimmed)) {
+            results.push({
+              id: v.id,
+              kind,
+              name,
+            });
+          }
+        } else {
+          // Folder vertex – traverse its children
+          for (const child of v.children) {
+            stack.push(child as Vertex);
+          }
+        }
+      }
+    }
+
+    const space = clientState.currentSpace;
+    if (space) {
+      const assetsRoot = space.getVertexByPath("assets") as Vertex | undefined;
+      collectFromRoot(assetsRoot, "workspace-asset");
+    }
+
+    if (data) {
+      const chatFilesRoot = data.getFilesRoot(false) as Vertex | undefined;
+      collectFromRoot(chatFilesRoot, "chat-file");
+    }
+
+    return results;
   }
 
   let canSendMessage = $derived(
@@ -548,6 +595,7 @@
             onEscape={() => {
               clientState.requestClose();
             }}
+            getFileMentions={searchFileMentions}
             onPaste={handlePaste}
           />
         </div>

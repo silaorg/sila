@@ -12,6 +12,7 @@ type MentionHandlers = {
     view: EditorView;
     anchorPos: number;
     insertPos: number;
+    query: string;
   }) => void;
   close: () => void;
   isOpen: () => boolean;
@@ -106,6 +107,7 @@ export function createFileMentionPlugin(handlers: MentionHandlers) {
         view,
         anchorPos: context.head,
         insertPos,
+        query: context.query,
       });
     }
     lastContextKey = key;
