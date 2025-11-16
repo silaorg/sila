@@ -1,11 +1,12 @@
 # Files in Spaces
 
-This document describes how Sila handles file storage, organization, and serving across the application. Files are stored using Content-Addressed Storage (CAS) and referenced through a logical file system structure.
+This document describes how Sila handles file storage, organization, and serving across the application. Files are stored using a combination of Content-Addressed Storage (CAS) for immutable blobs and UUID-addressed storage for mutable documents, and are referenced through a logical file system structure.
 
 ## Overview
 
 Sila's file system provides:
-- **Content-Addressed Storage (CAS)**: Files stored by SHA-256 hash for deduplication
+- **Content-Addressed Storage (CAS)**: Immutable files stored by SHA-256 hash for deduplication
+- **Mutable Storage**: UUID-addressed blobs for editable documents and rotating data
 - **Logical Organization**: Files organized in a Files AppTree with folders and metadata
 - **Reference-Based Access**: Messages reference files by tree/vertex IDs, not embedded content
 - **Direct File Serving**: Files served via custom `sila://` protocol
@@ -13,9 +14,9 @@ Sila's file system provides:
 
 ## Architecture
 
-### Content-Addressed Storage (CAS)
+### Storage Layout (CAS + Mutable)
 
-Files are stored on disk using their SHA-256 hash as the address:
+Static (immutable) files are stored on disk using their SHA-256 hash as the address. Mutable files are stored by UUID:
 
 ```
 <spaceRoot>/
@@ -25,7 +26,7 @@ Files are stored on disk using their SHA-256 hash as the address:
       static/
         sha256/
           ab/
-            cdef...89    # full hash split as 2+rest, binary content
+            cdef...89    # full hash split as 2+rest, immutable content
       var/
         uuid/
           ab/
@@ -57,7 +58,9 @@ A dedicated app tree provides a browsable logical view of files:
 {
   _n: "file",
   name: string,
-  hash: string,           // SHA-256 hash
+  // Storage identifiers (one of these is present):
+  hash?: string,          // SHA-256 hash for immutable files (CAS)
+  id?: string,            // UUID for mutable files (editable documents)
   mimeType?: string,
   size?: number,
   width?: number,         // For images
@@ -129,8 +132,8 @@ interface FileReference {
 ```typescript
 interface FileStore {
   // Immutable CAS methods (content-addressed)
-  putDataUrl(dataUrl: string): Promise<{ hash: string; mimeType?: string; size: number }>;
-  putBytes(bytes: Uint8Array, mimeType?: string): Promise<{ hash: string; size: number }>;
+  putDataUrl(dataUrl: string): Promise<{ hash: string; size: number }>;
+  putBytes(bytes: Uint8Array): Promise<{ hash: string; size: number }>;
   exists(hash: string): Promise<boolean>;
   getBytes(hash: string): Promise<Uint8Array>;
   getDataUrl(hash: string): Promise<string>;
@@ -141,6 +144,9 @@ interface FileStore {
   getMutable(uuid: string): Promise<Uint8Array>;
   existsMutable(uuid: string): Promise<boolean>;
   deleteMutable(uuid: string): Promise<void>;
+  
+  // Helper for document editing: create mutable copy from immutable file
+  createMutableCopyFromHash(hash: string, uuid?: string): Promise<{ uuid: string; size: number }>;
 }
 ```
 
@@ -159,15 +165,17 @@ FilesTreeData.ensureFolderPath(filesTree, ['YYYY', 'MM', 'DD'])
 // Create a file vertex under a folder
 FilesTreeData.saveFileInfo(folder, {
   name,
+  // Either hash (immutable) or id (mutable)
   hash,
+  id,
   mimeType,
   size,
   width,
   height,
 })
 
-// Or from an AttachmentPreview
-FilesTreeData.saveFileInfoFromAttachment(folder, attachment, hash)
+// Or from an AttachmentPreview and storage id
+FilesTreeData.saveFileInfoFromAttachment(folder, attachment, storageId)
 ```
 
 ## File Serving
@@ -213,7 +221,7 @@ const fileInfo = await ClientFileResolver.resolveFileReference(fileRef);
   width?: number,
   height?: number,
   url: string,        // sila:// URL
-  hash: string
+  hash: string        // storage id (SHA-256 hash for immutable, UUID for mutable)
 }
 ```
 
@@ -259,10 +267,10 @@ For models without vision capabilities:
 
 ### Text File Content Loading
 
-Text file content is loaded from CAS when needed:
+Text file content is loaded from the file store (CAS or mutable) when needed:
 
 ```typescript
-// Load text content from CAS
+// Load text content from storage (hash or uuid, resolved via FileResolver)
 const fileContent = await loadTextFileContent(treeId, vertexId);
 
 // Extract text from data URL (fallback)
@@ -391,14 +399,18 @@ The mutable storage system is designed for data that needs to be updated or rota
 
 **Document Editing Workflow:**
 
-A common use case is when a user uploads a document and an agent needs to edit it:
+There are two common paths for editable documents:
 
-1. **User uploads document** → stored as immutable SHA256 file
-2. **Agent creates editable copy** → `createMutableCopyFromHash()` creates UUID-based copy
-3. **Agent edits document** → overwrites the mutable copy
-4. **Both versions preserved** → original immutable, edited mutable
+1. **New text documents (preferred)**  
+   - User uploads a text file (for example, `.md`, `.txt`, `.json`) or creates it via `apply_patch`.  
+   - The file is stored directly as a **mutable** UUID-backed blob (`id` on the file vertex).  
+   - Agents edit the document by overwriting the mutable blob; no separate copy is needed.
 
-This ensures the original is never modified while allowing agent processing.
+2. **Existing immutable documents**  
+   - User uploads a document as an immutable CAS file (for example, binary or legacy text upload).  
+   - When an agent needs to edit it, `createMutableCopyFromHash()` creates a UUID-based editable copy.  
+   - The file vertex is updated to reference the UUID (and may keep the original hash in `originalHash`), so future edits go through mutable storage.  
+   - Both the original immutable file and the edited mutable version can be preserved.
 
 **Example Usage:**
 ```typescript
