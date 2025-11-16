@@ -8,6 +8,8 @@ import { getToolRead } from './tools/toolRead';
 import type { ProxyFetch } from "../utils/proxyFetch";
 import type { AppTree } from "../spaces/AppTree";
 import { getToolLs } from "./tools/toolLs";
+import { getToolMkdir } from "./tools/toolMkdir";
+import { getToolRm } from "./tools/toolRm";
 
 export class AgentServices {
   readonly space: Space;
@@ -186,8 +188,10 @@ export class AgentServices {
 
     tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
 
-    // Files tools (ls) available for all providers; rely on space + optional appTree
+    // Files tools (ls, mkdir, rm) available for all providers; rely on space + optional appTree
     tools.push(getToolLs(this.space, appTree));
+    tools.push(getToolMkdir(this.space, appTree));
+    tools.push(getToolRm(this.space, appTree));
 
     return tools;
   }
