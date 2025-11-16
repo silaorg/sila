@@ -1,47 +1,32 @@
 <script lang="ts">
-    import {
-      Send,
-      StopCircle,
-      Plus,
-      Image as ImageIcon,
-    } from "lucide-svelte";
-    import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
-    import AppConfigDropdown from "@sila/client/comps/apps/AppConfigDropdown.svelte";
-    import AttachmentPreviewItem from "./AttachmentPreviewItem.svelte";
-    import { onDestroy, onMount, tick } from "svelte";
-    import { focusTrap } from "@sila/client/utils/focusTrap";
-    import { type MessageFormStatus } from "./messageFormStatus";
-    import { txtStore } from "@sila/client/state/txtStore";
-    import { useClientState } from "@sila/client/state/clientStateContext";
-    import type { ChatAppData } from "@sila/core";
-    import type { AttachmentPreview } from "@sila/core";
-    import {
-      processFileForUpload,
-      optimizeImageSize,
-      toDataUrl,
-      getImageDimensions,
-      processTextFileForUpload,
-      optimizeTextFile,
-      readFileAsText,
-      extractTextFileMetadata,
-      type TextFileMetadata,
-    } from "@sila/client/utils/fileProcessing";
-    import { EditorState, Plugin } from "prosemirror-state";
-    import { EditorView } from "prosemirror-view";
-    import {
-      chatEditorSchema,
-      createDocFromText,
-    } from "../apps/chat/chatEditorSchema";
-    import {
-      createFileMentionPlugin,
-      insertFileMention,
-      type FileMention,
-    } from "../apps/chat/chatMentionPlugin";
-    const clientState = useClientState();
+  import { Send, StopCircle, Plus, Image as ImageIcon } from "lucide-svelte";
+  import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
+  import AppConfigDropdown from "@sila/client/comps/apps/AppConfigDropdown.svelte";
+  import AttachmentPreviewItem from "./AttachmentPreviewItem.svelte";
+  import { onDestroy, onMount, tick } from "svelte";
+  import { focusTrap } from "@sila/client/utils/focusTrap";
+  import { type MessageFormStatus } from "./messageFormStatus";
+  import { txtStore } from "@sila/client/state/txtStore";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  import type { ChatAppData } from "@sila/core";
+  import type { AttachmentPreview } from "@sila/core";
+  import {
+    processFileForUpload,
+    optimizeImageSize,
+    toDataUrl,
+    getImageDimensions,
+    processTextFileForUpload,
+    optimizeTextFile,
+    readFileAsText,
+    extractTextFileMetadata,
+    type TextFileMetadata,
+  } from "@sila/client/utils/fileProcessing";
+  import ChatEditor from "@sila/client/comps/apps/chat/ChatEditor.svelte";
+  const clientState = useClientState();
 
   // Using shared AttachmentPreview type from core
 
-    interface SendMessageFormProps {
+  interface SendMessageFormProps {
     onSend: (msg: string, attachments?: AttachmentPreview[]) => void;
     onStop?: () => void;
     isFocused?: boolean;
@@ -56,7 +41,7 @@
     configId?: string;
   }
 
-    let {
+  let {
     onSend,
     onStop = () => {},
     isFocused = true,
@@ -71,103 +56,31 @@
     configId: externalConfigId = undefined,
   }: SendMessageFormProps = $props();
 
-    function openModelProvidersSettings() {
-      clientState.layout.swins.open("model-providers", {}, "Model Providers");
-    }
+  function openModelProvidersSettings() {
+    clientState.layout.swins.open("model-providers", {}, "Model Providers");
+  }
 
-    let query = $state("");
-    let isEditorFocused = $state(false);
-    let editorHost: HTMLDivElement | null = $state(null);
-    let editorView: EditorView | null = null;
-    let mentionMenuOpen = $state(false);
-    let mentionAnchor = $state({ left: 0, top: 0 });
-    let mentionInsertPos = $state<number | null>(null);
-    let editorPlugins: Plugin[] = [];
+  let query = $state("");
+  let isEditorFocused = $state(false);
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
-    let attachments = $state<(AttachmentPreview & { isLoading?: boolean })[]>([]);
-    const fakeFiles: FileMention[] = [
-      {
-        id: "workspace-style-guide",
-        kind: "workspace-asset",
-        name: "Brand Style Guide.pdf",
-      },
-      {
-        id: "workspace-roadmap",
-        kind: "workspace-asset",
-        name: "2025 Roadmap.canvas",
-      },
-      {
-        id: "chat-ai-spec",
-        kind: "chat-file",
-        name: "AI Mentions Spec.md",
-      },
-    ];
-
-    function persistDraftContent(text: string) {
-      if (!draftId) return;
-      const trimmed = text.trim();
-      if (trimmed.length > 0) {
-        clientState.currentSpaceState?.saveDraft(draftId, trimmed);
-      } else {
-        clientState.currentSpaceState?.deleteDraft(draftId);
-      }
+  let attachments = $state<(AttachmentPreview & { isLoading?: boolean })[]>([]);
+  function persistDraftContent(text: string) {
+    if (!draftId) return;
+    const trimmed = text.trim();
+    if (trimmed.length > 0) {
+      clientState.currentSpaceState?.saveDraft(draftId, trimmed);
+    } else {
+      clientState.currentSpaceState?.deleteDraft(draftId);
     }
+  }
 
-    function setEditorContent(text: string) {
-      query = text;
-      if (!editorView) return;
-      const doc = createDocFromText(text);
-      const config = {
-        schema: chatEditorSchema,
-        plugins: editorPlugins,
-      } as const;
-      const nextState = EditorState.create(
-        doc ? { ...config, doc } : config
-      );
-      editorView.updateState(nextState);
-    }
+  function setEditorContent(text: string) {
+    query = text;
+  }
 
-    function focusEditorSoon() {
-      requestAnimationFrame(() => editorView?.focus());
-    }
-
-    function openMention(payload: {
-      view: EditorView;
-      anchorPos: number;
-      insertPos: number;
-    }) {
-      mentionInsertPos = payload.insertPos;
-      if (!editorHost) return;
-      const coords = payload.view.coordsAtPos(payload.anchorPos);
-      const hostRect = editorHost.getBoundingClientRect();
-      mentionAnchor = {
-        left: coords.left - hostRect.left,
-        top: coords.bottom - hostRect.top + 4,
-      };
-      mentionMenuOpen = true;
-    }
-
-    function closeMention() {
-      mentionMenuOpen = false;
-      mentionInsertPos = null;
-    }
-
-    function mentionIsOpen() {
-      return mentionMenuOpen;
-    }
-
-    function handleFilePick(file: FileMention) {
-      if (!editorView || mentionInsertPos === null) return;
-      insertFileMention(editorView, mentionInsertPos, file);
-      query = editorView.state.doc.textContent;
-      persistDraftContent(query);
-      closeMention();
-      focusEditorSoon();
-    }
-
-    let canSendMessage = $derived(
+  let canSendMessage = $derived(
     !disabled &&
       status === "can-send-message" &&
       (query.trim().length > 0 || attachments.length > 0)
@@ -209,95 +122,20 @@
     }
   });
 
-    onMount(async () => {
-      setupEditor();
-      await loadDraft();
+  onMount(async () => {
+    await loadDraft();
+  });
 
-      if (isFocused) {
-        focusEditorSoon();
-      }
-    });
-
-    onDestroy(() => {
-      editorView?.destroy();
-      editorView = null;
-    });
-
-    function setupEditor() {
-      if (!editorHost) return;
-
-      const mentionPlugin = createFileMentionPlugin({
-        open: openMention,
-        close: closeMention,
-        isOpen: mentionIsOpen,
-      });
-
-      const submitPlugin = new Plugin({
-        props: {
-          handleKeyDown(_view, event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              sendMsg();
-              return true;
-            }
-
-            if (event.key === "Escape") {
-              event.preventDefault();
-              closeMention();
-              editorView?.dom.blur();
-              clientState.requestClose();
-              return true;
-            }
-
-            return false;
-          },
-        },
-      });
-
-      editorPlugins = [mentionPlugin, submitPlugin];
-
-      const doc = createDocFromText(query);
-      const config = {
-        schema: chatEditorSchema,
-        plugins: editorPlugins,
-      } as const;
-
-      editorView = new EditorView(editorHost, {
-        state: EditorState.create(doc ? { ...config, doc } : config),
-        dispatchTransaction(tr) {
-          const newState = editorView!.state.apply(tr);
-          editorView!.updateState(newState);
-          const previous = query;
-          query = newState.doc.textContent;
-          if (previous !== query) {
-            persistDraftContent(query);
-          }
-        },
-        handleDOMEvents: {
-          focus() {
-            isEditorFocused = true;
-            return false;
-          },
-          blur() {
-            isEditorFocused = false;
-            closeMention();
-            return false;
-          },
-        },
-      });
+  async function loadDraft() {
+    if (!draftId) {
+      return;
     }
 
-    async function loadDraft() {
-      if (!draftId) {
-        return;
-      }
-
-      const draftContent = await clientState.currentSpaceState?.getDraft(draftId);
-      if (draftContent) {
-        setEditorContent(draftContent);
-        await tick();
-      }
+    const draftContent = await clientState.currentSpaceState?.getDraft(draftId);
+    if (draftContent) {
+      setEditorContent(draftContent);
     }
+  }
 
   async function onFilesSelected(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -411,31 +249,29 @@
     fileInputEl?.click();
   }
 
-
-    async function sendMsg() {
-      if (disabled || status !== "can-send-message") {
-        return;
-      }
-
-      onSend(
-        query,
-        attachments.filter((att) => !att.isLoading)
-      );
-      isSending = true;
-      closeMention();
-      setEditorContent("");
-
-      // Clear draft when message is sent
-      if (draftId) {
-        await clientState.currentSpaceState?.deleteDraft(draftId);
-      }
-
-      // Clear in-memory attachments after sending
-      attachments = [];
-      focusEditorSoon();
-
-      isSending = false; // Reset flag after sending is complete
+  async function sendMsg() {
+    if (disabled || status !== "can-send-message") {
+      return;
     }
+
+    onSend(
+      query,
+      attachments.filter((att) => !att.isLoading)
+    );
+    isSending = true;
+    // ensure any open mention UI is closed
+    setEditorContent("");
+
+    // Clear draft when message is sent
+    if (draftId) {
+      await clientState.currentSpaceState?.deleteDraft(draftId);
+    }
+
+    // Clear in-memory attachments after sending
+    attachments = [];
+
+    isSending = false; // Reset flag after sending is complete
+  }
 
   async function stopMsg() {
     if (status !== "ai-message-in-progress") {
@@ -676,11 +512,11 @@
     onsubmit={handleSubmit}
   >
     <div class="relative flex w-full items-center">
-        <div
-          class="flex w-full flex-col rounded-lg bg-surface-50-950 transition-colors ring"
-          class:ring-primary-300-700={isEditorFocused}
-          class:ring-surface-300-700={!isEditorFocused}
-        >
+      <div
+        class="flex w-full flex-col rounded-lg bg-surface-50-950 transition-colors ring"
+        class:ring-primary-300-700={isEditorFocused}
+        class:ring-surface-300-700={!isEditorFocused}
+      >
         <!-- Attachments previews (in-memory) -->
         {#if attachments.length > 0}
           <div class="flex flex-wrap gap-2 p-4">
@@ -693,52 +529,38 @@
           </div>
         {/if}
 
-          <div class="chat-editor-area relative">
-            {#if query.trim().length === 0}
-              <div class="chat-editor-placeholder pointer-events-none absolute left-2 top-2 text-sm text-slate-500">
-                {placeholder}
-              </div>
-            {/if}
-            <div
-              class="chat-editor-host min-h-[48px] px-2 py-2 text-sm leading-normal"
-              bind:this={editorHost}
-              onpaste={handlePaste}
-            ></div>
-            {#if mentionMenuOpen}
-              <div
-                class="mention-menu absolute z-20 min-w-[240px] rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800"
-                style={`left:${mentionAnchor.left}px;top:${mentionAnchor.top}px;`}
-              >
-                <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Insert file
-                </p>
-                <div class="flex flex-col gap-1">
-                  {#each fakeFiles as file}
-                    <button
-                      type="button"
-                      class="mention-option flex items-center gap-2 rounded px-2 py-1 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-100 dark:hover:bg-slate-700"
-                      onclick={() => handleFilePick(file)}
-                    >
-                      <span class="text-[0.7rem] font-mono uppercase text-slate-500">
-                        {file.kind === "workspace-asset" ? "WS" : "CHAT"}
-                      </span>
-                      <span class="truncate">{file.name}</span>
-                    </button>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-          </div>
+        <div class="chat-editor-area relative">
+          <ChatEditor
+            value={query}
+            placeholder={placeholder}
+            autofocus={isFocused}
+            onFocusChange={(focused: boolean) => {
+              isEditorFocused = focused;
+            }}
+            onChange={(text: string) => {
+              const prev = query;
+              query = text;
+              if (prev !== text) {
+                persistDraftContent(text);
+              }
+            }}
+            onSubmit={sendMsg}
+            onEscape={() => {
+              clientState.requestClose();
+            }}
+            onPaste={handlePaste}
+          />
+        </div>
 
         <!-- Bottom toolbar -->
         <div class="flex items-center justify-between p-2 text-sm">
           <div class="flex items-center gap-2">
             {#if showConfigSelector}
-                <AppConfigDropdown
-                  {configId}
-                  onChange={handleConfigChange}
-                  highlighted={isEditorFocused}
-                />
+              <AppConfigDropdown
+                {configId}
+                onChange={handleConfigChange}
+                highlighted={isEditorFocused}
+              />
             {/if}
 
             {#if attachEnabled}
@@ -822,21 +644,6 @@
 {/if}
 
 <style>
-  .chat-editor-area {
-    min-height: 56px;
-  }
-
-  .chat-editor-host :global(.ProseMirror) {
-    outline: none;
-    white-space: pre-wrap;
-    word-break: break-word;
-    min-height: 48px;
-  }
-
-  .chat-editor-host :global(.ProseMirror p) {
-    margin: 0;
-  }
-
   :global(.chat-file-mention) {
     display: inline-flex;
     align-items: center;
