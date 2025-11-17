@@ -8,7 +8,7 @@ import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
-import { chatAgentMetaInstructions, formattingInstructions } from "./prompts/wrapChatAgentInstructions";
+import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions } from "./prompts/wrapChatAgentInstructions";
 import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
 import { getToolLs } from "./tools/toolLs";
 
@@ -136,22 +136,24 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const resolvedModel = this.agentServices.getLastResolvedModel();
 
       // Add the assistant (config) instructions
-      let instructions = (config.instructions || "");
+      const instructions: string[] = config.instructions ? [config.instructions] : [];
 
       const now = new Date();
       const localDateTime = now.toLocaleString();
       const utcIso = now.toISOString();
 
+      // Environment instructions
+      instructions.push(agentEnvironmentInstructions())
       // How to format messages
-      instructions += "\n\n" + formattingInstructions();
+      instructions.push(agentFormattingInstructions());
       // Meta (context) for the agent to know the time, model, etc.
-      instructions += "\n\n" + chatAgentMetaInstructions({ localDateTime, utcIso, resolvedModel, config });
+      instructions.push(agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }));
 
       const supportsVision = true;
 
       // Remap messages from vertices into LangMessage[]
       const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
-      langMessages.instructions = instructions;
+      langMessages.instructions = instructions.join("\n\n");
 
       let targetMsgCount = -1;
       let targetMsg: BindedVertex<ThreadMessage> | undefined;

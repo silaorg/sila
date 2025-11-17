@@ -19,7 +19,7 @@
     }
   });
 
-  const placeholder = "Write a message...";
+  const placeholder = "Ask anything";
 
   function handleSend(msg: string, attachments?: AttachmentPreview[]) {
     // Allow sending if there's either text content or attachments

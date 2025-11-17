@@ -8,6 +8,8 @@
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
   import type { VisibleMessage } from "./chatTypes";
+  import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
+  import { Markdown } from "@markpage/svelte";
 
   let {
     visibleMessage,
@@ -172,7 +174,7 @@
               {/each}
             </div>
           {/if}
-          {@html replaceNewlinesWithHtmlBrs(message?.text || "")}
+          <Markdown source={message?.text || ""} options={chatMarkdownOptions} />
         </div>
 
         <div

@@ -8,8 +8,7 @@ import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
 import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
 import { initializeDatabase, savePointers, saveConfig, deleteSpace, saveCurrentSpaceId } from "@sila/client/localDb";
-import { SpaceManager } from "@sila/core";
-import { Space } from "@sila/core";
+import { SpaceManager, Space, AppTree, type Vertex } from "@sila/core";
 import { AppFileSystem } from '../appFs';
 import type { AppDialogs } from '../appDialogs';
 import { uuid } from '@sila/core';
@@ -550,6 +549,38 @@ export class ClientState {
       // Poll for API availability
       setTimeout(() => this._registerSpacesWithElectron(), 1000);
     }
+  }
+
+  /**
+   * Convert a vertex to a file path string
+   * - Workspace files: "file:///assets/pic.jpg" (from space root)
+   * - Chat files: "file:pic.jpg" (from chat files root)
+   * @throws Error if vertex cannot be resolved
+   */
+  vertexToPath(vertex: Vertex): string {
+    if (!this.currentSpace) {
+      throw new Error("No current space available");
+    }
+
+    const isWorkspaceVertex = vertex.tree.root?.id === this.currentSpace.tree.root?.id;
+    const pathPrefix = isWorkspaceVertex ? "file:///" : "file:";
+
+    const segments: string[] = [];
+    let current: Vertex | undefined = vertex;
+
+    while (current && current.id !== vertex.tree.root?.id) {
+      if (current.name) {
+        segments.unshift(current.name);
+      }
+      current = current.parent as Vertex | undefined;
+    }
+
+    if (segments.length === 0) {
+      throw new Error("Cannot build path: vertex is at space root");
+    }
+
+    const path = `${pathPrefix}${segments.join("/")}`;
+    return path;
   }
 
   /**

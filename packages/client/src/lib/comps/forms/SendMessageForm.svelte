@@ -1,15 +1,9 @@
 <script lang="ts">
-  import {
-    Send,
-    StopCircle,
-    Paperclip,
-    Plus,
-    Image as ImageIcon,
-  } from "lucide-svelte";
+  import { Send, StopCircle, Plus, Image as ImageIcon } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import AppConfigDropdown from "@sila/client/comps/apps/AppConfigDropdown.svelte";
   import AttachmentPreviewItem from "./AttachmentPreviewItem.svelte";
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import { focusTrap } from "@sila/client/utils/focusTrap";
   import { type MessageFormStatus } from "./messageFormStatus";
   import { txtStore } from "@sila/client/state/txtStore";
@@ -27,10 +21,10 @@
     extractTextFileMetadata,
     type TextFileMetadata,
   } from "@sila/client/utils/fileProcessing";
+  import ChatEditor from "@sila/client/comps/apps/chat/ChatEditor.svelte";
+  import type { FileMention } from "../apps/chat/chatMentionPlugin";
+  import type { Vertex } from "@sila/core";
   const clientState = useClientState();
-
-  const TEXTAREA_BASE_HEIGHT = 40; // px
-  const TEXTAREA_LINE_HEIGHT = 1.5; // normal line height
 
   // Using shared AttachmentPreview type from core
 
@@ -42,7 +36,6 @@
     status?: MessageFormStatus;
     disabled?: boolean;
     draftId?: string;
-    maxLines?: number;
     attachEnabled?: boolean;
     data?: ChatAppData;
     showConfigSelector?: boolean;
@@ -58,7 +51,6 @@
     status = "can-send-message",
     disabled = false,
     draftId,
-    maxLines = Infinity,
     attachEnabled = true,
     data = undefined,
     showConfigSelector = true,
@@ -71,12 +63,74 @@
   }
 
   let query = $state("");
-  let isTextareaFocused = $state(false);
-  let textareaElement: HTMLTextAreaElement | null = $state(null);
+  let isEditorFocused = $state(false);
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
   let attachments = $state<(AttachmentPreview & { isLoading?: boolean })[]>([]);
+  function persistDraftContent(text: string) {
+    if (!draftId) return;
+    const trimmed = text.trim();
+    if (trimmed.length > 0) {
+      clientState.currentSpaceState?.saveDraft(draftId, trimmed);
+    } else {
+      clientState.currentSpaceState?.deleteDraft(draftId);
+    }
+  }
+
+  function setEditorContent(text: string) {
+    query = text;
+  }
+
+  async function searchFileMentions(query: string): Promise<FileMention[]> {
+    const trimmed = query.trim().toLowerCase();
+    const results: FileMention[] = [];
+    const limit = 10;
+
+    function collectFromRoot(root: Vertex | undefined) {
+      if (!root || results.length >= limit) return;
+      const stack: Vertex[] = [root];
+
+      while (stack.length > 0 && results.length < limit) {
+        const v = stack.pop() as Vertex;
+        const mimeType = v.getProperty("mimeType") as string | undefined;
+        const name = v.name ?? "";
+
+        if (mimeType) {
+          if (!trimmed || name.toLowerCase().includes(trimmed)) {
+            try {
+              const path = clientState.vertexToPath(v);
+              results.push({
+                path,
+                name,
+              });
+            } catch (err) {
+              // Skip vertices that can't be resolved to paths
+              console.warn("Failed to resolve path for vertex", err);
+            }
+          }
+        } else {
+          // Folder vertex – traverse its children
+          for (const child of v.children) {
+            stack.push(child as Vertex);
+          }
+        }
+      }
+    }
+
+    const space = clientState.currentSpace;
+    if (space) {
+      const assetsRoot = space.getVertexByPath("assets") as Vertex | undefined;
+      collectFromRoot(assetsRoot);
+    }
+
+    if (data) {
+      const chatFilesRoot = data.getFilesRoot(false) as Vertex | undefined;
+      collectFromRoot(chatFilesRoot);
+    }
+
+    return results;
+  }
 
   let canSendMessage = $derived(
     !disabled &&
@@ -122,10 +176,6 @@
 
   onMount(async () => {
     await loadDraft();
-
-    if (isFocused) {
-      textareaElement?.focus();
-    }
   });
 
   async function loadDraft() {
@@ -135,10 +185,7 @@
 
     const draftContent = await clientState.currentSpaceState?.getDraft(draftId);
     if (draftContent) {
-      query = draftContent;
-      // Adjust height after loading draft content into the textarea
-      await tick();
-      adjustTextareaHeight();
+      setEditorContent(draftContent);
     }
   }
 
@@ -254,75 +301,6 @@
     fileInputEl?.click();
   }
 
-  function adjustTextareaHeight() {
-    if (!textareaElement) return;
-
-    // Reset height to initial value to allow proper scrollHeight calculation
-    textareaElement.style.height = `${TEXTAREA_BASE_HEIGHT}px`;
-    textareaElement.style.overflowY = "hidden";
-
-    // Get the scroll height which represents the height needed to show all content
-    const scrollHeight = textareaElement.scrollHeight;
-
-    // Calculate the maximum height based on maxLines
-    const lineHeight = TEXTAREA_LINE_HEIGHT * 16; // assuming 16px font size
-    const maxHeight = maxLines * lineHeight;
-
-    if (scrollHeight > TEXTAREA_BASE_HEIGHT) {
-      // Set the height to either the scroll height or max height, whichever is smaller
-      textareaElement.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
-
-      // Only show scrollbars if content exceeds max height
-      if (scrollHeight > maxHeight) {
-        textareaElement.style.overflowY = "auto";
-      } else {
-        textareaElement.style.overflowY = "hidden";
-      }
-    } else {
-      // Set to base height and hide scrollbars if content is small
-      textareaElement.style.height = `${TEXTAREA_BASE_HEIGHT}px`;
-      textareaElement.style.overflowY = "hidden";
-    }
-  }
-
-  function handleKeydown(event: KeyboardEvent) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      event.stopPropagation();
-      sendMsg();
-
-      return;
-    } else if (event.key === "Escape") {
-      // Unfocus textarea on Esc to avoid triggering higher-level close handlers
-      event.preventDefault();
-      event.stopPropagation();
-      textareaElement?.blur();
-      clientState.requestClose();
-      return;
-    }
-    adjustTextareaHeight();
-  }
-
-  function handleInput() {
-    // Skip if we're in the process of sending a message
-    if (isSending) {
-      return;
-    }
-
-    adjustTextareaHeight();
-
-    // Save or clear draft based on content
-    if (draftId) {
-      const trimmedQuery = query.trim();
-
-      if (trimmedQuery.length > 0) {
-        clientState.currentSpaceState?.saveDraft(draftId, trimmedQuery);
-      } else {
-        clientState.currentSpaceState?.deleteDraft(draftId);
-      }
-    }
-  }
-
   async function sendMsg() {
     if (disabled || status !== "can-send-message") {
       return;
@@ -333,10 +311,8 @@
       attachments.filter((att) => !att.isLoading)
     );
     isSending = true;
-    query = "";
-    if (textareaElement) {
-      textareaElement.value = "";
-    }
+    // ensure any open mention UI is closed
+    setEditorContent("");
 
     // Clear draft when message is sent
     if (draftId) {
@@ -345,15 +321,6 @@
 
     // Clear in-memory attachments after sending
     attachments = [];
-
-    // Force reset to base height after clearing content
-    if (textareaElement) {
-      textareaElement.style.height = `${TEXTAREA_BASE_HEIGHT}px`;
-      textareaElement.style.overflowY = "hidden"; // Reset overflow to prevent scrollbars
-
-      await tick();
-      adjustTextareaHeight();
-    }
 
     isSending = false; // Reset flag after sending is complete
   }
@@ -598,9 +565,7 @@
   >
     <div class="relative flex w-full items-center">
       <div
-        class="flex w-full flex-col rounded-lg bg-surface-50-950 transition-colors ring"
-        class:ring-primary-300-700={isTextareaFocused}
-        class:ring-surface-300-700={!isTextareaFocused}
+        class="flex w-full flex-col rounded-lg bg-surface-50-950 ring-surface-300-700 transition-colors ring"
       >
         <!-- Attachments previews (in-memory) -->
         {#if attachments.length > 0}
@@ -614,19 +579,29 @@
           </div>
         {/if}
 
-        <textarea
-          bind:this={textareaElement}
-          class="block w-full resize-none border-0 bg-transparent p-2 leading-normal outline-none focus:ring-0"
-          style="height: {TEXTAREA_BASE_HEIGHT}px; overflow-y: hidden;"
-          {placeholder}
-          bind:value={query}
-          onkeydown={handleKeydown}
-          oninput={handleInput}
-          onpaste={handlePaste}
-          onfocus={() => (isTextareaFocused = true)}
-          onblur={() => (isTextareaFocused = false)}
-          {disabled}
-        ></textarea>
+        <div class="chat-editor-area relative">
+          <ChatEditor
+            value={query}
+            placeholder={placeholder}
+            autofocus={isFocused}
+            onFocusChange={(focused: boolean) => {
+              isEditorFocused = focused;
+            }}
+            onChange={(text: string) => {
+              const prev = query;
+              query = text;
+              if (prev !== text) {
+                persistDraftContent(text);
+              }
+            }}
+            onSubmit={sendMsg}
+            onEscape={() => {
+              clientState.requestClose();
+            }}
+            getFileMentions={searchFileMentions}
+            onPaste={handlePaste}
+          />
+        </div>
 
         <!-- Bottom toolbar -->
         <div class="flex items-center justify-between p-2 text-sm">
@@ -635,7 +610,7 @@
               <AppConfigDropdown
                 {configId}
                 onChange={handleConfigChange}
-                highlighted={isTextareaFocused}
+                highlighted={isEditorFocused}
               />
             {/if}
 
@@ -718,3 +693,22 @@
     </button>
   </div>
 {/if}
+
+<style>
+  :global(.chat-file-mention) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0 0.4rem;
+    border-radius: 0.375rem;
+    background: rgba(59, 130, 246, 0.16);
+    color: rgb(37, 99, 235);
+    font-size: 0.85em;
+    font-weight: 600;
+  }
+
+  :global(.dark .chat-file-mention) {
+    background: rgba(96, 165, 250, 0.15);
+    color: rgb(191, 219, 254);
+  }
+</style>

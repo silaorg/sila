@@ -14,7 +14,7 @@ export const englishTexts: Texts = {
   },
 
   messageForm: {
-    placeholder: "Write a message...",
+    placeholder: "Ask anything",
     attachFile: "Attach file",
     send: "Send message",
     stop: "Stop generation"
