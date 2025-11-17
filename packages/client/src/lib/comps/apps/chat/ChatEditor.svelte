@@ -383,7 +383,7 @@
 <div class="chat-editor-area relative">
   {#if value.trim().length === 0}
     <div
-      class="chat-editor-placeholder pointer-events-none absolute left-2 top-2 text-sm text-slate-500"
+      class="pointer-events-none absolute left-2 top-2 text-sm opacity-50"
     >
       {placeholder}
     </div>

@@ -41,22 +41,17 @@
 
 <div class="w-full flex justify-center px-4 py-6">
   <div
-    class="max-w-4xl w-full rounded bg-white shadow-sm select-text flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden"
+    class="max-w-4xl w-full rounded bg-surface-50-950 shadow-sm select-text flex flex-col max-h-[calc(100vh-10rem)] overflow-hidden"
   >
-    <div class="p-4 border-b border-gray-200">
+    <div class="p-4 border-b border-surface-200-800">
       <h3 class="text-sm font-medium break-words">{file.name}</h3>
-      {#if file.size !== undefined}
-        <p class="text-xs text-gray-500 mt-1">
-          Size: {formatFileSize(file.size)}
-        </p>
-      {/if}
     </div>
 
     <div class="p-4 overflow-y-auto flex-1">
       {#if isTextLoading}
-        <div class="text-sm text-gray-500">Loading…</div>
+        <div class="text-sm">Loading…</div>
       {:else if textError}
-        <div class="text-sm text-red-500">{textError}</div>
+        <div class="text-sm">{textError}</div>
       {:else if textContent}
         {#if file.mimeType === "text/markdown" || file.mimeType === "text/x-markdown"}
           <div class="chat-message">
@@ -68,7 +63,7 @@
           >{textContent}</pre>
         {/if}
       {:else}
-        <div class="text-sm text-gray-500">No content to display.</div>
+        <div class="text-sm">No content to display.</div>
       {/if}
     </div>
   </div>

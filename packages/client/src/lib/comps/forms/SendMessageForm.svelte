@@ -565,9 +565,7 @@
   >
     <div class="relative flex w-full items-center">
       <div
-        class="flex w-full flex-col rounded-lg bg-surface-50-950 transition-colors ring"
-        class:ring-primary-300-700={isEditorFocused}
-        class:ring-surface-300-700={!isEditorFocused}
+        class="flex w-full flex-col rounded-lg bg-surface-50-950 ring-surface-300-700 transition-colors ring"
       >
         <!-- Attachments previews (in-memory) -->
         {#if attachments.length > 0}
