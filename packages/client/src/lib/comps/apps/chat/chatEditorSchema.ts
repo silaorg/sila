@@ -86,12 +86,29 @@ export function serializeDocToMarkdown(doc: PMNode): string {
 }
 
 // Create a ProseMirror document from text
-// This is the simple default way - just create a doc with text nodes
+// Splits text by newlines and converts \n to hard_break nodes
 export function createDocFromText(text: string) {
   if (!text) return undefined;
+  
+  const parts: PMNode[] = [];
+  const lines = text.split("\n");
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Add text node if line is not empty
+    if (line) {
+      parts.push(chatEditorSchema.text(line));
+    }
+    // Add hard_break after each line
+    // split() creates empty string for trailing newline, which we handle here
+    if (i < lines.length - 1 || text.endsWith("\n")) {
+      parts.push(chatEditorSchema.nodes.hard_break.create());
+    }
+  }
+  
   return chatEditorSchema.node(
     "doc",
     undefined,
-    Fragment.from(chatEditorSchema.text(text))
+    Fragment.from(parts.length > 0 ? parts : [chatEditorSchema.text("")])
   );
 }
