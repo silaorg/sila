@@ -27,8 +27,7 @@ const nodes = {
     atom: true,
     selectable: false,
     attrs: {
-      id: {},
-      type: {},
+      path: {},
       label: {},
     },
     toDOM(node: PMNode): DOMOutputSpec {
@@ -36,8 +35,7 @@ const nodes = {
         "span",
         {
           class: "chat-file-mention",
-          "data-file-id": node.attrs.id,
-          "data-file-type": node.attrs.type,
+          "data-file-path": node.attrs.path,
         },
         `@${node.attrs.label}`,
       ] as DOMOutputSpec;
@@ -48,8 +46,7 @@ const nodes = {
         getAttrs(dom: Element) {
           if (!(dom instanceof HTMLElement)) return false;
           return {
-            id: dom.dataset.fileId,
-            type: dom.dataset.fileType,
+            path: dom.dataset.filePath,
             label: dom.textContent?.replace(/^@/, "") ?? "",
           };
         },
@@ -70,12 +67,10 @@ export function serializeDocToMarkdown(doc: PMNode): string {
   
   doc.forEach((node) => {
     if (node.type.name === "mention") {
-      // Convert mention to markdown link
+      // Convert mention to markdown link using the path directly
       const label = node.attrs.label || "";
-      const href = node.attrs.type === "workspace-asset"
-        ? `file:${label}`
-        : `file:///${node.attrs.id}`;
-      markdown += `[@${label}](${href})`;
+      const path = node.attrs.path || "";
+      markdown += `[@${label}](${path})`;
     } else if (node.type.name === "text") {
       // Escape markdown special characters in text
       markdown += node.text;

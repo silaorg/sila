@@ -110,12 +110,21 @@
     mentionFileInsert = null;
   }
 
-  function handleFilePick(file: FileMention) {
+  function handleFilePick(file: FileMention, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
     if (!mentionFileInsert) return;
     mentionFileInsert(file);
     closeMention();
     // Restore focus to editor after inserting mention
     requestAnimationFrame(() => view?.focus());
+  }
+
+  function handleMentionMenuClick(event: MouseEvent) {
+    // Stop clicks inside the mention menu from propagating to the editor
+    event.stopPropagation();
   }
 
   async function updateMentionPosition() {
@@ -181,7 +190,7 @@
 
     const submitPlugin = new Plugin({
       props: {
-        handleKeyDown(_view, event) {
+        handleKeyDown(view, event) {
           if (mentionMenuOpen && mentionFiles.length > 0) {
             if (event.key === "ArrowDown") {
               event.preventDefault();
@@ -207,6 +216,17 @@
                 return true;
               }
             }
+          }
+
+          // Handle Shift+Enter to insert a hard break (newline)
+          if (event.key === "Enter" && event.shiftKey) {
+            event.preventDefault();
+            const { state, dispatch } = view;
+            const hardBreak = chatEditorSchema.nodes.hard_break.create();
+            const tr = state.tr.replaceSelectionWith(hardBreak);
+            dispatch(tr);
+            // onChange will be triggered via dispatchTransaction
+            return true;
           }
 
           if (event.key === "Enter" && !event.shiftKey) {
@@ -256,7 +276,12 @@
           });
           return false;
         },
-        blur() {
+        blur(view, event: FocusEvent) {
+          // Don't close mention menu if focus is moving to the mention menu
+          const relatedTarget = event.relatedTarget as HTMLElement | null;
+          if (relatedTarget && mentionMenuEl?.contains(relatedTarget)) {
+            return false;
+          }
           queueMicrotask(() => {
             isFocused = false;
             closeMention();
@@ -311,11 +336,21 @@
     <div
       bind:this={mentionMenuEl}
       class="mention-menu z-20 min-w-[240px] rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800"
+      role="menu"
+      tabindex="-1"
+      onclick={handleMentionMenuClick}
+      onmousedown={(e) => e.stopPropagation()}
+      onkeydown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          closeMention();
+        }
+      }}
     >
       <p
         class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500"
       >
-        Insert file
+        Mention file
       </p>
       <div class="flex flex-col gap-1">
         {#each mentionFiles as file, index}
@@ -324,13 +359,12 @@
             class="mention-option flex items-center gap-2 rounded px-2 py-1 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-100 dark:hover:bg-slate-700"
             class:bg-slate-100={index === mentionSelectedIndex}
             class:dark:bg-slate-700={index === mentionSelectedIndex}
-            onclick={() => handleFilePick(file)}
+            onmousedown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleFilePick(file, e);
+            }}
           >
-            <span
-              class="text-[0.7rem] font-mono uppercase text-slate-500"
-            >
-              {file.kind === "workspace-asset" ? "WS" : "CHAT"}
-            </span>
             <span class="truncate">{file.name}</span>
           </button>
         {/each}
@@ -340,15 +374,10 @@
 </div>
 
 <style>
-  .chat-editor-area {
-    min-height: 56px;
-  }
-
   .chat-editor-host :global(.ProseMirror) {
     outline: none;
     white-space: pre-wrap;
     word-break: break-word;
-    min-height: 48px;
   }
 
   .chat-editor-host :global(.ProseMirror p) {

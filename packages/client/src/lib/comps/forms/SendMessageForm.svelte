@@ -87,7 +87,7 @@
     const results: FileMention[] = [];
     const limit = 10;
 
-    function collectFromRoot(root: Vertex | undefined, kind: FileMention["kind"]) {
+    function collectFromRoot(root: Vertex | undefined) {
       if (!root || results.length >= limit) return;
       const stack: Vertex[] = [root];
 
@@ -98,11 +98,16 @@
 
         if (mimeType) {
           if (!trimmed || name.toLowerCase().includes(trimmed)) {
-            results.push({
-              id: v.id,
-              kind,
-              name,
-            });
+            try {
+              const path = clientState.vertexToPath(v);
+              results.push({
+                path,
+                name,
+              });
+            } catch (err) {
+              // Skip vertices that can't be resolved to paths
+              console.warn("Failed to resolve path for vertex", err);
+            }
           }
         } else {
           // Folder vertex – traverse its children
@@ -116,12 +121,12 @@
     const space = clientState.currentSpace;
     if (space) {
       const assetsRoot = space.getVertexByPath("assets") as Vertex | undefined;
-      collectFromRoot(assetsRoot, "workspace-asset");
+      collectFromRoot(assetsRoot);
     }
 
     if (data) {
       const chatFilesRoot = data.getFilesRoot(false) as Vertex | undefined;
-      collectFromRoot(chatFilesRoot, "chat-file");
+      collectFromRoot(chatFilesRoot);
     }
 
     return results;

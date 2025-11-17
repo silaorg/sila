@@ -7,8 +7,7 @@ import type { EditorView } from "prosemirror-view";
 import { Plugin, type EditorState } from "prosemirror-state";
 
 export type FileMention = {
-  id: string;
-  kind: "workspace-asset" | "chat-file";
+  path: string; // "file:///assets/pic.jpg" for workspace, "file:pic.jpg" for chat
   name: string;
 };
 
@@ -176,8 +175,7 @@ export function insertFileMention(
 ) {
   const { state } = view;
   const mentionNode = state.schema.nodes.mention?.create({
-    id: file.id,
-    type: file.kind,
+    path: file.path,
     label: file.name,
   });
 
