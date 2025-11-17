@@ -89,10 +89,11 @@
     clientHeight = scrollableElement.clientHeight;
   }
 
-  function handleScroll() {
+  async function handleScroll() {
     // We only detect when the user scrolls (not when it's scrolled programmatically)
     if (!isProgrammaticScroll) {
       updateScrollMetrics();
+      await tick();
       shouldAutoScroll = isAtBottom;
     }
     updateScrollMetrics();
