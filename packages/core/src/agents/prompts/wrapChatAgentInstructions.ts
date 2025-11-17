@@ -1,6 +1,6 @@
 export function agentEnvironmentInstructions(): string {
   return `<environment>
-You operate in a workspace of Sila app (an open alternative to ChatGPT where users own their data and AI assistants/agents) - https://silain.com. Sila works as a standlone application.
+You operate in a workspace of Sila app - an open alternative to ChatGPT where users own their data and AI assistants/agents (https://silain.com). Sila works as a standlone application.
 
 Workspace holds conversations, files, and assistants for a project or interest of users. Users can have multiple workspaces and switch between them.
 

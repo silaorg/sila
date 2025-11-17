@@ -138,15 +138,16 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       // Add the assistant (config) instructions
       const instructions: string[] = config.instructions ? [config.instructions] : [];
 
+      // Environment instructions
+      instructions.push(agentEnvironmentInstructions());
+
+      // How to format messages
+      instructions.push(agentFormattingInstructions());
+
+      // Meta (context) for the agent to know the time, model, etc.
       const now = new Date();
       const localDateTime = now.toLocaleString();
       const utcIso = now.toISOString();
-
-      // Environment instructions
-      instructions.push(agentEnvironmentInstructions())
-      // How to format messages
-      instructions.push(agentFormattingInstructions());
-      // Meta (context) for the agent to know the time, model, etc.
       instructions.push(agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }));
 
       const supportsVision = true;
