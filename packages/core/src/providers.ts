@@ -7,7 +7,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openrouter.ai/",
     logoUrl: "/providers/openrouter.png",
-    defaultModel: "openai/gpt-4o"
+    defaultModel: "openai/gpt-5.1"
   },
   {
     id: "openai",
@@ -15,7 +15,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openai.com/",
     logoUrl: "/providers/openai.png",
-    defaultModel: "gpt-4o"
+    defaultModel: "gpt-5.1"
   },
   {
     id: "anthropic",
