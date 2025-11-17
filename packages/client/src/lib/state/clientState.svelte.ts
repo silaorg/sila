@@ -619,6 +619,67 @@ export class ClientState {
   }
 
   /**
+   * Search for files to mention in the chat editor.
+   * Searches workspace assets and optionally a relative root vertex (e.g., chat files).
+   * @param query - Search query string
+   * @param relativeRootVertex - Optional vertex to search (e.g., chat files root)
+   * @returns Array of file mentions matching the query
+   */
+  async searchFileMentions(
+    query: string,
+    relativeRootVertex?: Vertex
+  ): Promise<Array<{ path: string; name: string }>> {
+    const trimmed = query.trim().toLowerCase();
+    const results: Array<{ path: string; name: string }> = [];
+    const limit = 10;
+
+    const collectFromRoot = (root: Vertex | undefined) => {
+      if (!root || results.length >= limit) return;
+      const stack: Vertex[] = [root];
+
+      while (stack.length > 0 && results.length < limit) {
+        const v = stack.pop() as Vertex;
+        const mimeType = v.getProperty("mimeType") as string | undefined;
+        const name = v.name ?? "";
+
+        if (mimeType) {
+          if (!trimmed || name.toLowerCase().includes(trimmed)) {
+            try {
+              const path = this.vertexToPath(v);
+              results.push({
+                path,
+                name,
+              });
+            } catch (err) {
+              // Skip vertices that can't be resolved to paths
+              console.warn("Failed to resolve path for vertex", err);
+            }
+          }
+        } else {
+          // Folder vertex – traverse its children
+          for (const child of v.children) {
+            stack.push(child as Vertex);
+          }
+        }
+      }
+    };
+
+    // Always search workspace assets
+    const space = this.currentSpace;
+    if (space) {
+      const assetsRoot = space.getVertexByPath("assets") as Vertex | undefined;
+      collectFromRoot(assetsRoot);
+    }
+
+    // Optionally search relative root vertex (e.g., chat files)
+    if (relativeRootVertex) {
+      collectFromRoot(relativeRootVertex);
+    }
+
+    return results;
+  }
+
+  /**
    * Cleanup all client state
    * Used during app shutdown or navigation away
    */

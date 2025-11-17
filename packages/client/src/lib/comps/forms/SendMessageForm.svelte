@@ -23,7 +23,6 @@
   } from "@sila/client/utils/fileProcessing";
   import ChatEditor from "@sila/client/comps/apps/chat/ChatEditor.svelte";
   import type { FileMention } from "../apps/chat/chatMentionPlugin";
-  import type { Vertex } from "@sila/core";
   const clientState = useClientState();
 
   // Using shared AttachmentPreview type from core
@@ -83,53 +82,8 @@
   }
 
   async function searchFileMentions(query: string): Promise<FileMention[]> {
-    const trimmed = query.trim().toLowerCase();
-    const results: FileMention[] = [];
-    const limit = 10;
-
-    function collectFromRoot(root: Vertex | undefined) {
-      if (!root || results.length >= limit) return;
-      const stack: Vertex[] = [root];
-
-      while (stack.length > 0 && results.length < limit) {
-        const v = stack.pop() as Vertex;
-        const mimeType = v.getProperty("mimeType") as string | undefined;
-        const name = v.name ?? "";
-
-        if (mimeType) {
-          if (!trimmed || name.toLowerCase().includes(trimmed)) {
-            try {
-              const path = clientState.vertexToPath(v);
-              results.push({
-                path,
-                name,
-              });
-            } catch (err) {
-              // Skip vertices that can't be resolved to paths
-              console.warn("Failed to resolve path for vertex", err);
-            }
-          }
-        } else {
-          // Folder vertex – traverse its children
-          for (const child of v.children) {
-            stack.push(child as Vertex);
-          }
-        }
-      }
-    }
-
-    const space = clientState.currentSpace;
-    if (space) {
-      const assetsRoot = space.getVertexByPath("assets") as Vertex | undefined;
-      collectFromRoot(assetsRoot);
-    }
-
-    if (data) {
-      const chatFilesRoot = data.getFilesRoot(false) as Vertex | undefined;
-      collectFromRoot(chatFilesRoot);
-    }
-
-    return results;
+    const chatFilesRoot = data?.getFilesRoot(false);
+    return clientState.searchFileMentions(query, chatFilesRoot);
   }
 
   let canSendMessage = $derived(

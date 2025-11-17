@@ -23,6 +23,7 @@
   import FilePreview from "../../files/FilePreview.svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
+  import type { FileMention } from "./chatMentionPlugin";
 
   let {
     visibleMessage,
@@ -196,6 +197,11 @@
     if (branchIndex >= siblings.length - 1) return;
     data.switchMain(siblings[branchIndex + 1].id);
   }
+
+  async function searchFileMentions(query: string): Promise<FileMention[]> {
+    const chatFilesRoot = data.getFilesRoot(false);
+    return clientState.searchFileMentions(query, chatFilesRoot);
+  }
 </script>
 
 <div class="flex gap-3 px-4 py-2">
@@ -253,6 +259,7 @@
               isEditing = false;
             }}
             onCancel={() => (isEditing = false)}
+            getFileMentions={searchFileMentions}
           />
         </div>
       {:else}

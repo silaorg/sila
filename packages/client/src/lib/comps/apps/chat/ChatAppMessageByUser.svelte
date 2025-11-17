@@ -10,6 +10,7 @@
   import type { VisibleMessage } from "./chatTypes";
   import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
   import { Markdown } from "@markpage/svelte";
+  import type { FileMention } from "./chatMentionPlugin";
 
   let {
     visibleMessage,
@@ -138,6 +139,11 @@
     if (branchIndex >= siblings.length - 1) return;
     data.switchMain(siblings[branchIndex + 1].id);
   }
+
+  async function searchFileMentions(query: string): Promise<FileMention[]> {
+    const chatFilesRoot = data.getFilesRoot(false);
+    return clientState.searchFileMentions(query, chatFilesRoot);
+  }
 </script>
 
 <div class="flex gap-3 px-4 py-2 justify-end">
@@ -152,6 +158,7 @@
               isEditing = false;
             }}
             onCancel={() => (isEditing = false)}
+            getFileMentions={searchFileMentions}
           />
         </div>
       {:else}
