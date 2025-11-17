@@ -193,48 +193,37 @@
     const pastePlugin = new Plugin({
       props: {
         handlePaste(view: EditorView, event: ClipboardEvent, slice: Slice) {
+          const clipboardData = event.clipboardData;
+          if (!clipboardData) return false;
+
           // Let parent handle file attachments first (via onPaste prop)
-          // But only if it actually processes the paste
           if (onPaste) {
             onPaste(event);
-            // If parent prevented default (for files), don't handle here
             if (event.defaultPrevented) {
               return true;
             }
           }
 
-          // Check if this is plain text paste with newlines
-          const clipboardData = event.clipboardData;
-          if (!clipboardData) return false;
-
-          // Get plain text
+          // Handle plain text with newlines by converting them to hard_break nodes
           const text = clipboardData.getData("text/plain");
-          
-          // If there's plain text with newlines, handle it specially
-          // We handle plain text with newlines here to ensure they're converted to hard_break nodes
           if (text && text.includes("\n")) {
             event.preventDefault();
 
-            // Create a document from the pasted text (this converts \n to hard_break)
             const pastedDoc = createDocFromText(text);
             if (!pastedDoc) return true;
 
-            // Get the pasted content as a fragment
-            const pastedFragment = pastedDoc.content;
-
-            // Replace selection with the pasted content using a Slice
             const { state, dispatch } = view;
-            const pastedSlice = new Slice(pastedFragment, 0, 0);
+            const pastedSlice = new Slice(pastedDoc.content, 0, 0);
             const tr = state.tr.replaceSelection(pastedSlice);
             dispatch(tr);
             return true;
           }
 
-          // For other cases, use transformPasted to handle HTML/newlines
+          // For HTML paste or text without newlines, let transformPasted handle it
           return false;
         },
         transformPasted(slice: Slice): Slice {
-          // Convert pasted slice by checking if it contains newlines (from HTML paste)
+          // Convert newlines in text nodes to hard_break nodes (for HTML paste)
           const fragment = slice.content;
           const newNodes: PMNode[] = [];
           let needsTransform = false;
@@ -242,7 +231,6 @@
           fragment.forEach((node) => {
             if (node.type.name === "text" && node.text && node.text.includes("\n")) {
               needsTransform = true;
-              // Split text by newlines and create hard_breaks
               const text = node.text;
               const lines = text.split("\n");
               for (let i = 0; i < lines.length; i++) {
