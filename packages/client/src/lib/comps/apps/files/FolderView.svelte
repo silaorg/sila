@@ -101,6 +101,11 @@
   }
 
   function onItemClick(event: MouseEvent, v: Vertex) {
+    // Don't handle clicks when renaming this item (prevents space key on button from cancelling rename)
+    if (renamingId === v.id) {
+      return;
+    }
+    
     // Ensure container receives focus so arrow keys work
     containerEl?.focus();
     // Avoid triggering on right click
