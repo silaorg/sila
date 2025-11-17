@@ -397,7 +397,7 @@
   {#if mentionMenuOpen}
     <div
       bind:this={mentionMenuEl}
-      class="mention-menu z-20 min-w-[240px] rounded-md border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-800"
+      class="card fixed z-20 min-w-[240px] rounded-md text-sm context-menu card bg-surface-50-950 border border-surface-100-900 shadow-lg p-2"
       role="menu"
       tabindex="-1"
       onclick={handleMentionMenuClick}
@@ -410,17 +410,16 @@
       }}
     >
       <p
-        class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500"
+        class="mb-2 text-xs font-semibold uppercase tracking-wide"
       >
-        Mention file
+        Mention a file
       </p>
       <div class="flex flex-col gap-1">
         {#each mentionFiles as file, index}
           <button
             type="button"
-            class="mention-option flex items-center gap-2 rounded px-2 py-1 text-left text-slate-800 hover:bg-slate-100 focus:bg-slate-100 focus:outline-none dark:text-slate-100 dark:hover:bg-slate-700"
-            class:bg-slate-100={index === mentionSelectedIndex}
-            class:dark:bg-slate-700={index === mentionSelectedIndex}
+            class="flex items-center gap-2 rounded px-2 py-1 text-left hover:bg-surface-100-900"
+            class:bg-surface-100-900={index === mentionSelectedIndex}
             onmousedown={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -444,10 +443,6 @@
 
   .chat-editor-host :global(.ProseMirror p) {
     margin: 0;
-  }
-
-  .mention-menu {
-    position: fixed;
   }
 </style>
 
