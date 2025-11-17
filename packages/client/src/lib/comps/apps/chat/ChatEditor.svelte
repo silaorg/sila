@@ -11,6 +11,7 @@
   import {
     chatEditorSchema,
     createDocFromText,
+    serializeDocToMarkdown,
   } from "./chatEditorSchema";
   import {
     createFileMentionPlugin,
@@ -56,7 +57,7 @@
   let mentionFiles = $state<FileMention[]>([]);
   let mentionSelectedIndex = $state(0);
   let lastQueryToken = 0;
-  let mentionMenuEl: HTMLDivElement | null = null;
+  let mentionMenuEl: HTMLDivElement | null = $state(null);
 
   async function loadMentionFiles(query: string) {
     if (!getFileMentions) {
@@ -91,8 +92,8 @@
 
     mentionFileInsert = (file: FileMention) => {
       insertFileMention(payload.view, payload.insertPos, file);
-      const text = payload.view.state.doc.textContent;
-      onChange?.(text);
+      const markdown = serializeDocToMarkdown(payload.view.state.doc);
+      onChange?.(markdown);
     };
 
     mentionSelectedIndex = 0;
@@ -155,7 +156,7 @@
 
   function syncFromExternalValue(newValue: string) {
     if (!view) return;
-    const current = view.state.doc.textContent;
+    const current = serializeDocToMarkdown(view.state.doc);
     if (current === newValue) return;
 
     const doc = createDocFromText(newValue);
@@ -242,21 +243,25 @@
       dispatchTransaction(tr) {
         const newState = view!.state.apply(tr);
         view!.updateState(newState);
-        const text = newState.doc.textContent;
-        if (text !== value) {
-          onChange?.(text);
+        const markdown = serializeDocToMarkdown(newState.doc);
+        if (markdown !== value) {
+          onChange?.(markdown);
         }
       },
       handleDOMEvents: {
         focus() {
-          isFocused = true;
-          onFocusChange?.(true);
+          queueMicrotask(() => {
+            isFocused = true;
+            onFocusChange?.(true);
+          });
           return false;
         },
         blur() {
-          isFocused = false;
-          closeMention();
-          onFocusChange?.(false);
+          queueMicrotask(() => {
+            isFocused = false;
+            closeMention();
+            onFocusChange?.(false);
+          });
           return false;
         },
       },

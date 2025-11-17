@@ -63,6 +63,35 @@ export const chatEditorSchema = new Schema({
   marks: {},
 });
 
+// Serialize a ProseMirror document to markdown
+// Converts mention nodes to markdown links like [@label](file:...)
+export function serializeDocToMarkdown(doc: PMNode): string {
+  let markdown = "";
+  
+  doc.forEach((node) => {
+    if (node.type.name === "mention") {
+      // Convert mention to markdown link
+      const label = node.attrs.label || "";
+      const href = node.attrs.type === "workspace-asset"
+        ? `file:${label}`
+        : `file:///${node.attrs.id}`;
+      markdown += `[@${label}](${href})`;
+    } else if (node.type.name === "text") {
+      // Escape markdown special characters in text
+      markdown += node.text;
+    } else if (node.type.name === "hard_break") {
+      markdown += "\n";
+    } else {
+      // For other nodes, get their text content
+      markdown += node.textContent;
+    }
+  });
+  
+  return markdown;
+}
+
+// Create a ProseMirror document from text
+// This is the simple default way - just create a doc with text nodes
 export function createDocFromText(text: string) {
   if (!text) return undefined;
   return chatEditorSchema.node(
