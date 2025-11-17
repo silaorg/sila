@@ -583,6 +583,41 @@ export class ClientState {
     return path;
   }
 
+  pathToVertex(path: string, relativeRootVertex?: Vertex): Vertex {
+    if (!this.currentSpace) {
+      throw new Error("No current space available");
+    }
+
+    const isWorkspacePath = path.startsWith("file:///");
+
+    if (isWorkspacePath) {
+      const spaceRoot = this.currentSpace.rootVertex;
+      const vertex = spaceRoot.tree.getVertexByPath(path);
+      if (!vertex) {
+        throw new Error(`Vertex not found at path: ${path}`);
+      }
+
+      return vertex;
+    }
+    
+    if (!relativeRootVertex) {
+      throw new Error("Relative root vertex is required for local paths");
+    }
+
+    const tree = relativeRootVertex ? this.currentSpace.getAppTree(relativeRootVertex.treeId) : null;
+    if (!tree) {
+      throw new Error(`App tree ${relativeRootVertex.treeId} not found`);
+    }
+
+    const vertex = tree.tree.getVertexByPath(path);
+    if (!vertex) {
+      throw new Error(`Vertex not found at path: ${path}`);
+    }
+
+    return vertex;
+
+  }
+
   /**
    * Cleanup all client state
    * Used during app shutdown or navigation away
