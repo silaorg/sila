@@ -9,7 +9,6 @@
   
   <div class="flex-1">
     <div class="space-y-4">
-      <h3 class="h4">{$txtStore.settingsPage.developers.title}</h3>
       <label class="label">
         <span>{$txtStore.settingsPage.developers.toggleDevMode}</span>
         <input

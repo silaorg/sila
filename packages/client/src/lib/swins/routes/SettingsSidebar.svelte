@@ -66,16 +66,15 @@
     <span>{$txtStore.settingsPage.spaces.title}</span>
   </SwinsNavButton>
 
-  {#if $isDevMode}
-    <SwinsNavButton
-      component="settings-dev"
-      pop="current"
-      title="For Developers"
-      className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'dev' ? 'preset-tonal' : ''}"
-    >
-      <Code size={18} />
-      <span>{$txtStore.settingsPage.developers.title}</span>
-    </SwinsNavButton>
-  {/if}
+  <SwinsNavButton
+    component="settings-dev"
+    pop="current"
+    title="For Developers"
+    className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'dev' ? 'preset-tonal' : ''}"
+  >
+    <Code size={18} />
+    <span>{$txtStore.settingsPage.developers.title}</span>
+  </SwinsNavButton>
+
 </nav>
 
