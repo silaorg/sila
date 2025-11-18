@@ -610,7 +610,12 @@ export class ClientState {
       throw new Error(`App tree ${relativeRootVertex.treeId} not found`);
     }
 
-    const pathWithoutPrefix = path.slice("file:".length);
+    let pathWithoutPrefix = path.slice("file:".length);
+
+    // @TODO: remove this hack later when we have a proper way of dealing
+    // with chat files root (or not having it hardcoded at all)
+    pathWithoutPrefix = "files/" + pathWithoutPrefix;
+
     const vertex = tree.tree.getVertexByPath(pathWithoutPrefix);
     if (!vertex) {
       throw new Error(`Vertex not found at path: ${path}`);
