@@ -7,7 +7,15 @@
   let { path, title, relativeRootVertex, children }: { path: string; title: string; relativeRootVertex?: Vertex; children: Snippet } = $props();
 
   function openFile() {
-    const vertex = clientState.pathToVertex(path, relativeRootVertex);
+    if (!clientState.currentSpaceState?.fileResolver) {
+      return;
+    }
+
+    const vertex = clientState.currentSpaceState?.fileResolver.pathToVertex(path, relativeRootVertex);
+    if (!vertex) {
+      return;
+    }
+
     clientState.currentSpaceState?.vertexViewer.openVertex(vertex);
   }
 </script>

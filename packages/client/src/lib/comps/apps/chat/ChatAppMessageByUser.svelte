@@ -142,7 +142,13 @@
 
   async function searchFileMentions(query: string): Promise<FileMention[]> {
     const chatFilesRoot = data.getFilesRoot(false);
-    return clientState.searchFileMentions(query, chatFilesRoot);
+
+
+    if (!clientState.currentSpaceState?.fileResolver) {
+      return [];
+    }
+
+    return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
   }
 </script>
 

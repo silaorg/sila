@@ -83,7 +83,13 @@
 
   async function searchFileMentions(query: string): Promise<FileMention[]> {
     const chatFilesRoot = data?.getFilesRoot(false);
-    return clientState.searchFileMentions(query, chatFilesRoot);
+    if (!clientState.currentSpaceState?.fileResolver) {
+      return [];
+    }
+    return clientState.currentSpaceState?.fileResolver.searchFileMentions(
+      query,
+      chatFilesRoot
+    );
   }
 
   let canSendMessage = $derived(
@@ -536,7 +542,7 @@
         <div class="chat-editor-area relative">
           <ChatEditor
             value={query}
-            placeholder={placeholder}
+            {placeholder}
             autofocus={isFocused}
             onFocusChange={(focused: boolean) => {
               isEditorFocused = focused;
