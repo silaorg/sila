@@ -9,7 +9,7 @@
     "airul": "^0.1.37"
   },
   "scripts": {
-    "postinstall": "npx airul gen",
+    "prepare": "npx airul gen",
     "dev": "concurrently \"npm -w packages/core run watch\" \"npm -w packages/client run watch\" \"npm -w packages/desktop run dev\"",
     "gallery": "npm -w packages/gallery run dev",
     "stop-dev": "pkill -f concurrently 2>/dev/null; lsof -ti:6969 | xargs -r kill -9 2>/dev/null; pkill -f 'tailwindcss.*watch' 2>/dev/null; echo 'Dev servers stopped'",
