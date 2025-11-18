@@ -558,7 +558,7 @@
         </div>
 
         <!-- Bottom toolbar -->
-        <div class="flex items-center justify-between p-2 text-sm">
+        <div class="flex items-center justify-between p-2 pt-0 text-sm">
           <div class="flex items-center gap-2">
             {#if showConfigSelector}
               <AppConfigDropdown
@@ -592,13 +592,15 @@
                       onclick={openFilePicker}
                     >
                       <ImageIcon size={18} />
-                      <span>Add photos & files</span>
+                      <span>Upload photos & files</span>
                     </button>
+                    <!--
                     <div
                       class="text-xs opacity-60 px-2 py-1 border-t border-surface-300-700/30"
                     >
                       💡 You can also paste files directly into the text area
                     </div>
+                    -->
                   </div>
                 {/snippet}
               </ContextMenu>

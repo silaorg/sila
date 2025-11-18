@@ -404,7 +404,7 @@
   {/if}
 
   <div
-    class="chat-editor-host min-h-[48px] px-2 py-2 text-sm leading-normal"
+    class="chat-editor-host min-h-[48px] px-2 py-2"
     bind:this={host}
   ></div>
 
