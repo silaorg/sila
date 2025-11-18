@@ -70,7 +70,7 @@ export function serializeDocToMarkdown(doc: PMNode): string {
       // Convert mention to markdown link using the path directly
       const label = node.attrs.label || "";
       const path = node.attrs.path || "";
-      markdown += `[@${label}](${path})`;
+      markdown += `[${label}](<${path}>)`;
     } else if (node.type.name === "text") {
       // Escape markdown special characters in text
       markdown += node.text;
