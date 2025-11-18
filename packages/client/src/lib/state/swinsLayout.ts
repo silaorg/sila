@@ -1,5 +1,10 @@
 import { SWins } from "../swins/Swins.svelte";
 import Settings from "../swins/routes/Settings.svelte";
+import SettingsAppearance from "../swins/routes/SettingsAppearance.svelte";
+import SettingsProviders from "../swins/routes/SettingsProviders.svelte";
+import SettingsAssistants from "../swins/routes/SettingsAssistants.svelte";
+import SettingsWorkspaces from "../swins/routes/SettingsWorkspaces.svelte";
+import SettingsDev from "../swins/routes/SettingsDev.svelte";
 import Spaces from "../swins/routes/Spaces.svelte";
 import Apps from "../swins/routes/Apps.svelte";
 import AppConfigEditing from "@sila/client/comps/configs/AppConfigEditing.svelte";
@@ -20,6 +25,11 @@ export function setupSwins(): SWins {
   const swins = new SWins();
 
   swins.register('settings', Settings);
+  swins.register('settings-appearance', SettingsAppearance);
+  swins.register('settings-providers', SettingsProviders);
+  swins.register('settings-assistants', SettingsAssistants);
+  swins.register('settings-workspaces', SettingsWorkspaces);
+  swins.register('settings-dev', SettingsDev);
   swins.register('spaces', Spaces);
   swins.register('open-space', SpaceOpenerPage);
   swins.register('create-workspace', CreateWorkspace);
