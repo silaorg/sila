@@ -13,11 +13,13 @@
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { provideChatAppData } from "./chatAppContext";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
 
   let { data }: { data: ChatAppData } = $props();
+  provideChatAppData(data);
   const clientState = useClientState();
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
   let messages = $state<Vertex[]>([]);
