@@ -2,6 +2,8 @@
   import { onMount, onDestroy } from "svelte";
   import { EditorState, Plugin } from "prosemirror-state";
   import { EditorView } from "prosemirror-view";
+  import { history, undo, redo } from "prosemirror-history";
+  import { keymap } from "prosemirror-keymap";
   import {
     computePosition,
     offset as fuiOffset,
@@ -318,7 +320,19 @@
       },
     });
 
-    plugins = [mentionPlugin, pastePlugin, submitPlugin];
+    // Configure history with a lower newGroupDelay for more granular undo
+    // This makes each pause in typing (or each character if set to 0) a separate undo step
+    const historyPlugin = history({
+      newGroupDelay: 0, // 0ms means each change is a separate undo step
+    });
+
+    const historyKeymap = keymap({
+      "Mod-z": undo,
+      "Mod-y": redo,
+      "Shift-Mod-z": redo, // For Mac users
+    });
+
+    plugins = [historyPlugin, historyKeymap, mentionPlugin, pastePlugin, submitPlugin];
 
     const doc = createDocFromText(value);
     const config = {
