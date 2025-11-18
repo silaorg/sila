@@ -10,6 +10,7 @@ import type { AppTree } from "../spaces/AppTree";
 import { getToolLs } from "./tools/toolLs";
 import { getToolMkdir } from "./tools/toolMkdir";
 import { getToolRm } from "./tools/toolRm";
+import { getToolMove } from "./tools/toolMove";
 import { getToolApplyPatch } from "./tools/toolApplyPatch";
 
 export class AgentServices {
@@ -189,10 +190,11 @@ export class AgentServices {
 
     tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
 
-    // Files tools (ls, mkdir, rm, apply_patch) available for all providers; rely on space + optional appTree
+    // Files tools (ls, mkdir, rm, move, apply_patch) available for all providers; rely on space + optional appTree
     tools.push(getToolLs(this.space, appTree));
     tools.push(getToolMkdir(this.space, appTree));
     tools.push(getToolRm(this.space, appTree));
+    tools.push(getToolMove(this.space, appTree));
     tools.push(getToolApplyPatch(this.space, appTree));
 
     return tools;
