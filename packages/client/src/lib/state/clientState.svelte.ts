@@ -592,7 +592,8 @@ export class ClientState {
 
     if (isWorkspacePath) {
       const spaceRoot = this.currentSpace.rootVertex;
-      const vertex = spaceRoot.tree.getVertexByPath(path);
+      const pathWithoutPrefix = path.slice("file:///".length);
+      const vertex = spaceRoot.tree.getVertexByPath(pathWithoutPrefix);
       if (!vertex) {
         throw new Error(`Vertex not found at path: ${path}`);
       }
@@ -609,7 +610,8 @@ export class ClientState {
       throw new Error(`App tree ${relativeRootVertex.treeId} not found`);
     }
 
-    const vertex = tree.tree.getVertexByPath(path);
+    const pathWithoutPrefix = path.slice("file:".length);
+    const vertex = tree.tree.getVertexByPath(pathWithoutPrefix);
     if (!vertex) {
       throw new Error(`Vertex not found at path: ${path}`);
     }

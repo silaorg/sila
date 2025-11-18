@@ -34,10 +34,10 @@ const nodes = {
       return [
         "span",
         {
-          class: "chat-file-mention",
+          class: "inline-flex items-center gap-1 px-1.5 rounded-md bg-primary-300-700 text-xs font-semibold",
           "data-file-path": node.attrs.path,
         },
-        `@${node.attrs.label}`,
+        `${node.attrs.label}`,
       ] as DOMOutputSpec;
     },
     parseDOM: [
