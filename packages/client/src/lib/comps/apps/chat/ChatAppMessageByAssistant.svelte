@@ -216,7 +216,7 @@
     </div>
   </div>
   <div class="min-w-0 max-w-[85%]">
-    <div class="flex items-center justify-between gap-2 mt-2">
+    <div class="flex items-center justify-between gap-2 mt-2 mb-2">
       <div class="flex items-center gap-2">
         <div class="relative flex gap-2">
           <span class="font-bold cursor-default hover:opacity-90"
