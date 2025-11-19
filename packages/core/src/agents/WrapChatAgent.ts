@@ -8,7 +8,7 @@ import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
-import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions } from "./prompts/wrapChatAgentInstructions";
+import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions, agentToolUsageInstructions } from "./prompts/wrapChatAgentInstructions";
 import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
 import { getToolLs } from "./tools/toolLs";
 
@@ -75,24 +75,35 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
         | { type: "text"; text: string }
         | { type: "image"; base64: string; mimeType?: string; width?: number; height?: number; metadata?: Record<string, any> }
       > = [];
+
       if (m.text && m.text.trim().length > 0) {
         items.push({ type: 'text', text: m.text });
       }
+
       for (const tf of textFiles) {
         const content = this.extractTextFromDataUrl(tf.dataUrl);
         if (content) {
-          items.push({ type: 'text', text: `\n\n--- File: ${tf.name} ---\n` + content });
+          const pathSuffix = tf.path ? ` (${tf.path})` : "";
+          items.push({
+            type: 'text',
+            text: `\n\n--- File: ${tf.name}${pathSuffix} ---\n` + content,
+          });
         }
       }
+
       for (const img of images) {
         const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
+        const metadata: Record<string, any> = {};
+        if (img.name) metadata.name = img.name;
+        if (img.path) metadata.path = img.path;
+
         items.push({
           type: 'image',
           base64,
           mimeType,
           width: img.width,
           height: img.height,
-          metadata: img.name ? { name: img.name } : undefined,
+          metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
         });
       }
       return new LangMessage(normalizedRole, items, m.meta ?? {});
@@ -101,10 +112,18 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     let content = m.text || "";
     for (const tf of textFiles) {
       const t = this.extractTextFromDataUrl(tf.dataUrl);
-      if (t) content += `\n\n--- File: ${tf.name} ---\n` + t;
+      if (t) {
+        const pathSuffix = tf.path ? ` (${tf.path})` : "";
+        content += `\n\n--- File: ${tf.name}${pathSuffix} ---\n` + t;
+      }
     }
     if (images.length > 0) {
-      const names = images.map((a) => a.name).filter(Boolean).join(', ');
+      const names = images
+        .map((a) => {
+          const baseName = a.name ?? 'image';
+          return a.path ? `${baseName} (${a.path})` : baseName;
+        })
+        .join(', ');
       content += `\n\n[User attached ${images.length} image(s): ${names}]`;
     }
 
@@ -135,11 +154,26 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const lang = await this.agentServices.lang(config.targetLLM);
       const resolvedModel = this.agentServices.getLastResolvedModel();
 
+      const supportsVision = true;
+      // Remap messages from vertices into LangMessage[]
+      const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
+
+      const fetchForAgent = createWorkspaceProxyFetch(this.agentServices.space, this.appTree);
+      langMessages.availableTools = this.agentServices.getToolsForModel(
+        resolvedModel,
+        { fetchImpl: fetchForAgent, appTree: this.appTree }
+      );
+
       // Add the assistant (config) instructions
       const instructions: string[] = config.instructions ? [config.instructions] : [];
 
       // Environment instructions
       instructions.push(agentEnvironmentInstructions());
+
+      if (langMessages.availableTools.length > 0) {
+        // Tool usage instructions
+        instructions.push(agentToolUsageInstructions(langMessages.availableTools));
+      }
 
       // How to format messages
       instructions.push(agentFormattingInstructions());
@@ -150,10 +184,6 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const utcIso = now.toISOString();
       instructions.push(agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }));
 
-      const supportsVision = true;
-
-      // Remap messages from vertices into LangMessage[]
-      const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
       langMessages.instructions = instructions.join("\n\n");
 
       let targetMsgCount = -1;
@@ -235,12 +265,6 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       });
 
       this.chatAgent.setLanguageProvider(lang);
-
-      const fetchForAgent = createWorkspaceProxyFetch(this.agentServices.space, this.appTree);
-      langMessages.availableTools = this.agentServices.getToolsForModel(
-        resolvedModel,
-        { fetchImpl: fetchForAgent, appTree: this.appTree }
-      );
 
       await this.chatAgent.run(langMessages);
 

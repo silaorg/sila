@@ -2,6 +2,7 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
+import { ChatAppData } from "@sila/core";
 
 export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandler {
   return {
@@ -54,9 +55,9 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
           if (!appTree) {
             throw new Error("move: chat files root requires a chat tree context");
           }
-          let filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
+          let filesRoot = appTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) as Vertex | undefined;
           if (!filesRoot) {
-            filesRoot = appTree.tree.root!.newNamedChild("files") as Vertex;
+            filesRoot = appTree.tree.root!.newNamedChild(ChatAppData.ASSETS_ROOT_PATH) as Vertex;
             filesRoot.setProperty("createdAt", Date.now());
           }
           const sourceName = sourceResolved.vertex.name || getLastSegment(source);
@@ -70,23 +71,57 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
           return `Moved ${source} to ${destination}/${sourceName}`;
         }
 
-        // Destination doesn't exist - check if parent exists
-        const destParentResolved = resolvePath(
-          space,
-          appTree,
-          getParentPath(destination),
-          "destination parent"
-        );
-        if (!destParentResolved.vertex || destParentResolved.vertex.getProperty("mimeType")) {
+        // Destination doesn't exist - resolve (and if needed, create) parent folder
+        const parentUri = getParentPath(destination);
+        let destParentResolved = resolvePath(space, appTree, parentUri, "destination parent");
+        let destParentVertex = destParentResolved.vertex;
+        let destParentTree = destParentResolved.tree;
+
+        if (!destParentVertex) {
+          // Auto-create missing parent folder chain
+          if (destination.startsWith("file:///")) {
+            // Workspace-level: ensure folders under space root, e.g. file:///assets/flow
+            const path = parentUri.slice("file:///".length);
+            const segments = path.split("/").filter(Boolean);
+            const root = space.rootVertex;
+            destParentVertex = ensureWorkspaceFolder(root, segments);
+            destParentTree = space.tree;
+          } else {
+            // Chat-level: ensure folders under chat assets root
+            if (!appTree) {
+              throw new Error("move: chat folder creation requires a chat tree context");
+            }
+            const rawPath = parentUri.slice("file:".length); // e.g. "" or "assets/notes"
+            const trimmed = rawPath.trim();
+            let segments = trimmed ? trimmed.split("/").filter(Boolean) : [];
+            const rootPath = ChatAppData.ASSETS_ROOT_PATH;
+
+            // Ensure assets root exists
+            let assetsRoot = appTree.tree.getVertexByPath(rootPath) as Vertex | undefined;
+            if (!assetsRoot) {
+              assetsRoot = appTree.tree.root!.newNamedChild(rootPath) as Vertex;
+              assetsRoot.setProperty("createdAt", Date.now());
+            }
+
+            // Allow user to prefix with assets root (file:assets/notes)
+            if (segments[0] === rootPath) {
+              segments = segments.slice(1);
+            }
+
+            destParentVertex = ensureChatFolder(assetsRoot, segments);
+            destParentTree = appTree.tree;
+          }
+        } else if (destParentVertex.getProperty("mimeType")) {
           throw new Error(`move: destination folder not found for ${destination}`);
         }
+
         // Destination is a new name in the parent folder
         const newName = getLastSegment(destination);
         moveVertex(
           sourceResolved.vertex,
           sourceResolved.tree,
-          destParentResolved.vertex,
-          destResolved.tree,
+          destParentVertex,
+          destParentTree,
           newName
         );
         return `Moved ${source} to ${destination}`;
@@ -126,19 +161,16 @@ function resolvePath(
   context: string
 ): ResolvedPath {
   if (uri.startsWith("file:///")) {
-    // Workspace-level path
-    const path = uri.slice("file:///".length);
-    const segments = path.split("/").filter(Boolean);
-    const root = space.rootVertex;
-    if (segments.length === 0) {
-      return { vertex: root, tree: space.tree, isWorkspace: true };
+    // Workspace-level path from space root, e.g. file:///assets/brand.md
+    const path = uri.slice("file:///".length).trim(); // "" or "assets/..."
+    if (!path) {
+      // Root of the space
+      return { vertex: space.rootVertex, tree: space.tree, isWorkspace: true };
     }
-    const target = walkByName(
-      root,
-      segments,
-      `${context} path not found at /${segments.join("/")}`
-    );
-    return { vertex: target, tree: space.tree, isWorkspace: true };
+
+    // Use getVertexByPath which returns undefined when path is missing
+    const target = space.getVertexByPath(path) as Vertex | undefined;
+    return { vertex: target ?? null, tree: space.tree, isWorkspace: true };
   }
 
   // Chat-level path
@@ -148,33 +180,34 @@ function resolvePath(
 
   const rawPath = uri.slice("file:".length);
   const trimmed = rawPath.trim();
+  const tree = appTree.tree;
+  const rootPath = ChatAppData.ASSETS_ROOT_PATH;
+
+  // Resolve chat assets root (logical file root for the current chat)
+  const assetsRoot = tree.getVertexByPath(rootPath) as Vertex | undefined;
+
   if (trimmed === "" || trimmed === "." || trimmed === "/") {
-    const filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
-    return { vertex: filesRoot || null, tree: appTree.tree, isWorkspace: false };
+    // Root listing for chat files: corresponds to the assets root
+    return { vertex: assetsRoot || null, tree, isWorkspace: false };
   }
 
-  const segs = trimmed.split("/").filter(Boolean);
-  const effectiveSegments = segs[0] === "files" ? segs.slice(1) : segs;
-
-  const filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
-  if (!filesRoot) {
-    return { vertex: null, tree: appTree.tree, isWorkspace: false };
+  // Normalize local path:
+  // - If user already included the assets root (file:assets/...), keep it
+  // - Otherwise, treat it as relative to the assets root (file:doc.md → assets/doc.md)
+  const stripped = trimmed.replace(/^\/+/, "");
+  let logicalPath: string;
+  if (stripped === rootPath || stripped.startsWith(`${rootPath}/`)) {
+    logicalPath = stripped;
+  } else {
+    logicalPath = `${rootPath}/${stripped}`;
   }
 
-  if (effectiveSegments.length === 0) {
-    return { vertex: filesRoot, tree: appTree.tree, isWorkspace: false };
+  const target = tree.getVertexByPath(logicalPath) as Vertex | undefined;
+  if (!target) {
+    return { vertex: null, tree, isWorkspace: false };
   }
 
-  try {
-    const target = walkByName(
-      filesRoot,
-      effectiveSegments,
-      `${context} path not found at files/${effectiveSegments.join("/")}`
-    );
-    return { vertex: target, tree: appTree.tree, isWorkspace: false };
-  } catch {
-    return { vertex: null, tree: appTree.tree, isWorkspace: false };
-  }
+  return { vertex: target, tree, isWorkspace: false };
 }
 
 function walkByName(
@@ -273,6 +306,57 @@ function moveVertex(
 
   // Delete source after successful copy
   sourceTree.deleteVertex(source.id);
+}
+
+function ensureWorkspaceFolder(root: Vertex, segments: string[]): Vertex {
+  let current: Vertex | undefined = root;
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const children: Vertex[] = current?.children ?? [];
+    let next: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
+
+    if (!next) {
+      next = current!.newNamedChild(seg, {
+        createdAt: Date.now(),
+      }) as Vertex;
+    } else {
+      const mimeType = next.getProperty("mimeType") as string | undefined;
+      if (mimeType) {
+        throw new Error(
+          `move: path segment '${seg}' is a file, not a folder`
+        );
+      }
+    }
+    current = next;
+  }
+
+  return current!;
+}
+
+function ensureChatFolder(root: Vertex, segments: string[]): Vertex {
+  let current: Vertex | undefined = root;
+
+  for (const seg of segments) {
+    const children: Vertex[] = current?.children ?? [];
+    let next: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
+
+    if (!next) {
+      next = current!.newNamedChild(seg, {
+        createdAt: Date.now(),
+      }) as Vertex;
+    } else {
+      const mimeType = next.getProperty("mimeType") as string | undefined;
+      if (mimeType) {
+        throw new Error(
+          `move: path segment '${seg}' is a file, not a folder`
+        );
+      }
+    }
+    current = next;
+  }
+
+  return current!;
 }
 
 function copyVertexRecursive(

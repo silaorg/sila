@@ -55,12 +55,12 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const ref = atts[0];
     expect(ref.tree).toBe(chatTree.getId());
 
-    // Verify vertex exists under chat tree 'files'
-    const filesRoot = chatTree.tree.getVertexByPath('files');
-    expect(filesRoot).toBeDefined();
+    // Verify vertex exists under chat tree assets root
+    const assetsRoot = chatTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    expect(assetsRoot).toBeDefined();
     const fileVertex = chatTree.tree.getVertex(ref.vertex);
     expect(fileVertex).toBeDefined();
-    expect(fileVertex!.parent?.id).toBe(filesRoot!.id);
+    expect(fileVertex!.parent?.id).toBe(assetsRoot!.id);
   });
 
   it('saves attachments under chat tree nested path when targeted with treeId + path', async () => {
@@ -85,7 +85,7 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
       attachments: [
         { id: 'att1', kind: 'image', name: 'nested.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
       ],
-      fileTarget: { treeId: chatTree.getId(), path: 'files/screenshots' }
+      fileTarget: { treeId: chatTree.getId(), path: `${ChatAppData.ASSETS_ROOT_PATH}/screenshots` }
     });
 
     const atts = (message as any).files;
@@ -93,15 +93,15 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const ref = atts[0];
     expect(ref.tree).toBe(chatTree.getId());
 
-    // Verify the file vertex exists under a nested folder inside 'files'
-    const filesRoot = chatTree.tree.getVertexByPath('files');
-    expect(filesRoot).toBeDefined();
+    // Verify the file vertex exists under a nested folder inside the assets root
+    const assetsRoot = chatTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    expect(assetsRoot).toBeDefined();
     const fileVertex = chatTree.tree.getVertex(ref.vertex)!;
     expect(fileVertex).toBeDefined();
-    // Parent should not be the 'files' root itself
-    expect(fileVertex.parent?.id).not.toBe(filesRoot!.id);
-    // Parent should be a direct child of 'files' root (i.e., a nested folder)
-    expect(filesRoot!.children.some(c => c.id === fileVertex.parent?.id)).toBe(true);
+    // Parent should not be the assets root itself
+    expect(fileVertex.parent?.id).not.toBe(assetsRoot!.id);
+    // Parent should be a direct child of the assets root (i.e., a nested folder)
+    expect(assetsRoot!.children.some(c => c.id === fileVertex.parent?.id)).toBe(true);
   });
 });
 

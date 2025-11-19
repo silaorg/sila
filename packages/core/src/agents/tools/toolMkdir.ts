@@ -2,6 +2,7 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
+import { ChatAppData } from "@sila/core";
 
 export function getToolMkdir(space: Space, appTree?: AppTree): LangToolWithHandler {
   return {
@@ -40,34 +41,36 @@ export function getToolMkdir(space: Space, appTree?: AppTree): LangToolWithHandl
         return `Created directory at /${segments.join("/")}`;
       }
 
-      // Chat-level folder under current chat 'files' root
+      // Chat-level folder under current chat assets root
       if (!appTree) {
         throw new Error("mkdir: chat folder creation requires a chat tree context");
       }
 
-      const rawPath = uri.slice("file:".length); // e.g. "notes/docs" or "files/notes"
+      const rawPath = uri.slice("file:".length); // e.g. "notes/docs" or "assets/notes"
       const trimmed = rawPath.trim();
       if (!trimmed) {
         throw new Error("mkdir: chat path is empty");
       }
 
       let segments = trimmed.split("/").filter(Boolean);
-      // Allow the user to prefix with "files/"
-      if (segments[0] === "files") {
+      const rootPath = ChatAppData.ASSETS_ROOT_PATH;
+
+      // Allow the user to prefix with the assets root (e.g., "assets/notes")
+      if (segments[0] === rootPath) {
         segments = segments.slice(1);
       }
       if (segments.length === 0) {
         throw new Error("mkdir: chat path does not contain a folder name");
       }
 
-      let filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
-      if (!filesRoot) {
-        filesRoot = appTree.tree.root!.newNamedChild("files") as Vertex;
-        filesRoot.setProperty("createdAt", Date.now());
+      let assetsRoot = appTree.tree.getVertexByPath(rootPath) as Vertex | undefined;
+      if (!assetsRoot) {
+        assetsRoot = appTree.tree.root!.newNamedChild(rootPath) as Vertex;
+        assetsRoot.setProperty("createdAt", Date.now());
       }
 
-      ensureChatFolder(filesRoot, segments);
-      return `Created directory at files/${segments.join("/")}`;
+      ensureChatFolder(assetsRoot, segments);
+      return `Created directory at ${rootPath}/${segments.join("/")}`;
     },
   };
 }
@@ -99,8 +102,8 @@ function ensureWorkspaceFolder(root: Vertex, segments: string[]): Vertex {
   return current!;
 }
 
-function ensureChatFolder(filesRoot: Vertex, segments: string[]): Vertex {
-  let current: Vertex | undefined = filesRoot;
+function ensureChatFolder(root: Vertex, segments: string[]): Vertex {
+  let current: Vertex | undefined = root;
 
   for (const seg of segments) {
     const children: Vertex[] = current?.children ?? [];

@@ -2,6 +2,7 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
+import { ChatAppData } from "@sila/core";
 
 type LsEntryKind = "file" | "folder";
 
@@ -48,36 +49,45 @@ export function getToolLs(space: Space, appTree?: AppTree): LangToolWithHandler 
         return listChildren(target, `/${segments.join("/")}`);
       }
 
-      // Chat-level: file: or file:notes, relative to chat 'files' root
+      // Chat-level: file: or file:assets/notes, relative to chat assets root
       if (!appTree) {
         throw new Error("Chat file ls requires a chat tree context");
       }
 
-      const rawPath = uri.slice("file:".length); // "" or "notes" or "files/notes"
+      const rawPath = uri.slice("file:".length); // "" or "assets" or "assets/notes" or "notes"
       const trimmed = rawPath.trim();
+      const tree = appTree.tree;
+      const rootPath = ChatAppData.ASSETS_ROOT_PATH;
 
-      const filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
-      if (!filesRoot) {
-        // No files root yet → nothing to list
+      const assetsRoot = tree.getVertexByPath(rootPath) as Vertex | undefined;
+      if (!assetsRoot) {
+        // No assets root yet → nothing to list
         return [];
       }
 
       if (trimmed === "" || trimmed === "." || trimmed === "/") {
-        return listChildren(filesRoot, "files");
+        return listChildren(assetsRoot, rootPath);
       }
 
-      const segs = trimmed.split("/").filter(Boolean);
-      const effectiveSegments =
-        segs[0] === "files" ? segs.slice(1) : segs;
+      // Normalize local path inside chat:
+      // - If user already included the assets root (file:assets/...), keep it
+      // - Otherwise, treat it as relative to the assets root (file:notes → assets/notes)
+      const stripped = trimmed.replace(/^\/+/, "");
+      let logicalPath: string;
+      if (stripped === rootPath || stripped.startsWith(`${rootPath}/`)) {
+        logicalPath = stripped;
+      } else {
+        logicalPath = `${rootPath}/${stripped}`;
+      }
 
-      const target = walkByName(
-        filesRoot,
-        effectiveSegments,
-        `Chat path not found at files/${effectiveSegments.join("/")}`
-      );
+      const target = tree.getVertexByPath(logicalPath) as Vertex | undefined;
+      if (!target) {
+        throw new Error(`Chat path not found at ${logicalPath}`);
+      }
+
       return listChildren(
         target,
-        `files/${effectiveSegments.join("/")}`
+        logicalPath
       );
     },
   };

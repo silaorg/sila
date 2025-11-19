@@ -11,6 +11,8 @@ export interface ResolvedFileWithData {
   kind: string;
   name?: string;
   alt?: string;
+  /** Logical path in the workspace or chat, e.g. "file:///assets/pic.png" or "file:notes.txt" */
+  path?: string;
   dataUrl: string;
   mimeType?: string;
   size?: number;
@@ -289,6 +291,15 @@ export class FileResolver {
     const width = fileVertex.getProperty("width") as number;
     const height = fileVertex.getProperty("height") as number;
 
+    // Best-effort logical path for this file so AI tools can reference it
+    // Uses the same rules as searchFileMentions / pathToVertex.
+    let path: string | undefined;
+    try {
+      path = this.vertexToPath(fileVertex);
+    } catch {
+      // Non-fatal: some vertices may not resolve cleanly to paths
+    }
+
     // Convert bytes to data URL with proper MIME type
     let base64: string;
     if (typeof Buffer !== "undefined") {
@@ -310,6 +321,7 @@ export class FileResolver {
       size,
       width,
       height,
+      path,
     };
   }
 
@@ -372,11 +384,12 @@ export class FileResolver {
       throw new Error(`App tree ${relativeRootVertex.treeId} not found`);
     }
 
-    let pathWithoutPrefix = path.slice("file:".length);
-
+    const pathWithoutPrefix = path.slice("file:".length);
+    /*
     // @TODO: remove this hack later when we have a proper way of dealing
     // with chat files root (or not having it hardcoded at all)
     pathWithoutPrefix = "files/" + pathWithoutPrefix;
+    */
 
     const vertex = tree.tree.getVertexByPath(pathWithoutPrefix);
     if (!vertex) {

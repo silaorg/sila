@@ -11,6 +11,10 @@ import { FileResolver } from "./files/FileResolver";
 import { LangMessage, ToolRequest, ToolResult } from "aiwrapper";
 
 export class ChatAppData {
+
+  static readonly ASSETS_ROOT_PATH = "assets";
+
+  /** Logical path in the workspace or chat, e.g. "file:///assets/pic.png" or "file:notes.txt" */
   private root: Vertex;
   private referenceInSpace: Vertex;
   // @TODO temporary: support update callback for message edits/branch switching
@@ -316,29 +320,29 @@ export class ChatAppData {
     return newMessageVertex.bind<ThreadMessage>();
   }
 
-  /** Resolve target app tree and parent folder for file saves based on optional fileTarget. Defaults to this chat tree under 'files'. */
+  /** Resolve target app tree and parent folder for file saves based on optional fileTarget. Defaults to this chat tree under ASSETS_ROOT_PATH. */
   async resolveFileTarget(fileTarget?: { treeId?: string; path?: string; createParents?: boolean }): Promise<{ targetTree: AppTree; parentFolder: Vertex } > {
-    // Default: save under the current chat tree at 'files'
+    // Default: save under the current chat tree at ASSETS_ROOT_PATH
     if (!fileTarget || (!fileTarget.treeId && !fileTarget.path)) {
       const targetTree = this.appTree;
-      const parentFolder = this.ensureFolderPathInTree(targetTree, ['files'], true);
+      const parentFolder = this.ensureFolderPathInTree(targetTree, [ChatAppData.ASSETS_ROOT_PATH], true);
       return { targetTree, parentFolder };
     }
 
-    // Targeted: load specified tree, ensure path (default to 'files')
+    // Targeted: load specified tree, ensure path (default to ASSETS_ROOT_PATH)
     const treeId = fileTarget.treeId ?? this.appTree.getId();
     const targetTree = await this.space.loadAppTree(treeId) as AppTree;
     if (!targetTree) {
       throw new Error(`Target app tree not found: ${treeId}`);
     }
-    const rawPath = (fileTarget.path && fileTarget.path.trim() !== '') ? fileTarget.path : 'files';
+    const rawPath = (fileTarget.path && fileTarget.path.trim() !== '') ? fileTarget.path : ChatAppData.ASSETS_ROOT_PATH;
     const segments = rawPath.split('/').filter(Boolean);
     const parentFolder = this.ensureFolderPathInTree(targetTree, segments, fileTarget.createParents !== false);
     return { targetTree, parentFolder };
   }
 
   getFilesRoot(createIfMissing: boolean = false): Vertex | undefined {
-    const existing = this.appTree.tree.getVertexByPath('files') as Vertex | undefined;
+    const existing = this.appTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) as Vertex | undefined;
     if (existing) {
       return existing;
     }
@@ -347,11 +351,11 @@ export class ChatAppData {
       return undefined;
     }
 
-    return this.ensureFolderPathInTree(this.appTree, ['files'], true);
+    return this.ensureFolderPathInTree(this.appTree, [ChatAppData.ASSETS_ROOT_PATH], true);
   }
 
   hasStoredFiles(): boolean {
-    const root = this.appTree.tree.getVertexByPath('files') as Vertex | undefined;
+    const root = this.appTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) as Vertex | undefined;
     return !!(root && root.children.length > 0);
   }
 
@@ -359,12 +363,12 @@ export class ChatAppData {
   private ensureFolderPathInTree(appTree: AppTree, segments: string[], createParents: boolean): Vertex {
     const root = appTree.tree.root!;
     let current: Vertex | undefined;
-    // If first segment is 'files', ensure a named child for consistency
-    if (segments.length > 0 && segments[0] === 'files') {
-      current = appTree.tree.getVertexByPath('files') as Vertex | undefined;
+    // If first segment is ASSETS_ROOT_PATH, ensure a named child for consistency
+    if (segments.length > 0 && segments[0] === ChatAppData.ASSETS_ROOT_PATH) {
+      current = appTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) as Vertex | undefined;
       if (!current) {
-        if (!createParents) throw new Error(`Path segment 'files' not found and createParents=false`);
-        current = root.newNamedChild('files');
+        if (!createParents) throw new Error(`Path segment '${ChatAppData.ASSETS_ROOT_PATH}' not found and createParents=false`);
+        current = root.newNamedChild(ChatAppData.ASSETS_ROOT_PATH);
       }
       segments = segments.slice(1);
     } else {
@@ -380,7 +384,7 @@ export class ChatAppData {
         current = existing;
       } else {
         if (!createParents) throw new Error(`Path segment '${seg}' not found and createParents=false`);
-        current = appTree.tree.newVertex(current!.id, { _n: seg });
+        current = current!.newNamedChild(seg) as Vertex;
       }
     }
     return current!;

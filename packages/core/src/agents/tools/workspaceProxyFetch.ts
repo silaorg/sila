@@ -10,8 +10,12 @@ const MAX_TEXT_BYTES = 1024 * 1024; // 1 MB safety limit for tool reads
  * Resolve a file: URI into text content from the current workspace.
  *
  * Supported forms:
- * - Workspace-level: file:///assets/brand.md   (from Space.rootVertex)
- * - Chat-level:      file:document.md         (from appTree 'files' root)
+ * - Workspace-level: file:///assets/brand.md
+ *   - Resolved from Space.rootVertex, path is absolute inside the space tree.
+ * - Chat-level:      file:assets/document.md
+ *   - Resolved from the current chat AppTree root, treating the path as
+ *     a logical path inside this chat (by default attachments live under
+ *     ChatAppData.ASSETS_ROOT_PATH = "assets").
  */
 export async function resolveWorkspaceFileUrl(
   url: string,
@@ -24,45 +28,41 @@ export async function resolveWorkspaceFileUrl(
 
   if (url.startsWith("file:///")) {
     // Workspace-level path from space root, e.g. file:///assets/brand.md
-    const path = url.slice("file:///".length); // "assets/brand.md"
-    const segments = path.split("/").filter(Boolean);
-    if (segments.length === 0) {
+    const pathWithoutPrefix = url.slice("file:///".length); // "assets/brand.md"
+    if (!pathWithoutPrefix) {
       throw new Error(`Workspace file path is empty in URI: ${url}`);
     }
     const root = space.rootVertex;
-    const fileVertex = walkByName(root, segments, `Workspace file not found at /${segments.join("/")}`);
-    return await readTextFromFileVertex(space, fileVertex, `/${segments.join("/")}`);
+    const fileVertex = root.tree.getVertexByPath(pathWithoutPrefix) as Vertex | undefined;
+    if (!fileVertex) {
+      throw new Error(`Workspace file not found at /${pathWithoutPrefix}`);
+    }
+    return await readTextFromFileVertex(space, fileVertex, `/${pathWithoutPrefix}`);
   }
 
-  // Chat-level path relative to current chat 'files' root, e.g. file:document.md
+  // Chat-level path relative to current chat AppTree root, e.g. file:assets/document.md
   if (!appTree) {
     throw new Error(`Chat file URI requires a chat tree context: ${url}`);
   }
 
-  const rawPath = url.slice("file:".length); // e.g. "document.md" or "notes/doc.md"
-  const segments = rawPath.split("/").filter(Boolean);
-  if (segments.length === 0) {
+  const rawPath = url.slice("file:".length); // e.g. "assets/document.md" or "notes/doc.md"
+  const normalizedPath =
+    rawPath.startsWith("/") ? rawPath.slice(1) : rawPath;
+  if (!normalizedPath) {
     throw new Error(`Chat file path is empty in URI: ${url}`);
   }
 
-  const filesRoot = appTree.tree.getVertexByPath("files") as Vertex | undefined;
-  if (!filesRoot) {
-    throw new Error("Chat files root not found (no 'files' vertex in chat tree)");
+  const tree = appTree.tree;
+  const fileVertex = tree.getVertexByPath(normalizedPath) as Vertex | undefined;
+
+  if (!fileVertex) {
+    throw new Error(`Chat file not found at ${normalizedPath}`);
   }
 
-  // Allow both "document.md" and "files/document.md"
-  const effectiveSegments =
-    segments[0] === "files" ? segments.slice(1) : segments;
-
-  const fileVertex = walkByName(
-    filesRoot,
-    effectiveSegments,
-    `Chat file not found at files/${effectiveSegments.join("/")}`
-  );
   return await readTextFromFileVertex(
     space,
     fileVertex,
-    `files/${effectiveSegments.join("/")}`
+    normalizedPath
   );
 }
 
@@ -84,23 +84,6 @@ export function createWorkspaceProxyFetch(
     // Fallback to environment-level proxy for HTTP/S and sila://
     return proxyFetch(url, init);
   };
-}
-
-function walkByName(
-  start: Vertex,
-  segments: string[],
-  notFoundMessage: string
-): Vertex {
-  let current: Vertex | undefined = start;
-  for (const seg of segments) {
-    const children: Vertex[] = current?.children ?? [];
-    const next: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
-    if (!next || !current) {
-      throw new Error(notFoundMessage);
-    }
-    current = next;
-  }
-  return current!;
 }
 
 async function readTextFromFileVertex(

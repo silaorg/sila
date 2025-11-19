@@ -7,7 +7,7 @@ export function getToolRm(space: Space, appTree?: AppTree): LangToolWithHandler 
   return {
     name: "rm",
     description:
-      "Delete a file or directory in the current workspace. Use 'file:...' for chat files/folders and 'file:///assets/...' for workspace assets.",
+      "Delete a file or directory in the current workspace. Use 'file:assets' for chat files/folders and 'file:///assets/...' for workspace assets.",
     parameters: {
       type: "object",
       properties: {
