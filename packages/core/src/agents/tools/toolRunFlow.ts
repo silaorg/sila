@@ -96,18 +96,20 @@ export async function runFlowWithServices(
   code: string,
   services: any,
   space: Space,
-  appTree?: AppTree
+  appTree?: AppTree,
+  inputs?: Record<string, any>
 ): Promise<RunFlowResult> {
   // For now, we'll pass services as-is, but they need to be serializable
   // In the future, we'll use a service registry
-  return await executeInWorker(code, [], "run", services);
+  return await executeInWorker(code, [], "run", services, inputs);
 }
 
 async function executeInWorker(
   code: string,
   args: string[],
   mode: "run" | "inspect" = "run",
-  services?: any
+  services?: any,
+  inputs?: Record<string, any>
 ): Promise<RunFlowResult | InspectFlowResult> {
   // Use web-worker polyfill if Worker is not available (e.g., in Node.js)
   const WorkerClass = typeof Worker !== "undefined" 
@@ -180,6 +182,7 @@ async function executeInWorker(
       code,
       args,
       services,
+      inputs,
     };
 
     worker.postMessage(request);

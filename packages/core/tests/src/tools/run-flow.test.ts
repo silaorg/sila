@@ -143,16 +143,15 @@ describe("run_flow tool - basic JavaScript execution", () => {
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
 
-    // Create a pipeline flow file
-    const code = `const { inImg, describe } = pipeline;
-
-describe("A simple pipeline that processes an image");
-
-const imgA = inImg("img-a", "Input image");
+    // Create a flow file with setup() and run() functions
+    const code = `function setup(flow) {
+  flow.title("Simple pipeline");
+  flow.describe("A simple pipeline that processes an image");
+  flow.inImg("img-a", "Input image");
+}
 
 async function run(services) {
-  // Mock service that returns a simple result
-  // Note: services.processImage returns a Promise, so we await it
+  const imgA = services.inputs["img-a"];
   const result = await services.processImage(imgA, "Apply filter");
   return result;
 }`;
@@ -180,12 +179,13 @@ async function run(services) {
 
     expect(inspectResult.success).toBe(true);
     expect(inspectResult.metadata).toBeDefined();
-    expect(inspectResult.metadata?.description).toBe("A simple pipeline that processes an image");
+    expect(inspectResult.metadata?.description).toBe("Simple pipeline");
     expect(inspectResult.metadata?.inputs).toHaveLength(1);
     expect(inspectResult.metadata?.inputs?.[0]).toEqual({
       id: "img-a",
       type: "image",
       label: "Input image",
+      optional: false,
     });
 
     // Phase 2: Run with services
@@ -198,7 +198,12 @@ async function run(services) {
       }
     };
 
-    const runResult = await runFlowWithServices(fileCode, mockServices, space, chatTree);
+    // Pass inputs to the run function
+    const inputs = {
+      "img-a": "test-image-id"
+    };
+    
+    const runResult = await runFlowWithServices(fileCode, mockServices, space, chatTree, inputs);
 
     if (!runResult.success) {
       console.error("Run failed - error:", runResult.error);

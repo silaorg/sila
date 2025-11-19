@@ -8,6 +8,7 @@ export interface FlowWorkerRequest {
   path?: string; // For lint requests (future)
   args?: string[]; // For run requests
   services?: any; // Services descriptor for run requests (serializable, not functions)
+  inputs?: Record<string, any>; // Input values for run requests (serializable)
   // Note: Functions can't be passed through postMessage, so services must be
   // described as data that the worker can use to create service functions
 }
@@ -197,15 +198,16 @@ async function executeFlowCode(code: string, args: string[] = []): Promise<{ suc
 }
 
 /**
- * Inspect flow code to extract metadata (description, inputs) without executing run().
+ * Inspect flow code by calling setup(flow) to extract metadata.
  * 
  * Expected API pattern:
  * ```js
- * const { inImg, inText, describe } = pipeline;
- * 
- * describe("Pipeline description");
- * const imgA = inImg("img-a", "Label for image A");
- * const textB = inText("text-b", "Label for text B");
+ * function setup(flow) {
+ *   flow.title("Title");
+ *   flow.describe("Description");
+ *   flow.inImg("img-a", "Label");
+ *   flow.inText("text-b", "Label");
+ * }
  * 
  * async function run(services) {
  *   // Implementation
@@ -225,12 +227,25 @@ async function handleInspectRequest(request: FlowWorkerRequest): Promise<FlowWor
   try {
     const { context } = await initQuickJS();
     
-    // Track metadata during execution
+    // Track metadata during setup() execution
+    let title: string | undefined;
     let description: string | undefined;
-    const inputs: Array<{ id: string; type: string; label: string }> = [];
+    const inputs: Array<{ id: string; type: string; label: string; optional?: boolean }> = [];
+    const outputs: Array<{ id: string; type: string; label: string }> = [];
     
-    // Create pipeline API that tracks metadata
-    const pipelineModule = context.newObject();
+    // Create flow API object that tracks metadata
+    const flowObj = context.newObject();
+    
+    // title() function
+    const titleFn = context.newFunction("title", (titleHandle: QuickJSHandle) => {
+      try {
+        title = context.getString(titleHandle);
+      } catch {
+        // Ignore if not a string
+      }
+      return context.undefined;
+    });
+    context.setProp(flowObj, "title", titleFn);
     
     // describe() function
     const describeFn = context.newFunction("describe", (descHandle: QuickJSHandle) => {
@@ -241,59 +256,67 @@ async function handleInspectRequest(request: FlowWorkerRequest): Promise<FlowWor
       }
       return context.undefined;
     });
-    context.setProp(pipelineModule, "describe", describeFn);
+    context.setProp(flowObj, "describe", describeFn);
     
     // inImg() function
-    const inImgFn = context.newFunction("inImg", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
+    const inImgFn = context.newFunction("inImg", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle, optionsHandle?: QuickJSHandle) => {
       try {
         const id = context.getString(idHandle);
         const label = context.getString(labelHandle);
-        inputs.push({ id, type: "image", label });
-        // Return a placeholder object
-        const placeholder = context.newObject();
-        context.setProp(placeholder, "id", context.newString(id));
-        context.setProp(placeholder, "type", context.newString("image"));
-        return placeholder;
+        const optional = optionsHandle ? (() => {
+          try {
+            const options = context.dump(optionsHandle);
+            const opts = options.consume((v: any) => v);
+            return opts?.optional === true;
+          } catch {
+            return false;
+          }
+        })() : false;
+        inputs.push({ id, type: "image", label, optional });
+        return context.undefined;
       } catch {
         return context.undefined;
       }
     });
-    context.setProp(pipelineModule, "inImg", inImgFn);
+    context.setProp(flowObj, "inImg", inImgFn);
     
     // inText() function
-    const inTextFn = context.newFunction("inText", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
+    const inTextFn = context.newFunction("inText", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle, optionsHandle?: QuickJSHandle) => {
       try {
         const id = context.getString(idHandle);
         const label = context.getString(labelHandle);
-        inputs.push({ id, type: "text", label });
-        const placeholder = context.newObject();
-        context.setProp(placeholder, "id", context.newString(id));
-        context.setProp(placeholder, "type", context.newString("text"));
-        return placeholder;
+        const optional = optionsHandle ? (() => {
+          try {
+            const options = context.dump(optionsHandle);
+            const opts = options.consume((v: any) => v);
+            return opts?.optional === true;
+          } catch {
+            return false;
+          }
+        })() : false;
+        inputs.push({ id, type: "text", label, optional });
+        return context.undefined;
       } catch {
         return context.undefined;
       }
     });
-    context.setProp(pipelineModule, "inText", inTextFn);
+    context.setProp(flowObj, "inText", inTextFn);
     
-    // Create module system - inject "pipeline" module
-    const moduleSystem = context.newObject();
-    context.setProp(moduleSystem, "pipeline", pipelineModule);
+    // outImgs() function
+    const outImgsFn = context.newFunction("outImgs", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
+      try {
+        const id = context.getString(idHandle);
+        const label = context.getString(labelHandle);
+        outputs.push({ id, type: "image", label });
+        return context.undefined;
+      } catch {
+        return context.undefined;
+      }
+    });
+    context.setProp(flowObj, "outImgs", outImgsFn);
     
-    // Inject pipeline as global - no transformation needed
-    // Users write: const { inImg, describe } = pipeline;
-    context.setProp(context.global, "pipeline", pipelineModule);
-    
-    // Execute code to extract metadata (but don't call run())
-    // The code will define inputs/description, but run() won't be called
+    // Execute code to define setup() and run() functions
     const result = await context.evalCodeAsync(request.code, "<flow-inspect>");
-    
-    // Cleanup
-    describeFn.dispose();
-    inImgFn.dispose();
-    inTextFn.dispose();
-    pipelineModule.dispose();
-    moduleSystem.dispose();
     
     if (result.error) {
       const errorHandle = result.error;
@@ -308,6 +331,14 @@ async function handleInspectRequest(request: FlowWorkerRequest): Promise<FlowWor
       }
       errorHandle.dispose();
       
+      // Cleanup
+      titleFn.dispose();
+      describeFn.dispose();
+      inImgFn.dispose();
+      inTextFn.dispose();
+      outImgsFn.dispose();
+      flowObj.dispose();
+      
       return {
         requestId: request.requestId,
         type: "inspect",
@@ -320,12 +351,79 @@ async function handleInspectRequest(request: FlowWorkerRequest): Promise<FlowWor
       result.value.dispose();
     }
     
+    // Get the setup function and call it
+    let setupFunction: QuickJSHandle | undefined;
+    try {
+      setupFunction = context.getProp(context.global, "setup");
+    } catch {}
+    
+    if (!setupFunction) {
+      // Cleanup
+      titleFn.dispose();
+      describeFn.dispose();
+      inImgFn.dispose();
+      inTextFn.dispose();
+      outImgsFn.dispose();
+      flowObj.dispose();
+      
+      return {
+        requestId: request.requestId,
+        type: "inspect",
+        success: false,
+        error: "No setup() function found"
+      };
+    }
+    
+    // Call setup(flow)
+    const setupVarName = `__flow_${Date.now()}`;
+    context.setProp(context.global, setupVarName, flowObj);
+    const setupCall = await context.evalCodeAsync(`setup(${setupVarName})`, "<setup-call>");
+    context.setProp(context.global, setupVarName, context.undefined);
+    
+    // Cleanup
+    titleFn.dispose();
+    describeFn.dispose();
+    inImgFn.dispose();
+    inTextFn.dispose();
+    outImgsFn.dispose();
+    flowObj.dispose();
+    setupFunction.dispose();
+    
+    if (setupCall.error) {
+      const errorHandle = setupCall.error;
+      let errorMsg = "setup() call error";
+      try {
+        errorMsg = context.getString(errorHandle);
+      } catch {
+        try {
+          const json = context.dump(errorHandle);
+          errorMsg = json.consume((v: unknown) => String(v));
+        } catch {}
+      }
+      errorHandle.dispose();
+      const setupCallValue = (setupCall as any).value;
+      if (setupCallValue) {
+        setupCallValue.dispose();
+      }
+      
+      return {
+        requestId: request.requestId,
+        type: "inspect",
+        success: false,
+        error: errorMsg
+      };
+    }
+    
+    if (setupCall.value) {
+      setupCall.value.dispose();
+    }
+    
     return {
       requestId: request.requestId,
       type: "inspect",
       success: true,
       metadata: {
-        description,
+        description: title || description,
         inputs
       }
     };
@@ -351,7 +449,7 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
 
   // If services are provided, execute with services (pipeline mode)
   if (request.services) {
-    const result = await executeFlowCodeWithServices(request.code, request.services);
+    const result = await executeFlowCodeWithServices(request.code, request.services, request.inputs);
     result.requestId = request.requestId;
     return result;
   }
@@ -371,14 +469,17 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
  * 
  * Expected API pattern:
  * ```js
- * const { inImg, inText, describe } = pipeline;
- * 
- * describe("Pipeline description");
- * const imgA = inImg("img-a", "Label");
+ * function setup(flow) {
+ *   flow.title("Title");
+ *   flow.describe("Description");
+ *   flow.inImg("img-a", "Label");
+ * }
  * 
  * async function run(services) {
+ *   const imgA = services.inputs["img-a"];
  *   const result = await services.img([imgA], "prompt");
- *   return result[0];
+ *   services.outputs("img-out", result);
+ *   return result;
  * }
  * ```
  */
@@ -412,52 +513,78 @@ async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handl
   }
 }
 
-async function executeFlowCodeWithServices(code: string, servicesDescriptor: any): Promise<FlowWorkerResponse> {
+async function executeFlowCodeWithServices(code: string, servicesDescriptor: any, inputsMap?: Record<string, any>): Promise<FlowWorkerResponse> {
   try {
     const { context } = await initQuickJS();
     
-    // No transformation needed - pipeline API is injected as global
-    // Users write plain JavaScript using the global `pipeline` object
-    const transformedCode = code;
+    // Execute code to define setup() and run() functions
+    const codeResult = await context.evalCodeAsync(code, "<flow-run>");
     
-    // Inject pipeline API (same as inspect, but also provide services)
-    const pipelineModule = context.newObject();
-    const inputs: Array<{ id: string; value: any }> = [];
-    
-    // describe() function
-    const describeFn = context.newFunction("describe", () => context.undefined);
-    context.setProp(pipelineModule, "describe", describeFn);
-    
-    // inImg() - returns placeholder that will be replaced with actual values
-    const inImgFn = context.newFunction("inImg", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
+    if (codeResult.error) {
+      const errorHandle = codeResult.error;
+      let errorMsg = "Execution error";
       try {
-        const id = context.getString(idHandle);
-        const placeholder = context.newObject();
-        context.setProp(placeholder, "id", context.newString(id));
-        context.setProp(placeholder, "type", context.newString("image"));
-        // Store reference to replace later
-        inputs.push({ id, value: placeholder });
-        return placeholder;
+        errorMsg = context.getString(errorHandle);
       } catch {
-        return context.undefined;
+        try {
+          const json = context.dump(errorHandle);
+          errorMsg = json.consume((v: unknown) => String(v));
+        } catch {}
       }
-    });
-    context.setProp(pipelineModule, "inImg", inImgFn);
+      errorHandle.dispose();
+      const codeResultValue = (codeResult as any).value;
+      if (codeResultValue) {
+        codeResultValue.dispose();
+      }
+      
+      return {
+        requestId: "",
+        type: "run",
+        success: false,
+        error: errorMsg
+      };
+    }
     
-    // inText() function
-    const inTextFn = context.newFunction("inText", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
-      try {
-        const id = context.getString(idHandle);
-        const placeholder = context.newObject();
-        context.setProp(placeholder, "id", context.newString(id));
-        context.setProp(placeholder, "type", context.newString("text"));
-        inputs.push({ id, value: placeholder });
-        return placeholder;
-      } catch {
+    if (codeResult.value) {
+      codeResult.value.dispose();
+    }
+    
+    // Get the run function
+    let runFunction: QuickJSHandle | undefined;
+    try {
+      runFunction = context.getProp(context.global, "run");
+    } catch {}
+    
+    if (!runFunction) {
+      return {
+        requestId: "",
+        type: "run",
+        success: false,
+        error: "No run() function found"
+      };
+    }
+    
+    // Helper to convert JavaScript value to QuickJS handle
+    const convertToQuickJSHandle = async (value: any): Promise<QuickJSHandle> => {
+      if (value === undefined || value === null) {
         return context.undefined;
+      } else if (typeof value === "string") {
+        return context.newString(value);
+      } else if (typeof value === "number") {
+        return context.newNumber(value);
+      } else if (typeof value === "boolean") {
+        return value ? context.true : context.false;
+      } else {
+        // For objects, use JSON
+        const jsonStr = JSON.stringify(value);
+        const parsed = await context.evalCodeAsync(`JSON.parse(${JSON.stringify(jsonStr)})`, "<service-result>");
+        if (parsed.error) {
+          parsed.error.dispose();
+          return context.undefined;
+        }
+        return parsed.value || context.undefined;
       }
-    });
-    context.setProp(pipelineModule, "inText", inTextFn);
+    };
     
     // Helper to create mock services from descriptors
     function createMockService(name: string, descriptor: any): Function {
@@ -469,38 +596,29 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       };
     }
     
-    // Inject services object - create QuickJS functions that call registered services
+    // Create services object with inputs, outputs, and service functions
     const servicesObj = context.newObject();
     
-    // Services are passed as descriptors (e.g., { processImage: { type: "mock", returns: {...} } })
-    // Create service functions from descriptors or use registered services
+    // Create inputs object - for now just an empty object (will be populated later)
+    const inputsObj = context.newObject();
+    if (inputsMap) {
+      for (const [key, value] of Object.entries(inputsMap)) {
+        const handle = await convertToQuickJSHandle(value);
+        context.setProp(inputsObj, key, handle);
+      }
+    }
+    context.setProp(servicesObj, "inputs", inputsObj);
+    
+    // Create outputs function - for now just a no-op (will be implemented later)
+    const outputsFn = context.newFunction("outputs", () => context.undefined);
+    context.setProp(servicesObj, "outputs", outputsFn);
+    
+    // Add service functions (e.g., services.img, services.agent, etc.)
     if (servicesDescriptor && typeof servicesDescriptor === "object") {
       for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
         const serviceImpl = typeof descriptor === "function" 
           ? descriptor 
           : serviceRegistry.get(key) || createMockService(key, descriptor);
-          
-        // Helper to convert JavaScript value to QuickJS handle
-        const convertToQuickJSHandle = async (value: any): Promise<QuickJSHandle> => {
-          if (value === undefined || value === null) {
-            return context.undefined;
-          } else if (typeof value === "string") {
-            return context.newString(value);
-          } else if (typeof value === "number") {
-            return context.newNumber(value);
-          } else if (typeof value === "boolean") {
-            return value ? context.true : context.false;
-          } else {
-            // For objects, use JSON
-            const jsonStr = JSON.stringify(value);
-            const parsed = await context.evalCodeAsync(`JSON.parse(${JSON.stringify(jsonStr)})`, "<service-result>");
-            if (parsed.error) {
-              parsed.error.dispose();
-              return context.undefined;
-            }
-            return parsed.value || context.undefined;
-          }
-        };
         
         // Create async function that calls the service and returns a Promise
         const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
@@ -525,107 +643,9 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       }
     }
     
-    context.setProp(context.global, "pipeline", pipelineModule);
-    
-    // Execute transformed code (async runtime supports async/await)
-    const result = await context.evalCodeAsync(transformedCode, "<flow-run>");
-    
-    if (result.error) {
-      const errorHandle = result.error;
-      let errorMsg = "Execution error";
-      try {
-        errorMsg = context.getString(errorHandle);
-      } catch {
-        try {
-          const json = context.dump(errorHandle);
-          errorMsg = json.consume((v: unknown) => String(v));
-        } catch {}
-      }
-      errorHandle.dispose();
-      
-      // Cleanup
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
-      // Cleanup service functions
-      if (servicesObj) {
-        const keys = context.dump(servicesObj);
-        keys.consume((obj: any) => {
-          if (typeof obj === "object" && obj !== null) {
-            Object.keys(obj).forEach(key => {
-              try {
-                const prop = context.getProp(servicesObj, key);
-                if (prop) prop.dispose();
-              } catch {}
-            });
-          }
-        });
-        servicesObj.dispose();
-      }
-      
-      return {
-        requestId: "", // Will be set by caller
-        type: "run",
-        success: false,
-        error: errorMsg
-      };
-    }
-    
-    // Get the exported run function
-    let runFunction: QuickJSHandle | undefined;
-    try {
-      // Try to get run from exports or global
-      const exports = context.getProp(context.global, "exports");
-      if (exports) {
-        runFunction = context.getProp(exports, "run");
-        exports.dispose();
-      }
-    } catch {
-      // Try global run
-      try {
-        runFunction = context.getProp(context.global, "run");
-      } catch {}
-    }
-    
-    if (!runFunction) {
-      // Cleanup
-      if (result.value) result.value.dispose();
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
-      // Cleanup service functions
-      if (servicesObj) {
-        try {
-          const keys = context.dump(servicesObj);
-          keys.consume((obj: any) => {
-            if (typeof obj === "object" && obj !== null) {
-              Object.keys(obj).forEach(key => {
-                try {
-                  const prop = context.getProp(servicesObj, key);
-                  if (prop) prop.dispose();
-                } catch {}
-              });
-            }
-          });
-        } catch {}
-        servicesObj.dispose();
-      }
-      
-      return {
-        requestId: "",
-        type: "run",
-        success: false,
-        error: "No exported run() function found"
-      };
-    }
-    
-    // Store services and run function in global scope temporarily
+    // Store services in global scope temporarily
     const servicesVarName = `__services_${Date.now()}`;
-    const runVarName = `__run_${Date.now()}`;
     context.setProp(context.global, servicesVarName, servicesObj);
-    context.setProp(context.global, runVarName, runFunction);
     
     // Call run(services) - it's an async function that returns a Promise
     const runCall = await context.evalCodeAsync(`run(${servicesVarName})`, "<run-call>");
@@ -650,14 +670,10 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       
       // Cleanup
       runFunction.dispose();
-      if (result.value) result.value.dispose();
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
+      inputsObj.dispose();
+      outputsFn.dispose();
       try {
         context.setProp(context.global, servicesVarName, context.undefined);
-        context.setProp(context.global, runVarName, context.undefined);
       } catch {}
       if (servicesObj) {
         try {
@@ -686,6 +702,14 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     
     // If no value, that's also an error
     if (!runCall.value) {
+      runFunction.dispose();
+      inputsObj.dispose();
+      outputsFn.dispose();
+      try {
+        context.setProp(context.global, servicesVarName, context.undefined);
+      } catch {}
+      servicesObj.dispose();
+      
       return {
         requestId: "",
         type: "run",
@@ -701,7 +725,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     const resolvePromiseNative = context.resolvePromise(promiseHandle);
     
     // Execute pending jobs in a loop to drive Promise resolution
-    // The Promise won't resolve without executing pending jobs
     const executeJobsLoop = async () => {
       let maxIterations = 1000;
       while (maxIterations-- > 0) {
@@ -721,59 +744,9 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     promiseHandle.dispose();
     
     // Check for errors in the resolved result
-    if (resolvedResult.error) {
-      const errorHandle = resolvedResult.error;
-      let errorMsg = "Promise rejection";
-      try {
-        errorMsg = context.getString(errorHandle);
-      } catch {
-        try {
-          const json = context.dump(errorHandle);
-          errorMsg = json.consume((v: unknown) => String(v));
-        } catch {}
-      }
-      errorHandle.dispose();
-      
-      // Cleanup
-      runFunction.dispose();
-      if (result.value) result.value.dispose();
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
-      try {
-        context.setProp(context.global, servicesVarName, context.undefined);
-        context.setProp(context.global, runVarName, context.undefined);
-      } catch {}
-      if (servicesObj) {
-        try {
-          const keys = context.dump(servicesObj);
-          keys.consume((obj: any) => {
-            if (typeof obj === "object" && obj !== null) {
-              Object.keys(obj).forEach(key => {
-                try {
-                  const prop = context.getProp(servicesObj, key);
-                  if (prop) prop.dispose();
-                } catch {}
-              });
-            }
-          });
-        } catch {}
-        servicesObj.dispose();
-      }
-      
-      return {
-        requestId: "",
-        type: "run",
-        success: false,
-        error: errorMsg
-      };
-    }
-    
-    // Extract the resolved value from the handle
-    const resolvedResultAny = resolvedResult as any;
-    if (resolvedResultAny.error) {
-      const errorHandle = resolvedResultAny.error as QuickJSHandle;
+    const resolvedResultChecked = resolvedResult as any;
+    if (resolvedResultChecked.error) {
+      const errorHandle = resolvedResultChecked.error as QuickJSHandle;
       let errorMsg = "Promise rejection";
       try {
         errorMsg = context.getString(errorHandle);
@@ -789,14 +762,10 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       
       // Cleanup
       runFunction.dispose();
-      if (result.value) result.value.dispose();
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
+      inputsObj.dispose();
+      outputsFn.dispose();
       try {
         context.setProp(context.global, servicesVarName, context.undefined);
-        context.setProp(context.global, runVarName, context.undefined);
       } catch {}
       if (servicesObj) {
         try {
@@ -823,53 +792,29 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       };
     }
     
-    if (!resolvedResult.value) {
-      // No value - this is an error case
-      const errorMsg = "Promise resolved to undefined";
-      
-      // Cleanup
+    if (!resolvedResultChecked.value) {
       runFunction.dispose();
-      if (result.value) result.value.dispose();
-      describeFn.dispose();
-      inImgFn.dispose();
-      inTextFn.dispose();
-      pipelineModule.dispose();
+      inputsObj.dispose();
+      outputsFn.dispose();
       try {
         context.setProp(context.global, servicesVarName, context.undefined);
-        context.setProp(context.global, runVarName, context.undefined);
       } catch {}
-      if (servicesObj) {
-        try {
-          const keys = context.dump(servicesObj);
-          keys.consume((obj: any) => {
-            if (typeof obj === "object" && obj !== null) {
-              Object.keys(obj).forEach(key => {
-                try {
-                  const prop = context.getProp(servicesObj, key);
-                  if (prop) prop.dispose();
-                } catch {}
-              });
-            }
-          });
-        } catch {}
-        servicesObj.dispose();
-      }
+      servicesObj.dispose();
       
       return {
         requestId: "",
         type: "run",
         success: false,
-        error: errorMsg
+        error: "Promise resolved to undefined"
       };
     }
     
     // Extract the resolved value from the handle
-    const resolvedHandle = resolvedResult.value;
+    const resolvedHandle = resolvedResultChecked.value;
     
     // Cleanup temporary variables
     try {
       context.setProp(context.global, servicesVarName, context.undefined);
-      context.setProp(context.global, runVarName, context.undefined);
     } catch {}
     
     let resultValue: any = undefined;
@@ -916,14 +861,10 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       }
     }
     
-    
     // Cleanup
     runFunction.dispose();
-    if (result.value) result.value.dispose();
-    describeFn.dispose();
-    inImgFn.dispose();
-    inTextFn.dispose();
-    pipelineModule.dispose();
+    inputsObj.dispose();
+    outputsFn.dispose();
     servicesObj.dispose();
     
     // Return the result - use null instead of undefined for JSON serialization
