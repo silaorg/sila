@@ -12,6 +12,7 @@ import { getToolMkdir } from "./tools/toolMkdir";
 import { getToolRm } from "./tools/toolRm";
 import { getToolMove } from "./tools/toolMove";
 import { getToolApplyPatch } from "./tools/toolApplyPatch";
+import { getToolWriteToFile } from "./tools/toolWriteToFile";
 
 export class AgentServices {
   readonly space: Space;
@@ -178,6 +179,7 @@ export class AgentServices {
 
     const fetchImpl = opts?.fetchImpl;
     const appTree = opts?.appTree;
+    let useApplyPatch = false;
 
     if (model && model.provider === "openai") {
       tools.push({ name: "web_search" });
@@ -188,6 +190,7 @@ export class AgentServices {
       // At the moment only OpenAI's GPT-5.1 supports the apply_patch tool
       if (model.model.includes("gpt-5.1")) {
         tools.push(getToolApplyPatch(this.space, appTree));
+        useApplyPatch = true;
       }
     }
 
@@ -198,6 +201,10 @@ export class AgentServices {
     tools.push(getToolMkdir(this.space, appTree));
     tools.push(getToolRm(this.space, appTree));
     tools.push(getToolMove(this.space, appTree));
+
+    if (!useApplyPatch) {
+      tools.push(getToolWriteToFile(this.space, appTree));
+    }
 
     return tools;
   }

@@ -2,7 +2,7 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
-import { ChatAppData } from "@sila/core";
+import { resolvePath } from "./fileUtils";
 
 type LsEntryKind = "file" | "folder";
 
@@ -38,57 +38,36 @@ export function getToolLs(space: Space, appTree?: AppTree): LangToolWithHandler 
         );
       }
 
-      // Workspace-level: file:///assets or file:///assets/brand
-      if (uri.startsWith("file:///")) {
-        const path = uri.slice("file:///".length); // e.g. "assets" or "assets/brand"
-        const segments = path.split("/").filter(Boolean);
-        const root = space.rootVertex;
-        const target = segments.length === 0
-          ? root
-          : walkByName(root, segments, `Workspace path not found at /${segments.join("/")}`);
-        return listChildren(target, `/${segments.join("/")}`);
-      }
+      // Use unified path resolution
+      const resolved = resolvePath(space, appTree, uri);
 
-      // Chat-level: file: or file:assets/notes, relative to chat assets root
-      if (!appTree) {
-        throw new Error("Chat file ls requires a chat tree context");
-      }
-
-      const rawPath = uri.slice("file:".length); // "" or "assets" or "assets/notes" or "notes"
-      const trimmed = rawPath.trim();
-      const tree = appTree.tree;
-      const rootPath = ChatAppData.ASSETS_ROOT_PATH;
-
-      const assetsRoot = tree.getVertexByPath(rootPath) as Vertex | undefined;
-      if (!assetsRoot) {
-        // No assets root yet → nothing to list
+      // Special handling for chat root: if assets root doesn't exist, return empty list instead of error
+      if (!resolved.isWorkspace && !resolved.scopeRoot && !resolved.vertex) {
         return [];
       }
 
-      if (trimmed === "" || trimmed === "." || trimmed === "/") {
-        return listChildren(assetsRoot, rootPath);
+      if (!resolved.vertex) {
+        throw new Error(`Path not found: ${uri}`);
       }
 
-      // Normalize local path inside chat:
-      // - If user already included the assets root (file:assets/...), keep it
-      // - Otherwise, treat it as relative to the assets root (file:notes → assets/notes)
-      const stripped = trimmed.replace(/^\/+/, "");
-      let logicalPath: string;
-      if (stripped === rootPath || stripped.startsWith(`${rootPath}/`)) {
-        logicalPath = stripped;
-      } else {
-        logicalPath = `${rootPath}/${stripped}`;
+      // Determine logical path for display
+      // If resolved.name is the root name (e.g. "assets"), we might want to show relative paths from there?
+      // The original implementation constructed paths.
+      // If we listed "file:assets/foo", the children paths were "assets/foo/child".
+      
+      // Let's reconstruct the path from the URI or from vertex structure?
+      // URI is safer to match user expectation.
+      let basePath = uri.slice(uri.indexOf(":") + 1);
+      if (basePath.startsWith("//")) {
+        basePath = basePath.slice(2); // /assets/...
       }
-
-      const target = tree.getVertexByPath(logicalPath) as Vertex | undefined;
-      if (!target) {
-        throw new Error(`Chat path not found at ${logicalPath}`);
+      // Ensure basePath doesn't end with / unless it is just "/"
+      if (basePath.length > 1 && basePath.endsWith("/")) {
+        basePath = basePath.slice(0, -1);
       }
+      if (basePath === "") basePath = "/"; // For file:/// -> /
 
-      return listChildren(
-        target,
-        logicalPath
-      );
+      return listChildren(resolved.vertex, basePath);
     },
   };
 }
@@ -102,9 +81,12 @@ function listChildren(folder: Vertex, basePath: string): LsEntry[] {
     const isFolder = mimeType === undefined;
     const kind: LsEntryKind = isFolder ? "folder" as const : "file" as const;
     const name = child.name ?? "";
-    const path = basePath
-      ? `${basePath.replace(/\/+$/, "")}/${name}`
-      : name;
+    
+    // Construct path relative to the listing root
+    const path = basePath === "/" 
+      ? `/${name}` 
+      : `${basePath}/${name}`;
+
     entries.push({
       name,
       kind,
@@ -115,22 +97,3 @@ function listChildren(folder: Vertex, basePath: string): LsEntry[] {
   }
   return entries;
 }
-
-function walkByName(
-  start: Vertex,
-  segments: string[],
-  notFoundMessage: string
-): Vertex {
-  let current: Vertex | undefined = start;
-  for (const seg of segments) {
-    const children: Vertex[] = current?.children ?? [];
-    const next: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
-    if (!next || !current) {
-      throw new Error(notFoundMessage);
-    }
-    current = next;
-  }
-  return current!;
-}
-
-

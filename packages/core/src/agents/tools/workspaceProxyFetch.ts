@@ -3,6 +3,7 @@ import { proxyFetch } from "../../utils";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
+import { resolvePath } from "./fileUtils";
 
 const MAX_TEXT_BYTES = 1024 * 1024; // 1 MB safety limit for tool reads
 
@@ -26,44 +27,26 @@ export async function resolveWorkspaceFileUrl(
     throw new Error(`Unsupported URI scheme for workspace file resolver: ${url}`);
   }
 
-  if (url.startsWith("file:///")) {
-    // Workspace-level path from space root, e.g. file:///assets/brand.md
-    const pathWithoutPrefix = url.slice("file:///".length); // "assets/brand.md"
-    if (!pathWithoutPrefix) {
-      throw new Error(`Workspace file path is empty in URI: ${url}`);
-    }
-    const root = space.rootVertex;
-    const fileVertex = root.tree.getVertexByPath(pathWithoutPrefix) as Vertex | undefined;
-    if (!fileVertex) {
-      throw new Error(`Workspace file not found at /${pathWithoutPrefix}`);
-    }
-    return await readTextFromFileVertex(space, fileVertex, `/${pathWithoutPrefix}`);
-  }
-
-  // Chat-level path relative to current chat AppTree root, e.g. file:assets/document.md
-  if (!appTree) {
-    throw new Error(`Chat file URI requires a chat tree context: ${url}`);
-  }
-
-  const rawPath = url.slice("file:".length); // e.g. "assets/document.md" or "notes/doc.md"
-  const normalizedPath =
-    rawPath.startsWith("/") ? rawPath.slice(1) : rawPath;
-  if (!normalizedPath) {
-    throw new Error(`Chat file path is empty in URI: ${url}`);
-  }
-
-  const tree = appTree.tree;
-  const fileVertex = tree.getVertexByPath(normalizedPath) as Vertex | undefined;
+  // Use unified path resolution
+  const resolved = resolvePath(space, appTree, url);
+  const fileVertex = resolved.vertex;
 
   if (!fileVertex) {
-    throw new Error(`Chat file not found at ${normalizedPath}`);
+    // Try to construct a helpful error message
+    if (url.startsWith("file:///")) {
+      const path = url.slice("file:///".length);
+      throw new Error(`Workspace file not found at /${path}`);
+    } else {
+      // chat path
+      const rawPath = url.slice("file:".length);
+      throw new Error(`Chat file not found at ${rawPath}`);
+    }
   }
 
-  return await readTextFromFileVertex(
-    space,
-    fileVertex,
-    normalizedPath
-  );
+  // Calculate logical path for error messages
+  const logicalPath = resolved.name; // Simplified, or reconstruct full path if needed
+
+  return await readTextFromFileVertex(space, fileVertex, logicalPath);
 }
 
 export function createWorkspaceProxyFetch(
