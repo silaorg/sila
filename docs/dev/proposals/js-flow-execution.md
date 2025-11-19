@@ -6,15 +6,15 @@
 - We need an incremental path that keeps Sila’s local-first, user-owned guarantees while adding safe execution of JavaScript workflow files.
 
 ## Current Context
-- **Workspaces are ordinary folders** that users sync/share however they like; anything we introduce must stay sandboxed inside that folder and respect offline operation.  
-- **Files are modeled via RepTree metadata + CAS/mutable blobs** (`Files AppTree`, hashes for immutable binaries, UUIDs for editable docs). Workflow scripts would just be regular text files that agents manage with the existing `ls`, `mkdir`, `move`, `apply_patch`, and `write_to_file` tools.  
-- **`WrapChatAgent` already attaches tools per conversation** by injecting a workspace-aware fetch and exposing FS tools through `AgentServices.getToolsForModel`. Extending the toolbelt with “lint” and “run” commands follows the same pattern.
+- **RepTree-backed virtual file system**: Every workspace is modeled as a set of RepTree CRDT trees (space tree + app trees). Files live in the Files AppTree with metadata pointing to CAS/mutable blobs in FileStore, so workflows must read/write via this virtual FS, not the host filesystem.  
+- **Browser-first runtime**: The entire Sila client runs in a browser environment (Svelte + RepTree), even inside Electron. Execution tooling therefore needs to rely on browser APIs (Web Workers, WASM, message channels) for v1, while keeping hooks open to offload runs to Electron main or future servers.  
+- **Existing agent tooling**: `WrapChatAgent` already wires tools (ls/mkdir/move/apply_patch/write) through `AgentServices.getToolsForModel`, with workspace-aware fetch access to RepTree/AppTree data. New lint/run tools can reuse that plumbing.
 
 ## Goals
 1. Allow agents (and users) to lint and execute `.flow.js` files stored in the current workspace.  
-2. Keep everything local-first, with no dependence on remote services beyond the model provider already in use.  
+2. Keep everything local-first and browser-native for v1 (Web Worker/WASM execution) while preserving the option to delegate to Electron main or remote servers later without changing the tool contract.  
 3. Provide clear logs/results back into the chat, ideally attaching artifacts (stdout/stderr, generated files) to the Files tree.  
-4. Offer a straightforward migration path: start simple, layer in ergonomics/sandboxing as needed.
+4. Offer a straightforward migration path: start simple, layer in ergonomics/sandboxing or remote execution as needed.
 
 ## Non-Goals
 - Designing a general-purpose package manager or dependency cache (reuse what Node/Deno already provide).
@@ -31,39 +31,39 @@
 
 ## Three Minimal Approaches
 
-### 1. Direct Node Runner Tool
-- **What:** Add `lint_js` and `run_js` LangTools. They resolve workspace-relative paths (reuse `toolLs` guards), then spawn the Node runtime/ESLint already bundled with the desktop build.  
-- **Flow:** `apply_patch` → `lint_js { path, fix }` → `run_js { path, args }`; stdout/stderr streams back and is optionally saved as `flows/.runs/<timestamp>.log`.  
+### 1. Browser Worker Runner (QuickJS/SES)
+- **What:** Add `lint_flow` and `run_flow` LangTools that execute inside a dedicated Web Worker. Bundle a sandboxed JS engine (QuickJS compiled to WASM or SES Hardened Realms) plus WASM builds of ESLint/Babel. Tools resolve RepTree paths, load the script bytes via FileStore, stream them into the worker, and run them entirely via browser APIs.  
+- **Flow:** `apply_patch` → `lint_flow { path, fix }` → `run_flow { path, args }`; stdout/stderr are captured via worker `postMessage` and optionally persisted as `files/flows/.runs/<timestamp>.log`.  
 - **Implementation Notes:**  
-  - Leverage `child_process.spawn` with `cwd` set to the workspace root, pass explicit env, enforce timeouts, strip ANSI codes before sending to chat.  
-  - Allow dependency installs by pointing `npm`/`pnpm` to a `flows/node_modules` directory inside the workspace.  
-  - Add toggles for network access (default deny) and memory/CPU caps using Node’s `--max-old-space-size` and process kill timers.  
-- **Pros:** Fastest to ship, minimal new concepts, uses existing runtime.  
-- **Cons:** Harder to sandbox, relies on developers managing ESLint configs, dependency installs may mutate the workspace a lot.
+  - Provide a constrained runtime API (read/write through RepTree-backed adapters, fetch proxy, timers) passed into the worker.  
+  - Use WASM ESLint with a lightweight config (ships with the app) so linting works offline with no Node.  
+  - Enforce CPU/time quotas via worker termination and limit memory via WASM heap size.  
+- **Pros:** Works identically in browser, Electron, and future web builds; no native dependencies.  
+- **Cons:** Need to maintain sandbox VM bundle; performance limited by WASM interpreter; harder to reuse existing Node-based tooling.
 
-### 2. Flow Manifest + Worker Thread
-- **What:** Standardize `flows/flow.config.json` (name → entry → env → permissions). A new Flow Runner worker in the desktop process watches the folder. Tools `flow_run`, `flow_list`, `flow_status` enqueue requests to the worker, which lints (via `npm run lint:flow -- <entry>`) then executes `node flows/<entry>`.  
-- **Flow:** Agents reference flows by name (`flow_run { name: "generateVideo", mode: "dry-run" }`). The worker captures logs, exit codes, produced file refs, and writes a CRDT vertex per run.  
+### 2. Flow Manifest + Worker Supervisor
+- **What:** Introduce `flows/flow.config.json` describing named flows (entry vertex IDs, required permissions, default args). A browser worker supervisor watches (via RepTree observers) for manifest or script changes. Tools `flow_run`, `flow_list`, `flow_status` communicate with the supervisor, which handles lint + run inside the same worker sandbox as Approach 1 but uses the manifest metadata to configure env/permissions.  
+- **Flow:** Agent calls `flow_run { name: "generateVideo", mode: "dry-run" }`; supervisor resolves the entry script, lints, executes, streams logs, and records run artifacts/metadata under `files/runs/<flow>/<timestamp>.json`.  
 - **Implementation Notes:**  
-  - Schema validate manifests (Zod) so bad configs fail early.  
-  - Worker thread isolates execution and keeps the UI responsive; all outputs go through a structured channel.  
-  - Attach run metadata under `files/runs/<flow>/<timestamp>.json` for later inspection.  
-- **Pros:** Gives users first-class “flows” with reusable metadata, centralizes execution control, easier to add scheduling later.  
-- **Cons:** Requires more scaffolding (manifest format, watcher, queue) before first run works.
+  - Validate manifests with Zod before saving; errors surface to the chat immediately.  
+  - Supervisor serializes run queue requests so only one flow runs per worker, keeping resource use predictable.  
+  - Run metadata (status, duration, outputs) is mirrored back into RepTree so other UIs can display history.  
+- **Pros:** Gives users first-class flows, centralizes permissions/env, and keeps the browser runtime responsive.  
+- **Cons:** Requires manifest schema, observer wiring, and run queue before first execution, so slightly longer to ship.
 
-### 3. Sandboxed Deno/Bun Execution
-- **What:** Bundle a self-contained runtime (Deno or Bun) and expose a single `flow_exec` tool that performs `deno lint` + `deno run` with explicit permission flags (e.g., `--allow-read=/workspace/<id>/flows`, `--deny-net` by default). Each call happens in a temp dir, dependencies are cached per workspace.  
-- **Flow:** Agent writes `*.flow.js`, optionally annotates permissions at the top (`// @flow net:off fs:read`), runs `flow_exec { path, lint: true, args }`, and receives structured diagnostics plus stdout/stderr.  
+### 3. Pluggable Remote/Electron Backend
+- **What:** Define the lint/run tool contract so it can delegate to alternative executors: Electron main, a local Node service, or a remote workspace server. The browser still issues `flow_exec` requests, but the execution target is decided by policy (browser worker by default; optional backend for heavier workloads).  
+- **Flow:** In v1, requests fall back to the browser worker. Later, users can opt into “server-backed” flows; the client serializes the needed files (hash references) and sends them to the backend, which runs the script (maybe using Node/Deno) and streams logs back through the same tool API.  
 - **Implementation Notes:**  
-  - Deno already ships lint/test/type-check, so the tool can parse JSON diagnostics and pass precise file/line info back to the agent.  
-  - Sandboxing is handled by the runtime (no custom chroot).  
-  - Network/file permissions can be escalated per run via tool arguments or manifest comments.  
-- **Pros:** Strong isolation, minimal extra tooling to maintain, deterministic dependency cache.  
-- **Cons:** Adds another binary to ship, increases bundle size, unfamiliar workflow for users tied to Node tooling.
+  - Keep tool arguments runtime-agnostic (`{ path, args, env, allowNet }`) so the executor can be swapped without chat changes.  
+  - For Electron, use IPC to call the main process; for remote servers, reuse the existing sync channel or add a lightweight HTTP runner.  
+  - When remote, enforce access control and map run artifacts back into RepTree to keep the virtual FS authoritative.  
+- **Pros:** Future-proofs the design for heavier flows and server/cloud execution while keeping the browser-first story intact.  
+- **Cons:** Requires additional plumbing (IPC/transport, auth, serialization) when we introduce non-browser executors.
 
 ## Recommendation / Next Steps
-1. **Spike the Direct Node Runner** (fastest path to end-to-end value). Build it as a LangTool pair with strict timeouts and workspace path validation.  
-2. **Evaluate user friction** (config management, sandboxing). If flows proliferate, graduate to the Manifest + Worker model so runs are first-class artifacts.  
-3. **Plan for sandboxing** by optionally swapping the backend to Deno/Bun later without changing the tool contract—keep arguments generic (`{ path, args, env, allowNet }`) so the runtime is an implementation detail.
+1. **Spike the Browser Worker Runner**: bundle QuickJS/SES + WASM ESLint, expose `lint_flow`/`run_flow`, and validate RepTree path resolution + log capture end to end.  
+2. **Layer Flow Manifest ergonomics** once basic execution works, so flows become named assets with reproducible configs and run history.  
+3. **Design the pluggable executor interface** early (even if only the browser worker is implemented) so migrating select workspaces to Electron-main or future server backends is just a configuration change, not a protocol rewrite.
 
-This sequence gives us immediate workflow automation while leaving room to harden the system and add richer flow metadata without redoing the agent interface.
+This keeps v1 purely browser-based, honors the RepTree virtual FS model, and leaves a straightforward path to heavier server/Electron execution when we need it.
