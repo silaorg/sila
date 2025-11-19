@@ -124,7 +124,34 @@ async function run(services) {
 
 ### Service Implementation
 
-#### 1. Service Request/Response Protocol
+#### 1. Flow Execution Request Protocol
+
+Inputs are passed from main thread to worker via `FlowWorkerRequest`:
+
+```typescript
+// In toolRunFlow.ts (main thread)
+interface FlowWorkerRequest {
+  requestId: string;
+  type: "run" | "lint" | "inspect";
+  code?: string;
+  services?: any; // Service descriptors (serializable)
+  inputs?: Record<string, ServiceReference>; // User-provided input values
+}
+
+// Example: Calling runFlowWithServices()
+await runFlowWithServices(code, servicesDescriptor, space, appTree, {
+  "img-a": { type: "image", id: "file-id-1", url: "file:///..." },
+  "img-b": { type: "image", id: "file-id-2", url: "file:///..." },
+  "prompt": { type: "text", id: "text-1", value: "user text" }
+});
+
+// This sends FlowWorkerRequest to worker with:
+// - code: flow code string
+// - services: service descriptors
+// - inputs: Record<string, ServiceReference>
+```
+
+#### 2. Service Request/Response Protocol
 
 ```typescript
 interface ServiceRequest {
@@ -141,7 +168,7 @@ interface ServiceResponse {
 }
 ```
 
-#### 2. Service Execution in Main App
+#### 3. Service Execution in Main App
 
 Services execute outside sandbox with full workspace access:
 
@@ -168,38 +195,54 @@ async function executeImageService(
 }
 ```
 
-#### 3. Service Bridge in Worker
+#### 4. Service Bridge in Worker
 
-Worker receives service calls, forwards to main app:
+Worker receives service calls, forwards to main app. Services object is created and passed to `run(services)`:
 
 ```typescript
-// In flowWorker.ts
-async function createServiceBridge(
-  context: QuickJSAsyncContext,
-  space: Space,
-  appTree?: AppTree
-): Promise<QuickJSHandle> {
+// In flowWorker.ts - executeFlowCodeWithServices()
+async function executeFlowCodeWithServices(
+  code: string,
+  servicesDescriptor: any,
+  inputsMap?: Record<string, ServiceReference>
+): Promise<FlowWorkerResponse> {
+  const { context } = await initQuickJS();
+  
+  // 1. Execute flow code to define setup() and run() functions
+  await context.evalCodeAsync(code, "<flow-run>");
+  
+  // 2. Get the run() function from global scope
+  const runFunction = context.getProp(context.global, "run");
+  
+  // 3. Create services object
   const servicesObj = context.newObject();
   
-  // services.inputs - populated from user-provided data
+  // 4. Populate services.inputs with user-provided data
   const inputsObj = context.newObject();
-  // ... populate with input references
+  if (inputsMap) {
+    for (const [key, value] of Object.entries(inputsMap)) {
+      // Convert ServiceReference to QuickJS object
+      const refHandle = await convertReferenceToQuickJS(value, context);
+      context.setProp(inputsObj, key, refHandle);
+    }
+  }
   context.setProp(servicesObj, "inputs", inputsObj);
   
-  // services.outputs() - track output values
+  // 5. Create services.outputs() function
+  const outputValues: Record<string, ServiceReference> = {};
   const outputsFn = context.newAsyncifiedFunction("outputs", async (idHandle, valueHandle) => {
     const id = context.getString(idHandle);
-    const value = extractReference(valueHandle); // Extract ServiceReference
+    const value = await extractReferenceFromQuickJS(valueHandle, context);
     outputValues[id] = value;
     return context.undefined;
   });
   context.setProp(servicesObj, "outputs", outputsFn);
   
-  // services.img() - image processing service
+  // 6. Create service functions (img, agent, etc.)
   const imgFn = context.newAsyncifiedFunction("img", async (...args) => {
-    const images = extractReferences(args[0]);
+    const images = await extractReferencesFromQuickJS(args[0], context);
     const prompt = context.getString(args[1]);
-    const options = args[2] ? extractOptions(args[2]) : undefined;
+    const options = args[2] ? await extractOptionsFromQuickJS(args[2], context) : undefined;
     
     // Forward to main app via postMessage
     const result = await callServiceInMainApp({
@@ -207,32 +250,52 @@ async function createServiceBridge(
       inputs: images,
       prompt,
       options
-    }, space, appTree);
+    });
     
-    return convertReferenceToQuickJS(result, context);
+    return await convertReferenceToQuickJS(result, context);
   });
   context.setProp(servicesObj, "img", imgFn);
   
-  // services.agent() - AI agent service
   const agentFn = context.newAsyncifiedFunction("agent", async (...args) => {
-    const input = extractReference(args[0]);
+    const input = await extractReferenceFromQuickJS(args[0], context);
     const prompt = context.getString(args[1]);
     
     const result = await callServiceInMainApp({
       type: "agent",
       inputs: [input],
       prompt
-    }, space, appTree);
+    });
     
-    return convertReferenceToQuickJS(result, context);
+    return await convertReferenceToQuickJS(result, context);
   });
   context.setProp(servicesObj, "agent", agentFn);
   
-  return servicesObj;
+  // 7. Call run(services) with the services object
+  const servicesVarName = `__services_${Date.now()}`;
+  context.setProp(context.global, servicesVarName, servicesObj);
+  const runCall = await context.evalCodeAsync(`run(${servicesVarName})`, "<run-call>");
+  
+  // 8. Extract result and return
+  const result = await extractResultFromQuickJS(runCall, context);
+  
+  return {
+    success: true,
+    result,
+    outputs: outputValues
+  };
 }
 ```
 
-#### 4. Service Call Bridge
+**Input passing flow:**
+
+1. Main thread calls `runFlowWithServices(code, services, space, appTree, inputs)`
+2. `inputs` is a `Record<string, ServiceReference>` with user-provided data
+3. Inputs are serialized and sent to worker via `FlowWorkerRequest`
+4. Worker receives inputs in `executeFlowCodeWithServices(code, servicesDescriptor, inputsMap)`
+5. Each input reference is converted to QuickJS object and added to `services.inputs`
+6. Services object is passed to `run(services)` function call
+
+#### 5. Service Call Bridge
 
 Worker communicates with main app via postMessage:
 
