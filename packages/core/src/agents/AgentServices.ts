@@ -176,17 +176,20 @@ export class AgentServices {
   ): LangTool[] {
     const tools: LangTool[] = [];
 
-    // @TODO: choose what to use for "web search" automatically based on the model
+    const fetchImpl = opts?.fetchImpl;
+    const appTree = opts?.appTree;
 
     if (model && model.provider === "openai") {
       tools.push({ name: "web_search" });
 
       // @TODO: check if model can generate images
       tools.push({ name: "image_generation" });
-    }
 
-    const fetchImpl = opts?.fetchImpl;
-    const appTree = opts?.appTree;
+      // At the moment only OpenAI's GPT-5.1 supports the apply_patch tool
+      if (model.model.includes("gpt-5.1")) {
+        tools.push(getToolApplyPatch(this.space, appTree));
+      }
+    }
 
     tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
 
@@ -195,7 +198,6 @@ export class AgentServices {
     tools.push(getToolMkdir(this.space, appTree));
     tools.push(getToolRm(this.space, appTree));
     tools.push(getToolMove(this.space, appTree));
-    tools.push(getToolApplyPatch(this.space, appTree));
 
     return tools;
   }
