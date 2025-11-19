@@ -1,32 +1,26 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData, Backend, FilesTreeData } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData, Backend } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
+import { getEnvVar } from '../setup/env';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const openrouterApiKey = getEnvVar('OPENROUTER_API_KEY', 'your_openrouter_api_key_here');
+const openrouterIntegrationTest = openrouterApiKey ? it : it.skip;
+
+if (!openrouterApiKey) {
+  console.warn(
+    '[tests] Skipping OpenRouter integration tests: set OPENROUTER_API_KEY in your environment or .env file to enable them.'
+  );
+}
 
 describe('OpenRouter AI Integration', () => {
   let tempDir: string;
-  let openrouterApiKey: string | undefined;
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-openrouter-test-'));
-    
-    // Try to read OpenRouter API key from environment or .env file
-    openrouterApiKey = process.env.OPENROUTER_API_KEY;
-    
-    if (!openrouterApiKey) {
-      try {
-        const envPath = path.join(process.cwd(), '.env');
-        const envContent = await readFile(envPath, 'utf-8');
-        const match = envContent.match(/OPENROUTER_API_KEY=([^\n]+)/);
-        openrouterApiKey = match?.[1];
-      } catch (error) {
-        console.warn('No .env file found or could not read OpenRouter API key');
-      }
-    }
   });
 
   afterAll(async () => {
@@ -35,15 +29,8 @@ describe('OpenRouter AI Integration', () => {
     }
   });
 
-  it('should work with OpenRouter using auto model selection', async () => {
-    // Skip test if no OpenRouter API key is available
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      console.log('To run this test, set OPENROUTER_API_KEY environment variable or create a .env file with:');
-      console.log('OPENROUTER_API_KEY=your_actual_openrouter_api_key');
-      return;
-    }
-
+  openrouterIntegrationTest('should work with OpenRouter using auto model selection', async () => {
+    const apiKey = openrouterApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -63,7 +50,7 @@ describe('OpenRouter AI Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey
     });
 
     // Add a chat assistant config using "auto" model
@@ -113,13 +100,8 @@ describe('OpenRouter AI Integration', () => {
     expect(responseData.text).toContain('Hello from OpenRouter!');
   }, 30000);
 
-  it('should work with OpenRouter using specific model (openai/gpt-4o)', async () => {
-    // Skip test if no OpenRouter API key is available
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      return;
-    }
-
+  openrouterIntegrationTest('should work with OpenRouter using specific model (openai/gpt-4o)', async () => {
+    const apiKey = openrouterApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -139,7 +121,7 @@ describe('OpenRouter AI Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey
     });
 
     // Add a chat assistant config using specific model
@@ -189,13 +171,8 @@ describe('OpenRouter AI Integration', () => {
     expect(responseData.text).toContain('Using GPT-4o via OpenRouter!');
   }, 30000);
 
-  it('should work with OpenRouter using different models (anthropic/claude-3-5-sonnet)', async () => {
-    // Skip test if no OpenRouter API key is available
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      return;
-    }
-
+  openrouterIntegrationTest('should work with OpenRouter using different models (anthropic/claude-3-5-sonnet)', async () => {
+    const apiKey = openrouterApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -215,7 +192,7 @@ describe('OpenRouter AI Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey
     });
 
     // Add a chat assistant config using Claude model
@@ -266,12 +243,6 @@ describe('OpenRouter AI Integration', () => {
   }, 30000);
 
   it('should handle OpenRouter auto model resolution correctly', async () => {
-    // Skip test if no OpenRouter API key is available
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      return;
-    }
-
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -291,7 +262,7 @@ describe('OpenRouter AI Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey: openrouterApiKey ?? 'test-openrouter-key'
     });
 
     // Test the AgentServices directly to verify auto model resolution
@@ -320,12 +291,6 @@ describe('OpenRouter AI Integration', () => {
   }, 10000);
 
   it('should handle OpenRouter provider/auto model resolution', async () => {
-    // Skip test if no OpenRouter API key is available
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      return;
-    }
-
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -345,7 +310,7 @@ describe('OpenRouter AI Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey: openrouterApiKey ?? 'test-openrouter-key'
     });
 
     // Test the AgentServices directly to verify openrouter/auto resolution
@@ -363,29 +328,4 @@ describe('OpenRouter AI Integration', () => {
 
     console.log('OpenRouter/auto resolved to:', lastResolved);
   }, 10000);
-
-  it('demonstrates test structure without API key', async () => {
-    // This test demonstrates the structure without requiring an API key
-    console.log('OpenRouter Test Structure Demonstration:');
-    console.log('1. Create space with file store');
-    console.log('2. Add OpenRouter provider with API key');
-    console.log('3. Create chat assistant config with auto or specific model');
-    console.log('4. Create chat tree and add user message');
-    console.log('5. Set up backend to process messages');
-    console.log('6. Wait for AI response and verify');
-    console.log('');
-    console.log('To run the actual tests:');
-    console.log('1. Set OPENROUTER_API_KEY environment variable');
-    console.log('2. Or create a .env file with: OPENROUTER_API_KEY=your_actual_openrouter_api_key');
-    console.log('3. Run: npm -w packages/core run test -- --run src/ai/ai-openrouter.test.ts');
-    console.log('');
-    console.log('Available OpenRouter models to test:');
-    console.log('- openai/gpt-4o (default)');
-    console.log('- anthropic/claude-3-5-sonnet-20241022');
-    console.log('- meta-llama/llama-3.2-90b-vision-instruct');
-    console.log('- google/gemini-2.0-flash');
-    
-    // This test always passes - it's just for documentation
-    expect(true).toBe(true);
-  });
 });

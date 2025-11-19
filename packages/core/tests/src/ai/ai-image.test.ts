@@ -4,25 +4,31 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData, Backend, FilesTreeData } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
+import { getEnvVar } from '../setup/env';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const openaiApiKey = getEnvVar('OPENAI_API_KEY', 'your_openai_api_key_here');
+const openrouterApiKey = getEnvVar('OPENROUTER_API_KEY', 'your_openrouter_api_key_here');
+const openaiIntegrationTest = openaiApiKey ? it : it.skip;
+const openrouterIntegrationTest = openrouterApiKey ? it : it.skip;
+
+if (!openaiApiKey) {
+  console.warn(
+    '[tests] Skipping OpenAI vision integration tests: set OPENAI_API_KEY in your environment or .env file to enable them.'
+  );
+}
+
+if (!openrouterApiKey) {
+  console.warn(
+    '[tests] Skipping OpenRouter vision integration tests: set OPENROUTER_API_KEY in your environment or .env file to enable them.'
+  );
+}
 
 describe('AI Image Integration', () => {
   let tempDir: string;
-  let openaiApiKey: string | undefined;
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-ai-image-test-'));
-    
-    // Try to read OpenAI API key from .env file
-    try {
-      const envPath = path.join(process.cwd(), '.env');
-      const envContent = await readFile(envPath, 'utf-8');
-      const match = envContent.match(/OPENAI_API_KEY=([^\n]+)/);
-      openaiApiKey = match?.[1];
-    } catch (error) {
-      console.warn('No .env file found or could not read OpenAI API key');
-    }
   });
 
   afterAll(async () => {
@@ -31,15 +37,8 @@ describe('AI Image Integration', () => {
     }
   });
 
-  it('should process image attachments in AI responses', async () => {
-    // Skip test if no OpenAI API key is available
-    if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
-      console.log('Skipping test: No valid OpenAI API key available');
-      console.log('To run this test, create a .env file in the root directory with:');
-      console.log('OPENAI_API_KEY=your_actual_openai_api_key');
-      return;
-    }
-
+  openaiIntegrationTest('should process image attachments in AI responses', async () => {
+    const apiKey = openaiApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -59,7 +58,7 @@ describe('AI Image Integration', () => {
     space.saveModelProviderConfig({
       id: 'openai',
       type: 'cloud',
-      apiKey: openaiApiKey
+      apiKey
     });
 
     // Add a chat assistant config
@@ -165,15 +164,8 @@ describe('AI Image Integration', () => {
     expect(responseText).toContain('YES');
   }, 30000); // 30 second timeout for API call
 
-  it('should maintain image context in follow-up conversations', async () => {
-    // Skip test if no OpenAI API key is available
-    if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
-      console.log('Skipping test: No valid OpenAI API key available');
-      console.log('To run this test, create a .env file in the root directory with:');
-      console.log('OPENAI_API_KEY=your_actual_openai_api_key');
-      return;
-    }
-
+  openaiIntegrationTest('should maintain image context in follow-up conversations', async () => {
+    const apiKey = openaiApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -193,7 +185,7 @@ describe('AI Image Integration', () => {
     space.saveModelProviderConfig({
       id: 'openai',
       type: 'cloud',
-      apiKey: openaiApiKey
+      apiKey
     });
 
     // Add a chat assistant config
@@ -314,32 +306,8 @@ describe('AI Image Integration', () => {
     expect(firstSeesCat || followUpSeesCat).toBe(true);
   }, 60000); // 60 second timeout for API calls
 
-  it('demonstrates test structure without API key', async () => {
-    // This test demonstrates the structure without requiring an API key
-    console.log('Test structure demonstration:');
-    console.log('1. Create space with file store');
-    console.log('2. Add OpenAI provider with API key');
-    console.log('3. Create chat assistant config');
-    console.log('4. Create chat tree and add user message with cat image');
-    console.log('5. Set up backend to process messages');
-    console.log('6. Wait for AI response and check for "cat" keyword');
-    console.log('');
-    console.log('To run the actual tests:');
-    console.log('1. Create a .env file in the root directory');
-    console.log('2. Add: OPENAI_API_KEY=your_actual_openai_api_key');
-    console.log('3. Run: npm -w packages/core run test -- --run src/ai/ai-image.test.ts');
-    
-    // This test always passes - it's just for documentation
-    expect(true).toBe(true);
-  });
-
-  it('should say NO IMAGE when no image is provided', async () => {
-    // Skip test if no OpenAI API key is available
-    if (!openaiApiKey || openaiApiKey === 'your_openai_api_key_here') {
-      console.log('Skipping test: No valid OpenAI API key available');
-      return;
-    }
-
+  openaiIntegrationTest('should say NO IMAGE when no image is provided', async () => {
+    const apiKey = openaiApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -359,7 +327,7 @@ describe('AI Image Integration', () => {
     space.saveModelProviderConfig({
       id: 'openai',
       type: 'cloud',
-      apiKey: openaiApiKey
+      apiKey
     });
 
     // Add a chat assistant config
@@ -409,15 +377,8 @@ describe('AI Image Integration', () => {
     expect(responseData.text.trim()).toBe('NO IMAGE');
   }, 30000);
 
-  it('should process image attachments with OpenRouter', async () => {
-    // Skip test if no OpenRouter API key is available
-    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-    if (!openrouterApiKey || openrouterApiKey === 'your_openrouter_api_key_here') {
-      console.log('Skipping test: No valid OpenRouter API key available');
-      console.log('To run this test, set OPENROUTER_API_KEY environment variable');
-      return;
-    }
-
+  openrouterIntegrationTest('should process image attachments with OpenRouter', async () => {
+    const apiKey = openrouterApiKey!;
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -437,7 +398,7 @@ describe('AI Image Integration', () => {
     space.saveModelProviderConfig({
       id: 'openrouter',
       type: 'cloud',
-      apiKey: openrouterApiKey
+      apiKey
     });
 
     // Add a chat assistant config using OpenRouter with vision model
