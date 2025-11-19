@@ -1,11 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
-import { Space, ChatAppData, FileSystemPersistenceLayer, SpaceManager, SimpleChatAgent, AgentServices } from '@sila/core';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest';
+import { Space, ChatAppData, FileSystemPersistenceLayer, SpaceManager, AgentServices, WrapChatAgent } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { ThreadMessage } from '@sila/core';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const toBase64 = (value: string) => Buffer.from(value, 'utf-8').toString('base64');
 
 describe('Text File AI Integration', () => {
   let space: Space;
@@ -52,117 +54,61 @@ describe('Text File AI Integration', () => {
     await manager.addNewSpace(space, [layer]);
   });
 
-  afterEach(async () => {
-    // Clean up
+  const createAgent = () => new WrapChatAgent(chatData, new AgentServices(space), chatTree);
+
+  const createTextAttachment = (name: string, content: string, mimeType = 'text/plain') => ({
+    id: crypto.randomUUID(),
+    kind: 'text' as const,
+    name,
+    mimeType,
+    size: content.length,
+    content,
+    metadata: {
+      lineCount: content.split('\n').length,
+      charCount: content.length,
+      wordCount: content.split(/\s+/).filter(Boolean).length,
+      hasContent: true,
+      language: mimeType === 'text/markdown' ? 'Markdown' : 'Plain Text',
+      encoding: 'utf-8'
+    },
+    width: content.split('\n').length,
+    height: content.length,
+    alt: mimeType === 'text/markdown' ? 'Markdown' : 'Plain Text'
   });
 
-  describe('Simple Number File Test', () => {
-    it('should include text file content in AI message processing', async () => {
-      // Create a simple text file with just a number
-      const textContent = '8899';
-      const textFile = new File([textContent], 'test-number.txt', { type: 'text/plain' });
-      
-      // Create attachment preview
-      const attachment = {
-        id: 'test-id',
-        kind: 'text' as const,
-        name: 'test-number.txt',
-        mimeType: 'text/plain',
-        size: textFile.size,
-        content: textContent,
-        metadata: {
-          lineCount: 1,
-          charCount: textContent.length,
-          wordCount: 1,
-          hasContent: true,
-          language: 'Plain Text',
-          encoding: 'utf-8'
-        },
-        width: 1, // lineCount
-        height: textContent.length, // charCount
-        alt: 'Plain Text'
-      };
+  const toText = (langMessage: any): string => {
+    if (typeof langMessage.text === 'string') {
+      return langMessage.text;
+    }
+    if (Array.isArray(langMessage.items)) {
+      return langMessage.items
+        .filter((item: any) => item?.type === 'text')
+        .map((item: any) => item.text)
+        .join('\n');
+    }
+    return '';
+  };
 
-      // Send message with text file attachment
+  const convert = async (agent: WrapChatAgent, message: ThreadMessage, supportsVision = true) =>
+    agent['convertToLangMessage'](message, supportsVision);
+
+  describe('WrapChatAgent file-aware conversions', () => {
+    it('embeds persisted text attachment content into LangMessage text', async () => {
+      const attachment = createTextAttachment('test-number.txt', '8899');
       const message = await chatData.newMessage({ role: 'user', text: 'What number is in this file?', attachments: [attachment] });
+      await wait(800);
 
-      // Allow time for file store operations to complete
-      await wait(1200);
+      const agent = createAgent();
+      const langMessage = await convert(agent, message);
+      const content = toText(langMessage);
 
-      // Verify message was created
-      expect(message).toBeDefined();
-      expect(message.text).toBe('What number is in this file?');
-      expect(message.role).toBe('user');
-
-      // Verify files were persisted
-      const messageVertex = (chatData.messageVertices.at(-1) as any);
-      const files = messageVertex?.getProperty('files') as any[];
-      expect(files).toBeDefined();
-      expect(files.length).toBe(1);
-      // Persisted files are bare FileReference
-      expect(files[0].tree).toBeDefined();
-      expect(files[0].vertex).toBeDefined();
-
-      // Test the AI processing by simulating what SimpleChatAgent would do
-      const agentServices = new AgentServices(space);
-      const config = space.getAppConfig('test-assistant');
-      const simpleChatAgent = new SimpleChatAgent(agentServices, config!);
-
-      // Resolve message attachments (simulate what ChatAppBackend does)
-      const resolvedMessage = await chatData.resolveMessageFiles(message);
-      
-      // Test the message processing logic
-      const processedMessages = [
-        { role: 'system', text: config!.instructions },
-        resolvedMessage
-      ];
-
-      // Extract text files from the resolved message
-      const resolvedAttachments = (resolvedMessage as any).files || [];
-      const textFiles = resolvedAttachments.filter((a: any) => a?.mimeType?.startsWith('text/') || a?.kind === 'text');
-
-      console.log('Resolved attachments:', {
-        total: resolvedAttachments.length,
-        textFiles: textFiles.length,
-        details: textFiles.map((tf: any) => ({
-          name: tf.name,
-          hasFileRef: !!(tf.file?.tree && tf.file?.vertex),
-          hasDataUrl: !!tf.dataUrl,
-          dataUrlPreview: tf.dataUrl ? tf.dataUrl.substring(0, 50) + '...' : null
-        }))
-      });
-
-      // Test content extraction
-      let extractedContent = '';
-      for (const textFile of textFiles) {
-        let fileContent: string | null = null;
-        
-        if (textFile.dataUrl) {
-          // Extract from data URL
-          fileContent = simpleChatAgent['extractTextFromDataUrl'](textFile.dataUrl);
-        }
-        
-        if (fileContent) {
-          const fileHeader = `\n\n--- File: ${textFile.name} (${textFile.alt || 'text'}) ---\n`;
-          extractedContent += fileHeader + fileContent;
-        }
-      }
-
-      console.log('Extracted content:', {
-        length: extractedContent.length,
-        content: extractedContent
-      });
-
-      // Verify that the content was extracted correctly
-      expect(extractedContent).toContain('8899');
-      expect(extractedContent).toContain('test-number.txt');
+      expect(content).toContain('What number is in this file?');
+      expect(content).toContain('--- File: test-number.txt (file:assets/test-number.txt) ---');
+      expect(content).toContain('8899');
     });
-  });
 
-  describe('Markdown File Test', () => {
-    it('should handle markdown files correctly', async () => {
-      // Create a markdown file
-      const textContent = `# Test File
+    it('preserves markdown structure when embedding text attachments', async () => {
+      const markdown = `# Test File
 
 This is a test markdown file.
 
@@ -175,302 +121,104 @@ function test() {
   return 8899;
 }
 \`\`\``;
+      const attachment = createTextAttachment('test.md', markdown, 'text/markdown');
+      const message = await chatData.newMessage({ role: 'user', text: 'Please summarize this markdown', attachments: [attachment] });
+      await wait(800);
 
-      const textFile = new File([textContent], 'test.md', { type: 'text/markdown' });
-      
-      const attachment = {
-        id: 'md-test-id',
-        kind: 'text' as const,
-        name: 'test.md',
-        mimeType: 'text/markdown',
-        size: textFile.size,
-        content: textContent,
-        metadata: {
-          lineCount: textContent.split('\n').length,
-          charCount: textContent.length,
-          wordCount: textContent.split(/\s+/).filter(w => w.length > 0).length,
-          hasContent: true,
-          language: 'Markdown',
-          encoding: 'utf-8'
-        },
-        width: textContent.split('\n').length,
-        height: textContent.length,
-        alt: 'Markdown'
-      };
+      const agent = createAgent();
+      const langMessage = await convert(agent, message);
+      const content = toText(langMessage);
 
-      const message = await chatData.newMessage({ role: 'user', text: 'What is the number in this markdown file?', attachments: [attachment] });
-      await wait(1200);
-
-      // Test content extraction
-      const agentServices = new AgentServices(space);
-      const config = space.getAppConfig('test-assistant');
-      const simpleChatAgent = new SimpleChatAgent(agentServices, config!);
-
-      const resolvedMessage = await chatData.resolveMessageFiles(message);
-      const resolvedAttachments = (resolvedMessage as any).files || [];
-      const textFiles = resolvedAttachments.filter((a: any) => 
-        a?.kind === 'text' && (a?.file?.tree && a?.file?.vertex || a?.dataUrl)
-      );
-
-      let extractedContent = '';
-      for (const textFile of textFiles) {
-        let fileContent: string | null = null;
-        
-        if (textFile.file?.tree && textFile.file?.vertex) {
-          fileContent = await simpleChatAgent['loadTextFileContent'](textFile.file.tree, textFile.file.vertex);
-        } else if (textFile.dataUrl) {
-          fileContent = simpleChatAgent['extractTextFromDataUrl'](textFile.dataUrl);
-        }
-        
-        if (fileContent) {
-          const fileHeader = `\n\n--- File: ${textFile.name} (${textFile.alt || 'text'}) ---\n`;
-          extractedContent += fileHeader + fileContent;
-        }
-      }
-
-      // Verify markdown content was extracted
-      expect(extractedContent).toContain('8899');
-      expect(extractedContent).toContain('test.md');
-      // Label is derived at render-time; check content instead, case-insensitive
-      expect(extractedContent.toLowerCase()).toContain('markdown');
-      expect(extractedContent).toContain('# Test File');
+      expect(content).toContain('--- File: test.md (file:assets/test.md) ---');
+      expect(content).toContain('# Test File');
+      expect(content).toContain('**8899**');
     });
-  });
 
-  describe('Multiple Text Files Test', () => {
-    it('should handle multiple text files in one message', async () => {
-      const file1Content = '8899';
-      const file2Content = 'Hello World';
-      
-      const attachment1 = {
-        id: 'file1-id',
-        kind: 'text' as const,
-        name: 'number.txt',
-        mimeType: 'text/plain',
-        size: file1Content.length,
-        content: file1Content,
-        metadata: {
-          lineCount: 1,
-          charCount: file1Content.length,
-          wordCount: 1,
-          hasContent: true,
-          language: 'Plain Text',
-          encoding: 'utf-8'
-        },
-        width: 1,
-        height: file1Content.length,
-        alt: 'Plain Text'
-      };
+    it('aggregates multiple text files into a single contextual block', async () => {
+      const attachment1 = createTextAttachment('number.txt', '8899');
+      const attachment2 = createTextAttachment('greeting.txt', 'Hello World');
+      const message = await chatData.newMessage({
+        role: 'user',
+        text: 'Process both files please',
+        attachments: [attachment1, attachment2]
+      });
+      await wait(800);
 
-      const attachment2 = {
-        id: 'file2-id',
-        kind: 'text' as const,
-        name: 'greeting.txt',
-        mimeType: 'text/plain',
-        size: file2Content.length,
-        content: file2Content,
-        metadata: {
-          lineCount: 1,
-          charCount: file2Content.length,
-          wordCount: 2,
-          hasContent: true,
-          language: 'Plain Text',
-          encoding: 'utf-8'
-        },
-        width: 1,
-        height: file2Content.length,
-        alt: 'Plain Text'
-      };
+      const agent = createAgent();
+      const langMessage = await convert(agent, message);
+      const content = toText(langMessage);
 
-      const message = await chatData.newMessage({ role: 'user', text: 'What are the contents of these files?', attachments: [attachment1, attachment2] });
-      await wait(1200);
-
-      // Test content extraction
-      const agentServices = new AgentServices(space);
-      const config = space.getAppConfig('test-assistant');
-      const simpleChatAgent = new SimpleChatAgent(agentServices, config!);
-
-      const resolvedMessage = await chatData.resolveMessageFiles(message);
-      const resolvedAttachments = (resolvedMessage as any).files || [];
-      const textFiles = resolvedAttachments.filter((a: any) => 
-        a?.kind === 'text' && (a?.file?.tree && a?.file?.vertex || a?.dataUrl)
-      );
-
-      expect(textFiles.length).toBe(2);
-
-      let extractedContent = '';
-      for (const textFile of textFiles) {
-        let fileContent: string | null = null;
-        
-        if (textFile.file?.tree && textFile.file?.vertex) {
-          fileContent = await simpleChatAgent['loadTextFileContent'](textFile.file.tree, textFile.file.vertex);
-        } else if (textFile.dataUrl) {
-          fileContent = simpleChatAgent['extractTextFromDataUrl'](textFile.dataUrl);
-        }
-        
-        if (fileContent) {
-          const fileHeader = `\n\n--- File: ${textFile.name} (${textFile.alt || 'text'}) ---\n`;
-          extractedContent += fileHeader + fileContent;
-        }
-      }
-
-      // Verify both files were extracted
-      expect(extractedContent).toContain('8899');
-      expect(extractedContent).toContain('Hello World');
-      expect(extractedContent).toContain('number.txt');
-      expect(extractedContent).toContain('greeting.txt');
+      expect(content).toContain('--- File: number.txt (file:assets/number.txt) ---');
+      expect(content).toContain('--- File: greeting.txt (file:assets/greeting.txt) ---');
+      expect(content).toContain('8899');
+      expect(content).toContain('Hello World');
     });
-  });
 
-  describe('Data URL Extraction Test', () => {
-    it('should correctly extract text from data URLs', async () => {
-      const simpleChatAgent = new SimpleChatAgent({} as any, {} as any);
-      
-      // Test with plain text data URL
-      const plainTextDataUrl = 'data:text/plain;base64,ODg5OQ=='; // "8899" in base64
-      const extractedPlain = simpleChatAgent['extractTextFromDataUrl'](plainTextDataUrl);
-      expect(extractedPlain).toBe('8899');
+    it('extracts inline data URLs without hitting CAS', () => {
+      const agent = createAgent();
+      const extract = (dataUrl: string) => agent['extractTextFromDataUrl'](dataUrl);
 
-      // Test with markdown data URL
+      expect(extract('data:text/plain;base64,ODg5OQ==')).toBe('8899');
       const markdownContent = '# Test\nThis is a test.';
-      const markdownBase64 = btoa(markdownContent);
-      const markdownDataUrl = `data:text/markdown;base64,${markdownBase64}`;
-      const extractedMarkdown = simpleChatAgent['extractTextFromDataUrl'](markdownDataUrl);
-      expect(extractedMarkdown).toBe(markdownContent);
-
-      // Test with JavaScript data URL
-      const jsContent = 'console.log("Hello");';
-      const jsBase64 = btoa(jsContent);
-      const jsDataUrl = `data:text/javascript;base64,${jsBase64}`;
-      const extractedJs = simpleChatAgent['extractTextFromDataUrl'](jsDataUrl);
-      expect(extractedJs).toBe(jsContent);
-
-      // Test with non-text data URL (should return null)
-      const imageDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=';
-      const extractedImage = simpleChatAgent['extractTextFromDataUrl'](imageDataUrl);
-      expect(extractedImage).toBeNull();
-    });
-  });
-
-  describe('Direct SimpleChatAgent Test', () => {
-    it('should process text file attachments correctly when resolved', async () => {
-      // Create a mock resolved message with text file attachment
-      const resolvedMessage = {
-        role: 'user',
-        text: 'What number is in this file?',
-        files: [
-          {
-            id: 'test-id',
-            kind: 'text',
-            name: 'test-number.txt',
-            alt: 'Plain Text',
-            dataUrl: 'data:text/plain;base64,ODg5OQ==', // "8899" in base64
-            mimeType: 'text/plain',
-            size: 4,
-            width: 1,
-            height: 4
-          }
-        ]
-      };
-
-      // Create a mock SimpleChatAgent
-      const simpleChatAgent = new SimpleChatAgent({} as any, {} as any);
-
-      // Test the text file filtering
-      const attachments = resolvedMessage.files as any[];
-      const textFiles = attachments.filter((a: any) => 
-        a?.kind === 'text' && (a?.file?.tree && a?.file?.vertex || a?.dataUrl)
-      );
-
-      console.log('Direct test - text files found:', textFiles.length);
-      expect(textFiles.length).toBe(1);
-
-      // Test content extraction
-      let extractedContent = '';
-      for (const textFile of textFiles) {
-        let fileContent: string | null = null;
-        
-        if (textFile.file?.tree && textFile.file?.vertex) {
-          fileContent = await simpleChatAgent['loadTextFileContent'](textFile.file.tree, textFile.file.vertex);
-        } else if (textFile.dataUrl) {
-          fileContent = simpleChatAgent['extractTextFromDataUrl'](textFile.dataUrl);
-        }
-        
-        if (fileContent) {
-          const fileHeader = `\n\n--- File: ${textFile.name} (${textFile.alt || 'text'}) ---\n`;
-          extractedContent += fileHeader + fileContent;
-        }
-      }
-
-      console.log('Direct test - extracted content:', extractedContent);
-      expect(extractedContent).toContain('8899');
-      expect(extractedContent).toContain('test-number.txt');
+      expect(extract(`data:text/markdown;base64,${toBase64(markdownContent)}`)).toBe(markdownContent);
+      expect(extract('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=')).toBeNull();
     });
 
-    it('should handle mixed text and image attachments', async () => {
-      // Create a mock resolved message with both text and image attachments
-      const resolvedMessage = {
-        role: 'user',
-        text: 'What do you see in these files?',
-        files: [
-          {
-            id: 'text-id',
-            kind: 'text',
-            name: 'number.txt',
-            alt: 'Plain Text',
-            dataUrl: 'data:text/plain;base64,ODg5OQ==', // "8899" in base64
-            mimeType: 'text/plain',
-            size: 4,
-            width: 1,
-            height: 4
-          },
-          {
-            id: 'image-id',
-            kind: 'image',
-            name: 'test.png',
-            alt: 'Test image',
-            dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=',
-            mimeType: 'image/png',
-            size: 68,
-            width: 1,
-            height: 1
-          }
-        ]
+    it('includes multimodal items when images are present and vision is supported', async () => {
+      const textAttachment = createTextAttachment('notes.txt', '8899');
+      const imageAttachment = {
+        id: crypto.randomUUID(),
+        kind: 'image' as const,
+        name: 'cat.png',
+        mimeType: 'image/png',
+        size: 68,
+        dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=',
+        width: 1,
+        height: 1,
+        alt: 'Test image'
       };
 
-      // Create a mock SimpleChatAgent
-      const simpleChatAgent = new SimpleChatAgent({} as any, {} as any);
+      const message = await chatData.newMessage({
+        role: 'user',
+        text: 'What do you see?',
+        attachments: [textAttachment, imageAttachment]
+      });
+      await wait(800);
 
-      // Test the filtering
-      const attachments = resolvedMessage.files as any[];
-      const images = attachments.filter((a: any) => a?.kind === 'image' && typeof a?.dataUrl === 'string' && a.dataUrl.trim() !== '');
-      const textFiles = attachments.filter((a: any) => 
-        a?.kind === 'text' && (a?.file?.tree && a?.file?.vertex || a?.dataUrl)
-      );
+      const agent = createAgent();
+      const langMessage = await convert(agent, message, true);
+      const items = (langMessage as any).items;
 
-      console.log('Mixed test - images:', images.length, 'text files:', textFiles.length);
-      expect(images.length).toBe(1);
-      expect(textFiles.length).toBe(1);
+      expect(Array.isArray(items)).toBe(true);
+      expect(items.some((item: any) => item?.type === 'image')).toBe(true);
+      expect(items.filter((item: any) => item?.type === 'text').map((item: any) => item.text).join('\n')).toContain('--- File: notes.txt (file:assets/notes.txt) ---');
+    });
 
-      // Test text content extraction
-      let extractedContent = '';
-      for (const textFile of textFiles) {
-        let fileContent: string | null = null;
-        
-        if (textFile.file?.tree && textFile.file?.vertex) {
-          fileContent = await simpleChatAgent['loadTextFileContent'](textFile.file.tree, textFile.file.vertex);
-        } else if (textFile.dataUrl) {
-          fileContent = simpleChatAgent['extractTextFromDataUrl'](textFile.dataUrl);
-        }
-        
-        if (fileContent) {
-          const fileHeader = `\n\n--- File: ${textFile.name} (${textFile.alt || 'text'}) ---\n`;
-          extractedContent += fileHeader + fileContent;
-        }
-      }
+    it('falls back to textual description for image attachments when vision is disabled', async () => {
+      const imageAttachment = {
+        id: crypto.randomUUID(),
+        kind: 'image' as const,
+        name: 'diagram.png',
+        mimeType: 'image/png',
+        size: 68,
+        dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=',
+        width: 1,
+        height: 1,
+        alt: 'Diagram'
+      };
 
-      expect(extractedContent).toContain('8899');
-      expect(extractedContent).toContain('number.txt');
+      const message = await chatData.newMessage({
+        role: 'user',
+        text: 'Describe this diagram',
+        attachments: [imageAttachment]
+      });
+      await wait(800);
+
+      const agent = createAgent();
+      const langMessage = await convert(agent, message, false);
+      const content = toText(langMessage);
+
+      expect(content).toContain('[User attached 1 image(s): diagram.png (file:assets/diagram.png)]');
     });
   });
 });
