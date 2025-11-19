@@ -9,12 +9,14 @@
 - **RepTree-backed virtual file system**: Every workspace is modeled as a set of RepTree CRDT trees (space tree + app trees). Files live in the Files AppTree with metadata pointing to CAS/mutable blobs in FileStore, so workflows must read/write via this virtual FS, not the host filesystem.  
 - **Browser-first runtime**: The entire Sila client runs in a browser environment (Svelte + RepTree), even inside Electron. Execution tooling therefore needs to rely on browser APIs (Web Workers, WASM, message channels) for v1, while keeping hooks open to offload runs to Electron main or future servers.  
 - **Existing agent tooling**: `WrapChatAgent` already wires tools (ls/mkdir/move/apply_patch/write) through `AgentServices.getToolsForModel`, with workspace-aware fetch access to RepTree/AppTree data. New lint/run tools can reuse that plumbing.
+- **Path semantics**: Tools operate on workspace-relative paths understood by the virtual FS (e.g., `files/assets/flows/generateVideo.flow.js` or `chat/current/files/steps/plan.flow.js`). Lint/run commands must accept any valid workspace path so flows can live under shared assets, per-chat folders, or other app trees.
 
 ## Goals
 1. Allow agents (and users) to lint and execute `.flow.js` files stored in the current workspace.  
 2. Keep everything local-first and browser-native for v1 (Web Worker/WASM execution) while preserving the option to delegate to Electron main or remote servers later without changing the tool contract.  
 3. Provide clear logs/results back into the chat, ideally attaching artifacts (stdout/stderr, generated files) to the Files tree.  
-4. Offer a straightforward migration path: start simple, layer in ergonomics/sandboxing or remote execution as needed.
+4. Offer a straightforward migration path: start simple, layer in ergonomics/sandboxing or remote execution as needed.  
+5. Accept workspace-relative paths (including assets tree paths and chat file paths) so flows can be executed from any folder without copying/moving files.
 
 ## Non-Goals
 - Designing a general-purpose package manager or dependency cache (reuse what Node/Deno already provide).
