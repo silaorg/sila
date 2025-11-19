@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolRunFlow } from "../../../src/agents/tools/toolRunFlow";
+import { getToolRunFlow, inspectFlow, runFlowWithServices } from "../../../src/agents/tools/toolRunFlow";
+import { resolveWorkspaceFileUrl } from "../../../src/agents/tools/workspaceProxyFetch";
 
 describe("run_flow tool - basic JavaScript execution", () => {
   let tempDir: string;
@@ -127,6 +128,92 @@ describe("run_flow tool - basic JavaScript execution", () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(result.stderr).toBeDefined();
+  });
+
+  it("inspects pipeline flow and then runs it with services", async () => {
+    const fs = new NodeFileSystem();
+    const space = Space.newSpace(crypto.randomUUID());
+    const spaceId = space.getId();
+
+    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+    if (typeof (layer as any).getFileStoreProvider === "function") {
+      space.setFileStoreProvider((layer as any).getFileStoreProvider());
+    }
+
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const chatData = new ChatAppData(space, chatTree);
+
+    // Create a pipeline flow file
+    const code = `const { inImg, describe } = pipeline;
+
+describe("A simple pipeline that processes an image");
+
+const imgA = inImg("img-a", "Input image");
+
+async function run(services) {
+  // Mock service that returns a simple result
+  // Note: services.processImage returns a Promise, so we await it
+  const result = await services.processImage(imgA, "Apply filter");
+  return result;
+}`;
+
+    await chatData.newMessage({
+      role: "user",
+      text: "Creating pipeline flow",
+      attachments: [
+        {
+          id: "flow4",
+          kind: "text",
+          name: "pipeline.flow.js",
+          mimeType: "application/javascript",
+          size: code.length,
+          content: code,
+        },
+      ],
+    });
+
+    // Read the file content
+    const fileCode = await resolveWorkspaceFileUrl("file:pipeline.flow.js", space, chatTree);
+
+    // Phase 1: Inspect the flow
+    const inspectResult = await inspectFlow(fileCode, space, chatTree);
+
+    expect(inspectResult.success).toBe(true);
+    expect(inspectResult.metadata).toBeDefined();
+    expect(inspectResult.metadata?.description).toBe("A simple pipeline that processes an image");
+    expect(inspectResult.metadata?.inputs).toHaveLength(1);
+    expect(inspectResult.metadata?.inputs?.[0]).toEqual({
+      id: "img-a",
+      type: "image",
+      label: "Input image",
+    });
+
+    // Phase 2: Run with services
+    // Note: Can't pass functions through postMessage, so we'll use a descriptor
+    // The worker will create mock services based on the descriptor
+    const mockServices = {
+      processImage: {
+        type: "mock",
+        returns: { processed: true, prompt: "Apply filter", imageId: "img-a" }
+      }
+    };
+
+    const runResult = await runFlowWithServices(fileCode, mockServices, space, chatTree);
+
+    if (!runResult.success) {
+      console.error("Run failed - error:", runResult.error);
+      console.error("Run failed - stderr:", runResult.stderr);
+      console.error("Run failed - full result:", JSON.stringify(runResult, null, 2));
+    }
+    
+    console.log("Full runResult:", JSON.stringify(runResult, null, 2));
+    
+    expect(runResult.success).toBe(true);
+    expect(runResult.result).toBeDefined();
+    console.log("Actual result:", JSON.stringify(runResult.result, null, 2));
+    // The mock service returns the descriptor.returns value
+    expect(runResult.result.processed).toBe(true);
+    expect(runResult.result.imageId).toBe("img-a");
   });
 });
 

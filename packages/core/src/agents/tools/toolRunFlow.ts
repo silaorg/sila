@@ -66,7 +66,49 @@ export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHan
 
 const FLOW_EXECUTION_TIMEOUT_MS = 60000 * 10; // 10 minutes
 
-async function executeInWorker(code: string, args: string[]): Promise<RunFlowResult> {
+export interface InspectFlowResult {
+  success: boolean;
+  metadata?: {
+    description?: string;
+    inputs?: Array<{ id: string; type: string; label: string }>;
+  };
+  error?: string;
+}
+
+/**
+ * Inspect a flow file to extract metadata (description, inputs) without executing run().
+ */
+export async function inspectFlow(
+  code: string,
+  space: Space,
+  appTree?: AppTree
+): Promise<InspectFlowResult> {
+  return await executeInWorker(code, [], "inspect");
+}
+
+/**
+ * Execute a flow file with services, calling the run() function.
+ * 
+ * Note: Services must be serializable (no functions). For functions,
+ * use a service registry pattern or pass service descriptors.
+ */
+export async function runFlowWithServices(
+  code: string,
+  services: any,
+  space: Space,
+  appTree?: AppTree
+): Promise<RunFlowResult> {
+  // For now, we'll pass services as-is, but they need to be serializable
+  // In the future, we'll use a service registry
+  return await executeInWorker(code, [], "run", services);
+}
+
+async function executeInWorker(
+  code: string,
+  args: string[],
+  mode: "run" | "inspect" = "run",
+  services?: any
+): Promise<RunFlowResult | InspectFlowResult> {
   // Use web-worker polyfill if Worker is not available (e.g., in Node.js)
   const WorkerClass = typeof Worker !== "undefined" 
     ? Worker 
@@ -78,7 +120,7 @@ async function executeInWorker(code: string, args: string[]): Promise<RunFlowRes
     { type: "module" }
   );
 
-  return new Promise((resolve, reject) => {
+  return new Promise<RunFlowResult | InspectFlowResult>((resolve, reject) => {
     const requestId = crypto.randomUUID();
     const timeout = setTimeout(() => {
       worker.terminate();
@@ -96,19 +138,29 @@ async function executeInWorker(code: string, args: string[]): Promise<RunFlowRes
 
       const response = e.data;
       
-      if (response.success) {
+      if (response.type === "inspect") {
+        // Return inspect result
         resolve({
-          success: true,
-          stdout: response.stdout,
-          stderr: response.stderr,
-          result: response.result,
-        });
+          success: response.success,
+          metadata: response.metadata,
+          error: response.error,
+        } as InspectFlowResult);
       } else {
-        resolve({
-          success: false,
-          error: response.error || "Execution failed",
-          stderr: response.stderr,
-        });
+        // Return run result
+        if (response.success) {
+          resolve({
+            success: true,
+            stdout: response.stdout,
+            stderr: response.stderr,
+            result: response.result,
+          } as RunFlowResult);
+        } else {
+          resolve({
+            success: false,
+            error: response.error || "Execution failed",
+            stderr: response.stderr,
+          } as RunFlowResult);
+        }
       }
     };
 
@@ -124,9 +176,10 @@ async function executeInWorker(code: string, args: string[]): Promise<RunFlowRes
     // Send execution request
     const request: FlowWorkerRequest = {
       requestId,
-      type: "run",
+      type: mode,
       code,
       args,
+      services,
     };
 
     worker.postMessage(request);
