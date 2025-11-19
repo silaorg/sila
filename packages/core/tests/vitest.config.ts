@@ -5,6 +5,11 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
     reporters: 'default',
-    globals: true
+    globals: true,
+    setupFiles: ['./src/setup/setup-worker.ts']
+  },
+  worker: {
+    // Configure worker to handle TypeScript
+    format: 'es'
   }
 });
