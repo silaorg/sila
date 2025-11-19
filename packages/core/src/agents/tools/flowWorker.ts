@@ -487,7 +487,11 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
 // Global service registry for registered service functions
 const serviceRegistry = new Map<string, Function>();
 
-function convertHandleToJS(context: QuickJSAsyncContext, handle?: QuickJSHandle, disposeHandle = true): any {
+async function convertHandleToJS(
+  context: QuickJSAsyncContext,
+  handle?: QuickJSHandle,
+  disposeHandle = true
+): Promise<any> {
   if (!handle) {
     return undefined;
   }
@@ -510,9 +514,9 @@ function convertHandleToJS(context: QuickJSAsyncContext, handle?: QuickJSHandle,
     try {
       const dumped = context.dump(handle);
       return dumped.consume((val: unknown) => val);
-    } catch {
-      return undefined;
-    }
+    } catch {}
+
+    return await extractObjectViaJSONStringify(context, handle);
   } finally {
     if (disposeHandle) {
       try {
@@ -585,9 +589,29 @@ async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handl
 }
 
 async function executeFlowCodeWithServices(code: string, servicesDescriptor: any, inputsMap?: Record<string, any>): Promise<FlowWorkerResponse> {
-  try {
-    const { context } = await initQuickJS();
-    
+    try {
+      const { context } = await initQuickJS();
+      const outputHandles: Record<string, QuickJSHandle> = {};
+
+      const disposeOutputHandles = () => {
+        for (const [key, handle] of Object.entries(outputHandles)) {
+          try {
+            handle.dispose();
+          } catch {}
+          delete outputHandles[key];
+        }
+      };
+
+      const resolveOutputValues = async () => {
+        const resolved: Record<string, any> = {};
+        for (const [key, handle] of Object.entries(outputHandles)) {
+          resolved[key] = await convertHandleToJS(context, handle, true);
+          delete outputHandles[key];
+        }
+        return resolved;
+      };
+      
+      try {
     // Execute code to define setup() and run() functions
     const codeResult = await context.evalCodeAsync(code, "<flow-run>");
     
@@ -675,7 +699,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       
       // Create services object with inputs, outputs, and service functions
       const servicesObj = context.newObject();
-      const outputValues: Record<string, any> = {};
     
     // Create inputs object - for now just an empty object (will be populated later)
     const inputsObj = context.newObject();
@@ -687,7 +710,7 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     }
     context.setProp(servicesObj, "inputs", inputsObj);
     
-      // Create outputs function that collects values
+      // Create outputs function that collects handles for later conversion
       const outputsFn = context.newFunction("outputs", (idHandle: QuickJSHandle, valueHandle: QuickJSHandle) => {
         let id: string | undefined;
         try {
@@ -711,31 +734,38 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
           return context.undefined;
         }
 
-        const value = convertHandleToJS(context, valueHandle);
-        outputValues[id] = value;
+        if (outputHandles[id]) {
+          try {
+            outputHandles[id].dispose();
+          } catch {}
+        }
+
+        try {
+          outputHandles[id] = valueHandle.dup();
+        } finally {
+          try {
+            valueHandle.dispose();
+          } catch {}
+        }
         return context.undefined;
       });
       context.setProp(servicesObj, "outputs", outputsFn);
     
     // Add service functions (e.g., services.img, services.agent, etc.)
     if (servicesDescriptor && typeof servicesDescriptor === "object") {
-      for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
+        for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
         const serviceImpl = typeof descriptor === "function" 
           ? descriptor 
           : serviceRegistry.get(key) || createMockService(key, descriptor);
         
         // Create async function that calls the service and returns a Promise
-        const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
-          // Convert QuickJS handles to JavaScript values
-          const jsArgs = args.map(arg => {
-            try {
-              const json = context.dump(arg);
-              return json.consume((v: unknown) => v);
-            } catch {
-              return undefined;
+          const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
+            // Convert QuickJS handles to JavaScript values
+            const jsArgs = [];
+            for (const arg of args) {
+              jsArgs.push(await convertHandleToJS(context, arg, true));
             }
-          });
-          
+            
           // Call the service function (which may be async)
           const result = await Promise.resolve(serviceImpl(...jsArgs));
           
@@ -971,16 +1001,20 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     outputsFn.dispose();
     servicesObj.dispose();
     
-    // Return the result - use null instead of undefined for JSON serialization
+      const resolvedOutputs = await resolveOutputValues();
+      // Return the result - use null instead of undefined for JSON serialization
       const response: FlowWorkerResponse = {
         requestId: "",
         type: "run",
         success: true,
         result: resultValue === undefined ? null : resultValue,
-        outputs: outputValues
+        outputs: resolvedOutputs
       };
     
     return response;
+      } finally {
+        disposeOutputHandles();
+      }
   } catch (error) {
     return {
       requestId: "",
