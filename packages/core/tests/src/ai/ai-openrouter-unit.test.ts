@@ -152,23 +152,4 @@ describe('OpenRouter Auto Model Resolution (Unit Tests)', () => {
     console.log('✅ OpenRouter provider config is correct:', openrouterProvider);
   });
 
-  it('should demonstrate the fix without API calls', async () => {
-    console.log('🔧 OpenRouter Auto Model Fix Summary:');
-    console.log('');
-    console.log('✅ Updated defaultModel from "anthropic/claude-sonnet-4" to "openai/gpt-4o"');
-    console.log('✅ Fixed getMostCapableModel() to handle OpenRouter special case');
-    console.log('✅ Fixed resolveAutoModel() to use static provider config for OpenRouter');
-    console.log('✅ Added comprehensive tests for OpenRouter functionality');
-    console.log('');
-    console.log('🎯 The "auto" model now works with OpenRouter!');
-    console.log('   - "auto" → resolves to "openai/gpt-4o" via OpenRouter');
-    console.log('   - "openrouter/auto" → resolves to "openai/gpt-4o"');
-    console.log('   - OpenRouter is prioritized when multiple providers are configured');
-    console.log('');
-    console.log('📝 Next steps:');
-    console.log('   - OpenRouter will work with Lang.models.fromProvider() in the future');
-    console.log('   - For now, it uses the configured defaultModel from providers.ts');
-    
-    expect(true).toBe(true);
-  });
 });
