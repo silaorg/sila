@@ -122,7 +122,6 @@ async function executeFlowCode(code: string, args: string[] = []): Promise<{ suc
     context.setProp(consoleObj, "error", consoleError);
     context.setProp(context.global, "console", consoleObj);
 
-    // Execute the code (async runtime supports async/await)
     const result = await context.evalCodeAsync(code, "<flow>");
     
     let resultValue: any = undefined;
@@ -383,9 +382,35 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
  * }
  * ```
  */
-// Global service registry (in worker context)
-// Services are registered here and can be accessed by name
+// Global service registry for registered service functions
 const serviceRegistry = new Map<string, Function>();
+
+// Helper to extract object values via JSON.stringify when dump() doesn't work
+async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handle: QuickJSHandle): Promise<any> {
+  const tempVarName = `__result_${Date.now()}`;
+  context.setProp(context.global, tempVarName, handle);
+  const jsonStrHandle = await context.evalCodeAsync(`JSON.stringify(${tempVarName})`, "<json-stringify>");
+  context.setProp(context.global, tempVarName, context.undefined);
+  
+  if (jsonStrHandle.error) {
+    jsonStrHandle.error.dispose();
+    return undefined;
+  }
+  
+  if (!jsonStrHandle.value) {
+    return undefined;
+  }
+  
+  try {
+    const jsonStr = context.getString(jsonStrHandle.value);
+    const result = JSON.parse(jsonStr);
+    jsonStrHandle.value.dispose();
+    return result;
+  } catch {
+    jsonStrHandle.value.dispose();
+    return undefined;
+  }
+}
 
 async function executeFlowCodeWithServices(code: string, servicesDescriptor: any): Promise<FlowWorkerResponse> {
   try {
@@ -419,7 +444,7 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     });
     context.setProp(pipelineModule, "inImg", inImgFn);
     
-    // inText() - same as inImg
+    // inText() function
     const inTextFn = context.newFunction("inText", (idHandle: QuickJSHandle, labelHandle: QuickJSHandle) => {
       try {
         const id = context.getString(idHandle);
@@ -436,18 +461,11 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     
     // Helper to create mock services from descriptors
     function createMockService(name: string, descriptor: any): Function {
-      // For testing: create a simple mock that returns descriptor.returns or a default
       return async (...args: any[]) => {
-        console.log(`[DEBUG] createMockService(${name}) called with args:`, JSON.stringify(args));
-        console.log(`[DEBUG] createMockService(${name}) descriptor:`, JSON.stringify(descriptor));
         if (descriptor && descriptor.returns) {
-          console.log(`[DEBUG] createMockService(${name}) returning:`, JSON.stringify(descriptor.returns));
           return descriptor.returns;
         }
-        // Default mock behavior
-        const defaultReturn = { service: name, args, mock: true };
-        console.log(`[DEBUG] createMockService(${name}) returning default:`, JSON.stringify(defaultReturn));
-        return defaultReturn;
+        return { service: name, args, mock: true };
       };
     }
     
@@ -455,13 +473,9 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     const servicesObj = context.newObject();
     
     // Services are passed as descriptors (e.g., { processImage: { type: "mock", returns: {...} } })
-    // For v1, we'll create simple mock services based on descriptors
-    // In the future, services will be registered in a global registry
+    // Create service functions from descriptors or use registered services
     if (servicesDescriptor && typeof servicesDescriptor === "object") {
       for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
-        // Create a service function based on the descriptor
-        // For now, if descriptor is a function (from registry), use it
-        // Otherwise, create a mock based on descriptor
         const serviceImpl = typeof descriptor === "function" 
           ? descriptor 
           : serviceRegistry.get(key) || createMockService(key, descriptor);
@@ -489,7 +503,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
         };
         
         // Create async function that calls the service and returns a Promise
-        // Async runtime supports async/await natively via newAsyncifiedFunction
         const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
           // Convert QuickJS handles to JavaScript values
           const jsArgs = args.map(arg => {
@@ -501,16 +514,11 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
             }
           });
           
-          console.log(`[DEBUG] Service ${key} called with args:`, JSON.stringify(jsArgs));
-          
           // Call the service function (which may be async)
           const result = await Promise.resolve(serviceImpl(...jsArgs));
           
-          console.log(`[DEBUG] Service ${key} returned:`, JSON.stringify(result));
-          
           // Convert result back to QuickJS handle
           const handle = await convertToQuickJSHandle(result);
-          console.log(`[DEBUG] Service ${key} converted to handle, type:`, typeof handle);
           return handle;
         });
         context.setProp(servicesObj, key, serviceFn);
@@ -613,7 +621,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       };
     }
     
-    // Call run(services) - use evalCodeAsync to call and await the async function
     // Store services and run function in global scope temporarily
     const servicesVarName = `__services_${Date.now()}`;
     const runVarName = `__run_${Date.now()}`;
@@ -621,10 +628,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     context.setProp(context.global, runVarName, runFunction);
     
     // Call run(services) - it's an async function that returns a Promise
-    // Following README pattern (line 320): use evalCode to get a Promise handle
-    // But we're using async runtime, so we need evalCodeAsync
-    // However, evalCodeAsync might await the Promise, so we need to call run() directly
-    // and get the Promise handle, then resolve it
     const runCall = await context.evalCodeAsync(`run(${servicesVarName})`, "<run-call>");
     
     // If there's an error, handle it
@@ -640,7 +643,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
         } catch {}
       }
       errorHandle.dispose();
-      // TypeScript narrows runCall to only have error, but value might still exist
       const runCallValue = (runCall as any).value;
       if (runCallValue) {
         runCallValue.dispose();
@@ -684,7 +686,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     
     // If no value, that's also an error
     if (!runCall.value) {
-      console.log("[DEBUG] run() call returned no value!");
       return {
         requestId: "",
         type: "run",
@@ -693,15 +694,10 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       };
     }
     
-    // runCall.value should be a Promise handle (run() returns a Promise)
-    // Following README pattern (lines 319-334): convert Promise handle to native Promise
+    // runCall.value is a Promise handle (run() returns a Promise)
+    // Convert it to a native Promise and await it
     const { runtime } = await initQuickJS();
     const promiseHandle = runCall.value;
-    
-    // Convert the QuickJS Promise handle into a native Promise and await it
-    // According to the docs: "If code like this deadlocks, make sure you are calling
-    // runtime.executePendingJobs appropriately."
-    // We need to execute pending jobs while the Promise resolves
     const resolvePromiseNative = context.resolvePromise(promiseHandle);
     
     // Execute pending jobs in a loop to drive Promise resolution
@@ -710,7 +706,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       let maxIterations = 1000;
       while (maxIterations-- > 0) {
         if (!runtime.hasPendingJob()) {
-          // No pending jobs - give it a small delay to allow promise to settle
           await new Promise(resolve => setTimeout(resolve, 0));
           if (!runtime.hasPendingJob()) {
             break;
@@ -722,8 +717,6 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     
     // Execute jobs and await the promise - both need to complete
     await Promise.all([resolvePromiseNative, executeJobsLoop()]);
-    
-    // Now get the resolved result
     const resolvedResult = await resolvePromiseNative;
     promiseHandle.dispose();
     
@@ -778,11 +771,8 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     }
     
     // Extract the resolved value from the handle
-    // Following README pattern: resolvedResult is a VmCallResult, check for error/value
-    // Use unwrapResult pattern from README line 331
     const resolvedResultAny = resolvedResult as any;
     if (resolvedResultAny.error) {
-      // Handle error case
       const errorHandle = resolvedResultAny.error as QuickJSHandle;
       let errorMsg = "Promise rejection";
       try {
@@ -873,8 +863,7 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       };
     }
     
-    // Following README pattern line 331: resolvedResult.value is the handle to the resolved value
-    // Extract it using the same pattern as executeFlowCode (lines 145-172)
+    // Extract the resolved value from the handle
     const resolvedHandle = resolvedResult.value;
     
     // Cleanup temporary variables
@@ -887,19 +876,17 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     
     if (resolvedHandle) {
       try {
-        // Use the same pattern as in executeFlowCode (lines 145-172)
-        // Try string first (most common), then number, then dump for objects
+        // Try to extract as string, number, or object
         try {
           const str = context.getString(resolvedHandle);
-          // Check if it's actually "[object Object]" which means it's an object, not a string
+          // getString() returns "[object Object]" for objects, so check for that
           if (str === "[object Object]") {
             throw new Error("Not a real string, it's an object");
           }
           resultValue = str;
-        } catch (strError) {
+        } catch {
           try {
             const num = context.getNumber(resolvedHandle);
-            // Check if it's actually a valid number (not NaN)
             if (!isNaN(num)) {
               resultValue = num;
             } else {
@@ -907,58 +894,18 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
               const json = context.dump(resolvedHandle);
               resultValue = json.consume((val: unknown) => val);
             }
-          } catch (numError) {
-            // For objects/other types, use JSON dump
+          } catch {
+            // For objects, try dump first, then fallback to JSON.stringify
             try {
               const json = context.dump(resolvedHandle);
               if (json && typeof json.consume === "function") {
                 resultValue = json.consume((val: unknown) => val);
               } else {
-                // dump didn't return a JSON object with consume
-                // Try to manually extract by converting to JSON string and parsing
-                // Store handle in a variable first, then stringify it
-                const tempVarName = `__result_${Date.now()}`;
-                context.setProp(context.global, tempVarName, resolvedHandle);
-                const jsonStrHandle = await context.evalCodeAsync(`JSON.stringify(${tempVarName})`, "<json-stringify>");
-                context.setProp(context.global, tempVarName, context.undefined);
-                
-                if (jsonStrHandle.error) {
-                  jsonStrHandle.error.dispose();
-                  resultValue = undefined;
-                } else if (jsonStrHandle.value) {
-                  try {
-                    const jsonStr = context.getString(jsonStrHandle.value);
-                    resultValue = JSON.parse(jsonStr);
-                    jsonStrHandle.value.dispose();
-                  } catch {
-                    jsonStrHandle.value.dispose();
-                    resultValue = undefined;
-                  }
-                } else {
-                  resultValue = undefined;
-                }
+                // dump didn't return a JSON object with consume, use JSON.stringify fallback
+                resultValue = await extractObjectViaJSONStringify(context, resolvedHandle);
               }
-            } catch (dumpError) {
-              // dump failed, try JSON.stringify approach
-              try {
-                const tempVarName = `__result_${Date.now()}`;
-                context.setProp(context.global, tempVarName, resolvedHandle);
-                const jsonStrHandle = await context.evalCodeAsync(`JSON.stringify(${tempVarName})`, "<json-stringify>");
-                context.setProp(context.global, tempVarName, context.undefined);
-                
-                if (jsonStrHandle.error) {
-                  jsonStrHandle.error.dispose();
-                  resultValue = undefined;
-                } else if (jsonStrHandle.value) {
-                  const jsonStr = context.getString(jsonStrHandle.value);
-                  resultValue = JSON.parse(jsonStr);
-                  jsonStrHandle.value.dispose();
-                } else {
-                  resultValue = undefined;
-                }
-              } catch {
-                resultValue = undefined;
-              }
+            } catch {
+              resultValue = await extractObjectViaJSONStringify(context, resolvedHandle);
             }
           }
         }
@@ -977,17 +924,15 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     inImgFn.dispose();
     inTextFn.dispose();
     pipelineModule.dispose();
-    // Service functions are cleaned up with servicesObj
     servicesObj.dispose();
     
-    // Return the result - always include result field even if undefined
+    // Return the result - use null instead of undefined for JSON serialization
     const response: FlowWorkerResponse = {
       requestId: "",
       type: "run",
       success: true,
-      result: resultValue === undefined ? null : resultValue // Use null instead of undefined for JSON
+      result: resultValue === undefined ? null : resultValue
     };
-    
     
     return response;
   } catch (error) {
