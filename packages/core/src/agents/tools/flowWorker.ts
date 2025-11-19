@@ -21,6 +21,7 @@ export interface FlowWorkerResponse {
   stderr?: string;
   error?: string;
   result?: any; // Execution result
+  outputs?: Record<string, any>;
   metadata?: { // For inspect responses
     description?: string;
     inputs?: Array<{ id: string; type: string; label: string }>;
@@ -486,6 +487,76 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
 // Global service registry for registered service functions
 const serviceRegistry = new Map<string, Function>();
 
+function convertHandleToJS(context: QuickJSAsyncContext, handle?: QuickJSHandle, disposeHandle = true): any {
+  if (!handle) {
+    return undefined;
+  }
+
+  try {
+    try {
+      const str = context.getString(handle);
+      if (str !== "[object Object]") {
+        return str;
+      }
+    } catch {}
+
+    try {
+      const num = context.getNumber(handle);
+      if (!Number.isNaN(num)) {
+        return num;
+      }
+    } catch {}
+
+    try {
+      const dumped = context.dump(handle);
+      return dumped.consume((val: unknown) => val);
+    } catch {
+      return undefined;
+    }
+  } finally {
+    if (disposeHandle) {
+      try {
+        handle.dispose();
+      } catch {}
+    }
+  }
+}
+
+function generateMockId(prefix: string): string {
+  const rand = Math.floor(Math.random() * 1_000_000);
+  return `${prefix}-${Date.now()}-${rand}`;
+}
+
+function simulateImageService(args: any[], descriptor: any) {
+  const [images = [], prompt = "", options = {}] = args;
+  const id = descriptor?.fileId ?? generateMockId("test-img");
+  return {
+    kind: "file",
+    fileId: id,
+    mimeType: "image/png",
+    name: descriptor?.name ?? `${id}.png`,
+    meta: {
+      simulated: true,
+      prompt,
+      options,
+      inputCount: Array.isArray(images) ? images.length : images ? 1 : 0,
+    },
+  };
+}
+
+function simulateAgentService(args: any[], descriptor: any) {
+  const [input, prompt = ""] = args;
+  return {
+    kind: "text",
+    value: `Simulated agent response for prompt: ${prompt}`,
+    meta: {
+      simulated: true,
+      inputSummary: typeof input === "string" ? input.slice(0, 120) : input,
+      persona: descriptor?.persona ?? "test-agent",
+    },
+  };
+}
+
 // Helper to extract object values via JSON.stringify when dump() doesn't work
 async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handle: QuickJSHandle): Promise<any> {
   const tempVarName = `__result_${Date.now()}`;
@@ -586,18 +657,25 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       }
     };
     
-    // Helper to create mock services from descriptors
-    function createMockService(name: string, descriptor: any): Function {
-      return async (...args: any[]) => {
-        if (descriptor && descriptor.returns) {
-          return descriptor.returns;
-        }
-        return { service: name, args, mock: true };
-      };
-    }
-    
-    // Create services object with inputs, outputs, and service functions
-    const servicesObj = context.newObject();
+      // Helper to create mock services from descriptors
+      function createMockService(name: string, descriptor: any): Function {
+        return async (...args: any[]) => {
+          if (descriptor?.simulate === "img") {
+            return simulateImageService(args, descriptor);
+          }
+          if (descriptor?.simulate === "agent") {
+            return simulateAgentService(args, descriptor);
+          }
+          if (descriptor && Object.prototype.hasOwnProperty.call(descriptor, "returns")) {
+            return descriptor.returns;
+          }
+          return { service: name, args, mock: true };
+        };
+      }
+      
+      // Create services object with inputs, outputs, and service functions
+      const servicesObj = context.newObject();
+      const outputValues: Record<string, any> = {};
     
     // Create inputs object - for now just an empty object (will be populated later)
     const inputsObj = context.newObject();
@@ -609,9 +687,35 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     }
     context.setProp(servicesObj, "inputs", inputsObj);
     
-    // Create outputs function - for now just a no-op (will be implemented later)
-    const outputsFn = context.newFunction("outputs", () => context.undefined);
-    context.setProp(servicesObj, "outputs", outputsFn);
+      // Create outputs function that collects values
+      const outputsFn = context.newFunction("outputs", (idHandle: QuickJSHandle, valueHandle: QuickJSHandle) => {
+        let id: string | undefined;
+        try {
+          id = context.getString(idHandle);
+        } catch {
+          id = undefined;
+        } finally {
+          if (idHandle) {
+            try {
+              idHandle.dispose();
+            } catch {}
+          }
+        }
+
+        if (!id) {
+          if (valueHandle) {
+            try {
+              valueHandle.dispose();
+            } catch {}
+          }
+          return context.undefined;
+        }
+
+        const value = convertHandleToJS(context, valueHandle);
+        outputValues[id] = value;
+        return context.undefined;
+      });
+      context.setProp(servicesObj, "outputs", outputsFn);
     
     // Add service functions (e.g., services.img, services.agent, etc.)
     if (servicesDescriptor && typeof servicesDescriptor === "object") {
@@ -868,12 +972,13 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     servicesObj.dispose();
     
     // Return the result - use null instead of undefined for JSON serialization
-    const response: FlowWorkerResponse = {
-      requestId: "",
-      type: "run",
-      success: true,
-      result: resultValue === undefined ? null : resultValue
-    };
+      const response: FlowWorkerResponse = {
+        requestId: "",
+        type: "run",
+        success: true,
+        result: resultValue === undefined ? null : resultValue,
+        outputs: outputValues
+      };
     
     return response;
   } catch (error) {

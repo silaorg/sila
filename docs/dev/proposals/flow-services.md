@@ -88,6 +88,12 @@ The worker keeps a pending `Promise` per `callId` and resolves it when the host 
 4. **Cleanup**
    - Remove the unused `serviceRegistry` / `servicesDescriptor` path once the bridge works.
 
+## Test Runs
+- Add a `test_flow` tool that loads a `.flow.js` file and executes it with built-in simulated services (`simulate: "img"` / `"agent"` descriptors).  
+- The QuickJS worker captures `services.outputs(id, value)` and returns them alongside the final result so agents can assert output wiring without calling real backends.
+- Simulated `img` services return `{ kind: "file", fileId, meta: { simulated: true, prompt, options } }`. Simulated `agent` services return `{ kind: "text", value, meta: { simulated: true, inputSummary } }`.  
+- Agents pass sample `inputs` when invoking `test_flow`, mirroring how real runs will work. Once the host bridge is ready we can swap these test services for real ones or keep them as a smoke-test mode.
+
 ## Tests (Vitest)
 1. `services.img` call is proxied to the host stub and resolves to the stubbed value.
 2. `services.outputs` returns `{ id: value }` in the run result.

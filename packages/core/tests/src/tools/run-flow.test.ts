@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolRunFlow, inspectFlow, runFlowWithServices } from "../../../src/agents/tools/toolRunFlow";
+import { getToolRunFlow, getToolTestFlow, inspectFlow, runFlowWithServices, TEST_SERVICE_DESCRIPTORS } from "../../../src/agents/tools/toolRunFlow";
 import { resolveWorkspaceFileUrl } from "../../../src/agents/tools/workspaceProxyFetch";
 
 describe("run_flow tool - basic JavaScript execution", () => {
@@ -130,7 +130,7 @@ describe("run_flow tool - basic JavaScript execution", () => {
     expect(result.stderr).toBeDefined();
   });
 
-  it("inspects pipeline flow and then runs it with services", async () => {
+    it("inspects pipeline flow and then runs it with services", async () => {
     const fs = new NodeFileSystem();
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
@@ -203,7 +203,7 @@ async function run(services) {
       "img-a": "test-image-id"
     };
     
-    const runResult = await runFlowWithServices(fileCode, mockServices, space, chatTree, inputs);
+      const runResult = await runFlowWithServices(fileCode, mockServices, space, chatTree, inputs);
 
     if (!runResult.success) {
       console.error("Run failed - error:", runResult.error);
@@ -217,8 +217,115 @@ async function run(services) {
     expect(runResult.result).toBeDefined();
     console.log("Actual result:", JSON.stringify(runResult.result, null, 2));
     // The mock service returns the descriptor.returns value
-    expect(runResult.result.processed).toBe(true);
-    expect(runResult.result.imageId).toBe("img-a");
-  });
+      expect(runResult.result.processed).toBe(true);
+      expect(runResult.result.imageId).toBe("img-a");
+    });
+
+    it("runs flow with simulated services via test_flow and captures outputs", async () => {
+      const fs = new NodeFileSystem();
+      const space = Space.newSpace(crypto.randomUUID());
+      const spaceId = space.getId();
+
+      const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+      if (typeof (layer as any).getFileStoreProvider === "function") {
+        space.setFileStoreProvider((layer as any).getFileStoreProvider());
+      }
+
+      const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+      const chatData = new ChatAppData(space, chatTree);
+
+      const code = `function setup(flow) {
+  flow.title("Test image flow");
+  flow.inImg("img-a", "Input image");
+  flow.outImgs("result", "Output");
+}
+
+async function run(services) {
+  const source = services.inputs["img-a"];
+  const generated = await services.img([source], "Pretend to generate an image");
+  services.outputs("result", generated);
+  return generated;
+}`;
+
+      await chatData.newMessage({
+        role: "user",
+        text: "Creating test flow with outputs",
+        attachments: [
+          {
+            id: "flow5",
+            kind: "text",
+            name: "test-output.flow.js",
+            mimeType: "application/javascript",
+            size: code.length,
+            content: code,
+          },
+        ],
+      });
+
+      const testFlowTool = getToolTestFlow(space, chatTree);
+      const result = await testFlowTool.handler({
+        path: "file:test-output.flow.js",
+        inputs: { "img-a": { kind: "file", fileId: "input-img" } },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.result).toBeDefined();
+      expect(result.result.kind).toBe("file");
+      expect(result.outputs).toBeDefined();
+      expect(result.outputs?.result).toBeDefined();
+      expect(result.outputs?.result.meta?.simulated).toBe(true);
+    });
+
+    it("collects services.outputs when runFlowWithServices uses simulated descriptors", async () => {
+      const fs = new NodeFileSystem();
+      const space = Space.newSpace(crypto.randomUUID());
+      const spaceId = space.getId();
+
+      const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+      if (typeof (layer as any).getFileStoreProvider === "function") {
+        space.setFileStoreProvider((layer as any).getFileStoreProvider());
+      }
+
+      const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+      const chatData = new ChatAppData(space, chatTree);
+
+      const code = `function setup(flow) {
+  flow.title("Test outputs");
+  flow.inImg("img", "Input");
+  flow.outImgs("mock", "Mock Output");
+}
+
+async function run(services) {
+  const img = services.inputs["img"];
+  const generated = await services.img([img], "Generate mock");
+  services.outputs("mock", generated);
+  return generated;
+}`;
+
+      await chatData.newMessage({
+        role: "user",
+        text: "Creating flow for outputs",
+        attachments: [
+          {
+            id: "flow6",
+            kind: "text",
+            name: "outputs.flow.js",
+            mimeType: "application/javascript",
+            size: code.length,
+            content: code,
+          },
+        ],
+      });
+
+      const fileCode = await resolveWorkspaceFileUrl("file:outputs.flow.js", space, chatTree);
+      const runResult = await runFlowWithServices(fileCode, TEST_SERVICE_DESCRIPTORS, space, chatTree, {
+        img: { kind: "file", fileId: "input" },
+      });
+
+      expect(runResult.success).toBe(true);
+      expect(runResult.outputs).toBeDefined();
+      expect(runResult.outputs?.mock).toBeDefined();
+      expect(runResult.outputs?.mock.meta?.prompt).toBe("Generate mock");
+    });
 });
 

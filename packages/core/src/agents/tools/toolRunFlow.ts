@@ -10,6 +10,7 @@ interface RunFlowResult {
   stdout?: string;
   stderr?: string;
   result?: any;
+  outputs?: Record<string, any>;
   error?: string;
 }
 
@@ -63,6 +64,56 @@ export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHan
     },
   };
 }
+
+export function getToolTestFlow(space: Space, appTree?: AppTree): LangToolWithHandler {
+  return {
+    name: "test_flow",
+    description:
+      "Execute a JavaScript flow file (.flow.js) using simulated services. Useful for validating inputs/outputs before real services exist.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Path to the .flow.js file. Use 'file:' for chat files (e.g. file:flows/test.flow.js) or 'file:///assets/...' for workspace assets.",
+        },
+        inputs: {
+          type: "object",
+          additionalProperties: true,
+          description: "Optional map of sample inputs keyed by input id.",
+        },
+      },
+      required: ["path"],
+    },
+    handler: async (args: Record<string, any>): Promise<RunFlowResult> => {
+      const { path, inputs = {} } = args;
+
+      if (typeof path !== "string" || !path.startsWith("file:")) {
+        throw new Error(
+          "test_flow tool only supports file: URIs. For example: file:flows/test.flow.js or file:///assets/flows/test.flow.js"
+        );
+      }
+
+      const resolved = resolvePath(space, appTree, path);
+      if (!resolved.vertex) {
+        throw new Error(`Flow file not found: ${path}`);
+      }
+
+      if (!path.endsWith(".flow.js") && !path.endsWith(".flow.mjs")) {
+        throw new Error(`File must be a .flow.js or .flow.mjs file: ${path}`);
+      }
+
+      const code = await resolveWorkspaceFileUrl(path, space, appTree);
+      return await runFlowWithServices(code, TEST_SERVICE_DESCRIPTORS, space, appTree, inputs);
+    },
+  };
+}
+  
+export const TEST_SERVICE_DESCRIPTORS = {
+  img: { simulate: "img" },
+  agent: { simulate: "agent" }
+};
 
 const FLOW_EXECUTION_TIMEOUT_MS = 60000 * 10; // 10 minutes
 
@@ -147,22 +198,23 @@ async function executeInWorker(
           metadata: response.metadata,
           error: response.error,
         } as InspectFlowResult);
-      } else {
-        // Return run result
-        if (response.success) {
-          resolve({
-            success: true,
-            stdout: response.stdout,
-            stderr: response.stderr,
-            result: response.result,
-          } as RunFlowResult);
         } else {
-          resolve({
-            success: false,
-            error: response.error || "Execution failed",
-            stderr: response.stderr,
-          } as RunFlowResult);
-        }
+          // Return run result
+          if (response.success) {
+            resolve({
+              success: true,
+              stdout: response.stdout,
+              stderr: response.stderr,
+              result: response.result,
+              outputs: response.outputs,
+            } as RunFlowResult);
+          } else {
+            resolve({
+              success: false,
+              error: response.error || "Execution failed",
+              stderr: response.stderr,
+            } as RunFlowResult);
+          }
       }
     };
 
