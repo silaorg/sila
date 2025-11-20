@@ -34,7 +34,7 @@ function handleToValue(context: QuickJSContext, arg: QuickJSHandle): any {
 }
 
 // Helper to convert JS value to QuickJS handle
-function jsToQuickJS(context: QuickJSContext, value: any): QuickJSHandle {
+function valueToHandle(context: QuickJSContext, value: any): QuickJSHandle {
   if (typeof value === "string") {
     return context.newString(value);
   } else if (typeof value === "number") {
@@ -155,7 +155,7 @@ function bar(obj) {
             // Call the async function and resolve the promise when done
             Promise.resolve(value(...jsArgs)).then(result => {
               // Convert result back to QuickJS handle
-              const resultHandle = jsToQuickJS(context, result);
+              const resultHandle = valueToHandle(context, result);
               deferred.resolve(resultHandle);
             }).catch(error => {
               const errorHandle = context.newString(String(error));
@@ -177,7 +177,7 @@ function bar(obj) {
             // Call the function with JS values
             const result = value(...jsArgs);
             // Convert result back to QuickJS handle
-            return jsToQuickJS(context, result);
+            return valueToHandle(context, result);
           }));
         }
       } else {
