@@ -21,6 +21,7 @@ export interface FlowWorkerResponse {
   stderr?: string;
   error?: string;
   result?: any; // Execution result
+  outputs?: Record<string, any>;
   metadata?: { // For inspect responses
     description?: string;
     inputs?: Array<{ id: string; type: string; label: string }>;
@@ -486,6 +487,80 @@ async function handleRunRequest(request: FlowWorkerRequest): Promise<FlowWorkerR
 // Global service registry for registered service functions
 const serviceRegistry = new Map<string, Function>();
 
+async function convertHandleToJS(
+  context: QuickJSAsyncContext,
+  handle?: QuickJSHandle,
+  disposeHandle = true
+): Promise<any> {
+  if (!handle) {
+    return undefined;
+  }
+
+  try {
+    try {
+      const str = context.getString(handle);
+      if (str !== "[object Object]") {
+        return str;
+      }
+    } catch {}
+
+    try {
+      const num = context.getNumber(handle);
+      if (!Number.isNaN(num)) {
+        return num;
+      }
+    } catch {}
+
+    try {
+      const dumped = context.dump(handle);
+      return dumped.consume((val: unknown) => val);
+    } catch {}
+
+    return await extractObjectViaJSONStringify(context, handle);
+  } finally {
+    if (disposeHandle) {
+      try {
+        handle.dispose();
+      } catch {}
+    }
+  }
+}
+
+function generateMockId(prefix: string): string {
+  const rand = Math.floor(Math.random() * 1_000_000);
+  return `${prefix}-${Date.now()}-${rand}`;
+}
+
+function simulateImageService(args: any[], descriptor: any) {
+  const [images = [], prompt = "", options = {}] = args;
+  const id = descriptor?.fileId ?? generateMockId("test-img");
+  return {
+    kind: "file",
+    fileId: id,
+    mimeType: "image/png",
+    name: descriptor?.name ?? `${id}.png`,
+    meta: {
+      simulated: true,
+      prompt,
+      options,
+      inputCount: Array.isArray(images) ? images.length : images ? 1 : 0,
+    },
+  };
+}
+
+function simulateAgentService(args: any[], descriptor: any) {
+  const [input, prompt = ""] = args;
+  return {
+    kind: "text",
+    value: `Simulated agent response for prompt: ${prompt}`,
+    meta: {
+      simulated: true,
+      inputSummary: typeof input === "string" ? input.slice(0, 120) : input,
+      persona: descriptor?.persona ?? "test-agent",
+    },
+  };
+}
+
 // Helper to extract object values via JSON.stringify when dump() doesn't work
 async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handle: QuickJSHandle): Promise<any> {
   const tempVarName = `__result_${Date.now()}`;
@@ -514,9 +589,29 @@ async function extractObjectViaJSONStringify(context: QuickJSAsyncContext, handl
 }
 
 async function executeFlowCodeWithServices(code: string, servicesDescriptor: any, inputsMap?: Record<string, any>): Promise<FlowWorkerResponse> {
-  try {
-    const { context } = await initQuickJS();
-    
+    try {
+      const { context } = await initQuickJS();
+      const outputHandles: Record<string, QuickJSHandle> = {};
+
+      const disposeOutputHandles = () => {
+        for (const [key, handle] of Object.entries(outputHandles)) {
+          try {
+            handle.dispose();
+          } catch {}
+          delete outputHandles[key];
+        }
+      };
+
+      const resolveOutputValues = async () => {
+        const resolved: Record<string, any> = {};
+        for (const [key, handle] of Object.entries(outputHandles)) {
+          resolved[key] = await convertHandleToJS(context, handle, true);
+          delete outputHandles[key];
+        }
+        return resolved;
+      };
+      
+      try {
     // Execute code to define setup() and run() functions
     const codeResult = await context.evalCodeAsync(code, "<flow-run>");
     
@@ -586,18 +681,24 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
       }
     };
     
-    // Helper to create mock services from descriptors
-    function createMockService(name: string, descriptor: any): Function {
-      return async (...args: any[]) => {
-        if (descriptor && descriptor.returns) {
-          return descriptor.returns;
-        }
-        return { service: name, args, mock: true };
-      };
-    }
-    
-    // Create services object with inputs, outputs, and service functions
-    const servicesObj = context.newObject();
+      // Helper to create mock services from descriptors
+      function createMockService(name: string, descriptor: any): Function {
+        return async (...args: any[]) => {
+          if (descriptor?.simulate === "img") {
+            return simulateImageService(args, descriptor);
+          }
+          if (descriptor?.simulate === "agent") {
+            return simulateAgentService(args, descriptor);
+          }
+          if (descriptor && Object.prototype.hasOwnProperty.call(descriptor, "returns")) {
+            return descriptor.returns;
+          }
+          return { service: name, args, mock: true };
+        };
+      }
+      
+      // Create services object with inputs, outputs, and service functions
+      const servicesObj = context.newObject();
     
     // Create inputs object - for now just an empty object (will be populated later)
     const inputsObj = context.newObject();
@@ -609,29 +710,62 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     }
     context.setProp(servicesObj, "inputs", inputsObj);
     
-    // Create outputs function - for now just a no-op (will be implemented later)
-    const outputsFn = context.newFunction("outputs", () => context.undefined);
-    context.setProp(servicesObj, "outputs", outputsFn);
+      // Create outputs function that collects handles for later conversion
+      const outputsFn = context.newFunction("outputs", (idHandle: QuickJSHandle, valueHandle: QuickJSHandle) => {
+        let id: string | undefined;
+        try {
+          id = context.getString(idHandle);
+        } catch {
+          id = undefined;
+        } finally {
+          if (idHandle) {
+            try {
+              idHandle.dispose();
+            } catch {}
+          }
+        }
+
+        if (!id) {
+          if (valueHandle) {
+            try {
+              valueHandle.dispose();
+            } catch {}
+          }
+          return context.undefined;
+        }
+
+        if (outputHandles[id]) {
+          try {
+            outputHandles[id].dispose();
+          } catch {}
+        }
+
+        try {
+          outputHandles[id] = valueHandle.dup();
+        } finally {
+          try {
+            valueHandle.dispose();
+          } catch {}
+        }
+        return context.undefined;
+      });
+      context.setProp(servicesObj, "outputs", outputsFn);
     
     // Add service functions (e.g., services.img, services.agent, etc.)
     if (servicesDescriptor && typeof servicesDescriptor === "object") {
-      for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
+        for (const [key, descriptor] of Object.entries(servicesDescriptor)) {
         const serviceImpl = typeof descriptor === "function" 
           ? descriptor 
           : serviceRegistry.get(key) || createMockService(key, descriptor);
         
         // Create async function that calls the service and returns a Promise
-        const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
-          // Convert QuickJS handles to JavaScript values
-          const jsArgs = args.map(arg => {
-            try {
-              const json = context.dump(arg);
-              return json.consume((v: unknown) => v);
-            } catch {
-              return undefined;
+          const serviceFn = context.newAsyncifiedFunction(key, async (...args: QuickJSHandle[]) => {
+            // Convert QuickJS handles to JavaScript values
+            const jsArgs = [];
+            for (const arg of args) {
+              jsArgs.push(await convertHandleToJS(context, arg, true));
             }
-          });
-          
+            
           // Call the service function (which may be async)
           const result = await Promise.resolve(serviceImpl(...jsArgs));
           
@@ -867,15 +1001,20 @@ async function executeFlowCodeWithServices(code: string, servicesDescriptor: any
     outputsFn.dispose();
     servicesObj.dispose();
     
-    // Return the result - use null instead of undefined for JSON serialization
-    const response: FlowWorkerResponse = {
-      requestId: "",
-      type: "run",
-      success: true,
-      result: resultValue === undefined ? null : resultValue
-    };
+      const resolvedOutputs = await resolveOutputValues();
+      // Return the result - use null instead of undefined for JSON serialization
+      const response: FlowWorkerResponse = {
+        requestId: "",
+        type: "run",
+        success: true,
+        result: resultValue === undefined ? null : resultValue,
+        outputs: resolvedOutputs
+      };
     
     return response;
+      } finally {
+        disposeOutputHandles();
+      }
   } catch (error) {
     return {
       requestId: "",

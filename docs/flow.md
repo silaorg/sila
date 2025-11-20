@@ -85,3 +85,9 @@ async function run(services) {
 }
 ```
 
+## Testing Flows
+- Use the `test_flow` tool to run a `.flow.js` file with simulated services.  
+- Provide the file path plus sample inputs:  
+  `test_flow { "path": "file:flows/logo.flow.js", "inputs": { "img-a": { "kind": "file", "fileId": "sample" } } }`
+- The simulated `services.img` returns a mock file reference and `services.agent` returns mock text. All values passed to `services.outputs(id, value)` are returned in the tool response so you can verify wiring without calling real backends.
+

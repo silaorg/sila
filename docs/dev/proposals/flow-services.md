@@ -1,446 +1,111 @@
-# Proposal: Flow Services API
+# Proposal: Flow Services v1
 
-## Problem Statement
+This rewrite keeps the proposal scoped to what we can ship immediately. It reflects the current code in `toolRunFlow.ts`, `flowWorker.ts`, and `run-flow.test.ts`, and trims anything that goes beyond a minimal, working bridge between the sandbox and host services.
 
-Flows need to call services (image processing, AI agents, file operations) that operate on workspace data. These services run outside the QuickJS sandbox in the main app/core. The sandbox should only handle pointers/references to data, not large files. We need a service API that:
+## Snapshot Of Today
+- Flow files already run inside a QuickJS worker (`run_flow` tool). `setup(flow)` metadata is captured by `inspectFlow`, and `run(services)` is invoked during execution.
+- When `runFlowWithServices` receives a `services` object, the worker injects those functions directly and executes them **inside** the sandbox. They can’t reach workspace files or main-app APIs.
+- Tests (`run-flow.test.ts`) cover simple script execution, metadata extraction, and a mocked `services.processImage`, but there is no host/service bridge or reference passing.
 
-1. Passes data references (not large files) through the sandbox boundary
-2. Executes services in the main app/core with full access to workspace files
-3. Returns results as references that can be used in subsequent service calls
-4. Supports multiple service types (image processing, AI agents, file operations)
+## Objective
+Let flows call two host-provided services—`services.img` and `services.agent`—without leaving the QuickJS sandbox or inventing a new plugin system. Everything else stays as follow-up work.
 
-## Current Context
+## Scope & Constraints (V1)
+1. **Services**: only `img` and `agent`, plus the existing `services.inputs` / `services.outputs`.
+2. **Data**: inputs and outputs are plain JSON. When a flow needs a file it receives a `{ kind: "file", fileId: string }`. No hashes, URLs, or streaming blobs yet.
+3. **Bridge**: the worker serializes every service call as `{ id, service, args }` and waits for a `{ id, ok, result | error }` response from the host thread. The host owns workspace access and option parsing.
+4. **Execution**: one flow at a time per worker. Calls are awaited sequentially; there is no retry, concurrency control, or caching.
+5. **Errors**: if the host rejects a call, the worker throws, causing `run(services)` to reject as well. That’s sufficient for agents to handle failures.
 
-- **Flow execution**: Flows run in QuickJS sandbox via Web Workers (`flowWorker.ts`)
-- **Sandbox limits**: QuickJS has memory/CPU constraints; cannot handle large files
-- **Workspace files**: Files stored in RepTree/FileStore with content-addressed storage
-- **Service execution**: Services need full access to workspace files and external APIs
-- **Existing pattern**: `setup(flow)` defines UI schema, `run(services)` executes logic
+## Author-Facing API
 
-## Goals
-
-1. Define service API that passes data references (file IDs, hashes) not file contents
-2. Implement service execution in main app/core outside sandbox
-3. Support multiple service types: `img()`, `agent()`, file operations
-4. Enable chaining: service results can be inputs to other services
-5. Track outputs explicitly via `services.outputs(id, value)`
-
-## Non-Goals
-
-- Passing large file contents through sandbox (use references only)
-- Implementing all possible services in v1 (start with `img` and `agent`)
-- Service discovery or plugin system (covered in flow-plugins.md)
-- Service versioning or dependency management
-
-## Success Criteria
-
-- Flow can call `services.img([ref1, ref2], prompt)` with file references
-- Service executes in main app/core, accesses actual files, returns result reference
-- Flow can chain services: `const result = await services.img(...); await services.agent(result, ...)`
-- Flow can set outputs: `services.outputs("img-out", result)`
-- All data passing uses references, not file contents
-
-## Design
-
-### Data Flow Pattern
-
-```
-Flow Code (Sandbox)           Main App/Core
-───────────────────           ──────────────
-services.img([ref1, ref2])    → Resolve refs to files
-                              → Process files
-                              → Store result in FileStore
-                              → Return result reference
-resultRef ←───────────────────
-```
-
-### Service API
-
-Services receive and return data references:
-
-```typescript
-interface ServiceReference {
-  type: "file" | "image" | "text";
-  id: string;           // File ID in workspace
-  hash?: string;        // Content hash (optional)
-  url?: string;         // Workspace URL (optional)
-}
-
-interface Services {
-  inputs: Record<string, ServiceReference>;
-  outputs: (id: string, value: ServiceReference | ServiceReference[]) => void;
-  img: (images: ServiceReference[], prompt: string, options?: any) => Promise<ServiceReference | ServiceReference[]>;
-  agent: (input: ServiceReference | ServiceReference[], prompt: string) => Promise<ServiceReference | ServiceReference[]>;
-  // Future: file operations, other services
-}
-```
-
-### Flow Code Pattern
-
-Two supported patterns:
-
-**Pattern 1: setup(flow) + run(services)**
 ```js
 function setup(flow) {
-  flow.title("Logo to image");
-  flow.describe("A pipeline that allows to add a logo to any image");
-  flow.inImg("img-a", "A logo");
-  flow.inImg("img-b", "Any photo where the logo is going to be inserted");
-  flow.inText("prompt", "Additional prompt for the image", { optional: true });
-  flow.outImgs("img-out", "Results");
+  flow.title("Logo overlay");
+  flow.inImg("logo", "Logo");
+  flow.inImg("photo", "Photo");
+  flow.outImgs("result", "Output");
 }
 
-async function run(services) {
-  const imgA = services.inputs["img-a"];
-  const imgB = services.inputs["img-b"];
-  const prompt = services.inputs["prompt"];
-  
-  const finalPrompt = ["Combine the images...", prompt].join('\n\n');
-  const result = await services.img([imgA, imgB], finalPrompt);
-  
-  services.outputs("img-out", result);
-  return result;
+export async function run(services) {
+  const logo = services.inputs.logo;            // { kind: "file", fileId }
+  const photo = services.inputs.photo;
+  const prompt = "Blend the logo into the photo";
+
+  const result = await services.img([logo, photo], prompt);
+  services.outputs("result", result);
 }
 ```
 
-**Pattern 2: Import + setup(flow) + run(services)**
-```js
-import { inImg } from "pipeline";
+That’s the only JS API we need to document. Advanced helpers such as `import { inImg } from "pipeline"` live in future work.
 
-const imgA = inImg("img-a", "A photo to modify");
+## Worker ↔ Host Contract
 
-async function setup(flow) {
-  flow.title("Photo to 19 century painting");
-  flow.inImg("img-1", "A photo");
-  flow.outImgs("painting", "Final painting");
+```ts
+type ServiceValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { kind: "file"; fileId: string }
+  | ServiceValue[];
+
+interface FlowServiceCall {
+  kind: "flow-service-call";
+  callId: string;
+  service: "img" | "agent";
+  args: ServiceValue[];
 }
 
-async function run(services) {
-  const result = await services.img([imgA], "Turn it into a 19 century painting", { variants: 5 });
-  const theBest = await services.agent(result, "Return the best image...");
-  services.output("painting", theBest);
-}
-```
-
-### Service Implementation
-
-#### 1. Flow Execution Request Protocol
-
-Inputs are passed from main thread to worker via `FlowWorkerRequest`:
-
-```typescript
-// In toolRunFlow.ts (main thread)
-interface FlowWorkerRequest {
-  requestId: string;
-  type: "run" | "lint" | "inspect";
-  code?: string;
-  services?: any; // Service descriptors (serializable)
-  inputs?: Record<string, ServiceReference>; // User-provided input values
-}
-
-// Example: Calling runFlowWithServices()
-await runFlowWithServices(code, servicesDescriptor, space, appTree, {
-  "img-a": { type: "image", id: "file-id-1", url: "file:///..." },
-  "img-b": { type: "image", id: "file-id-2", url: "file:///..." },
-  "prompt": { type: "text", id: "text-1", value: "user text" }
-});
-
-// This sends FlowWorkerRequest to worker with:
-// - code: flow code string
-// - services: service descriptors
-// - inputs: Record<string, ServiceReference>
-```
-
-#### 2. Service Request/Response Protocol
-
-```typescript
-interface ServiceRequest {
-  type: "img" | "agent" | "file";
-  inputs: ServiceReference[];
-  prompt?: string;
-  options?: any;
-}
-
-interface ServiceResponse {
-  success: boolean;
-  result?: ServiceReference | ServiceReference[];
+interface FlowServiceResponse {
+  kind: "flow-service-response";
+  callId: string;
+  ok: boolean;
+  result?: ServiceValue;
   error?: string;
 }
 ```
 
-#### 3. Service Execution in Main App
+The worker keeps a pending `Promise` per `callId` and resolves it when the host replies. `services.inputs` is populated from the `inputs` map we already send in `runFlowWithServices`.
 
-Services execute outside sandbox with full workspace access:
+## Execution Path
+1. `toolRunFlow` loads the `.flow.js` file and posts `{ type: "run", code, inputs }` to the worker (this already exists).
+2. `executeFlowCodeWithServices` evaluates the code, builds the `services` object, and injects `img`/`agent` functions that proxy to `callService`.
+3. `callService` posts a `FlowServiceCall` to the host and returns a promise.
+4. `toolRunFlow` listens for `flow-service-call`, invokes the real service implementation (can hit FileStore, AI APIs, etc.), and responds with `flow-service-response`.
+5. The worker resolves the promise and hands the value back to flow code. When `run` finishes, it returns `result` plus `services.outputs`.
 
-```typescript
-// In main app/core (not sandbox)
-async function executeImageService(
-  request: ServiceRequest,
-  space: Space,
-  appTree?: AppTree
-): Promise<ServiceResponse> {
-  // 1. Resolve references to actual files
-  const files = await Promise.all(
-    request.inputs.map(ref => resolveFileReference(ref, space, appTree))
-  );
-  
-  // 2. Process files (call AI model, image processing, etc.)
-  const result = await processImages(files, request.prompt, request.options);
-  
-  // 3. Store result in FileStore
-  const resultRef = await storeResult(result, space, appTree);
-  
-  // 4. Return reference
-  return { success: true, result: resultRef };
-}
-```
+## Implementation Plan
+1. **Bridge plumbing**
+   - Extend `FlowWorkerRequest/Response` to allow sub-messages of kind `"flow-service-call"` without creating a second worker.
+   - Add `callService` + pending promise map in `flowWorker.ts`.
+   - Update `executeFlowCodeWithServices` so `services.img/agent` use the bridge instead of mock descriptors.
+2. **Host wiring**
+   - In `toolRunFlow.ts`, register handlers for `flow-service-call` messages before posting the run request.
+   - Provide thin adapters `executeImageService` and `executeAgentService`. For now they can be placeholders that just echo inputs—the important part is the boundary.
+3. **Outputs**
+   - Keep `services.outputs` as a simple JS object captured inside the worker and return it as `response.outputs` (matching today’s behavior, but now we actually surface the values).
+4. **Cleanup**
+   - Remove the unused `serviceRegistry` / `servicesDescriptor` path once the bridge works.
 
-#### 4. Service Bridge in Worker
+## Test Runs
+- Add a `test_flow` tool that loads a `.flow.js` file and executes it with built-in simulated services (`simulate: "img"` / `"agent"` descriptors).  
+- The QuickJS worker captures `services.outputs(id, value)` and returns them alongside the final result so agents can assert output wiring without calling real backends.
+- Simulated `img` services return `{ kind: "file", fileId, meta: { simulated: true, prompt, options } }`. Simulated `agent` services return `{ kind: "text", value, meta: { simulated: true, inputSummary } }`.  
+- Agents pass sample `inputs` when invoking `test_flow`, mirroring how real runs will work. Once the host bridge is ready we can swap these test services for real ones or keep them as a smoke-test mode.
 
-Worker receives service calls, forwards to main app. Services object is created and passed to `run(services)`:
+## Tests (Vitest)
+1. `services.img` call is proxied to the host stub and resolves to the stubbed value.
+2. `services.outputs` returns `{ id: value }` in the run result.
+3. Host error rejects the flow promise and surfaces the error string.
 
-```typescript
-// In flowWorker.ts - executeFlowCodeWithServices()
-async function executeFlowCodeWithServices(
-  code: string,
-  servicesDescriptor: any,
-  inputsMap?: Record<string, ServiceReference>
-): Promise<FlowWorkerResponse> {
-  const { context } = await initQuickJS();
-  
-  // 1. Execute flow code to define setup() and run() functions
-  await context.evalCodeAsync(code, "<flow-run>");
-  
-  // 2. Get the run() function from global scope
-  const runFunction = context.getProp(context.global, "run");
-  
-  // 3. Create services object
-  const servicesObj = context.newObject();
-  
-  // 4. Populate services.inputs with user-provided data
-  const inputsObj = context.newObject();
-  if (inputsMap) {
-    for (const [key, value] of Object.entries(inputsMap)) {
-      // Convert ServiceReference to QuickJS object
-      const refHandle = await convertReferenceToQuickJS(value, context);
-      context.setProp(inputsObj, key, refHandle);
-    }
-  }
-  context.setProp(servicesObj, "inputs", inputsObj);
-  
-  // 5. Create services.outputs() function
-  const outputValues: Record<string, ServiceReference> = {};
-  const outputsFn = context.newAsyncifiedFunction("outputs", async (idHandle, valueHandle) => {
-    const id = context.getString(idHandle);
-    const value = await extractReferenceFromQuickJS(valueHandle, context);
-    outputValues[id] = value;
-    return context.undefined;
-  });
-  context.setProp(servicesObj, "outputs", outputsFn);
-  
-  // 6. Create service functions (img, agent, etc.)
-  const imgFn = context.newAsyncifiedFunction("img", async (...args) => {
-    const images = await extractReferencesFromQuickJS(args[0], context);
-    const prompt = context.getString(args[1]);
-    const options = args[2] ? await extractOptionsFromQuickJS(args[2], context) : undefined;
-    
-    // Forward to main app via postMessage
-    const result = await callServiceInMainApp({
-      type: "img",
-      inputs: images,
-      prompt,
-      options
-    });
-    
-    return await convertReferenceToQuickJS(result, context);
-  });
-  context.setProp(servicesObj, "img", imgFn);
-  
-  const agentFn = context.newAsyncifiedFunction("agent", async (...args) => {
-    const input = await extractReferenceFromQuickJS(args[0], context);
-    const prompt = context.getString(args[1]);
-    
-    const result = await callServiceInMainApp({
-      type: "agent",
-      inputs: [input],
-      prompt
-    });
-    
-    return await convertReferenceToQuickJS(result, context);
-  });
-  context.setProp(servicesObj, "agent", agentFn);
-  
-  // 7. Call run(services) with the services object
-  const servicesVarName = `__services_${Date.now()}`;
-  context.setProp(context.global, servicesVarName, servicesObj);
-  const runCall = await context.evalCodeAsync(`run(${servicesVarName})`, "<run-call>");
-  
-  // 8. Extract result and return
-  const result = await extractResultFromQuickJS(runCall, context);
-  
-  return {
-    success: true,
-    result,
-    outputs: outputValues
-  };
-}
-```
+These live in `packages/core/tests/src/tools/run-flow.test.ts`.
 
-**Input passing flow:**
+## Out Of Scope / Follow-Ups
+- Additional service types (`file`, `audio`, etc.), variants/options negotiation, and caching.
+- Passing large binaries or streaming data through the worker.
+- Import-time helpers (`pipeline` module), service discovery, or versions.
+- Timeouts, concurrency limits, tracing, or run history.
 
-1. Main thread calls `runFlowWithServices(code, services, space, appTree, inputs)`
-2. `inputs` is a `Record<string, ServiceReference>` with user-provided data
-3. Inputs are serialized and sent to worker via `FlowWorkerRequest`
-4. Worker receives inputs in `executeFlowCodeWithServices(code, servicesDescriptor, inputsMap)`
-5. Each input reference is converted to QuickJS object and added to `services.inputs`
-6. Services object is passed to `run(services)` function call
-
-#### 5. Service Call Bridge
-
-Worker communicates with main app via postMessage:
-
-```typescript
-// In flowWorker.ts (worker context)
-async function callServiceInMainApp(
-  request: ServiceRequest,
-  space: Space,
-  appTree?: AppTree
-): Promise<ServiceReference> {
-  return new Promise((resolve, reject) => {
-    const requestId = crypto.randomUUID();
-    
-    // Send service request to main thread
-    self.postMessage({
-      type: "service-request",
-      requestId,
-      request,
-      spaceId: space.getId(),
-      appTreeId: appTree?.getId()
-    });
-    
-    // Listen for response
-    const handler = (e: MessageEvent) => {
-      if (e.data.type === "service-response" && e.data.requestId === requestId) {
-        self.removeEventListener("message", handler);
-        if (e.data.success) {
-          resolve(e.data.result);
-        } else {
-          reject(new Error(e.data.error));
-        }
-      }
-    };
-    self.addEventListener("message", handler);
-  });
-}
-```
-
-```typescript
-// In toolRunFlow.ts (main thread)
-worker.addEventListener("message", async (e: MessageEvent) => {
-  if (e.data.type === "service-request") {
-    const { request, spaceId, appTreeId } = e.data;
-    
-    // Get space and appTree
-    const space = getSpace(spaceId);
-    const appTree = appTreeId ? getAppTree(space, appTreeId) : undefined;
-    
-    // Execute service in main app
-    const result = await executeService(request, space, appTree);
-    
-    // Send response back to worker
-    worker.postMessage({
-      type: "service-response",
-      requestId: e.data.requestId,
-      success: true,
-      result
-    });
-  }
-});
-```
-
-### Reference Resolution
-
-Convert between sandbox references and workspace files:
-
-```typescript
-// Convert workspace file to reference
-function fileToReference(file: WorkspaceFile): ServiceReference {
-  return {
-    type: "image", // or "file", "text"
-    id: file.id,
-    hash: file.hash,
-    url: file.url
-  };
-}
-
-// Resolve reference to workspace file
-async function resolveReference(
-  ref: ServiceReference,
-  space: Space,
-  appTree?: AppTree
-): Promise<WorkspaceFile> {
-  // Resolve by ID, hash, or URL
-  if (ref.id) {
-    return await getFileById(ref.id, space, appTree);
-  }
-  if (ref.hash) {
-    return await getFileByHash(ref.hash, space);
-  }
-  if (ref.url) {
-    return await resolveWorkspaceFileUrl(ref.url, space, appTree);
-  }
-  throw new Error("Invalid reference");
-}
-```
-
-### Output Tracking
-
-Track outputs set via `services.outputs()`:
-
-```typescript
-// In executeFlowCodeWithServices
-const outputValues: Record<string, ServiceReference> = {};
-
-// services.outputs() function
-const outputsFn = context.newAsyncifiedFunction("outputs", async (idHandle, valueHandle) => {
-  const id = context.getString(idHandle);
-  const value = extractReference(valueHandle);
-  outputValues[id] = value;
-  return context.undefined;
-});
-
-// After run() completes
-return {
-  success: true,
-  result: outputValues, // { "img-out": <reference> }
-  outputs: outputValues
-};
-```
-
-## Implementation Steps
-
-1. **Define ServiceReference interface** - Data structure for references
-2. **Implement reference conversion** - Convert between workspace files and references
-3. **Create service bridge in worker** - Inject `services` object with `img()`, `agent()`, `outputs()`
-4. **Implement service execution in main app** - `executeImageService()`, `executeAgentService()`
-5. **Add service request/response protocol** - postMessage communication between worker and main
-6. **Update runFlowWithServices()** - Pass actual input references, track outputs
-7. **Add tests** - Test service calls, reference passing, output tracking
-
-## Open Questions
-
-1. **Service variants**: How to handle `{ variants: 5 }` - return array of references?
-2. **Service options**: What options should `img()` support? (size, format, quality, etc.)
-3. **Error handling**: How to surface service errors to flow code?
-4. **Service timeouts**: How long should services wait before timing out?
-5. **Service caching**: Should service results be cached by input hash?
-6. **Import support**: How to implement `import { inImg } from "pipeline"` in QuickJS?
-
-## Future Extensions
-
-- **More service types**: File operations, data transformation, external APIs
-- **Service composition**: Services that call other services
-- **Service plugins**: User-defined services (covered in flow-plugins.md)
-- **Service monitoring**: Track service execution time, costs, errors
-- **Service versioning**: Support multiple versions of same service
+Keeping v1 this small lets us ship something useful quickly and iterate once real flows start calling host services.
 
