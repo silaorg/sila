@@ -1,60 +1,6 @@
+import { getQuickJS, QuickJSContext, QuickJSHandle, QuickJSRuntime, VmCallResult } from "quickjs-emscripten";
 
-import { FileReference } from "@sila/core";
-import { getQuickJS, newAsyncContext, QuickJSAsyncContext, QuickJSContext, QuickJSHandle, QuickJSRuntime, VmCallResult } from "quickjs-emscripten";
-
-// Helper to convert QuickJS handle to JS value
-export function handleToValue(context: QuickJSContext, arg: QuickJSHandle): any {
-  // Try boolean first (exact comparison)
-  if (arg === context.true) return true;
-  if (arg === context.false) return false;
-
-  // Try number
-  try {
-    const num = context.getNumber(arg);
-    if (!Number.isNaN(num)) return num;
-  } catch { }
-
-  // Try string, but skip if it's "[object Object]" (means it's actually an object)
-  try {
-    const str = context.getString(arg);
-    if (str !== "[object Object]") return str;
-  } catch { }
-
-  // For objects, use dump
-  try {
-    const dumped = context.dump(arg);
-    if (dumped) {
-      return dumped;
-    } else {
-      return undefined;
-    }
-  } catch {
-    return undefined;
-  }
-}
-
-// Helper to convert JS value to QuickJS handle
-export function valueToHandle(context: QuickJSContext, value: any): QuickJSHandle {
-  if (typeof value === "string") {
-    return context.newString(value);
-  } else if (typeof value === "number") {
-    return context.newNumber(value);
-  } else if (typeof value === "boolean") {
-    return value ? context.true : context.false;
-  } else if (value === null || value === undefined) {
-    return context.undefined;
-  } else {
-    // For objects/arrays, use JSON.parse (simplest approach per docs)
-    const jsonStr = JSON.stringify(value);
-    const parsed = context.evalCode(`JSON.parse(${JSON.stringify(jsonStr)})`, "<js-to-quickjs>");
-    if (parsed.error) {
-      parsed.error.dispose();
-      return context.undefined;
-    } else {
-      return context.unwrapResult(parsed);
-    }
-  }
-}
+import { bridgeObject, FileReference } from "@sila/core";
 
 export interface FlowExpectedInput {
   id: string;
@@ -70,28 +16,40 @@ export interface FlowExpectedOutput {
 }
 
 export function getSetup() {
-  return {
-    _title: "",
-    _description: "",
-    _inputs: [] as FlowExpectedInput[],
-    _outputs: [] as FlowExpectedOutput[],
+  let _title = "";
+  let _description = "";
+  let _inputs: FlowExpectedInput[] = [];
+  let _outputs: FlowExpectedOutput[] = [];
 
+  const setupApi = {
     title: function (title: string) {
-      this._title = title;
+      _title = title;
     },
 
     describe: function (description: string) {
-      this._description = description;
+      _description = description;
     },
 
     inImg: function (id: string, label: string) {
-      this._inputs.push({ id, label, type: "image", optional: false });
+      _inputs.push({ id, label, type: "image", optional: false });
     },
 
     outImgs: function (id: string, label: string) {
-      this._outputs.push({ id, label, type: "image" });
+      _outputs.push({ id, label, type: "image" });
     }
-  }
+  };
+
+  return {
+    setupApi,
+    get spec() {
+      return {
+        title: _title,
+        description: _description,
+        inputs: _inputs,
+        outputs: _outputs
+      };
+    }
+  };
 }
 
 export interface FlowOutput {
@@ -100,9 +58,9 @@ export interface FlowOutput {
 }
 
 export function getServices() {
-  return {
-    _outputMap: new Map(),
+  let _outputMap = new Map<string, FlowOutput>();
 
+  const servicesApi = {
     img: async function (prompt: string) {
       await new Promise(resolve => setTimeout(resolve, 100));
       return { kind: "file", fileId: "123", meta: { prompt } };
@@ -110,7 +68,102 @@ export function getServices() {
 
     outputs: function (id: string, value: any) {
       console.log(`Output ${id}:`, value);
-      this._outputMap.set(id, value);
+      _outputMap.set(id, value);
     }
+  };
+
+  return {
+    servicesApi,
+    get result() {
+      return {
+        outputs: _outputMap
+      };
+    }
+  };
+}
+
+function setConsole(context: QuickJSContext) {
+  const _console = context.newObject();
+  context.setProp(_console, "log", context.newFunction("log", (...args: QuickJSHandle[]) => { 
+    const parts: string[] = [];
+    for (const arg of args) {
+      parts.push(context.getString(arg));
+    }
+    console.log(parts.join(" "));
+
+    return context.undefined;
+  }));
+
+  context.setProp(_console, "error", context.newFunction("error", (...args: QuickJSHandle[]) => {
+    const parts: string[] = [];
+    for (const arg of args) {
+      parts.push(context.getString(arg));
+    }
+    console.error(parts.join(" "));
+  }));
+
+  context.setProp(context.global, "console", _console);
+
+  return _console;
+}
+
+export class Flow {
+
+  private hasSetup: boolean = false;
+  private isRunning: boolean = false;
+  private runtime: QuickJSRuntime | null = null;
+  private context: QuickJSContext | null = null;
+
+  constructor(readonly code: string) { }
+
+  public async setup() {
+    if (this.hasSetup) {
+      throw new Error("Flow already setup");
+    }
+
+    const quickJS = await getQuickJS();
+    this.runtime = quickJS.newRuntime();
+    this.context = this.runtime.newContext();
+
+    const { setupApi } = getSetup();
+    const setupHandle = bridgeObject(setupApi, this.context, this.runtime);
+
+    setConsole(this.context);
+
+    this.context.evalCode(this.code, "<flow-setup>");
+    this.context.setProp(this.context.global, "setup", setupHandle);
+
+    this.hasSetup = true;
+  }
+
+  public async run() {
+    if (this.isRunning) {
+      console.error("Flow is already running");
+      return;
+    }
+
+    this.isRunning = true;
+
+    if (!this.hasSetup) {
+      throw new Error("Flow not setup");
+    }
+
+    if (!this.runtime || !this.context) {
+      throw new Error("QuickJS runtime or context not set");
+    }
+
+    const { servicesApi, result } = getServices();
+    const servicesHandle = bridgeObject(servicesApi, this.context, this.runtime);
+    this.context.setProp(this.context.global, "services", servicesHandle);
+
+    const runResult = this.context.evalCode("run(services)", "<flow-run>");
+
+    if (runResult.error) {
+      throw new Error(runResult.error.consume((err) => this.context?.getString(err)));
+    }
+
+    console.log(result.outputs);
+
+    this.isRunning = false;
   }
 }

@@ -9,6 +9,7 @@ export * from './utils';
 export * from './tools';
 export * from './agents';
 export * from './spaces';
+export * from './flow';
 export type { AttachmentPreview, AttachmentKind } from './spaces/files/AttachmentPreview';
 export type { FileInfo } from './spaces/files/FileInfo';
 export type { AppFileSystem, FileEntry, FileHandle, WatchEvent, UnwatchFn } from './appFs';

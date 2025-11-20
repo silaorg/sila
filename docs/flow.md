@@ -6,29 +6,29 @@ Flow files (`.flow.js`) define executable pipelines that process inputs and prod
 
 A flow file has two functions:
 
-### `setup(flow)`
+### `init(setup)`
 
 Defines the flow's metadata: title, description, inputs, and outputs.
 
 ```js
-function setup(flow) {
-  flow.title("Logo to image");
-  flow.describe("A pipeline that allows to add a logo to any image");
+function init(setup) {
+  setup.title("Logo to image");
+  setup.describe("A pipeline that allows to add a logo to any image");
   
-  flow.inImg("img-a", "A logo");
-  flow.inImg("img-b", "Any photo where the logo is going to be inserted");
-  flow.inText("prompt", "Additional prompt for the image", { optional: true });
+  setup.inImg("img-a", "A logo");
+  setup.inImg("img-b", "Any photo where the logo is going to be inserted");
+  setup.inText("prompt", "Additional prompt for the image", { optional: true });
   
-  flow.outImgs("img-out", "Results");
+  setup.outImgs("img-out", "Results");
 }
 ```
 
 **Flow API:**
-- `flow.title(string)` - Flow title
-- `flow.describe(string)` - Flow description
-- `flow.inImg(id, label, options?)` - Image input (options: `{ optional: true }`)
-- `flow.inText(id, label, options?)` - Text input (options: `{ optional: true }`)
-- `flow.outImgs(id, label)` - Image output
+- `setup.title(string)` - Flow title
+- `setup.describe(string)` - Flow description
+- `setup.inImg(id, label, options?)` - Image input (options: `{ optional: true }`)
+- `setup.inText(id, label, options?)` - Text input (options: `{ optional: true }`)
+- `setup.outImgs(id, label)` - Image output
 
 ### `run(services)`
 
@@ -64,17 +64,17 @@ async function run(services) {
 
 Flows are executed in two phases:
 
-1. **Inspect** - Calls `setup(flow)` to extract metadata (title, description, inputs)
+1. **Inspect** - Calls `init(setup)` to extract metadata (title, description, inputs)
 2. **Run** - Calls `run(services)` with provided inputs and services
 
 ## Example
 
 ```js
-function setup(flow) {
-  flow.title("Image filter");
-  flow.describe("Apply a filter to an image");
-  flow.inImg("source", "Source image");
-  flow.outImgs("result", "Filtered image");
+function init(setup) {
+  setup.title("Image filter");
+  setup.describe("Apply a filter to an image");
+  setup.inImg("source", "Source image");
+  setup.outImgs("result", "Filtered image");
 }
 
 async function run(services) {

@@ -1,60 +1,7 @@
 import { describe, it, expect } from "vitest";
 
-import { getQuickJS, newAsyncContext, QuickJSAsyncContext, QuickJSContext, QuickJSHandle, QuickJSRuntime, VmCallResult } from "quickjs-emscripten";
-
-// Helper to convert QuickJS handle to JS value
-function handleToValue(context: QuickJSContext, arg: QuickJSHandle): any {
-  // Try boolean first (exact comparison)
-  if (arg === context.true) return true;
-  if (arg === context.false) return false;
-
-  // Try number
-  try {
-    const num = context.getNumber(arg);
-    if (!Number.isNaN(num)) return num;
-  } catch {}
-
-  // Try string, but skip if it's "[object Object]" (means it's actually an object)
-  try {
-    const str = context.getString(arg);
-    if (str !== "[object Object]") return str;
-  } catch {}
-
-  // For objects, use dump
-  try {
-    const dumped = context.dump(arg);
-    if (dumped) {
-      return dumped;
-    } else {
-      return undefined;
-    }
-  } catch {
-    return undefined;
-  }
-}
-
-// Helper to convert JS value to QuickJS handle
-function valueToHandle(context: QuickJSContext, value: any): QuickJSHandle {
-  if (typeof value === "string") {
-    return context.newString(value);
-  } else if (typeof value === "number") {
-    return context.newNumber(value);
-  } else if (typeof value === "boolean") {
-    return value ? context.true : context.false;
-  } else if (value === null || value === undefined) {
-    return context.undefined;
-  } else {
-    // For objects/arrays, use JSON.parse (simplest approach per docs)
-    const jsonStr = JSON.stringify(value);
-    const parsed = context.evalCode(`JSON.parse(${JSON.stringify(jsonStr)})`, "<js-to-quickjs>");
-    if (parsed.error) {
-      parsed.error.dispose();
-      return context.undefined;
-    } else {
-      return context.unwrapResult(parsed);
-    }
-  }
-}
+import { getQuickJS, QuickJSContext, QuickJSHandle, VmCallResult } from "quickjs-emscripten";
+import { bridgeObject } from "@sila/core";
 
 function handleError(handle: VmCallResult<QuickJSHandle>, context: QuickJSContext) {
   if (handle.error) {
@@ -139,55 +86,6 @@ function bar(obj) {
     expect(fooValue).toBe("hello!");
   });
 
-  function turnObjectIntoQuickJSObject(context: QuickJSContext, runtime: QuickJSRuntime, target: object) {
-    const obj = context.newObject();
-    for (const [key, value] of Object.entries(target)) {
-      if (typeof value === "function") {
-        if (value.constructor.name === 'AsyncFunction') {
-          // For async functions, create a promise manually (like in the working test)
-          const fnHandle = context.newFunction(key, (...args: QuickJSHandle[]) => {
-            // Convert QuickJS handles to JS values
-            const jsArgs = args.map(arg => handleToValue(context, arg));
-            
-            // Create a promise
-            const deferred = context.newPromise();
-            
-            // Call the async function and resolve the promise when done
-            Promise.resolve(value(...jsArgs)).then(result => {
-              // Convert result back to QuickJS handle
-              const resultHandle = valueToHandle(context, result);
-              deferred.resolve(resultHandle);
-            }).catch(error => {
-              const errorHandle = context.newString(String(error));
-              deferred.reject(errorHandle);
-            });
-            
-            // IMPORTANT: schedule executePendingJobs when promise settles
-            deferred.settled.then(runtime.executePendingJobs);
-            
-            return deferred.handle;
-          });
-          context.setProp(obj, key, fnHandle);
-        }
-        else {
-          context.setProp(obj, key, context.newFunction(key, (...args: QuickJSHandle[]) => {
-            // Convert QuickJS handles to JS values
-            // Note: We don't dispose these handles - QuickJS manages their lifetime
-            const jsArgs = args.map(arg => handleToValue(context, arg));
-            // Call the function with JS values
-            const result = value(...jsArgs);
-            // Convert result back to QuickJS handle
-            return valueToHandle(context, result);
-          }));
-        }
-      } else {
-        context.setProp(obj, key, context.newString(String(value)));
-      }
-    }
-    return obj;
-  }
-  
-
   it("should parse and execute functions from the outside", async () => {
     const quickJS = await getQuickJS();
     const runtime = quickJS.newRuntime();
@@ -205,7 +103,7 @@ function bar(obj) {
       }
     }
 
-    const servicesObj = turnObjectIntoQuickJSObject(context, runtime, services);
+    const servicesObj = bridgeObject(services, context, runtime);
 
     const code = `
 async function run(services) {
