@@ -1,4 +1,4 @@
-import { getQuickJS, QuickJSContext, QuickJSHandle, QuickJSRuntime, VmCallResult } from "quickjs-emscripten";
+import { getQuickJS, QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten";
 
 import { bridgeObject, FileReference } from "@sila/core";
 
@@ -52,21 +52,28 @@ export function getSetup() {
   };
 }
 
-export interface FlowOutput {
+export interface FlowOutputFile {
   id: string;
   file: FileReference;
 }
 
-export function getServices(inputs: Record<string, string> = {}) {
+export type FlowOutput = string | boolean | number | FileReference;
+
+export function getServices(inputs: Record<string, string> = {}, check: boolean = false) {
   let _outputMap = new Map<string, FlowOutput>();
 
   const servicesApi = {
     img: async function (prompt: string) {
+      if (check) {
+        // @TODO: Return a dummy file reference
+        throw new Error("Not implemented");
+      }
+
       await new Promise(resolve => setTimeout(resolve, 100));
       return { kind: "file", fileId: "123", meta: { prompt } };
     },
 
-    outputs: function (id: string, value: any) {
+    output: function (id: string, value: any) {
       console.log(`Output ${id}:`, value);
       _outputMap.set(id, value);
     },
@@ -88,7 +95,7 @@ export function getServices(inputs: Record<string, string> = {}) {
 
 function setConsole(context: QuickJSContext) {
   const _console = context.newObject();
-  context.setProp(_console, "log", context.newFunction("log", (...args: QuickJSHandle[]) => { 
+  context.setProp(_console, "log", context.newFunction("log", (...args: QuickJSHandle[]) => {
     const parts: string[] = [];
     for (const arg of args) {
       parts.push(context.getString(arg));
@@ -166,10 +173,19 @@ export class Flow {
       throw new Error(runResult.error.consume((err) => this.context?.getString(err)));
     }
 
-    console.log(result.outputs);
-
     this.isRunning = false;
 
     return result.outputs;
+  }
+
+  public async check(): Promise<{ pass: boolean, error?: string }> {
+    /* TODO: 
+    - [ ] Gather dummy inputs based on what is expected in the flow
+    - [ ] Get services with check set to true
+    - [ ] Run the flow with the dummy inputs
+    - [ ] Return the result of the check
+    */
+
+    return { pass: true };
   }
 }
