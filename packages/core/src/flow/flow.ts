@@ -15,7 +15,14 @@ export interface FlowExpectedOutput {
   type: "image" | "text";
 }
 
-export function getFlowInit() {
+export interface FlowSpec {
+  title: string;
+  description: string;
+  inputs: FlowExpectedInput[];
+  outputs: FlowExpectedOutput[];
+}
+
+export function getFlowInit(): { api: any, spec: FlowSpec } {
   let _title = "";
   let _description = "";
   let _inputs: FlowExpectedInput[] = [];
@@ -30,12 +37,12 @@ export function getFlowInit() {
       _description = description;
     },
 
-    inImg: function (id: string, label: string) {
-      _inputs.push({ id, label, type: "image", optional: false });
+    inImg: function (id: string, label: string, options?: { optional?: boolean }) {
+      _inputs.push({ id, label, type: "image", optional: options?.optional ?? false });
     },
 
-    inText: function (id: string, label: string) {
-      _inputs.push({ id, label, type: "text", optional: false });
+    inText: function (id: string, label: string, options?: { optional?: boolean }) {
+      _inputs.push({ id, label, type: "text", optional: options?.optional ?? false });
     },
 
     outImgs: function (id: string, label: string) {
@@ -132,16 +139,17 @@ function setConsole(context: QuickJSContext) {
 
 export class Flow {
 
-  private hasSetup: boolean = false;
+  private hasInit: boolean = false;
   private isRunning: boolean = false;
+  private spec: FlowSpec | null = null;
   private runtime: QuickJSRuntime | null = null;
   private context: QuickJSContext | null = null;
 
   // @TODO: consider passing a service builder here so we can inject workspace-specific logic
   constructor(readonly code: string) { }
 
-  public async setup() {
-    if (this.hasSetup) {
+  public async init(): Promise<FlowSpec> {
+    if (this.hasInit) {
       throw new Error("Flow already setup");
     }
 
@@ -164,10 +172,9 @@ export class Flow {
       throw new Error(`Error initializing flow: ${errorMessage}`);
     }
 
-    this.hasSetup = true;
-
-    // Access spec getter AFTER init has run, so it captures the updated values
-    return flowInit.spec;
+    this.hasInit = true;
+    this.spec = flowInit.spec;
+    return this.spec;
   }
 
   public async run(inputs: Record<string, string> = {}): Promise<Map<string, FlowOutput>> {
@@ -176,9 +183,11 @@ export class Flow {
       return new Map();
     }
 
+    this.checkInputs(inputs);
+
     this.isRunning = true;
 
-    if (!this.hasSetup) {
+    if (!this.hasInit) {
       throw new Error("Flow not setup");
     }
 
@@ -210,5 +219,20 @@ export class Flow {
     */
 
     return { pass: true };
+  }
+
+  checkInputs(inputs: Record<string, string>): void {
+    if (!this.spec) {
+      throw new Error("Flow spec not initialized");
+    }
+
+    const requiredInputs = this.spec.inputs.filter(input => !input.optional);
+    const missingInputs = requiredInputs.filter(input => !inputs[input.id]);
+
+    if (missingInputs.length > 0) {
+      const missingIds = missingInputs.map(input => input.id).join(", ");
+      const expectedIds = requiredInputs.map(input => input.id).join(", ");
+      throw new Error(`Didn't get ${missingIds} out of expected ${expectedIds}`);
+    }
   }
 }
