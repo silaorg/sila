@@ -37,18 +37,15 @@ function init(setup) {
 }
 
 async function run(services) {
-  console.log("Starting flow");
-
-  console.log("Getting input");
-	const prompt = services.inputs["user"];
+	const prompt = services.input("user");
   console.log("Echoing", prompt);	
-	services.output("echo", "Echo: " + prompt);
+	services.outputs("echo", "Echo: " + prompt);
 }
 `;
 
     const flow = new Flow(code);
     await flow.setup();
-    const result = await flow.run();
+    const result = await flow.run({ user: "Say something" });
     expect(result.get("echo")).toBe("Echo: Say something");
   });
 });

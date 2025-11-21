@@ -57,7 +57,7 @@ export interface FlowOutput {
   file: FileReference;
 }
 
-export function getServices() {
+export function getServices(inputs: Record<string, string> = {}) {
   let _outputMap = new Map<string, FlowOutput>();
 
   const servicesApi = {
@@ -69,6 +69,10 @@ export function getServices() {
     outputs: function (id: string, value: any) {
       console.log(`Output ${id}:`, value);
       _outputMap.set(id, value);
+    },
+
+    input: function (id: string) {
+      return inputs[id];
     }
   };
 
@@ -136,7 +140,7 @@ export class Flow {
     this.hasSetup = true;
   }
 
-  public async run(): Promise<Map<string, FlowOutput>> {
+  public async run(inputs: Record<string, string> = {}): Promise<Map<string, FlowOutput>> {
     if (this.isRunning) {
       console.error("Flow is already running");
       return new Map();
@@ -152,7 +156,7 @@ export class Flow {
       throw new Error("QuickJS runtime or context not set");
     }
 
-    const { servicesApi, result } = getServices();
+    const { servicesApi, result } = getServices(inputs);
     const servicesHandle = bridgeObject(servicesApi, this.context, this.runtime);
     this.context.setProp(this.context.global, "services", servicesHandle);
 
