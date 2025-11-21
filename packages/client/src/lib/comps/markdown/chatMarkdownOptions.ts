@@ -6,6 +6,7 @@ import MarkdownCodeSpan from "./markdown-components/MarkdownCodeSpan.svelte";
 import MarkdownTeX from "./markdown-components/MarkdownTeX.svelte";
 import MarkdownTeXBlock from "./markdown-components/MarkdownTeXBlock.svelte";
 import MarkdownLink from "./markdown-components/MarkdownLink.svelte";
+import MarkdownImage from "./markdown-components/MarkdownImage.svelte";
 import {
   createBlockLatexExtension,
   createInlineLatexExtension,
@@ -18,6 +19,7 @@ export const chatMarkdownOptions = new MarkpageOptions()
   .overrideBuiltinToken("texInline", MarkdownTeX as Component)
   .overrideBuiltinToken("texBlock", MarkdownTeXBlock as Component)
   .overrideBuiltinToken("link", MarkdownLink as Component)
+  .overrideBuiltinToken("image", MarkdownImage as Component)
   .extendMarkdown({
     extensions: [
       createInlineLatexExtension(MarkdownTeX),
