@@ -14,10 +14,10 @@ import { getToolGenerateImage } from "../../../src/agents/tools/toolGenerateImag
 import { getToolLs } from "../../../src/agents/tools/toolLs";
 import { resolvePath } from "../../../src/agents/tools/fileUtils";
 
-// @TODO: Get API key from environment variable or secrets
-const FAL_AI_API_KEY = "<get from .env instead";
-
 const testInputDir = path.join(__dirname, "test-input");
+
+// Get API key from environment (loaded from .env by setup-worker.ts)
+const FAL_AI_API_KEY = process.env.FAL_AI_API_KEY;
 
 // Helper function to convert image file to data URL
 async function imageFileToDataUrl(filePath: string): Promise<string> {
@@ -58,8 +58,8 @@ describe("generate_image tool", () => {
 
   it("combines two images from test-input folder and returns file path", async () => {
     // Skip test if API key is not configured
-    if (FAL_AI_API_KEY === "<get from .env instead") {
-      console.log("Skipping test: FAL_AI_API_KEY not set. Set environment variable to run this test.");
+    if (!FAL_AI_API_KEY) {
+      console.log("Skipping test: FAL_AI_API_KEY not set. Set FAL_AI_API_KEY in packages/core/tests/.env to run this test.");
       return;
     }
 
@@ -84,8 +84,8 @@ describe("generate_image tool", () => {
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
     }
 
-    // Set API key in space secrets (if available)
-    if (FAL_AI_API_KEY && FAL_AI_API_KEY !== "<get from .env instead") {
+    // Set API key in space secrets
+    if (FAL_AI_API_KEY) {
       space.setApiKey("falai", FAL_AI_API_KEY);
     }
 
@@ -171,8 +171,8 @@ describe("generate_image tool", () => {
 
   it("generates image with custom output path using test-input image", async () => {
     // Skip test if API key is not configured
-    if (FAL_AI_API_KEY === "<get from .env instead") {
-      console.log("Skipping test: FAL_AI_API_KEY not set. Set environment variable to run this test.");
+    if (!FAL_AI_API_KEY) {
+      console.log("Skipping test: FAL_AI_API_KEY not set. Set FAL_AI_API_KEY in packages/core/tests/.env to run this test.");
       return;
     }
 
@@ -195,8 +195,8 @@ describe("generate_image tool", () => {
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
     }
 
-    // Set API key in space secrets (if available)
-    if (FAL_AI_API_KEY && FAL_AI_API_KEY !== "<get from .env instead") {
+    // Set API key in space secrets
+    if (FAL_AI_API_KEY) {
       space.setApiKey("falai", FAL_AI_API_KEY);
     }
 
