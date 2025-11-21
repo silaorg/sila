@@ -13,6 +13,7 @@ import { getToolRm } from "./tools/toolRm";
 import { getToolMove } from "./tools/toolMove";
 import { getToolApplyPatch } from "./tools/toolApplyPatch";
 import { getToolWriteToFile } from "./tools/toolWriteToFile";
+import { getToolGenerateImage } from "./tools/toolGenerateImage";
 
 export class AgentServices {
   readonly space: Space;
@@ -185,7 +186,7 @@ export class AgentServices {
       tools.push({ name: "web_search" });
 
       // @TODO: check if model can generate images
-      tools.push({ name: "image_generation" });
+      //tools.push({ name: "image_generation" });
 
       // At the moment only OpenAI's GPT-5.1 supports the apply_patch tool
       if (model.model.includes("gpt-5.1")) {
@@ -205,6 +206,9 @@ export class AgentServices {
     if (!useApplyPatch) {
       tools.push(getToolWriteToFile(this.space, appTree));
     }
+
+    // Image generation tool (available for all providers)
+    tools.push(getToolGenerateImage(this.space, appTree));
 
     return tools;
   }
