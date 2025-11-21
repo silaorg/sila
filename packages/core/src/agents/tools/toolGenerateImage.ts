@@ -20,7 +20,7 @@ export function getToolGenerateImage(
   return {
     name: "generate_image",
     description:
-      "Generate or edit images using AI. Accepts file paths to existing images (for editing) and a prompt. Returns file paths to the generated images. Use 'file:///assets/...' for workspace files or 'file:...' for chat files.",
+      "Generate or edit images using AI. Accepts file paths to existing images (for editing) and a prompt. Returns file paths to the generated images. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format images with previews: ![description](<file:///assets/file.jpg>).",
     parameters: {
       type: "object",
       properties: {

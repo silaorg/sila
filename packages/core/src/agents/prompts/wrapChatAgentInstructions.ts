@@ -27,6 +27,8 @@ Use markdown for formatting. If you write code examples: use tick marks for inli
 For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters.
 
 When you reference files, link them in Markdown format by their path in the workspace. E.g: [Doc](<file:///path/to/doc 1.md>) or [Doc](<file:doc 1.md>). Use < > for paths with spaces.
+
+When you want to show images, videos, or documents to users (for example, as a result of your work), format them with previews using: ![description](<file:///assets/file.jpg>). Otherwise, link them regularly without the preview format.
 </formatting>`;
 }
 

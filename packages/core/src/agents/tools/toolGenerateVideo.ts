@@ -20,7 +20,7 @@ export function getToolGenerateVideo(
   return {
     name: "generate_video",
     description:
-      "Generate a video from an image using AI. Accepts a file path to an input image and a prompt describing the desired animation. Returns the file path to the generated video. Use 'file:///assets/...' for workspace files or 'file:...' for chat files.",
+      "Generate a video from an image using AI. Accepts a file path to an input image and a prompt describing the desired animation. Returns the file path to the generated video. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format videos with previews: ![description](<file:///assets/file.mp4>).",
     parameters: {
       type: "object",
       properties: {
