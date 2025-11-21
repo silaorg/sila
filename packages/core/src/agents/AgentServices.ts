@@ -14,6 +14,7 @@ import { getToolMove } from "./tools/toolMove";
 import { getToolApplyPatch } from "./tools/toolApplyPatch";
 import { getToolWriteToFile } from "./tools/toolWriteToFile";
 import { getToolGenerateImage } from "./tools/toolGenerateImage";
+import { getToolGenerateVideo } from "./tools/toolGenerateVideo";
 
 export class AgentServices {
   readonly space: Space;
@@ -209,6 +210,9 @@ export class AgentServices {
 
     // Image generation tool (available for all providers)
     tools.push(getToolGenerateImage(this.space, appTree));
+    
+    // Video generation tool (available for all providers)
+    tools.push(getToolGenerateVideo(this.space, appTree));
 
     return tools;
   }
