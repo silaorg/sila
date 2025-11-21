@@ -17,5 +17,9 @@ demos
 # Playwright
 playwright-report/
 test-results/ 
+
+# Test output
+**/test-output/
+
 .dev.pid
 .dev.log
