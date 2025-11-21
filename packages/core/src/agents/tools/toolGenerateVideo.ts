@@ -108,8 +108,29 @@ export function getToolGenerateVideo(
           };
         }
 
+        // Check if it's an image file
+        const mimeType = resolved.vertex.getProperty("mimeType") as string | undefined;
+        if (!mimeType || !mimeType.startsWith("image/")) {
+          return {
+            status: "failed",
+            message: `Input file is not an image: ${inputFile}`,
+          };
+        }
+
+        // Get the tree ID (either space tree or app tree)
+        const treeId = resolved.isWorkspace
+          ? space.getId()
+          : (appTree?.getId() || (await space.loadAppTree("chat"))?.getId());
+
+        if (!treeId) {
+          return {
+            status: "failed",
+            message: `Could not determine tree for file: ${inputFile}`,
+          };
+        }
+
         const resolver = new FileResolver(space);
-        const fileRef = { tree: resolved.tree.id, vertex: resolved.vertex.id };
+        const fileRef = { tree: treeId, vertex: resolved.vertex.id };
         const resolvedFiles = await resolver.getFileData([fileRef]);
         const images = resolvedFiles.filter((f) => f.kind === "image");
         
