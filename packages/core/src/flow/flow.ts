@@ -15,7 +15,7 @@ export interface FlowExpectedOutput {
   type: "image" | "text";
 }
 
-export function getSetup() {
+export function getFlowInit() {
   let _title = "";
   let _description = "";
   let _inputs: FlowExpectedInput[] = [];
@@ -59,7 +59,7 @@ export interface FlowOutputFile {
 
 export type FlowOutput = string | boolean | number | FileReference;
 
-export function getServices(inputs: Record<string, string> = {}, check: boolean = false) {
+export function getFlowServices(inputs: Record<string, string> = {}, check: boolean = false) {
   let _outputMap = new Map<string, FlowOutput>();
 
   const servicesApi = {
@@ -137,7 +137,7 @@ export class Flow {
     this.runtime = quickJS.newRuntime();
     this.context = this.runtime.newContext();
 
-    const { setupApi } = getSetup();
+    const { setupApi, spec } = getFlowInit();
     const setupHandle = bridgeObject(setupApi, this.context, this.runtime);
 
     setConsole(this.context);
@@ -145,7 +145,16 @@ export class Flow {
     this.context.evalCode(this.code, "<flow-setup>");
     this.context.setProp(this.context.global, "setup", setupHandle);
 
+    const initRusult = this.context.evalCode("init(setup)", "<flow-init>");
+
+    if (initRusult.error) {
+      const errorMessage = initRusult.error.consume((err) => this.context?.getString(err));
+      throw new Error(`Error initializing flow: ${errorMessage}`);
+    }
+
     this.hasSetup = true;
+
+    return spec;
   }
 
   public async run(inputs: Record<string, string> = {}): Promise<Map<string, FlowOutput>> {
@@ -164,7 +173,7 @@ export class Flow {
       throw new Error("QuickJS runtime or context not set");
     }
 
-    const { servicesApi, result } = getServices(inputs);
+    const { servicesApi, result } = getFlowServices(inputs);
     const servicesHandle = bridgeObject(servicesApi, this.context, this.runtime);
     this.context.setProp(this.context.global, "services", servicesHandle);
 
