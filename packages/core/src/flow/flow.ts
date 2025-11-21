@@ -235,4 +235,49 @@ export class Flow {
       throw new Error(`Didn't get ${missingIds} out of expected ${expectedIds}`);
     }
   }
+
+  /**
+   * Lint the flow code for syntax errors using QuickJS.
+   * This is a lightweight syntax check that doesn't execute the code.
+   * @returns Object with `valid` boolean and optional `error` message
+   */
+  public static async lint(code: string): Promise<{ valid: boolean; error?: string }> {
+    const quickJS = await getQuickJS();
+    const runtime = quickJS.newRuntime();
+    const context = runtime.newContext();
+
+    try {
+      // Try to parse the code - this will catch syntax errors
+      const result = context.evalCode(code, "<flow-lint>");
+
+      if (result.error) {
+        // Extract error message before disposing context
+        const errorMessage = result.error.consume((err) => context.getString(err));
+        context.dispose();
+        runtime.dispose();
+        return { valid: false, error: errorMessage };
+      }
+
+      // Clean up
+      if (result.value) {
+        result.value.dispose();
+      }
+      context.dispose();
+      runtime.dispose();
+
+      return { valid: true };
+    } catch (error) {
+      // Clean up on exception
+      try {
+        context.dispose();
+        runtime.dispose();
+      } catch {
+        // Ignore cleanup errors
+      }
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
 }

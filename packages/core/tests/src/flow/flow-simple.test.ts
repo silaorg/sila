@@ -82,5 +82,40 @@ async function run(services) {
     expect(result.get("output")).toBe("done");
   });
 
+  it("lints valid flow code", async () => {
+    const validCode = `
+function init(setup) {
+  setup.title("Test");
+  setup.outText("output");
+}
+
+async function run(services) {
+  services.output("output", "done");
+}
+`;
+
+    const result = await Flow.lint(validCode);
+    expect(result.valid).toBe(true);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("lints invalid flow code and catches syntax errors", async () => {
+    const invalidCode = `
+function init(setup) {
+  setup.title("Test");
+  // Missing closing brace
+  setup.outText("output");
+
+async function run(services) {
+  services.output("output", "done");
+}
+`;
+
+    const result = await Flow.lint(invalidCode);
+    expect(result.valid).toBe(false);
+    expect(result.error).toBeDefined();
+    // QuickJS may return different error formats, so just check that an error exists
+    expect(result.error?.length).toBeGreaterThan(0);
+  });
 
 });
