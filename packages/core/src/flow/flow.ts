@@ -125,6 +125,7 @@ export class Flow {
   private runtime: QuickJSRuntime | null = null;
   private context: QuickJSContext | null = null;
 
+  // @TODO: consider passing a service builder here so we can inject workspace-specific logic
   constructor(readonly code: string) { }
 
   public async setup() {
