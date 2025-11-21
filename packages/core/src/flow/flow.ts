@@ -136,10 +136,10 @@ export class Flow {
     this.hasSetup = true;
   }
 
-  public async run() {
+  public async run(): Promise<Map<string, FlowOutput>> {
     if (this.isRunning) {
       console.error("Flow is already running");
-      return;
+      return new Map();
     }
 
     this.isRunning = true;
@@ -165,5 +165,7 @@ export class Flow {
     console.log(result.outputs);
 
     this.isRunning = false;
+
+    return result.outputs;
   }
 }

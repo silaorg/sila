@@ -5,6 +5,7 @@ describe("Flow simple test", () => {
 
   it("should execute a flow", async () => {
     
+    /*
     const code = `
 function init(setup) {
 	setup
@@ -25,17 +26,29 @@ async function run(services) {
 	services.output("img", result);
 }
 `;
+*/
+
+const code = `
+function init(setup) {
+	setup
+		.title("Echo")
+		.inText("user", "Say something")
+		.outText("echo")
+}
+
+async function run(services) {
+  console.log("Starting flow");
+
+  console.log("Getting input");
+	const prompt = services.inputs["user"];
+  console.log("Echoing", prompt);	
+	services.output("echo", "Echo: " + prompt);
+}
+`;
 
     const flow = new Flow(code);
     await flow.setup();
-    await flow.run();
-    /*
-    TODO:
-    - [x] Write a simple flow that uses the flow API
-    - [ ] Prepare the system to execute the flow
-    - [ ] Execute the flow
-    - [ ] Verify the result
-    */
-
+    const result = await flow.run();
+    expect(result.get("echo")).toBe("Echo: Say something");
   });
 });
