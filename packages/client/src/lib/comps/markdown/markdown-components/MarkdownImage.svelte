@@ -3,6 +3,7 @@
   import { useChatAppDataOptional } from "../../apps/chat/chatAppContext";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ResolvedFileInfo, Vertex } from "@sila/core";
+  import MarkdownTextDocument from "./MarkdownTextDocument.svelte";
 
   let { token } = $props<{
     token: Tokens.Image;
@@ -44,6 +45,10 @@
     resolvedFile?.mimeType?.startsWith("video/") ?? false
   );
 
+  const isTextDocument = $derived(
+    resolvedFile?.mimeType?.startsWith("text/") ?? false
+  );
+
   function openFile() {
     if (!fileVertex || !clientState.currentSpaceState?.vertexViewer) {
       return;
@@ -55,7 +60,13 @@
 
 {#if isFile}
   {#if resolvedFile}
-    {#if isVideo}
+    {#if isTextDocument && resolvedFile}
+      <MarkdownTextDocument
+        {resolvedFile}
+        {fileVertex}
+        fileName={token.text || resolvedFile.name || ""}
+      />
+    {:else if isVideo}
       <button
         class="markdown-video-button cursor-pointer border-none bg-transparent p-0 inline-block"
         onclick={openFile}
