@@ -40,7 +40,11 @@
     }
   });
 
-  function openImage() {
+  const isVideo = $derived(
+    resolvedFile?.mimeType?.startsWith("video/") ?? false
+  );
+
+  function openFile() {
     if (!fileVertex || !clientState.currentSpaceState?.vertexViewer) {
       return;
     }
@@ -51,23 +55,41 @@
 
 {#if isFile}
   {#if resolvedFile}
-    <button
-      class="markdown-image-button cursor-pointer border-none bg-transparent p-0 inline-block"
-      onclick={openImage}
-      type="button"
-      aria-label={`Open image: ${token.text || resolvedFile.name || ""}`}
-    >
-      <img
-        src={resolvedFile.url}
-        alt={token.text || resolvedFile.name || ""}
-        title={token.title || resolvedFile.name || undefined}
-        class="markdown-image"
-      />
-    </button>
+    {#if isVideo}
+      <button
+        class="markdown-video-button cursor-pointer border-none bg-transparent p-0 inline-block"
+        onclick={openFile}
+        type="button"
+        aria-label={`Open video: ${token.text || resolvedFile.name || ""}`}
+      >
+        <video
+          src={resolvedFile.url}
+          controls
+          class="markdown-video"
+          preload="metadata"
+        >
+          <track kind="captions" />
+        </video>
+      </button>
+    {:else}
+      <button
+        class="markdown-image-button cursor-pointer border-none bg-transparent p-0 inline-block"
+        onclick={openFile}
+        type="button"
+        aria-label={`Open image: ${token.text || resolvedFile.name || ""}`}
+      >
+        <img
+          src={resolvedFile.url}
+          alt={token.text || resolvedFile.name || ""}
+          title={token.title || resolvedFile.name || undefined}
+          class="markdown-image"
+        />
+      </button>
+    {/if}
   {:else}
     <!-- Failed to resolve file -->
     <div class="markdown-image text-sm text-gray-500 italic">
-      Failed to load image: {token.href}
+      Failed to load file: {token.href}
     </div>
   {/if}
 {:else}
@@ -82,7 +104,14 @@
     object-fit: contain;
   }
 
-  .markdown-image-button {
+  .markdown-video {
+    max-width: 100%;
+    max-width: min(100%, 600px);
+    height: auto;
+  }
+
+  .markdown-image-button,
+  .markdown-video-button {
     display: inline-block;
   }
 </style>
