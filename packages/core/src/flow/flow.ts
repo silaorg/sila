@@ -21,7 +21,7 @@ export function getFlowInit() {
   let _inputs: FlowExpectedInput[] = [];
   let _outputs: FlowExpectedOutput[] = [];
 
-  const setupApi = {
+  const api = {
     title: function (title: string) {
       _title = title;
     },
@@ -34,13 +34,25 @@ export function getFlowInit() {
       _inputs.push({ id, label, type: "image", optional: false });
     },
 
+    inText: function (id: string, label: string) {
+      _inputs.push({ id, label, type: "text", optional: false });
+    },
+
     outImgs: function (id: string, label: string) {
       _outputs.push({ id, label, type: "image" });
+    },
+
+    outImg: function (id: string) {
+      _outputs.push({ id, label: id, type: "image" });
+    },
+
+    outText: function (id: string) {
+      _outputs.push({ id, label: id, type: "text" });
     }
   };
 
   return {
-    setupApi,
+    api,
     get spec() {
       return {
         title: _title,
@@ -137,8 +149,8 @@ export class Flow {
     this.runtime = quickJS.newRuntime();
     this.context = this.runtime.newContext();
 
-    const { setupApi, spec } = getFlowInit();
-    const setupHandle = bridgeObject(setupApi, this.context, this.runtime);
+    const flowInit = getFlowInit();
+    const setupHandle = bridgeObject(flowInit.api, this.context, this.runtime);
 
     setConsole(this.context);
 
@@ -154,7 +166,8 @@ export class Flow {
 
     this.hasSetup = true;
 
-    return spec;
+    // Access spec getter AFTER init has run, so it captures the updated values
+    return flowInit.spec;
   }
 
   public async run(inputs: Record<string, string> = {}): Promise<Map<string, FlowOutput>> {
