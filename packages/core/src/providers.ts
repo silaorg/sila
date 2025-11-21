@@ -80,4 +80,11 @@ export const providers: ModelProvider[] = [
     url: "https://ollama.com/",
     logoUrl: "/providers/ollama.png",
   },
+  {
+    id: "falai",
+    name: "Fal.ai",
+    access: "cloud",
+    url: "https://fal.ai/",
+    logoUrl: "/providers/falai.png",
+  },
 ];

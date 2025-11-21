@@ -13,9 +13,6 @@ interface GenerateImageResult {
   files?: string[];
 }
 
-// @TODO: Get API key from secrets instead of hardcoding
-const FAL_AI_API_KEY = "<Use from space secrets instead";
-
 export function getToolGenerateImage(
   space: Space,
   appTree?: AppTree
@@ -64,10 +61,12 @@ export function getToolGenerateImage(
         };
       }
 
-      if (FAL_AI_API_KEY === "<insert your API key here>") {
+      // Get API key from space secrets
+      const apiKey = space.getServiceApiKey("falai");
+      if (!apiKey) {
         return {
           status: "failed",
-          message: "Fal.ai API key not configured. Please set FAL_AI_API_KEY in the tool.",
+          message: "Fal.ai API key not configured. Please configure Fal.ai in the provider settings.",
         };
       }
 
@@ -157,7 +156,7 @@ export function getToolGenerateImage(
         }
 
         // Initialize image generator
-        const imgGen = new ImgGen(FAL_AI_API_KEY);
+            const imgGen = new ImgGen(apiKey);
 
         // Generate images
         const result = await imgGen.generateFull({

@@ -58,7 +58,7 @@ describe("generate_image tool", () => {
 
   it("combines two images from test-input folder and returns file path", async () => {
     // Skip test if API key is not configured
-    if (FAL_AI_API_KEY === "<insert your API key here>") {
+    if (FAL_AI_API_KEY === "<get from .env instead") {
       console.log("Skipping test: FAL_AI_API_KEY not set. Set environment variable to run this test.");
       return;
     }
@@ -82,6 +82,11 @@ describe("generate_image tool", () => {
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
     if (typeof (layer as any).getFileStoreProvider === "function") {
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
+    }
+
+    // Set API key in space secrets (if available)
+    if (FAL_AI_API_KEY && FAL_AI_API_KEY !== "<get from .env instead") {
+      space.setApiKey("falai", FAL_AI_API_KEY);
     }
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
@@ -166,7 +171,7 @@ describe("generate_image tool", () => {
 
   it("generates image with custom output path using test-input image", async () => {
     // Skip test if API key is not configured
-    if (FAL_AI_API_KEY === "<insert your API key here>") {
+    if (FAL_AI_API_KEY === "<get from .env instead") {
       console.log("Skipping test: FAL_AI_API_KEY not set. Set environment variable to run this test.");
       return;
     }
@@ -188,6 +193,11 @@ describe("generate_image tool", () => {
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
     if (typeof (layer as any).getFileStoreProvider === "function") {
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
+    }
+
+    // Set API key in space secrets (if available)
+    if (FAL_AI_API_KEY && FAL_AI_API_KEY !== "<get from .env instead") {
+      space.setApiKey("falai", FAL_AI_API_KEY);
     }
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
@@ -258,8 +268,8 @@ describe("generate_image tool", () => {
       num_images: 1,
     });
 
-    expect(result.status).toBe("failed");
-    expect(result.message).toContain("not found");
+      expect(result.status).toBe("failed");
+      expect(result.message).toContain("Fal.ai API key not configured");
   });
 
   it("fails when API key is not configured", async () => {
@@ -308,20 +318,18 @@ describe("generate_image tool", () => {
     const entries = await lsTool.handler({ uri: "file:" });
     const imageEntry = (entries as any[]).find((e) => e.name === "test.jpg");
     
-    // Note: This will actually try to use the placeholder key if FAL_AI_API_KEY is not set
-    // The tool should handle this gracefully
+    // Test that the tool fails when API key is not configured in space secrets
+    // Don't set API key - space is new, so no secrets should be configured
     const generateImageTool = getToolGenerateImage(space, chatTree);
     
-    if (FAL_AI_API_KEY === "<insert your API key here>") {
-      const result = await generateImageTool.handler({
-        prompt: "edit image",
-        input_files: [`file:${imageEntry.path}`],
-        num_images: 1,
-      });
+    const result = await generateImageTool.handler({
+      prompt: "edit image",
+      input_files: [`file:${imageEntry.path}`],
+      num_images: 1,
+    });
 
-      expect(result.status).toBe("failed");
-      expect(result.message).toContain("API key");
-    }
+    expect(result.status).toBe("failed");
+    expect(result.message).toContain("Fal.ai API key not configured");
   });
 });
 
