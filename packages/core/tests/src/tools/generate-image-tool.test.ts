@@ -331,5 +331,55 @@ describe("generate_image tool", () => {
     expect(result.status).toBe("failed");
     expect(result.message).toContain("Fal.ai API key not configured");
   });
+
+  it("generates a new image without input files", async () => {
+    // Skip test if API key is not configured
+    if (!FAL_AI_API_KEY) {
+      console.log("Skipping test: FAL_AI_API_KEY not set. Set FAL_AI_API_KEY in packages/core/tests/.env to run this test.");
+      return;
+    }
+
+    const fs = new NodeFileSystem();
+    const space = Space.newSpace(crypto.randomUUID());
+    const spaceId = space.getId();
+
+    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+    if (typeof (layer as any).getFileStoreProvider === "function") {
+      space.setFileStoreProvider((layer as any).getFileStoreProvider());
+    }
+
+    // Set API key in space secrets
+    if (FAL_AI_API_KEY) {
+      space.setApiKey("falai", FAL_AI_API_KEY);
+    }
+
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+
+    // Get the generate_image tool and call it without input_files
+    const generateImageTool = getToolGenerateImage(space, chatTree);
+    
+    // Generate image without any input files
+    const result = await generateImageTool.handler({
+      prompt: "a beautiful sunset over mountains",
+      num_images: 1,
+    });
+
+    // Verify the result
+    expect(result.status).toBe("completed");
+    expect(result.files).toBeDefined();
+    expect(result.files!.length).toBeGreaterThan(0);
+
+    const outputPath = result.files![0];
+    expect(outputPath).toMatch(/^file:/);
+
+    // Verify the generated image file exists and can be read
+    const resolved = resolvePath(space, chatTree, outputPath);
+    expect(resolved.vertex).toBeDefined();
+    
+    // Verify it's an image file
+    const mimeType = resolved.vertex?.getProperty("mimeType") as string | undefined;
+    expect(mimeType).toMatch(/^image\//);
+    expect(resolved.vertex?.name).toBeDefined();
+  });
 });
 

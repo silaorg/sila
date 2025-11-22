@@ -2,7 +2,7 @@ import { fal } from "@fal-ai/client";
 
 export interface ImgGenOptions {
   prompt: string;
-  image: string | string[];
+  image?: string | string[];
   num_images?: number;
   aspect_ratio?: "auto" | "21:9" | "16:9" | "3:2" | "4:3" | "5:4" | "1:1" | "4:5" | "3:4" | "2:3" | "9:16";
   output_format?: "jpeg" | "png" | "webp";
@@ -25,7 +25,10 @@ export interface ImgGenProgress {
 }
 
 export class ImgGen {
-  private readonly modelId = "fal-ai/nano-banana-pro/edit";
+  // Text-to-image model (no input images)
+  private readonly textToImageModelId = "fal-ai/nano-banana-pro";
+  // Image-to-image model (with input images)
+  private readonly imageToImageModelId = "fal-ai/nano-banana-pro/edit";
   
   constructor(readonly apiKey: string) {
     // Configure the Fal.ai client with the API key
@@ -40,20 +43,33 @@ export class ImgGen {
   }
 
   async generateFull(options: ImgGenOptions): Promise<ImgGenResult> {
-    const imageUrls = Array.isArray(options.image) ? options.image : [options.image];
+    const imageUrls = options.image 
+      ? (Array.isArray(options.image) ? options.image : [options.image])
+      : [];
     
-    const input = {
+    // Select model based on whether input images are provided
+    const hasInputImages = imageUrls.length > 0;
+    const modelId = hasInputImages ? this.imageToImageModelId : this.textToImageModelId;
+    
+    const input: any = {
       prompt: options.prompt,
-      image_urls: imageUrls,
       num_images: options.num_images ?? 1,
-      aspect_ratio: options.aspect_ratio ?? "auto",
       output_format: options.output_format ?? "png",
       resolution: options.resolution ?? "1K",
       sync_mode: options.sync_mode ?? false,
     };
+    
+    // Set aspect_ratio with different defaults based on model
+    // Text-to-image defaults to "1:1", image-to-image defaults to "auto"
+    input.aspect_ratio = options.aspect_ratio ?? (hasInputImages ? "auto" : "1:1");
+    
+    // Only include image_urls for image-to-image model
+    if (hasInputImages) {
+      input.image_urls = imageUrls;
+    }
 
     try {
-      const result = await fal.subscribe(this.modelId, {
+      const result = await fal.subscribe(modelId, {
         input,
         logs: true,
         onQueueUpdate: (update) => {

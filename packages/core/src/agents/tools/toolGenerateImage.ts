@@ -146,24 +146,31 @@ export function getToolGenerateImage(
 
           // Extract data URLs from resolved images
           imageUrls = images.map((img) => img.dataUrl).filter((url): url is string => !!url);
-        }
-
-        if (imageUrls.length === 0) {
-          return {
-            status: "failed",
-            message: "Image editing requires at least one input image file. Please provide input_files parameter with image file paths.",
-          };
+          
+          // If input files were provided but none were valid, fail
+          if (imageUrls.length === 0) {
+            return {
+              status: "failed",
+              message: "No valid image files found in the provided input_files. Please provide valid image file paths or omit input_files to generate a new image.",
+            };
+          }
         }
 
         // Initialize image generator
-            const imgGen = new ImgGen(apiKey);
+        const imgGen = new ImgGen(apiKey);
 
         // Generate images
-        const result = await imgGen.generateFull({
+        const generateOptions: any = {
           prompt,
-          image: imageUrls,
           num_images: numImages ?? 1,
-        });
+        };
+        
+        // Only include image parameter if images are provided
+        if (imageUrls.length > 0) {
+          generateOptions.image = imageUrls;
+        }
+        
+        const result = await imgGen.generateFull(generateOptions);
 
         if (!result.urls || result.urls.length === 0) {
           return {
