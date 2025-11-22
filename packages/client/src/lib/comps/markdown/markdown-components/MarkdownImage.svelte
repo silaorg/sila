@@ -5,9 +5,7 @@
   import type { ResolvedFileInfo, Vertex } from "@sila/core";
   import MarkdownTextDocument from "./MarkdownTextDocument.svelte";
 
-  let { token } = $props<{
-    token: Tokens.Image;
-  }>();
+  let { token }: { token: Tokens.Image } = $props();
 
   const chatAppData = useChatAppDataOptional();
   const clientState = useClientState();
@@ -110,7 +108,7 @@
 <style>
   .markdown-image {
     max-width: 100%;
-    max-width: min(100%, 600px);
+    max-width: min(100%, 500px);
     height: auto;
     object-fit: contain;
   }
