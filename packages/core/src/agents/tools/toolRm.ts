@@ -1,7 +1,8 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { resolvePath } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
+import { ChatAppData } from "../../spaces/ChatAppData";
 
 export function getToolRm(space: Space, appTree?: AppTree): LangToolWithHandler {
   return {
@@ -27,25 +28,41 @@ export function getToolRm(space: Space, appTree?: AppTree): LangToolWithHandler 
         );
       }
 
-      const resolved = resolvePath(space, appTree, uri);
+      const resolver = new FileResolver(space);
+      const isWorkspacePath = uri.startsWith("file:///");
       
-      if (!resolved.vertex) {
-        throw new Error(`rm: path not found: ${uri}`);
+      let target;
+      try {
+        if (!isWorkspacePath && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        const relativeRootVertex = isWorkspacePath 
+          ? undefined 
+          : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+        
+        target = resolver.pathToVertex(uri, relativeRootVertex);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`rm: path not found: ${uri} (${errorMessage})`);
       }
-      
-      const target = resolved.vertex;
+
+      // Get scope root for validation
+      const scopeRoot = isWorkspacePath 
+        ? space.rootVertex 
+        : (appTree?.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) || null);
 
       // Prevent deleting the workspace root
-      if (resolved.isWorkspace && target.id === resolved.scopeRoot.id) {
+      if (isWorkspacePath && target.id === scopeRoot.id) {
          throw new Error("rm: cannot delete workspace root");
       }
 
       // Prevent deleting the chat assets root
-      if (!resolved.isWorkspace && resolved.scopeRoot && target.id === resolved.scopeRoot.id) {
+      if (!isWorkspacePath && scopeRoot && target.id === scopeRoot.id) {
         throw new Error("rm: cannot delete chat files root");
       }
 
-      resolved.tree.deleteVertex(target.id);
+      target.tree.deleteVertex(target.id);
       return `Deleted ${uri}`;
     },
   };

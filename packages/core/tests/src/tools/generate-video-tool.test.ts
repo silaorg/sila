@@ -11,7 +11,8 @@ import {
 import { NodeFileSystem } from "../setup/setup-node-file-system";
 import { getToolGenerateVideo } from "../../../src/agents/tools/toolGenerateVideo";
 import { getToolLs } from "../../../src/agents/tools/toolLs";
-import { resolvePath } from "../../../src/agents/tools/fileUtils";
+import { FileResolver } from "../../../src/spaces/files/FileResolver";
+import { ChatAppData } from "@sila/core";
 
 const testInputDir = path.join(__dirname, "test-input");
 
@@ -147,13 +148,18 @@ describe("generate_video tool", () => {
     expect(outputPath).toMatch(/^file:/);
 
     // Verify the generated video file exists and can be read
-    const resolved = resolvePath(space, chatTree, outputPath);
-    expect(resolved.vertex).toBeDefined();
+    const resolver = new FileResolver(space);
+    const isWorkspacePath = outputPath.startsWith("file:///");
+    const relativeRootVertex = isWorkspacePath 
+      ? undefined 
+      : chatTree.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    const fileVertex = resolver.pathToVertex(outputPath, relativeRootVertex);
+    expect(fileVertex).toBeDefined();
     
     // Verify it's a video file
-    const mimeType = resolved.vertex?.getProperty("mimeType") as string | undefined;
+    const mimeType = fileVertex.getProperty("mimeType") as string | undefined;
     expect(mimeType).toMatch(/^video\//);
-    expect(resolved.vertex?.name).toBeDefined();
+    expect(fileVertex.name).toBeDefined();
   });
 });
 

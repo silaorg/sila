@@ -2,7 +2,8 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
-import { resolvePath } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
+import { ChatAppData } from "../../spaces/ChatAppData";
 
 type LsEntryKind = "file" | "folder";
 
@@ -38,16 +39,44 @@ export function getToolLs(space: Space, appTree?: AppTree): LangToolWithHandler 
         );
       }
 
-      // Use unified path resolution
-      const resolved = resolvePath(space, appTree, uri);
-
-      // Special handling for chat root: if assets root doesn't exist, return empty list instead of error
-      if (!resolved.isWorkspace && !resolved.scopeRoot && !resolved.vertex) {
-        return [];
-      }
-
-      if (!resolved.vertex) {
-        throw new Error(`Path not found: ${uri}`);
+      // Use FileResolver.pathToVertex
+      const resolver = new FileResolver(space);
+      const isWorkspacePath = uri.startsWith("file:///");
+      
+      let folderVertex: Vertex;
+      try {
+        if (!isWorkspacePath && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        // Handle empty path (just "file:" or "file:///")
+        const pathAfterPrefix = isWorkspacePath 
+          ? uri.slice("file:///".length)
+          : uri.slice("file:".length);
+        
+        if (pathAfterPrefix === "" || pathAfterPrefix === "/") {
+          // Empty path - return root
+          if (isWorkspacePath) {
+            folderVertex = space.rootVertex;
+          } else {
+            const assetsRoot = appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+            // Special handling: if assets root doesn't exist, return empty list instead of error
+            if (!assetsRoot) {
+              return [];
+            }
+            folderVertex = assetsRoot;
+          }
+        } else {
+          // Non-empty path - resolve normally
+          const relativeRootVertex = isWorkspacePath 
+            ? undefined 
+            : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+          
+          folderVertex = resolver.pathToVertex(uri, relativeRootVertex);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Path not found: ${uri} (${errorMessage})`);
       }
 
       // Determine logical path for display
@@ -67,7 +96,7 @@ export function getToolLs(space: Space, appTree?: AppTree): LangToolWithHandler 
       }
       if (basePath === "") basePath = "/"; // For file:/// -> /
 
-      return listChildren(resolved.vertex, basePath);
+      return listChildren(folderVertex, basePath);
     },
   };
 }

@@ -3,7 +3,8 @@ import { proxyFetch } from "../../utils";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
-import { resolvePath } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
+import { ChatAppData } from "../../spaces/ChatAppData";
 
 const MAX_TEXT_BYTES = 1024 * 1024; // 1 MB safety limit for tool reads
 
@@ -27,11 +28,22 @@ export async function resolveWorkspaceFileUrl(
     throw new Error(`Unsupported URI scheme for workspace file resolver: ${url}`);
   }
 
-  // Use unified path resolution
-  const resolved = resolvePath(space, appTree, url);
-  const fileVertex = resolved.vertex;
-
-  if (!fileVertex) {
+  // Use FileResolver.pathToVertex
+  const resolver = new FileResolver(space);
+  const isWorkspacePath = url.startsWith("file:///");
+  
+  let fileVertex: Vertex;
+  try {
+    if (!isWorkspacePath && !appTree) {
+      throw new Error("Chat file operations require a chat tree context");
+    }
+    
+    const relativeRootVertex = isWorkspacePath 
+      ? undefined 
+      : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    
+    fileVertex = resolver.pathToVertex(url, relativeRootVertex);
+  } catch (error) {
     // Try to construct a helpful error message
     if (url.startsWith("file:///")) {
       const path = url.slice("file:///".length);
@@ -44,7 +56,7 @@ export async function resolveWorkspaceFileUrl(
   }
 
   // Calculate logical path for error messages
-  const logicalPath = resolved.name; // Simplified, or reconstruct full path if needed
+  const logicalPath = fileVertex.name || "";
 
   return await readTextFromFileVertex(space, fileVertex, logicalPath);
 }

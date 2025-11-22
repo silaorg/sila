@@ -1,5 +1,6 @@
 import { Vertex } from "reptree";
 import type { Space } from "../Space";
+import { ChatAppData } from "../ChatAppData";
 
 export interface FileReference {
   tree: string;
@@ -379,24 +380,35 @@ export class FileResolver {
       throw new Error("Relative root vertex is required for local paths");
     }
 
-    const tree = relativeRootVertex ? this.space?.getAppTree(relativeRootVertex.treeId) : null;
-    if (!tree) {
-      throw new Error(`App tree ${relativeRootVertex.treeId} not found`);
+    const pathWithoutPrefix = path.slice("file:".length).trim();
+    
+    // Handle empty path - return the relative root vertex
+    if (pathWithoutPrefix === "" || pathWithoutPrefix === "/") {
+      return relativeRootVertex;
     }
-
-    const pathWithoutPrefix = path.slice("file:".length);
-    /*
-    // @TODO: remove this hack later when we have a proper way of dealing
-    // with chat files root (or not having it hardcoded at all)
-    pathWithoutPrefix = "files/" + pathWithoutPrefix;
-    */
-
-    const vertex = tree.tree.getVertexByPath(pathWithoutPrefix);
-    if (!vertex) {
-      throw new Error(`Vertex not found at path: ${path}`);
+    
+    // Normalize path segments (remove leading/trailing slashes, filter empty)
+    const segments = pathWithoutPrefix.split("/").filter(s => s && s !== "." && s !== "/");
+    
+    // If first segment is "assets", remove it (since we're already starting from assets root)
+    if (segments.length > 0 && segments[0] === ChatAppData.ASSETS_ROOT_PATH) {
+      segments.shift();
     }
-
-    return vertex;
+    
+    // Walk from relativeRootVertex using segments
+    let current: Vertex | undefined = relativeRootVertex;
+    for (const seg of segments) {
+      if (!current) {
+        throw new Error(`Vertex not found at path: ${path}`);
+      }
+      const children: Vertex[] = current.children ?? [];
+      current = children.find((c: Vertex) => c.name === seg);
+      if (!current) {
+        throw new Error(`Vertex not found at path: ${path}`);
+      }
+    }
+    
+    return current;
 
   }
 

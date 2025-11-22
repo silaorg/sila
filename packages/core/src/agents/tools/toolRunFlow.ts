@@ -1,7 +1,8 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { resolvePath } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
+import { ChatAppData } from "../../spaces/ChatAppData";
 import { resolveWorkspaceFileUrl } from "./workspaceProxyFetch";
 import type { FlowWorkerRequest, FlowWorkerResponse } from "./flowWorker";
 
@@ -45,10 +46,23 @@ export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHan
       }
 
       // Resolve the file path
-      const resolved = resolvePath(space, appTree, path);
+      const resolver = new FileResolver(space);
+      const isWorkspacePath = path.startsWith("file:///");
       
-      if (!resolved.vertex) {
-        throw new Error(`Flow file not found: ${path}`);
+      let flowVertex;
+      try {
+        if (!isWorkspacePath && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        const relativeRootVertex = isWorkspacePath 
+          ? undefined 
+          : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+        
+        flowVertex = resolver.pathToVertex(path, relativeRootVertex);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Flow file not found: ${path} (${errorMessage})`);
       }
 
       // Check if it's a .flow.js file
@@ -95,9 +109,23 @@ export function getToolTestFlow(space: Space, appTree?: AppTree): LangToolWithHa
         );
       }
 
-      const resolved = resolvePath(space, appTree, path);
-      if (!resolved.vertex) {
-        throw new Error(`Flow file not found: ${path}`);
+      const resolver = new FileResolver(space);
+      const isWorkspacePath = path.startsWith("file:///");
+      
+      let flowVertex;
+      try {
+        if (!isWorkspacePath && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        const relativeRootVertex = isWorkspacePath 
+          ? undefined 
+          : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+        
+        flowVertex = resolver.pathToVertex(path, relativeRootVertex);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`Flow file not found: ${path} (${errorMessage})`);
       }
 
       if (!path.endsWith(".flow.js") && !path.endsWith(".flow.mjs")) {

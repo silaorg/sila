@@ -2,7 +2,9 @@ import type { LangToolWithHandler } from "aiwrapper";
 import { applyDiff_v4a } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { ensureFileParent, resolvePath, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
+import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
+import { ChatAppData } from "../../spaces/ChatAppData";
 
 type ApplyPatchOperation =
   | { type: "create_file"; path: string; diff: string }
@@ -173,13 +175,24 @@ async function handleUpdate(
     throw new Error("apply_patch: FileStore is not configured for this space");
   }
 
-  const resolved = resolvePath(space, appTree, uri);
+  const resolver = new FileResolver(space);
+  const isWorkspacePath = uri.startsWith("file:///");
   
-  if (!resolved.vertex) {
-    throw new Error(`apply_patch: file not found at ${uri}`);
+  let fileVertex;
+  try {
+    if (!isWorkspacePath && !appTree) {
+      throw new Error("Chat file operations require a chat tree context");
+    }
+    
+    const relativeRootVertex = isWorkspacePath 
+      ? undefined 
+      : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    
+    fileVertex = resolver.pathToVertex(uri, relativeRootVertex);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`apply_patch: file not found at ${uri} (${errorMessage})`);
   }
-  
-  const fileVertex = resolved.vertex;
 
   let currentContent = "";
   let mutableId: string | undefined;
@@ -225,19 +238,34 @@ async function handleDelete(
   appTree: AppTree | undefined,
   uri: string
 ): Promise<void> {
-  const resolved = resolvePath(space, appTree, uri);
+  const resolver = new FileResolver(space);
+  const isWorkspacePath = uri.startsWith("file:///");
   
-  if (!resolved.vertex) {
-    // Nothing to delete
+  let target;
+  try {
+    if (!isWorkspacePath && !appTree) {
+      throw new Error("Chat file operations require a chat tree context");
+    }
+    
+    const relativeRootVertex = isWorkspacePath 
+      ? undefined 
+      : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+    
+    target = resolver.pathToVertex(uri, relativeRootVertex);
+  } catch (error) {
+    // Nothing to delete if path not found
     return;
   }
-  
-  const target = resolved.vertex;
+
+  // Get scope root for validation
+  const scopeRoot = isWorkspacePath 
+    ? space.rootVertex 
+    : (appTree?.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) || null);
 
   // Prevent deleting the workspace root or chat files root
-  if (target.id === resolved.scopeRoot.id) {
+  if (scopeRoot && target.id === scopeRoot.id) {
     throw new Error("apply_patch: cannot delete root");
   }
 
-  resolved.tree.deleteVertex(target.id);
+  target.tree.deleteVertex(target.id);
 }

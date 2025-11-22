@@ -3,7 +3,8 @@ import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
 import { ChatAppData } from "@sila/core";
-import { resolvePath, ensureFileParent, ensureChatAssetsRoot } from "./fileUtils";
+import { ensureFileParent, ensureChatAssetsRoot } from "./fileUtils";
+import { FileResolver } from "../../spaces/files/FileResolver";
 
 export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandler {
   return {
@@ -40,18 +41,47 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
       }
 
       // Resolve source
-      const sourceResolved = resolvePath(space, appTree, source);
-      if (!sourceResolved.vertex) {
-        throw new Error(`move: source not found at ${source}`);
+      const resolver = new FileResolver(space);
+      const sourceIsWorkspace = source.startsWith("file:///");
+      
+      let sourceVertex: Vertex;
+      try {
+        if (!sourceIsWorkspace && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        const sourceRelativeRoot = sourceIsWorkspace 
+          ? undefined 
+          : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+        
+        sourceVertex = resolver.pathToVertex(source, sourceRelativeRoot);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        throw new Error(`move: source not found at ${source} (${errorMessage})`);
       }
 
       // Resolve destination
       // We need to know if destination is an existing folder or a new path
-      const destResolved = resolvePath(space, appTree, destination);
+      const destIsWorkspace = destination.startsWith("file:///");
+      
+      let destVertex: Vertex | undefined;
+      try {
+        if (!destIsWorkspace && !appTree) {
+          throw new Error("Chat file operations require a chat tree context");
+        }
+        
+        const destRelativeRoot = destIsWorkspace 
+          ? undefined 
+          : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+        
+        destVertex = resolver.pathToVertex(destination, destRelativeRoot);
+      } catch (error) {
+        // Destination doesn't exist - will be handled below
+        destVertex = undefined;
+      }
 
       // Case 1: Destination exists
-      if (destResolved.vertex) {
-        const destVertex = destResolved.vertex;
+      if (destVertex) {
         const destMimeType = destVertex.getProperty("mimeType") as string | undefined;
 
         if (destMimeType) {
@@ -60,12 +90,12 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
         }
 
         // Destination is a folder - move source into it
-        const sourceName = sourceResolved.name; // Use resolved name which is the leaf name
+        const sourceName = sourceVertex.name || ""; // Use vertex name
         moveVertex(
-          sourceResolved.vertex,
-          sourceResolved.tree,
+          sourceVertex,
+          sourceVertex.tree,
           destVertex,
-          destResolved.tree,
+          destVertex.tree,
           sourceName
         );
         return `Moved ${source} to ${destination}/${sourceName}`;
@@ -77,10 +107,10 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
          if (!appTree) throw new Error("Chat context required");
          const assetsRoot = ensureChatAssetsRoot(appTree);
          
-         const sourceName = sourceResolved.name;
+         const sourceName = sourceVertex.name || "";
          moveVertex(
-           sourceResolved.vertex,
-           sourceResolved.tree,
+           sourceVertex,
+           sourceVertex.tree,
            assetsRoot,
            appTree.tree,
            sourceName
@@ -100,8 +130,8 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
       const destTree = destination.startsWith("file:///") ? space.tree : appTree!.tree;
 
       moveVertex(
-        sourceResolved.vertex,
-        sourceResolved.tree,
+        sourceVertex,
+        sourceVertex.tree,
         destParentVertex,
         destTree,
         newName

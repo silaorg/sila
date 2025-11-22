@@ -4,7 +4,7 @@ import type { AppTree } from "../../spaces/AppTree";
 import { FileResolver } from "../../spaces/files/FileResolver";
 import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgGen } from "../../tools/falai";
-import { resolvePath, ensureFileParent } from "./fileUtils";
+import { ensureFileParent } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 interface GenerateImageResult {
@@ -91,16 +91,32 @@ export function getToolGenerateImage(
               continue;
             }
 
-            const resolved = resolvePath(space, appTree, filePath);
-            if (!resolved.vertex) {
+            const isWorkspacePath = filePath.startsWith("file:///");
+            
+            let inputVertex;
+            try {
+              if (!isWorkspacePath && !appTree) {
+                return {
+                  status: "failed",
+                  message: "Chat file operations require a chat tree context",
+                };
+              }
+              
+              const relativeRootVertex = isWorkspacePath 
+                ? undefined 
+                : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
+              
+              inputVertex = resolver.pathToVertex(filePath, relativeRootVertex);
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
               return {
                 status: "failed",
-                message: `Input file not found: ${filePath}`,
+                message: `Input file not found: ${filePath} (${errorMessage})`,
               };
             }
 
             // Check if it's an image file
-            const mimeType = resolved.vertex.getProperty("mimeType") as string | undefined;
+            const mimeType = inputVertex.getProperty("mimeType") as string | undefined;
             if (!mimeType || !mimeType.startsWith("image/")) {
               return {
                 status: "failed",
@@ -108,8 +124,8 @@ export function getToolGenerateImage(
               };
             }
 
-            // Get the tree ID (either space tree or app tree)
-            const treeId = resolved.isWorkspace
+            // Get the tree ID from the vertex's tree
+            const treeId = isWorkspacePath
               ? space.getId()
               : (appTree?.getId() || (await space.loadAppTree("chat"))?.getId());
 
@@ -122,7 +138,7 @@ export function getToolGenerateImage(
 
             fileRefs.push({
               tree: treeId,
-              vertex: resolved.vertex.id,
+              vertex: inputVertex.id,
             });
           }
 
