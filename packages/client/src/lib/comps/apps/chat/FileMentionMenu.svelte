@@ -38,9 +38,17 @@
   let selectedFile: ResolvedFileInfo | null = $state(null);
   let isLoadingPreview = $state(false);
   let previewError = $state<string | null>(null);
+  let hoveredFileIndex: number | null = $state(null);
 
   const selectedFileMention = $derived(
     files[selectedIndex] ?? null
+  );
+
+  // Determine which file to preview: hovered file takes precedence over selected file
+  const previewFileMention = $derived(
+    hoveredFileIndex !== null && files[hoveredFileIndex]
+      ? files[hoveredFileIndex]
+      : selectedFileMention
   );
 
   const previewConfig = $derived.by(() => {
@@ -48,21 +56,25 @@
     return getFilePreviewConfig(selectedFile.mimeType);
   });
 
-  // Resolve the selected file for preview
+  // Resolve the file for preview (hovered or selected)
   $effect(() => {
-    if (!selectedFileMention || !fileResolver) {
+    if (!previewFileMention || !fileResolver) {
       selectedFile = null;
       isLoadingPreview = false;
       previewError = null;
       return;
     }
 
+    // Store in const to ensure TypeScript knows it's defined
+    const resolver = fileResolver;
+    const fileMention = previewFileMention;
+
     async function resolveFile() {
       isLoadingPreview = true;
       previewError = null;
       try {
-        const vertex = fileResolver.pathToVertex(
-          selectedFileMention.path,
+        const vertex = resolver.pathToVertex(
+          fileMention.path,
           filesVertex ?? undefined
         );
         if (!vertex) {
@@ -71,7 +83,7 @@
           return;
         }
 
-        const resolved = fileResolver.resolveVertexToFileReference(vertex);
+        const resolved = resolver.resolveVertexToFileReference(vertex);
         if (resolved) {
           selectedFile = resolved;
         } else {
@@ -170,6 +182,12 @@
           type="button"
           class="flex items-center gap-2 rounded px-2 py-1 text-left hover:bg-surface-100-900"
           class:bg-surface-100-900={index === selectedIndex}
+          onmouseenter={() => {
+            hoveredFileIndex = index;
+          }}
+          onmouseleave={() => {
+            hoveredFileIndex = null;
+          }}
           onmousedown={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -186,7 +204,7 @@
   </div>
 
   <!-- Preview panel -->
-  {#if selectedFileMention}
+  {#if previewFileMention}
     <div class="w-[280px] p-3 border-l border-surface-100-900">
       {#if isLoadingPreview}
         <div
