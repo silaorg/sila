@@ -5,12 +5,6 @@
   import { history, undo, redo } from "prosemirror-history";
   import { keymap } from "prosemirror-keymap";
   import {
-    computePosition,
-    offset as fuiOffset,
-    flip,
-    shift,
-  } from "@floating-ui/dom";
-  import {
     chatEditorSchema,
     createDocFromText,
     serializeDocToMarkdown,
@@ -21,6 +15,7 @@
     type FileMention,
   } from "./chatMentionPlugin";
   import { Slice, Fragment, type Node as PMNode } from "prosemirror-model";
+  import FileMentionMenu from "./FileMentionMenu.svelte";
 
   interface ChatEditorProps {
     value?: string;
@@ -60,7 +55,6 @@
   let mentionFiles = $state<FileMention[]>([]);
   let mentionSelectedIndex = $state(0);
   let lastQueryToken = 0;
-  let mentionMenuEl: HTMLDivElement | null = $state(null);
 
   async function loadMentionFiles(query: string) {
     if (!getFileMentions) {
@@ -102,10 +96,6 @@
     mentionSelectedIndex = 0;
     loadMentionFiles(payload.query);
     mentionMenuOpen = true;
-    // Defer so the menu element exists in the DOM
-    requestAnimationFrame(() => {
-      void updateMentionPosition();
-    });
   }
 
   function closeMention() {
@@ -125,46 +115,6 @@
     requestAnimationFrame(() => view?.focus());
   }
 
-  function handleMentionMenuClick(event: MouseEvent) {
-    // Stop clicks inside the mention menu from propagating to the editor
-    event.stopPropagation();
-  }
-
-  async function updateMentionPosition() {
-    if (!mentionMenuEl) return;
-
-    const virtualReference = {
-      getBoundingClientRect() {
-        const x = mentionCoords.x;
-        const y = mentionCoords.y;
-        return {
-          x,
-          y,
-          left: x,
-          right: x,
-          top: y,
-          bottom: y,
-          width: 0,
-          height: 0,
-        } as DOMRect;
-      },
-    };
-
-    const { x, y } = await computePosition(
-      virtualReference as any,
-      mentionMenuEl,
-      {
-        placement: "bottom-start",
-        strategy: "fixed",
-        middleware: [fuiOffset(4), flip(), shift({ padding: 8 })],
-      }
-    );
-
-    Object.assign(mentionMenuEl.style, {
-      left: `${x}px`,
-      top: `${y}px`,
-    });
-  }
 
   function syncFromExternalValue(newValue: string) {
     if (!view) return;
@@ -359,11 +309,6 @@
           return false;
         },
         blur(view, event: FocusEvent) {
-          // Don't close mention menu if focus is moving to the mention menu
-          const relatedTarget = event.relatedTarget as HTMLElement | null;
-          if (relatedTarget && mentionMenuEl?.contains(relatedTarget)) {
-            return false;
-          }
           queueMicrotask(() => {
             isFocused = false;
             closeMention();
@@ -409,42 +354,13 @@
   ></div>
 
   {#if mentionMenuOpen}
-    <div
-      bind:this={mentionMenuEl}
-      class="card fixed z-20 min-w-[240px] rounded-md text-sm context-menu card bg-surface-50-950 border border-surface-100-900 shadow-lg p-2"
-      role="menu"
-      tabindex="-1"
-      onclick={handleMentionMenuClick}
-      onmousedown={(e) => e.stopPropagation()}
-      onkeydown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          closeMention();
-        }
-      }}
-    >
-      <p
-        class="mb-2 text-xs font-semibold uppercase tracking-wide"
-      >
-        Mention a file
-      </p>
-      <div class="flex flex-col gap-1">
-        {#each mentionFiles as file, index}
-          <button
-            type="button"
-            class="flex items-center gap-2 rounded px-2 py-1 text-left hover:bg-surface-100-900"
-            class:bg-surface-100-900={index === mentionSelectedIndex}
-            onmousedown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleFilePick(file, e);
-            }}
-          >
-            <span class="truncate">{file.name}</span>
-          </button>
-        {/each}
-      </div>
-    </div>
+    <FileMentionMenu
+      files={mentionFiles}
+      selectedIndex={mentionSelectedIndex}
+      coords={mentionCoords}
+      onFilePick={handleFilePick}
+      onClose={closeMention}
+    />
   {/if}
 </div>
 
