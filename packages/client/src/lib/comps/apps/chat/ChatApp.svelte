@@ -184,8 +184,16 @@
     };
   });
 
-  function scrollToBottom(smooth: boolean = false) {
-    if (!scrollableElement || !shouldAutoScroll) return;
+  function scrollToBottom(smooth: boolean = false, force: boolean = false) {
+    if (!scrollableElement) return;
+    
+    // Only check shouldAutoScroll if not forced (e.g., when user clicks scroll button)
+    if (!force && !shouldAutoScroll) return;
+
+    // If forced (user clicked button), enable auto-scroll
+    if (force) {
+      shouldAutoScroll = true;
+    }
 
     isScrollingProgrammatically = true;
     if (smooth) {
@@ -291,7 +299,7 @@
     <button
       class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
       aria-label="Scroll to bottom"
-      onclick={() => scrollToBottom(true)}
+      onclick={() => scrollToBottom(true, true)}
     >
       <ArrowDown size={18} />
     </button>
