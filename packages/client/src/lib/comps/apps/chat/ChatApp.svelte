@@ -25,15 +25,14 @@
   let messages = $state<Vertex[]>([]);
   let shouldAutoScroll = $state(true);
   let formStatus: MessageFormStatus = $state("can-send-message");
-  let isProgrammaticScroll = $state(true);
   let scrollTop = $state(0);
   let scrollHeight = $state(0);
   let clientHeight = $state(0);
   let hasFiles = $state(false);
 
   let lastMessageTxt: string | null = null;
-  let programmaticScrollTimeout: (() => void) | undefined;
   let lastProcessMessagesExpanded = $state(false);
+  let isScrollingProgrammatically = $state(false);
 
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
@@ -92,15 +91,22 @@
     clientHeight = scrollableElement.clientHeight;
   }
 
-  async function handleScroll() {
-    // We only detect when the user scrolls (not when it's scrolled programmatically)
-    if (!isProgrammaticScroll) {
-      updateScrollMetrics();
-      await tick();
+  function handleScroll() {
+    updateScrollMetrics();
+    // Only update auto-scroll if this is a user scroll (not programmatic)
+    if (!isScrollingProgrammatically) {
       shouldAutoScroll = isAtBottom;
     }
-    updateScrollMetrics();
   }
+
+  // Auto-scroll when content updates and auto-scroll is enabled
+  let lastScrollHeight = $state(0);
+  $effect(() => {
+    if (shouldAutoScroll && scrollHeight > 0 && scrollHeight !== lastScrollHeight) {
+      lastScrollHeight = scrollHeight;
+      scrollToBottom();
+    }
+  });
 
   $effect(() => {
     if (!lastMessageId) return;
@@ -109,8 +115,9 @@
       updateFormStatus(msg);
       if (msg.text !== lastMessageTxt) {
         lastMessageTxt = msg.text;
-        if (msg.role === "assistant") {
-          scrollOnlyIfAutoscroll();
+        // Scroll when message content updates if auto-scroll is enabled
+        if (shouldAutoScroll) {
+          scrollToBottom();
         }
       }
     });
@@ -148,6 +155,8 @@
     refreshHasFiles();
 
     const msgsObs = data.observeNewMessages((vertices) => {
+      // When new messages arrive, enable auto-scroll and scroll to bottom
+      shouldAutoScroll = true;
       scrollToBottom();
       messages = vertices;
       refreshHasFiles();
@@ -176,41 +185,36 @@
   });
 
   function scrollToBottom(smooth: boolean = false) {
-    if (!scrollableElement) {
-      console.warn("scrollable element not found");
-      return;
-    }
+    if (!scrollableElement || !shouldAutoScroll) return;
 
-    isProgrammaticScroll = true;
+    isScrollingProgrammatically = true;
     if (smooth) {
       scrollableElement.scrollTo({
         top: scrollableElement.scrollHeight,
         behavior: "smooth",
       });
+      timeout(() => {
+        isScrollingProgrammatically = false;
+      }, 400);
     } else {
       scrollableElement.scrollTo(0, scrollableElement.scrollHeight);
+      // Clear flag after scroll completes
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          isScrollingProgrammatically = false;
+        });
+      });
     }
-    // Reset the flag after the scroll animation would have completed
-    programmaticScrollTimeout?.();
-    programmaticScrollTimeout = timeout(
-      () => {
-        isProgrammaticScroll = false;
-      },
-      smooth ? 400 : 100
-    );
   }
 
-  function scrollOnlyIfAutoscroll() {
-    if (shouldAutoScroll) {
-      scrollToBottom();
-    }
-  }
 
   // Using shared AttachmentPreview from core
 
   async function sendMsg(query: string, attachments?: AttachmentPreview[]) {
     // Wait for the message to be created and attachments to be saved
     await data.newMessage({ role: "user", text: query, attachments });
+    // Always scroll to bottom when sending a message, and enable auto-scroll
+    shouldAutoScroll = true;
     timeout(scrollToBottom, 100);
   }
 
@@ -243,12 +247,7 @@
       );
       return;
     }
-    isProgrammaticScroll = true;
     (el as HTMLElement).scrollIntoView({ block: "start" });
-    programmaticScrollTimeout?.();
-    programmaticScrollTimeout = timeout(() => {
-      isProgrammaticScroll = false;
-    }, 100);
   }
 </script>
 
