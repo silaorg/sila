@@ -172,7 +172,7 @@
   onkeydown={handleKeyDown}
 >
   <!-- File list -->
-  <div class="min-w-[240px] p-2 border-r border-surface-100-900">
+  <div class="min-w-[240px] p-2 border-surface-100-900">
     <p class="mb-2 text-xs font-semibold uppercase tracking-wide">
       Mention a file
     </p>
