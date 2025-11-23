@@ -11,12 +11,20 @@
   let {
     visibleMessage,
     data,
-  }: { visibleMessage: VisibleMessage; data: ChatAppData } = $props();
+    isLastMessage = false,
+    lastProcessMessagesExpanded = false,
+    onLastProcessMessagesExpandedChange,
+  }: { 
+    visibleMessage: VisibleMessage; 
+    data: ChatAppData; 
+    isLastMessage?: boolean;
+    lastProcessMessagesExpanded?: boolean;
+    onLastProcessMessagesExpandedChange?: (expanded: boolean) => void;
+  } = $props();
 
   const vertex = $derived(visibleMessage.vertex);
   let message: ThreadMessage | undefined = $state(undefined);
   let configName = $state<string | undefined>(undefined);
-  let isProcessMessagesExpanded = $state(false);
 
   // Update local message when vertex changes
   $effect(() => {
@@ -48,14 +56,32 @@
 </script>
 
 {#if !vertex}
-  <ChatAppMessageByAssistant {visibleMessage} {data} />
+  <ChatAppMessageByAssistant 
+    {visibleMessage} 
+    {data} 
+    {isLastMessage}
+    {lastProcessMessagesExpanded}
+    {onLastProcessMessagesExpandedChange}
+  />
 {:else if message?.role === "user"}
   <ChatAppMessageByUser {visibleMessage} {data} />
 {:else if message?.role === "assistant"}
-  <ChatAppMessageByAssistant {visibleMessage} {data} />
+  <ChatAppMessageByAssistant 
+    {visibleMessage} 
+    {data} 
+    {isLastMessage}
+    {lastProcessMessagesExpanded}
+    {onLastProcessMessagesExpandedChange}
+  />
 {:else if message?.role === "error"}
   <ChatAppMessageByError {visibleMessage} {data} />
 {:else}
   <!-- Fallback: if no vertex yet, render assistant shell to show processing/acting -->
-  <ChatAppMessageByAssistant {visibleMessage} {data} />
+  <ChatAppMessageByAssistant 
+    {visibleMessage} 
+    {data} 
+    {isLastMessage}
+    {lastProcessMessagesExpanded}
+    {onLastProcessMessagesExpandedChange}
+  />
 {/if}

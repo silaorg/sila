@@ -33,6 +33,7 @@
 
   let lastMessageTxt: string | null = null;
   let programmaticScrollTimeout: (() => void) | undefined;
+  let lastProcessMessagesExpanded = $state(false);
 
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
@@ -271,8 +272,16 @@
     onscroll={handleScroll}
   >
     <div class="w-full max-w-4xl mx-auto">
-      {#each visibleMessages as visibleMessage (visibleMessage.vertex?.id ?? "in-progress")}
-        <ChatAppMessage {visibleMessage} {data} />
+      {#each visibleMessages as visibleMessage, index (visibleMessage.vertex?.id ?? "in-progress")}
+        <ChatAppMessage 
+          {visibleMessage} 
+          {data} 
+          isLastMessage={index === visibleMessages.length - 1}
+          lastProcessMessagesExpanded={lastProcessMessagesExpanded}
+          onLastProcessMessagesExpandedChange={(expanded) => {
+            lastProcessMessagesExpanded = expanded;
+          }}
+        />
       {/each}
       {#if lastMessageIsByUser}
         <ChatAppPendingAssistantMessage {data} />

@@ -28,13 +28,22 @@
   let {
     visibleMessage,
     data,
-  }: { visibleMessage: VisibleMessage; data: ChatAppData } = $props();
+    isLastMessage = false,
+    lastProcessMessagesExpanded = false,
+    onLastProcessMessagesExpandedChange,
+  }: { 
+    visibleMessage: VisibleMessage; 
+    data: ChatAppData; 
+    isLastMessage?: boolean;
+    lastProcessMessagesExpanded?: boolean;
+    onLastProcessMessagesExpandedChange?: (expanded: boolean) => void;
+  } = $props();
 
   const vertex = $derived(visibleMessage.vertex);
 
   let message: ThreadMessage | undefined = $state(undefined);
   let configName = $state<string | undefined>(undefined);
-  let isProcessMessagesExpanded = $state(false);
+  let localProcessMessagesExpanded = $state(false);
   let fileRefs = $derived(
     ((message as any)?.files as Array<FileReference>) || []
   );
@@ -48,6 +57,18 @@
   const canExpandMessage = $derived.by(
     () => visibleMessage.progressVertices.length > 0 || message?.thinking
   );
+
+  const isProcessMessagesExpanded = $derived(
+    isLastMessage ? lastProcessMessagesExpanded : localProcessMessagesExpanded
+  );
+
+  function toggleProcessMessagesExpanded() {
+    if (isLastMessage) {
+      onLastProcessMessagesExpandedChange?.(!lastProcessMessagesExpanded);
+    } else {
+      localProcessMessagesExpanded = !localProcessMessagesExpanded;
+    }
+  }
   const expandLabel = $derived.by(() => {
     if (message?.inProgress) {
       if (message?.thinking) {
@@ -231,8 +252,7 @@
             <span class="opacity-70">•</span>
             <button
               class="flex items-center gap-1 group"
-              onclick={() =>
-                (isProcessMessagesExpanded = !isProcessMessagesExpanded)}
+              onclick={toggleProcessMessagesExpanded}
             >
               <span
                 class="opacity-70 group-hover:opacity-100"
