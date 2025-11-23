@@ -44,16 +44,17 @@ export function getToolGenerateVideo(
         },
         aspect_ratio: {
           type: "string",
-          enum: ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"],
-          description: "Aspect ratio of the generated video. Default matches input image.",
+          enum: ["auto", "16:9", "9:16", "1:1"],
+          description: "Aspect ratio of the generated video. Use 'auto' to match input image, or specify a ratio.",
         },
-        fps: {
-          type: "number",
-          description: "Frames per second for the video. Default is 24.",
+        resolution: {
+          type: "string",
+          enum: ["720p", "1080p"],
+          description: "Resolution of the generated video. Default is 720p.",
         },
-        motion_intensity: {
-          type: "number",
-          description: "Motion intensity (1-255). Higher values create more motion. Default is automatic.",
+        generate_audio: {
+          type: "boolean",
+          description: "Whether to generate audio for the video. Default is true.",
         },
       },
       required: ["prompt", "input_file"],
@@ -63,9 +64,9 @@ export function getToolGenerateVideo(
       const inputFile = args.input_file as string | undefined;
       const outputPath = args.output_path as string | undefined;
       const duration = args.duration as number | undefined;
-      const aspectRatio = args.aspect_ratio as "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9" | undefined;
-      const fps = args.fps as number | undefined;
-      const motionIntensity = args.motion_intensity as number | undefined;
+      const aspectRatio = args.aspect_ratio as "auto" | "16:9" | "9:16" | "1:1" | undefined;
+      const resolution = args.resolution as "720p" | "1080p" | undefined;
+      const generateAudio = args.generate_audio as boolean | undefined;
 
       if (!prompt || typeof prompt !== "string") {
         return {
@@ -171,10 +172,10 @@ export function getToolGenerateVideo(
         const result = await videoGen.generate({
           prompt,
           image: imageData.dataUrl,
-          duration: duration ? Math.max(1, Math.min(duration, 60)) : undefined, // Limit between 1-60 seconds
+          duration: duration ? Math.max(1, Math.min(duration, 8)) : undefined, // Veo3 supports 4s, 6s, or 8s
           aspect_ratio: aspectRatio,
-          fps: fps ? Math.max(8, Math.min(fps, 60)) : undefined, // Limit between 8-60 fps
-          motion_bucket_id: motionIntensity ? Math.max(1, Math.min(motionIntensity, 255)) : undefined,
+          resolution,
+          generate_audio: generateAudio,
         });
 
         if (!result.url) {
