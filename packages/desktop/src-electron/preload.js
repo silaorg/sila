@@ -46,3 +46,16 @@ contextBridge.exposeInMainWorld('desktopNet', {
     return await ipcRenderer.invoke('sila:proxyFetch', url, init);
   }
 });
+
+// Expose menu action listener to the renderer
+contextBridge.exposeInMainWorld('desktopMenu', {
+  /**
+   * @param {(actionId: string) => void} callback
+   * @returns {() => void} unsubscribe
+   */
+  onAction: (callback) => {
+    const listener = (_event, actionId) => callback(actionId);
+    ipcRenderer.on('sila:menu-action', listener);
+    return () => ipcRenderer.removeListener('sila:menu-action', listener);
+  }
+});

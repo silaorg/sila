@@ -1,12 +1,24 @@
 import { Menu, app } from 'electron';
 
-export function setupElectronMenu() {
+/**
+ * @param {import('electron').BrowserWindow | null} mainWindow
+ */
+export function setupElectronMenu(mainWindow) {
   // Only show a full application menu on macOS.
   // On Windows/Linux we rely on in-app UI and keep the menu hidden.
   if (process.platform !== 'darwin') {
     Menu.setApplicationMenu(null);
     return;
   }
+
+  const sendAction = (actionId) => {
+    try {
+      mainWindow?.webContents.send('sila:menu-action', actionId);
+    } catch (err) {
+      console.error('Failed to send menu action', actionId, err);
+    }
+  };
+
   /** @type {import('electron').MenuItemConstructorOptions[]} */
   const template = [
     // On macOS, the first menu is automatically the app menu (shows as "Sila")
@@ -42,10 +54,7 @@ export function setupElectronMenu() {
         {
           label: 'New Conversation',
           accelerator: 'CmdOrCtrl+N',
-          click: function () {
-            // Add file operations here
-            console.log('Open new conversation');
-          }
+          click: () => sendAction('new-conversation')
         },
         ({ type: 'separator' }),
         {
@@ -63,11 +72,25 @@ export function setupElectronMenu() {
         ] : [])
       ]
     },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Toggle Sidebar',
+          accelerator: 'CmdOrCtrl+B',
+          click: () => sendAction('toggle-sidebar')
+        },
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'reload' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'toggleDevTools' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'resetZoom' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'zoomIn' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'zoomOut' }),
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'togglefullscreen' })
+      ]
+    },
     /** @type {import('electron').MenuItemConstructorOptions} */ ({
       role: 'editMenu'  // Standard Edit menu with undo, redo, cut, copy, paste, etc.
-    }),
-    /** @type {import('electron').MenuItemConstructorOptions} */ ({
-      role: 'viewMenu'  // Standard View menu with reload, devtools, zoom, etc.
     }),
     /** @type {import('electron').MenuItemConstructorOptions} */ ({
       role: 'windowMenu'  // Standard Window menu

@@ -1,245 +1,52 @@
-# Shortcuts in Electron Proposal
+# Cross-platform Hotkeys
 
-## Problem Statement
+Goal: one simple hotkey system that works in Electron menus and in the web build, and that users can change without restarting.
 
-Our Sila app needs a unified shortcut system where:
-- Users can customize shortcuts in the UI (renderer process)
-- Menu accelerators reflect current shortcuts (main process) 
-- Web-based shortcuts work throughout the app (renderer process)
-- Changes are synchronized between both processes
+## Requirements
+- Define hotkeys once and reuse them in renderer and main processes.
+- Show them in Electron menus (`accelerator`) and trigger the same actions in the web app.
+- Let users remap keys in the settings UI; persist per workspace/profile.
+- Ship a sane default set: Cmd/Ctrl+N new conversation, Cmd/Ctrl+B toggle sidebar, Cmd/Ctrl+Z undo, Cmd/Ctrl+Shift+Z redo, Cmd/Ctrl+P quick switch, Cmd/Ctrl+K command palette, F1 help, Cmd/Ctrl+W close tab.
+- Keep the implementation small: one registry, one IPC channel, one DOM listener.
 
-## Architecture Overview
+## Design
 
-```
-┌─────────────────┐    IPC     ┌─────────────────┐
-│ Renderer Process│◄──────────►│ Main Process    │
-│ (Svelte App)    │            │ (Electron)      │
-├─────────────────┤            ├─────────────────┤
-│ • Shortcuts UI  │            │ • Menu Creation │
-│ • Web Shortcuts │            │ • Menu Updates  │
-│ • Settings      │            │ • Global Hotkeys│
-└─────────────────┘            └─────────────────┘
-```
+### Single source of truth
+- Create `packages/core/src/shortcuts/registry.ts` exporting a `ShortcutAction` list:
+  - `id`, `label`, `description`, `scope` (`global` | `app` | `focused`), `default` combos per platform (`mac`, `win`, `linux`, `web`), optional `allowUnassigned`.
+- Default combos live in code; user overrides live in settings (local file or space store) keyed by `actionId` → `binding` string.
+- A helper `resolveShortcuts(platform, overrides)` returns the active map and flags conflicts.
 
-## Data Flow
+### Renderer (web + Electron)
+- Add `ShortcutService` (`packages/client/src/lib/shortcuts/service.ts`):
+  - Loads defaults + overrides, exposes a Svelte store for UI, and emits `shortcutFired(actionId)`.
+  - Attaches a single `keydown` listener that normalizes modifiers and compares against the active map; ignores input fields unless the action is marked `global`.
+  - Persists overrides and debounces writes.
 
-1. **Initialization**: Main process requests current shortcuts from renderer
-2. **User Changes**: Renderer updates shortcuts via settings UI
-3. **Synchronization**: Renderer sends updated shortcuts to main process
-4. **Menu Update**: Main process rebuilds menu with new accelerators
+### Electron bridge
+- `preload`: expose `getShortcuts`, `setShortcuts`, and `onMenuAction(actionId)` IPC wrappers.
+- `main`: on app start, ask renderer for the active map; build the menu template with `accelerator` pulled from it. When renderer calls `setShortcuts`, rebuild the menu. Menu click sends `menu-action` with `actionId` back to renderer, so both menu selection and hotkey go through the same handler.
+- Leave global shortcuts optional; we can add `globalShortcut.register` only for actions flagged `scope: "global"` later.
 
-## Implementation Approach
+### Settings UI
+- Add a simple picker component that listens for a key combo, validates, and calls `ShortcutService.update(actionId, binding)`.
+- Show conflicts inline and prevent saving duplicates unless the user confirms replacing the existing binding.
 
-### 1. Shortcuts Store (Renderer)
+## Flow
+1. Renderer loads defaults + saved overrides → builds active map.
+2. Renderer sends active map to main; main builds Electron menu accelerators.
+3. User remaps a key; renderer updates map, persists, and re-sends to main; main rebuilds menu; DOM listener picks up the new binding instantly.
+4. Web build uses the same renderer pieces minus the Electron IPC calls.
 
-```typescript
-// lib/state/shortcuts.svelte.ts
-export interface ShortcutMap {
-  // Menu shortcuts (will become Electron accelerators)
-  newFile: string;
-  openFile: string;
-  save: string;
-  
-  // Web-only shortcuts
-  commandPalette: string;
-  quickSwitch: string;
-  toggleSidebar: string;
-}
+## Implementation steps
+1. Add `registry.ts` with action definitions and helpers; add basic tests for normalization and conflict detection in `packages/core`.
+2. Build `ShortcutService` with a single DOM listener and Svelte store; wire to command palette, quick switcher, sidebar toggle, undo/redo, tab close/new conversation.
+3. Add Electron IPC handlers (`preload` + `main`) and update menu creation to read from the registry map.
+4. Implement settings UI for remapping; persist to the existing settings store (or a new `shortcuts.json` under the workspace config if preferred).
+5. Document the action list and default bindings in user-facing docs once stable.
 
-let shortcuts = $state<ShortcutMap>({
-  newFile: 'CmdOrCtrl+N',
-  openFile: 'CmdOrCtrl+O',
-  save: 'CmdOrCtrl+S',
-  commandPalette: 'CmdOrCtrl+K',
-  quickSwitch: 'CmdOrCtrl+P',
-  toggleSidebar: 'CmdOrCtrl+B'
-});
-
-export function updateShortcuts(newShortcuts: Partial<ShortcutMap>) {
-  shortcuts = { ...shortcuts, ...newShortcuts };
-  
-  // Send to main process for menu updates
-  if (window.electronAPI) {
-    window.electronAPI.updateShortcuts(shortcuts);
-  }
-  
-  // Persist to storage
-  localStorage.setItem('shortcuts', JSON.stringify(shortcuts));
-}
-```
-
-### 2. IPC Communication
-
-```typescript
-// electronDialogsWrapper.ts (extend existing)
-export interface ElectronAPI {
-  // ... existing methods
-  updateShortcuts: (shortcuts: ShortcutMap) => void;
-  requestShortcuts: () => Promise<ShortcutMap>;
-}
-```
-
-```javascript
-// preload.js (extend existing)
-contextBridge.exposeInMainWorld('electronAPI', {
-  // ... existing methods
-  updateShortcuts: (shortcuts) => ipcRenderer.send('update-shortcuts', shortcuts),
-  requestShortcuts: () => ipcRenderer.invoke('request-shortcuts')
-});
-```
-
-### 3. Main Process Handler
-
-```javascript
-// main.js
-import { ipcMain } from 'electron';
-
-let currentShortcuts = {
-  newFile: 'CmdOrCtrl+N',
-  openFile: 'CmdOrCtrl+O',
-  save: 'CmdOrCtrl+S'
-  // ... defaults
-};
-
-// Handle shortcut updates from renderer
-ipcMain.on('update-shortcuts', (event, shortcuts) => {
-  currentShortcuts = { ...currentShortcuts, ...shortcuts };
-  
-  // Rebuild menu with new shortcuts
-  createElectronMenu(currentShortcuts);
-  
-  // Optionally persist to main process storage
-  // store.set('shortcuts', currentShortcuts);
-});
-
-// Handle shortcut requests from renderer
-ipcMain.handle('request-shortcuts', () => {
-  return currentShortcuts;
-});
-```
-
-### 4. Menu Integration
-
-```javascript
-// electronMenu.js
-export function createElectronMenu(shortcuts = {}) {
-  const template = [
-    // ... existing menu structure
-    {
-      label: 'File',
-      submenu: [
-        {
-          label: 'New',
-          accelerator: shortcuts.newFile || 'CmdOrCtrl+N',
-          click: () => mainWindow.webContents.send('menu-action', 'new-file')
-        },
-        {
-          label: 'Open',
-          accelerator: shortcuts.openFile || 'CmdOrCtrl+O', 
-          click: () => mainWindow.webContents.send('menu-action', 'open-file')
-        }
-        // ...
-      ]
-    }
-  ];
-  
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
-```
-
-## Integration Points
-
-### Settings UI Component
-```svelte
-<!-- ShortcutSettings.svelte -->
-<script>
-  import { shortcuts, updateShortcuts } from '$lib/state/shortcuts.svelte.ts';
-  
-  function handleShortcutChange(action: string, newShortcut: string) {
-    updateShortcuts({ [action]: newShortcut });
-  }
-</script>
-
-<div class="shortcuts-settings">
-  <ShortcutInput 
-    label="New File" 
-    value={shortcuts.newFile}
-    on:change={(e) => handleShortcutChange('newFile', e.detail)}
-  />
-  <!-- More shortcut inputs... -->
-</div>
-```
-
-### Web Shortcut Handler
-```typescript
-// lib/shortcuts/webShortcuts.ts
-export function setupWebShortcuts(shortcuts: ShortcutMap) {
-  document.addEventListener('keydown', (e) => {
-    const pressed = formatKeyCombo(e);
-    
-    if (pressed === shortcuts.commandPalette) {
-      openCommandPalette();
-    }
-    
-    if (pressed === shortcuts.quickSwitch) {
-      openQuickSwitch();
-    }
-    
-    // Handle other web shortcuts...
-  });
-}
-```
-
-## Considerations
-
-### Performance
-- Menu rebuilding is fast (~1ms) but avoid excessive updates
-- Debounce shortcut changes if user is rapidly editing
-
-### Persistence
-- **Renderer**: Use localStorage or IndexedDB for user preferences
-- **Main**: Use electron-store or file system for system defaults
-- Consider sync mechanism if shortcuts should roam across devices
-
-### Validation
-- Validate shortcut format before sending to main process
-- Check for conflicts with system shortcuts
-- Provide user feedback for invalid combinations
-
-### Platform Differences
-- Handle `Cmd` vs `Ctrl` automatically in shortcut display
-- Some shortcuts may be platform-specific
-- Global shortcuts need special handling
-
-## Migration Path
-
-1. **Phase 1**: Implement basic IPC communication
-2. **Phase 2**: Add shortcut customization UI  
-3. **Phase 3**: Enhance with conflict detection and validation
-4. **Phase 4**: Add global shortcuts and advanced features
-
-## Alternative Approaches
-
-### Option A: Main Process as Source of Truth
-- Store all shortcuts in main process
-- Renderer requests shortcuts on startup
-- More complex but better for global shortcuts
-
-### Option B: Shared Configuration File
-- Both processes read from same config file
-- Use file watching for synchronization
-- Simpler but less flexible
-
-### Option C: Two-Way Sync
-- Both processes can initiate changes
-- More complex conflict resolution needed
-- Best for advanced scenarios
-
-## Recommendation
-
-Start with **renderer-driven approach** (outlined above) because:
-- Most shortcut changes happen in UI
-- Simpler to implement and debug
-- Easy to extend later
-- Follows established patterns in Electron apps 
+## Notes and risks
+- Use normalized strings (`CmdOrCtrl+N`, `Alt+Shift+N`) everywhere to avoid per-platform drift.
+- Keep one listener to avoid duplicate triggers from components binding their own handlers.
+- When a binding is cleared, remove the accelerator and hide it in the menu to avoid showing `Undefined`.
+- Guard against system-reserved keys (e.g., Cmd+Q) and block them in the picker.

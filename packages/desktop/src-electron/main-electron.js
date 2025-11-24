@@ -60,7 +60,7 @@ app.whenReady().then(async () => {
   
   // Setup main window with menu and dialogs
   mainWindow = createWindow(isDev);
-  setupElectronMenu();
+  setupElectronMenu(mainWindow);
   setupDialogsInMain();
   
   // IPC: cors-less fetch for renderer
