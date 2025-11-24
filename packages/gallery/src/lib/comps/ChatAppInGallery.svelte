@@ -3,9 +3,9 @@
   import ChatApp from "@sila/client/comps/apps/chat/ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
 
-  let { state, data }: { state: ClientState; data: ChatAppData } = $props();
+  let { clientState, data }: { clientState: ClientState; data: ChatAppData } = $props();
 </script>
 
-<ClientStateProvider instance={state}>
+<ClientStateProvider instance={clientState}>
   <ChatApp {data} />
 </ClientStateProvider>

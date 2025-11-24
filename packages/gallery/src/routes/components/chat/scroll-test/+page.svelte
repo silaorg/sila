@@ -6,7 +6,7 @@
   import { createDemoSpace } from "$lib/demo/spaceDemoBuilder";
   import { LangMessage } from "aiwrapper";
 
-  let state: ClientState | null = null;
+  let clientState: ClientState | null = null;
   let data: ChatAppData | null = null;
 
   // Generate a large message for testing scroll behavior
@@ -63,8 +63,8 @@
   }
 
   onMount(async () => {
-    state = new ClientState();
-    await state.init();
+    clientState = new ClientState();
+    await clientState.init();
 
     const demoSpace = createDemoSpace({ name: "Scroll Test" });
     const chat = demoSpace.newChat("Scroll Test Chat");
@@ -78,7 +78,7 @@
     ]);
 
     // Attach demo space to ClientState
-    await state.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
+    await clientState.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
     data = chat.get();
 
     // Simulate streaming a large response
@@ -87,8 +87,8 @@
   });
 </script>
 
-{#if state && data}
-  <ChatAppInGallery {state} {data} />
+{#if clientState && data}
+  <ChatAppInGallery {clientState} {data} />
 {:else}
   <div>Loading...</div>
 {/if}

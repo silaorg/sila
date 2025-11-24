@@ -5,12 +5,12 @@
   import type { ChatAppData } from "@sila/core";
   import { createDemoSpace } from "$lib/demo/spaceDemoBuilder";
 
-  let state: ClientState | null = null;
+  let clientState: ClientState | null = null;
   let data: ChatAppData | null = null;
 
   onMount(async () => {
-    state = new ClientState();
-    await state.init();
+    clientState = new ClientState();
+    await clientState.init();
 
     const demoSpace = createDemoSpace({ name: "Assistant Responding" });
     const chat = demoSpace.newChat("Lang test");
@@ -22,13 +22,13 @@
     ]);
 
     // Attach demo space to ClientState (in-memory) and set current chat data
-    await state.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
+    await clientState.addDemoSpace(demoSpace.getSpace(), demoSpace.name);
     data = chat.get();
   });
 </script>
 
-{#if state && data}
-  <ChatAppInGallery {state} {data} />
+{#if clientState && data}
+  <ChatAppInGallery {clientState} {data} />
 {:else}
   <div>Loading...</div>
 {/if}
