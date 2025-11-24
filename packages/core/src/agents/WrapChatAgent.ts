@@ -10,7 +10,6 @@ import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
 import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions, agentToolUsageInstructions } from "./prompts/wrapChatAgentInstructions";
 import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
-import { getToolLs } from "./tools/toolLs";
 
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
@@ -20,6 +19,14 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   private chatAgent: ChatAgent;
   private isRunning = false;
   private pendingAssistantImages = new Map<string, Array<{ dataUrl: string; mimeType?: string; name?: string; width?: number; height?: number }>>();
+  private stopEventUnsubscribe?: () => void;
+  private currentRun:
+    | {
+        abortController: AbortController;
+        targetMessages: Array<BindedVertex<ThreadMessage>>;
+        unsubscribe?: () => void;
+      }
+    | undefined;
 
   constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
     super();
@@ -30,6 +37,13 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
    * We use the same agent convention with a "run" method that starts the agent
    */
   protected async runInternal() {
+    // Listen for stop requests triggered by the UI
+    if (!this.stopEventUnsubscribe) {
+      this.stopEventUnsubscribe = this.appTree.onEvent("stop-message", () => {
+        this.abortCurrentRun();
+      });
+    }
+
     // Initial check: if the last message is by the user, reply
     this.maybeReplyToLatest();
 
@@ -150,6 +164,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       throw new Error("No config found");
     }
 
+    let targetMessages: BindedVertex<ThreadMessage>[] = [];
     try {
       const lang = await this.agentServices.lang(config.targetLLM);
       const resolvedModel = this.agentServices.getLastResolvedModel();
@@ -188,12 +203,11 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
       let targetMsgCount = -1;
       let targetMsg: BindedVertex<ThreadMessage> | undefined;
-      let targetMessages: BindedVertex<ThreadMessage>[] = [];
       const unsubscribe = this.chatAgent.subscribe(async (event) => {
         if (event.type === 'streaming') {
           const incomingMsg = event.data.msg;
 
-          const isNewMsg = targetMsgCount != event.data.idx;
+          const isNewMsg = targetMsgCount !== event.data.idx;
           targetMsgCount = event.data.idx;
           if (isNewMsg) {
             if (targetMsg) {
@@ -261,15 +275,40 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
           // Emit custom event when message generation is complete
           this.emit({ type: "messageGenerated" });
+        } else if (event.type === 'error') {
+          // @TODO: should we do something here?
+        } else if (event.type === 'aborted') {
+          for (const msg of targetMessages) {
+            if (msg.inProgress) {
+              msg.inProgress = false;
+              msg.$commitTransients();
+            }
+          }
         }
       });
 
       this.chatAgent.setLanguageProvider(lang);
 
-      await this.chatAgent.run(langMessages);
+      const abortController = new AbortController();
+      this.currentRun = { abortController, targetMessages, unsubscribe };
+
+      await this.chatAgent.run(langMessages, { signal: abortController.signal });
 
       unsubscribe();
+      this.currentRun = undefined;
     } catch (error) {
+      // Handle manual stop (AbortError). Mark in-progress messages as finished to unblock the UI.
+      if ((error as any)?.name === "AbortError") {
+        for (const msg of targetMessages) {
+          if (msg.inProgress) {
+            msg.inProgress = false;
+          }
+          this.pendingAssistantImages.delete(msg.id);
+          msg.$commitTransients();
+        }
+        return;
+      }
+
       let errorMessage = error instanceof Error ? error.message : String(error);
       
       if (error instanceof HttpRequestError) {
@@ -279,6 +318,11 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       }
 
       await this.data.newMessage({ role: "error", text: errorMessage });
+    } finally {
+      if (this.currentRun?.unsubscribe) {
+        this.currentRun.unsubscribe();
+      }
+      this.currentRun = undefined;
     }
   }
 
@@ -381,6 +425,13 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       }
     } catch {
       // ignore failures
+    }
+  }
+
+  private abortCurrentRun(): void {
+    const controller = this.currentRun?.abortController;
+    if (controller && !controller.signal.aborted) {
+      controller.abort();
     }
   }
 

@@ -137,13 +137,13 @@
       return;
     }
 
-    if (lastMessage.role === "assistant" && lastMessage.inProgress) {
+    // Treat an in-flight assistant reply as in-progress, and also treat the latest user
+    // message as in-progress since the agent is expected to answer right after it.
+    if (
+      (lastMessage.role === "assistant" && lastMessage.inProgress) ||
+      lastMessage.role === "user"
+    ) {
       formStatus = "ai-message-in-progress";
-      return;
-    }
-
-    if (lastMessage.role === "user") {
-      formStatus = "disabled";
       return;
     }
 
