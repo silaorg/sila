@@ -15,7 +15,7 @@
     "windsurf": false,
     "copilot": false,
     "cline": false,
-    "claude": true,
+    "claude": false,
     "codex": true
   }
 }
