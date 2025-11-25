@@ -24,25 +24,36 @@ export async function resolveWorkspaceFileUrl(
   space: Space,
   appTree?: AppTree
 ): Promise<string> {
+  const fileVertex = resolveFileVertex(url, space, appTree);
+
+  // Calculate logical path for error messages
+  const logicalPath = fileVertex.name || "";
+
+  return await readTextFromFileVertex(space, fileVertex, logicalPath);
+}
+
+export function resolveFileVertex(
+  url: string,
+  space: Space,
+  appTree?: AppTree
+): Vertex {
   if (!url.startsWith("file:")) {
     throw new Error(`Unsupported URI scheme for workspace file resolver: ${url}`);
   }
 
-  // Use FileResolver.pathToVertex
   const resolver = new FileResolver(space);
   const isWorkspacePath = url.startsWith("file:///");
-  
-  let fileVertex: Vertex;
+
   try {
     if (!isWorkspacePath && !appTree) {
       throw new Error("Chat file operations require a chat tree context");
     }
-    
-    const relativeRootVertex = isWorkspacePath 
-      ? undefined 
+
+    const relativeRootVertex = isWorkspacePath
+      ? undefined
       : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
-    
-    fileVertex = resolver.pathToVertex(url, relativeRootVertex);
+
+    return resolver.pathToVertex(url, relativeRootVertex);
   } catch (error) {
     // Try to construct a helpful error message
     if (url.startsWith("file:///")) {
@@ -54,11 +65,6 @@ export async function resolveWorkspaceFileUrl(
       throw new Error(`Chat file not found at ${rawPath}`);
     }
   }
-
-  // Calculate logical path for error messages
-  const logicalPath = fileVertex.name || "";
-
-  return await readTextFromFileVertex(space, fileVertex, logicalPath);
 }
 
 export function createWorkspaceProxyFetch(
