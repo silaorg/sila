@@ -1,8 +1,15 @@
-import { ChatAgent, LangMessage, LangMessages, type LangToolWithHandler, type LanguageProvider } from "aiwrapper";
+import {
+  ChatAgent,
+  LangMessage,
+  LangMessages,
+  type LangToolWithHandler,
+  type LanguageProvider,
+} from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import { FileResolver } from "../../spaces/files/FileResolver";
 import { resolveFileVertex } from "./workspaceProxyFetch";
+import { bytesToBase64 } from "../../utils";
 
 interface ImagePayload {
   base64: string;
@@ -12,10 +19,15 @@ interface ImagePayload {
   source: string;
 }
 
-function dataUrlToPayload(dataUrl: string, fallbackMime?: string): ImagePayload {
+function dataUrlToPayload(
+  dataUrl: string,
+  fallbackMime?: string,
+): ImagePayload {
   const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
   if (!match) {
-    throw new Error("Unsupported data URL format. Expected base64-encoded image data.");
+    throw new Error(
+      "Unsupported data URL format. Expected base64-encoded image data.",
+    );
   }
 
   const [, mime, base64] = match;
@@ -29,19 +41,23 @@ function dataUrlToPayload(dataUrl: string, fallbackMime?: string): ImagePayload 
 async function fetchRemoteImage(uri: string): Promise<ImagePayload> {
   const response = await fetch(uri);
   if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch image: ${response.status} ${response.statusText}`,
+    );
   }
 
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.startsWith("image/")) {
-    throw new Error(`URI does not point to an image. Content-Type: ${contentType || "unknown"}`);
+    throw new Error(
+      `URI does not point to an image. Content-Type: ${
+        contentType || "unknown"
+      }`,
+    );
   }
 
   const arrayBuffer = await response.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  const base64 = typeof Buffer !== "undefined"
-    ? Buffer.from(bytes).toString("base64")
-    : btoa(String.fromCharCode(...bytes));
+  const base64 = bytesToBase64(bytes);
   return {
     base64,
     mimeType: contentType,
@@ -90,14 +106,6 @@ async function resolveImageData(
   throw new Error("Unsupported URI scheme. Use http(s):// or file: paths.");
 }
 
-function buildLookInstructions(): string {
-  return [
-    "You are a vision assistant.",
-    "Describe the visible content of the provided image succinctly and accurately.",
-    "Do not fabricate details not visible in the image. Keep the response purely textual.",
-  ].join("\n");
-}
-
 async function runLookAgent(
   providerFactory: () => Promise<LanguageProvider>,
   prompt: string,
@@ -106,45 +114,23 @@ async function runLookAgent(
   const provider = await providerFactory();
   const lookAgent = new ChatAgent(provider);
 
-  const items: Array<
-    | { type: "text"; text: string }
-    | {
-      type: "image";
-      base64: string;
-      mimeType?: string;
-      width?: number;
-      height?: number;
-      metadata?: Record<string, any>;
-    }
-  > = [
-    { type: "text", text: prompt },
-    {
-      type: "image",
-      base64: image.base64,
-      mimeType: image.mimeType,
-      width: image.width,
-      height: image.height,
-      metadata: { source: image.source },
-    },
-  ];
+  const messages = new LangMessages();
 
-  const messages = new LangMessages([new LangMessage("user", items)]);
-  messages.instructions = buildLookInstructions();
+  messages.instructions =
+    "You are a vision assistant. Your task is to describe visible content of the provided image.";
+
+  messages.addUserItems([{ type: "text", text: prompt }, {
+    type: "image",
+    base64: image.base64,
+    mimeType: image.mimeType,
+    width: image.width,
+    height: image.height,
+    metadata: { source: image.source },
+  }]);
 
   const result = await lookAgent.run(messages);
-  const assistant = [...result].reverse().find((msg) => msg.role === "assistant");
-
-  if (!assistant) return "";
-
-  if (assistant.text) {
-    return assistant.text;
-  }
-
-  const textItem = Array.isArray((assistant as any).items)
-    ? (assistant as any).items.find((item: any) => item?.type === "text")
-    : null;
-
-  return textItem?.text || "";
+  
+  return result.answer;
 }
 
 export function getToolLook(
@@ -155,13 +141,14 @@ export function getToolLook(
   return {
     name: "look",
     description:
-      "Inspect an image from a web URL or file: path and return a concise visual description. Use this to answer questions about attached or remote images.",
+      "Inspect an image from a web URL or workspace path and return a concise visual description. Use this to answer questions about attached or remote images.",
     parameters: {
       type: "object",
       properties: {
         prompt: {
           type: "string",
-          description: "Instruction for what to focus on when looking at the image.",
+          description:
+            "Instruction for what to focus on when looking at the image.",
         },
         uri: {
           type: "string",
@@ -176,7 +163,7 @@ export function getToolLook(
       const prompt =
         typeof args.prompt === "string" && args.prompt.trim().length > 0
           ? args.prompt.trim()
-          : "Describe the visual content of the image.";
+          : "";
 
       if (!uri || typeof uri !== "string") {
         throw new Error("`uri` must be a non-empty string.");

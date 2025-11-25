@@ -18,6 +18,7 @@ export interface FileStore {
 }
 
 import type { AppFileSystem } from "../../appFs";
+import { bytesToBase64 } from "../../utils";
 
 export type FileStoreProvider = {
 	getSpaceRootPath(): string;
@@ -127,7 +128,7 @@ class FileSystemFileStore implements FileStore {
 
 	async getDataUrl(hash: string): Promise<string> {
 		const bytes = await this.getBytes(hash);
-		const base64 = typeof Buffer !== "undefined" ? Buffer.from(bytes).toString("base64") : btoa(String.fromCharCode(...bytes));
+		const base64 = bytesToBase64(bytes);
 		// mimeType is unknown at CAS level; callers can override if known
 		return `data:application/octet-stream;base64,${base64}`;
 	}
