@@ -8,9 +8,11 @@ import {
   type LayoutValidator,
   LayoutValidationError,
   type TTabs,
+  type TilePanelState,
 } from "ttabs-svelte";
 import { SKELETON_THEME } from "@sila/client/ttabs/themes/skeleton";
 import TabCloseButton from "@sila/client/ttabs/components/TabCloseButton.svelte";
+import TabBarNewThreadButton from "@sila/client/ttabs/components/TabBarNewThreadButton.svelte";
 import DefaultAppPage from "@sila/client/comps/apps/DefaultAppPage.svelte";
 import { getTtabsLayout, saveTtabsLayout } from "@sila/client/localDb";
 
@@ -150,6 +152,7 @@ export class LayoutStore {
     this.ttabs.registerComponent('files', FilesAppLoader);
     this.ttabs.registerComponent('sidebarToggle', SidebarToggle);
     this.ttabs.registerComponent('noTabsContent', DefaultAppPage);
+    this.ttabs.registerComponent('tabBarNewThreadButton', TabBarNewThreadButton);
 
     this.ttabs.subscribeDebounced(() => {
       this._findAndUpdateLayoutRefs();
@@ -377,6 +380,25 @@ export class LayoutStore {
     }
   }
 
+  private _updateTabBarComponents(): void {
+    const tabBarComponentId = 'tabBarNewThreadButton';
+    const panels = Object.values(this.ttabs.getTiles())
+      .filter((tile): tile is TilePanelState => tile.type === 'panel');
+
+    for (const panel of panels) {
+      const components = panel.tabBarComponents ?? [];
+      const hasTabButton = components.some(
+        (component) => component.componentId === tabBarComponentId
+      );
+
+      if (!hasTabButton) {
+        this.ttabs.updateTile(panel.id, {
+          tabBarComponents: [...components, { componentId: tabBarComponentId }]
+        });
+      }
+    }
+  }
+
   private _findAndUpdateLayoutRefs(): void {
     // Find the sidebar column
     const tiles = this.ttabs.getTiles();
@@ -416,6 +438,7 @@ export class LayoutStore {
 
     this._updateHoverSidebarState();
     this._updateSidebarToggleVisibility();
+    this._updateTabBarComponents();
   }
 
   public setupDefaultLayout(tt: TTabs): void {
