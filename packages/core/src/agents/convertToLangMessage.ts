@@ -68,30 +68,52 @@ const buildTextFileBlocks = (
   maxCharacters: number
 ): string[] => {
   const sections: string[] = [];
-  let remaining = maxCharacters;
+  const decodedFiles: Array<{ file: { id: string; kind?: string; name?: string; path?: string; dataUrl?: string }; decoded: string }> = [];
 
   for (const file of files) {
     const decoded = extractTextFromDataUrl(file.dataUrl);
     if (!decoded) continue;
+    decodedFiles.push({ file, decoded });
+  }
 
+  if (!decodedFiles.length) return sections;
+  const totalDecodedChars = decodedFiles.reduce((sum, { decoded }) => sum + decoded.length, 0);
+  if (maxCharacters <= 0) return sections;
+
+  const needsProportionalSlice = totalDecodedChars > maxCharacters;
+  // Scale each file's slice by its share of total decoded chars; carry handles rounding so we spend the full budget.
+  const scale = needsProportionalSlice ? maxCharacters / totalDecodedChars : 1;
+  let remaining = maxCharacters;
+  let carry = 0;
+
+  for (let i = 0; i < decodedFiles.length; i++) {
+    const { file, decoded } = decodedFiles[i];
     const totalChars = decoded.length;
-    const take = Math.max(0, Math.min(remaining, totalChars));
+
+    let take = totalChars;
+    if (needsProportionalSlice) {
+      if (i === decodedFiles.length - 1) {
+        take = Math.max(0, Math.min(totalChars, remaining));
+      } else {
+        const exactShare = totalChars * scale + carry;
+        take = Math.max(0, Math.min(totalChars, Math.floor(exactShare)));
+        carry = exactShare - take;
+        remaining -= take;
+        if (remaining < 0) remaining = 0;
+      }
+    }
+
     const snippet = decoded.slice(0, take);
-    remaining -= take;
 
     const { label, pathLabel } = toFileDescription(file, infoMap);
     sections.push(
       [
         `--- File: ${label} ---`,
         `Path: ${pathLabel}`,
-        `Lines: 0-${take} of ${totalChars}`,
+        `Characters shown: ${take} of ${totalChars}`,
         snippet,
       ].join("\n")
     );
-
-    if (remaining <= 0) {
-      break;
-    }
   }
 
   return sections;
