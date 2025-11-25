@@ -15,6 +15,7 @@ import { getToolApplyPatch } from "./tools/toolApplyPatch";
 import { getToolWriteToFile } from "./tools/toolWriteToFile";
 import { getToolGenerateImage } from "./tools/toolGenerateImage";
 import { getToolGenerateVideo } from "./tools/toolGenerateVideo";
+import { getToolLook } from "./tools/toolLook";
 
 export class AgentServices {
   readonly space: Space;
@@ -198,6 +199,11 @@ export class AgentServices {
 
     tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
 
+    const providerFactory = model
+      ? () => this.createLanguageProvider(model.provider, model.model)
+      : () => this.lang();
+    tools.push(getToolLook(this.space, appTree, providerFactory));
+
     // Files tools (ls, mkdir, rm, move, apply_patch) available for all providers; rely on space + optional appTree
     tools.push(getToolLs(this.space, appTree));
     tools.push(getToolMkdir(this.space, appTree));
@@ -217,7 +223,7 @@ export class AgentServices {
     return tools;
   }
 
-  private async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
+  async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
     // Common configuration for API-based providers
     const options: Record<string, any> = { model };
 
