@@ -51,12 +51,12 @@ const toFileDescription = (
 const buildAttachmentsSummary = (files: Array<{ id: string; kind?: string; name?: string; path?: string }>, infoMap: Map<string, ResolvedFileInfo>): string => {
   if (!files.length) return "";
 
-  const lines: string[] = ["Attachments:"];
+  const howManyFiles = `The user attached ${files.length} file${files.length > 1 ? "s" : ""}:`;
+  const lines: string[] = [howManyFiles];
   for (const file of files) {
-    const { label, pathLabel, uri } = toFileDescription(file, infoMap);
+    const { label, pathLabel } = toFileDescription(file, infoMap);
     lines.push(`- ${label}`);
     lines.push(`  path: ${pathLabel}`);
-    lines.push(`  uri: ${uri ?? "unavailable"}`);
   }
 
   return lines.join("\n");
@@ -79,14 +79,12 @@ const buildTextFileBlocks = (
     const snippet = decoded.slice(0, take);
     remaining -= take;
 
-    const { label, pathLabel, uri } = toFileDescription(file, infoMap);
+    const { label, pathLabel } = toFileDescription(file, infoMap);
     sections.push(
       [
         `--- File: ${label} ---`,
         `Path: ${pathLabel}`,
-        `URI: ${uri ?? "unavailable"}`,
-        `Total characters: ${totalChars}`,
-        `Showing ${take} characters:`,
+        `Lines: 0-${take} of ${totalChars}`,
         snippet,
       ].join("\n")
     );
@@ -127,7 +125,7 @@ export const convertToLangMessage = async ({
   const textBlocks = buildTextFileBlocks(textFiles, infoMap, maxTextCharacters);
 
   const textSections = [message.text || "", attachmentsSummary, textBlocks.join("\n\n")].filter(Boolean);
-  const combinedText = textSections.join("\n\n");
+  const combinedText = "<attachments>\n" + textSections.join("\n\n") + "\n</attachments>";
 
   if (supportsVision && images.length > 0) {
     const items: Array<
@@ -142,12 +140,9 @@ export const convertToLangMessage = async ({
     for (const img of images) {
       const { base64, mimeType } = parseDataUrl(img.dataUrl);
       const metadata: Record<string, any> = {};
-      const { label, pathLabel, uri } = toFileDescription(img, infoMap);
+      const { label, pathLabel } = toFileDescription(img, infoMap);
       metadata.label = label;
       metadata.path = pathLabel;
-      if (uri) {
-        metadata.uri = uri;
-      }
 
       items.push({
         type: "image",
@@ -163,18 +158,6 @@ export const convertToLangMessage = async ({
   }
 
   let content = combinedText;
-
-  if (images.length > 0) {
-    const imageNotes = images
-      .map((img) => {
-        const { label, pathLabel, uri } = toFileDescription(img, infoMap);
-        const uriText = uri ? `, uri: ${uri}` : "";
-        return `- ${label} (path: ${pathLabel}${uriText})`;
-      })
-      .join("\n");
-    const prefix = content ? "\n\n" : "";
-    content += `${prefix}Images attached (vision disabled):\n${imageNotes}`;
-  }
 
   return new LangMessage(normalizedRole, content || "", message.meta ?? {});
 };
