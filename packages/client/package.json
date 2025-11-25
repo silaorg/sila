@@ -37,7 +37,7 @@
     "shiki": "^2.0.3",
     "svelte-persisted-store": "^0.12.0",
     "svelte-sonner": "^1.0.5",
-    "ttabs-svelte": "^0.0.13"
+    "ttabs-svelte": "^0.0.15"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^3.1.2",
