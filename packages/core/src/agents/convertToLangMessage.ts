@@ -1,7 +1,11 @@
 import { LangMessage } from "aiwrapper";
 import type { ThreadMessage, ThreadMessageWithResolvedFiles } from "../models";
 import type { ChatAppData } from "../spaces/ChatAppData";
-import { FileResolver, type FileReference, type ResolvedFileInfo } from "../spaces/files/FileResolver";
+import {
+  type FileReference,
+  FileResolver,
+  type ResolvedFileInfo,
+} from "../spaces/files/FileResolver";
 
 const MAX_TEXT_CHARACTERS = 10_000;
 
@@ -11,23 +15,27 @@ interface FileDescription {
   uri?: string;
 }
 
-const parseDataUrl = (dataUrl: string): { base64: string; mimeType?: string } => {
+const parseDataUrl = (
+  dataUrl: string,
+): { base64: string; mimeType?: string } => {
   try {
     const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
     if (match && match[2]) {
       return { mimeType: match[1], base64: match[2] };
     }
-  } catch { }
+  } catch {}
   return { base64: dataUrl };
 };
 
-export const extractTextFromDataUrl = (dataUrl: string | undefined): string | null => {
+export const extractTextFromDataUrl = (
+  dataUrl: string | undefined,
+): string | null => {
   if (!dataUrl) return null;
   try {
     const textDataUrlMatch = dataUrl.match(/^data:(text\/[^;]+);base64,(.+)$/);
     if (!textDataUrlMatch) return null;
     const [, , base64] = textDataUrlMatch;
-    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     return new TextDecoder().decode(bytes);
   } catch {
     return null;
@@ -36,10 +44,12 @@ export const extractTextFromDataUrl = (dataUrl: string | undefined): string | nu
 
 const toFileDescription = (
   file: { id: string; kind?: string; name?: string; path?: string },
-  infoMap: Map<string, ResolvedFileInfo>
+  infoMap: Map<string, ResolvedFileInfo>,
 ): FileDescription => {
   const info = infoMap.get(file.id);
-  const label = `${file.name ?? info?.name ?? "file"}${file.kind ? ` (${file.kind})` : ""}`;
+  const label = `${file.name ?? info?.name ?? "file"}${
+    file.kind ? ` (${file.kind})` : ""
+  }`;
   const pathLabel = file.path ?? info?.url ?? "path unavailable";
   return {
     label,
@@ -48,10 +58,15 @@ const toFileDescription = (
   };
 };
 
-const buildAttachmentsSummary = (files: Array<{ id: string; kind?: string; name?: string; path?: string }>, infoMap: Map<string, ResolvedFileInfo>): string => {
+const buildAttachmentsSummary = (
+  files: Array<{ id: string; kind?: string; name?: string; path?: string }>,
+  infoMap: Map<string, ResolvedFileInfo>,
+): string => {
   if (!files.length) return "";
 
-  const howManyFiles = `The user attached ${files.length} file${files.length > 1 ? "s" : ""}:`;
+  const howManyFiles = `The user attached ${files.length} file${
+    files.length > 1 ? "s" : ""
+  }:`;
   const lines: string[] = [howManyFiles];
   for (const file of files) {
     const { label, pathLabel } = toFileDescription(file, infoMap);
@@ -63,12 +78,31 @@ const buildAttachmentsSummary = (files: Array<{ id: string; kind?: string; name?
 };
 
 const buildTextFileBlocks = (
-  files: Array<{ id: string; kind?: string; name?: string; path?: string; dataUrl?: string }>,
+  files: Array<
+    {
+      id: string;
+      kind?: string;
+      name?: string;
+      path?: string;
+      dataUrl?: string;
+    }
+  >,
   infoMap: Map<string, ResolvedFileInfo>,
-  maxCharacters: number
+  maxCharacters: number,
 ): string[] => {
   const sections: string[] = [];
-  const decodedFiles: Array<{ file: { id: string; kind?: string; name?: string; path?: string; dataUrl?: string }; decoded: string }> = [];
+  const decodedFiles: Array<
+    {
+      file: {
+        id: string;
+        kind?: string;
+        name?: string;
+        path?: string;
+        dataUrl?: string;
+      };
+      decoded: string;
+    }
+  > = [];
 
   for (const file of files) {
     const decoded = extractTextFromDataUrl(file.dataUrl);
@@ -77,7 +111,10 @@ const buildTextFileBlocks = (
   }
 
   if (!decodedFiles.length) return sections;
-  const totalDecodedChars = decodedFiles.reduce((sum, { decoded }) => sum + decoded.length, 0);
+  const totalDecodedChars = decodedFiles.reduce(
+    (sum, { decoded }) => sum + decoded.length,
+    0,
+  );
   if (maxCharacters <= 0) return sections;
 
   const needsProportionalSlice = totalDecodedChars > maxCharacters;
@@ -112,7 +149,7 @@ const buildTextFileBlocks = (
         `Path: ${pathLabel}`,
         `Characters shown: ${take} of ${totalChars}`,
         snippet,
-      ].join("\n")
+      ].join("\n"),
     );
   }
 
@@ -134,25 +171,54 @@ export const convertToLangMessage = async ({
   supportsVision = true,
   maxTextCharacters = MAX_TEXT_CHARACTERS,
 }: ConvertToLangMessageParams): Promise<LangMessage> => {
-  const normalizedRole = (message.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
-  const fileRefs = Array.isArray(message.files) ? (message.files as FileReference[]) : [];
-  const resolved: ThreadMessageWithResolvedFiles = await data.resolveMessageFiles(message);
+  const normalizedRole =
+    (message.role === "assistant" ? "assistant" : "user") as
+      | "assistant"
+      | "user";
+  const fileRefs = Array.isArray(message.files)
+    ? (message.files as FileReference[])
+    : [];
+  const resolved: ThreadMessageWithResolvedFiles = await data
+    .resolveMessageFiles(message);
   const resolvedFiles = resolved.files ?? [];
-  const fileInfos = fileRefs.length > 0 ? await fileResolver.getFilesInfo(fileRefs) : [];
-  const infoMap = new Map<string, ResolvedFileInfo>(fileInfos.map((info) => [info.id, info]));
+
+  if (resolvedFiles.length === 0) {
+    return new LangMessage(
+      normalizedRole,
+      message.text || "",
+      message.meta ?? {},
+    );
+  }
+
+  const fileInfos = fileRefs.length > 0
+    ? await fileResolver.getFilesInfo(fileRefs)
+    : [];
+  const infoMap = new Map<string, ResolvedFileInfo>(
+    fileInfos.map((info) => [info.id, info]),
+  );
 
   const images = resolvedFiles.filter((f) => f?.kind === "image");
   const textFiles = resolvedFiles.filter((f) => f?.kind === "text");
+
   const attachmentsSummary = buildAttachmentsSummary(resolvedFiles, infoMap);
   const textBlocks = buildTextFileBlocks(textFiles, infoMap, maxTextCharacters);
 
-  const textSections = [message.text || "", attachmentsSummary, textBlocks.join("\n\n")].filter(Boolean);
-  const combinedText = "<attachments>\n" + textSections.join("\n\n") + "\n</attachments>";
+  const attachements = "<attachments>\n" +
+    [attachmentsSummary, ...textBlocks].join("\n\n") + "\n</attachments>";
+    
+  const combinedText = [message.text || "", attachements].join("\n\n");
 
   if (supportsVision && images.length > 0) {
     const items: Array<
       | { type: "text"; text: string }
-      | { type: "image"; base64: string; mimeType?: string; width?: number; height?: number; metadata?: Record<string, any> }
+      | {
+        type: "image";
+        base64: string;
+        mimeType?: string;
+        width?: number;
+        height?: number;
+        metadata?: Record<string, any>;
+      }
     > = [];
 
     if (combinedText.trim().length > 0) {
