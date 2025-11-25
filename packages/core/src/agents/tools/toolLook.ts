@@ -2,7 +2,7 @@ import { ChatAgent, LangMessage, LangMessages, type LangToolWithHandler, type La
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import { FileResolver } from "../../spaces/files/FileResolver";
-import { ChatAppData } from "../../spaces/ChatAppData";
+import { resolveFileVertex } from "./workspaceProxyFetch";
 
 interface ImagePayload {
   base64: string;
@@ -55,18 +55,8 @@ async function resolveFileImage(
   uri: string,
 ): Promise<ImagePayload> {
   const resolver = new FileResolver(space);
-  const isWorkspacePath = uri.startsWith("file:///");
-
-  if (!isWorkspacePath && !appTree) {
-    throw new Error("Chat file paths require a chat tree context.");
-  }
-
-  const relativeRoot = isWorkspacePath
-    ? undefined
-    : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
-
-  const vertex = resolver.pathToVertex(uri, relativeRoot);
-  const treeId = isWorkspacePath
+  const vertex = resolveFileVertex(uri, space, appTree);
+  const treeId = uri.startsWith("file:///")
     ? space.getId()
     : appTree!.getId();
 
