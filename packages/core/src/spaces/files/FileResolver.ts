@@ -217,6 +217,10 @@ export class FileResolver {
 
     const resolved: ResolvedFileWithData[] = [];
     const fileStore = this.space.getFileStore();
+    if (!fileStore) {
+      console.error('No FileStore available for file resolution');
+      return [];
+    }
 
     for (const file of fileRefs) {
       // If has file reference, resolve it
