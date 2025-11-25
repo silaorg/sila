@@ -4,11 +4,11 @@
   import NewThread from "@sila/client/comps/apps/NewThread.svelte";
   const clientState = useClientState();
 
-  let { appConfig }: { appConfig?: AppConfig } = $props();
+  let { appConfig, targetPanelId }: { appConfig?: AppConfig; targetPanelId?: string } = $props();
 
   function onSend() {
     clientState.layout.swins.clear();
   }
 </script>
 
-<NewThread {appConfig} {onSend} />
+<NewThread {appConfig} {onSend} {targetPanelId} />

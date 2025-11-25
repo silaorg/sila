@@ -7,7 +7,11 @@
   import { onMount } from "svelte";
   import type { AttachmentPreview } from "@sila/core";
 
-  let { appConfig, onSend }: { appConfig?: AppConfig; onSend?: () => void } =
+  let {
+    appConfig,
+    onSend,
+    targetPanelId
+  }: { appConfig?: AppConfig; onSend?: () => void; targetPanelId?: string } =
     $props();
   let targetAppConfig: AppConfig | undefined = $state(undefined);
 
@@ -59,7 +63,7 @@
 
     const layout = clientState.currentSpaceState?.layout;
     if (layout) {
-      layout.openChatTab(newTree.tree.root!.id, "New chat");
+      layout.openChatTab(newTree.tree.root!.id, "New chat", targetPanelId);
     }
 
     onSend?.();

@@ -207,7 +207,7 @@ export class LayoutStore {
     });
   }
 
-  openChatTab(treeId: string, name: string): void {
+  openChatTab(treeId: string, name: string, targetPanelId?: string): void {
     // First, check if a tab with this treeId already exists
     const existingTabId = this._findTabByTreeId(treeId);
     if (existingTabId) {
@@ -216,7 +216,9 @@ export class LayoutStore {
       return;
     }
 
-    if (!this.layoutRefs.contentGrid) {
+    const resolvedPanelId = targetPanelId && this._isPanel(targetPanelId) ? targetPanelId : undefined;
+
+    if (!resolvedPanelId && !this.layoutRefs.contentGrid) {
       // Find the first non root grid
       const grids = Object.values(this.ttabs.getTiles()).filter(tile => tile.type === 'grid' && !tile.parent);
       if (grids.length === 0) {
@@ -226,11 +228,16 @@ export class LayoutStore {
       this.layoutRefs.contentGrid = grids[0].id;
     }
 
-    const grid = this.ttabs.getGrid(this.layoutRefs.contentGrid);
+    const parentContainerId = resolvedPanelId ?? this.layoutRefs.contentGrid;
+    if (!parentContainerId) {
+      console.error("No parent container for new chat tab");
+      return;
+    }
+
     let tab: string;
 
     // Check for a lazy tab and if it exists, update it
-    const lazyTabs = this.ttabs.getLazyTabs(grid.id);
+    const lazyTabs = this.ttabs.getLazyTabs(parentContainerId);
 
     if (lazyTabs.length > 0) {
       // Reuse the first lazy tab we found
@@ -243,7 +250,7 @@ export class LayoutStore {
       });
     } else {
       // No lazy tabs found, create a new one
-      tab = this.ttabs.addTab(grid.id, name, true, true);
+      tab = this.ttabs.addTab(parentContainerId, name, true, true);
     }
 
     // Set the component for the tab
@@ -467,5 +474,10 @@ export class LayoutStore {
       }
     }
     return undefined;
+  }
+
+  private _isPanel(tileId: string): boolean {
+    const tile = this.ttabs.getTile(tileId);
+    return Boolean(tile && tile.type === 'panel');
   }
 }

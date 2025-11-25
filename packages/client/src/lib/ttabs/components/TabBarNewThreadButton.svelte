@@ -4,7 +4,7 @@
 
   const clientState = useClientState();
 
-  let { ttabs: _ttabs, panelId: _panelId }: { ttabs: unknown; panelId: string } = $props();
+  let { ttabs: _ttabs, panelId }: { ttabs: unknown; panelId: string } = $props();
 
   const hasAppConfig = $derived(
     (clientState.currentSpace?.getAppConfigs()?.length ?? 0) > 0
@@ -13,7 +13,11 @@
   function openNewThread() {
     if (!hasAppConfig) return;
 
-    clientState.layout.swins.open("new-thread", {}, "New conversation");
+    clientState.layout.swins.open(
+      "new-thread",
+      { targetPanelId: panelId },
+      "New conversation"
+    );
   }
 </script>
 
