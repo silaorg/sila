@@ -37,7 +37,7 @@
   </SwinsNavButton>
 
   <SwinsNavButton
-    component="settings-providers"
+    component="settingsProviders"
     pop="current"
     title="Model Providers"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'providers' ? 'preset-tonal' : ''}"
@@ -47,7 +47,7 @@
   </SwinsNavButton>
 
   <SwinsNavButton
-    component="settings-assistants"
+    component="settingsAssistants"
     pop="current"
     title="Assistants"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'assistants' ? 'preset-tonal' : ''}"
@@ -57,7 +57,7 @@
   </SwinsNavButton>
 
   <SwinsNavButton
-    component="settings-workspaces"
+    component="settingsWorkspaces"
     pop="current"
     title="Workspaces"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'workspaces' ? 'preset-tonal' : ''}"
@@ -67,7 +67,7 @@
   </SwinsNavButton>
 
   <SwinsNavButton
-    component="settings-dev"
+    component="settingsDev"
     pop="current"
     title="For Developers"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'dev' ? 'preset-tonal' : ''}"
@@ -77,4 +77,3 @@
   </SwinsNavButton>
 
 </nav>
-

@@ -1,14 +1,15 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   import { User } from "lucide-svelte";
   const clientState = useClientState();
 
   const handleSignIn = () => {
-    clientState.layout.swins.open('sign-in', {}, 'Sign In');
+    clientState.layout.swins.open(swinsLayout.signIn.key, {}, 'Sign In');
   };
 
   const handleUserProfile = () => {
-    clientState.layout.swins.open('user-profile', {}, 'Profile');
+    clientState.layout.swins.open(swinsLayout.userProfile.key, {}, 'Profile');
   };
 </script>
 

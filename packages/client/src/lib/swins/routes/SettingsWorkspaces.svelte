@@ -17,7 +17,7 @@
     <div class="flex justify-end">
       <SwinsNavButton
         className="btn preset-filled-primary-500"
-        component="open-space"
+        component="openSpace"
         title="Add a workspace"
       >
         <Plus size={16} />
@@ -26,4 +26,3 @@
     </div>
   </div>
 </div>
-

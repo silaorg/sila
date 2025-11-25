@@ -8,6 +8,7 @@
   import { type MessageFormStatus } from "./messageFormStatus";
   import { txtStore } from "@sila/client/state/txtStore";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   import type { ChatAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import {
@@ -58,7 +59,7 @@
   }: SendMessageFormProps = $props();
 
   function openModelProvidersSettings() {
-    clientState.layout.swins.open("model-providers", {}, "Model Providers");
+    clientState.layout.swins.open(swinsLayout.modelProviders.key, {}, "Model Providers");
   }
 
   let query = $state("");

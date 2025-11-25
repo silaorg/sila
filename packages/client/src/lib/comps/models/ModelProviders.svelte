@@ -6,6 +6,7 @@
   import { providers } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { getActiveProviders } from "@sila/core";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
 
   let customProviders = $state<ModelProvider[]>([]);
@@ -20,7 +21,7 @@
 
   function onHow(provider: ModelProvider) {
     clientState.layout.swins.open(
-      "how-to-setup-model-provider",
+      swinsLayout.howToSetupModelProvider.key,
       { provider },
       provider.name,
     );

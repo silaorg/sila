@@ -1,6 +1,7 @@
 <script lang="ts">
   import { PlusCircle } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
 
   let {
@@ -10,7 +11,7 @@
   } = $props();
 
   function handleAdd() {
-    clientState.layout.swins.open('custom-provider-setup', {
+    clientState.layout.swins.open(swinsLayout.customProviderSetup.key, {
       onSave: () => {
         onProviderAdded();
         clientState.layout.swins.pop();

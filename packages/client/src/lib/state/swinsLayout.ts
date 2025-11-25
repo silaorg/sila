@@ -19,31 +19,106 @@ import SpaceOpenerPage from "../comps/spaces/SpaceOpenerPage.svelte";
 import DesktopUpdates from "@sila/client/comps/dev/DesktopUpdates.svelte";
 import CreateWorkspace from "../swins/routes/CreateWorkspace.svelte";
 import FilesAppLoader from "../comps/apps/files/FilesAppLoader.svelte";
+import { type Component } from "svelte";
+
+interface SwinsComponent {
+  key: string;
+  target: Component;
+}
+
+export const swinsLayout = {
+  settings: {
+    key: 'settings',
+    target: Settings,
+  },
+  settingsAppearance: {
+    key: 'settings-appearance',
+    target: SettingsAppearance,
+  },
+  settingsProviders: {
+    key: 'settings-providers',
+    target: SettingsProviders,
+  },
+  settingsAssistants: {
+    key: 'settings-assistants',
+    target: SettingsAssistants,
+  },
+  settingsWorkspaces: {
+    key: 'settings-workspaces',
+    target: SettingsWorkspaces,
+  },
+  settingsDev: {
+    key: 'settings-dev',
+    target: SettingsDev,
+  },
+  spaces: {
+    key: 'spaces',
+    target: Spaces,
+  },
+  openSpace: {
+    key: 'open-space',
+    target: SpaceOpenerPage,
+  },
+  createWorkspace: {
+    key: 'create-workspace',
+    target: CreateWorkspace,
+  },
+  apps: {
+    key: 'apps',
+    target: Apps,
+  },
+  appConfig: {
+    key: 'app-config',
+    target: AppConfigEditing,
+  },
+  newThread: {
+    key: 'new-thread',
+    target: NewThreadSwins,
+  },
+  howToSetupModelProvider: {
+    key: 'how-to-setup-model-provider',
+    target: HowToSetupModelProider,
+  },
+  selectModel: {
+    key: 'select-model',
+    target: SelectModelPopup,
+  },
+  customProviderSetup: {
+    key: 'custom-provider-setup',
+    target: CustomProviderSetup,
+  },
+  modelProviders: {
+    key: 'model-providers',
+    target: ModelProviders,
+  },
+  signIn: {
+    key: 'sign-in',
+    target: SignInButtons,
+  },
+  userProfile: {
+    key: 'user-profile',
+    target: UserProfile,
+  },
+  desktopUpdates: {
+    key: 'desktop-updates',
+    target: DesktopUpdates,
+  },
+  files: {
+    key: 'files',
+    target: FilesAppLoader,
+  },
+} satisfies Record<string, SwinsComponent>;
+
+export type SwinsKey = keyof typeof swinsLayout;
 
 // Setup function that can configure any SWins instance
 export function setupSwins(): SWins {
   const swins = new SWins();
 
-  swins.register('settings', Settings);
-  swins.register('settings-appearance', SettingsAppearance);
-  swins.register('settings-providers', SettingsProviders);
-  swins.register('settings-assistants', SettingsAssistants);
-  swins.register('settings-workspaces', SettingsWorkspaces);
-  swins.register('settings-dev', SettingsDev);
-  swins.register('spaces', Spaces);
-  swins.register('open-space', SpaceOpenerPage);
-  swins.register('create-workspace', CreateWorkspace);
-  swins.register('apps', Apps);
-  swins.register('app-config', AppConfigEditing);
-  swins.register('new-thread', NewThreadSwins);
-  swins.register('how-to-setup-model-provider', HowToSetupModelProider);
-  swins.register('select-model', SelectModelPopup);
-  swins.register('custom-provider-setup', CustomProviderSetup);
-  swins.register('model-providers', ModelProviders);
-  swins.register('sign-in', SignInButtons);
-  swins.register('user-profile', UserProfile);
-  swins.register('desktop-updates', DesktopUpdates);
-  swins.register('files', FilesAppLoader);
+  // Break swinsLayout into values
+  for (const swinsComp of Object.values(swinsLayout)) {
+    swins.register(swinsComp.key, swinsComp.target);
+  }
 
   return swins;
 }

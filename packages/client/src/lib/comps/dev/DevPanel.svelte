@@ -3,6 +3,7 @@
   import { isDevMode } from "@sila/client/state/devMode";
   import { spaceInspectorOpen } from "@sila/client/state/devMode";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
 
   const isElectron = typeof window !== "undefined" && (window as any).electronFileSystem;
@@ -25,7 +26,7 @@
   function openDesktopUpdates() {
     if (!isElectron) return;
 
-    clientState.layout.swins.open("desktop-updates", {}, "Desktop Updates");
+    clientState.layout.swins.open(swinsLayout.desktopUpdates.key, {}, "Desktop Updates");
   }
 </script>
 

@@ -3,7 +3,7 @@ import { ThemeStore } from './theme.svelte';
 import { SpaceState } from './spaceState.svelte';
 import { isDevMode, spaceInspectorOpen } from './devMode';
 import { txtStore } from './txtStore';
-import { setupSwins } from './swinsLayout';
+import { setupSwins, swinsLayout } from './swinsLayout';
 import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
 import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
@@ -117,10 +117,10 @@ export class ClientState {
     swins: setupSwins(),
 
     openSettings: () => {
-      this.layout.swins.open('settings', {}, 'Settings');
+      this.layout.swins.open(swinsLayout.settings.key, {}, 'Settings');
     },
     openSpaces: () => {
-      this.layout.swins.open('spaces', {}, 'Workspaces');
+      this.layout.swins.open(swinsLayout.spaces.key, {}, 'Workspaces');
     }
   };
 

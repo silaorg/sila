@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout, type SwinsKey } from "../state/swinsLayout";
   const clientState = useClientState();
 
   let {
@@ -14,12 +15,12 @@
     onclick,
   }: {
     children: Snippet;
-    component: string;
+    component: SwinsKey;
     props?: Record<string, any>;
     title: string;
     className?: string;
     pop?: 'current' | 'all';
-    popTo?: string;
+    popTo?: SwinsKey;
     onclick?: () => void;
   } = $props();
 
@@ -29,10 +30,10 @@
     } else if (pop === 'all') {
       clientState.layout.swins.clear();
     } else if (popTo) {
-      clientState.layout.swins.popTo(popTo);
+      clientState.layout.swins.popTo(swinsLayout[popTo].key);
     }
 
-    clientState.layout.swins.open(component, props, title);
+    clientState.layout.swins.open(swinsLayout[component].key, props, title);
 
     if (onclick) {
       onclick();

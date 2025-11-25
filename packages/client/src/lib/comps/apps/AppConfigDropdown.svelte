@@ -99,7 +99,7 @@
       {#if currentConfig}
         <SwinsNavButton
           className="btn btn-sm w-full text-left justify-start"
-          component="app-config"
+          component="appConfig"
           title="Edit Config"
           props={{ configId }}
           onclick={() => {
@@ -109,7 +109,7 @@
       {/if}
       <SwinsNavButton
         className="btn btn-sm w-full text-left justify-start"
-        component="app-config"
+        component="appConfig"
         title="New Assistant"
         onclick={() => {
           openState = false;

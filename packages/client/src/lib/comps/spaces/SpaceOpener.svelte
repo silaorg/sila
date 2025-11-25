@@ -1,6 +1,7 @@
 <script lang="ts">
   import { txtStore } from "@sila/client/state/txtStore";
   import { useClientState } from "@sila/client/state/clientStateContext";
+import { swinsLayout } from "@sila/client/state/swinsLayout";
 import {
   ensurePathIsNotInsideExistingSpace,
   normalizePathSelection,
@@ -84,7 +85,7 @@ import {
 
   function openWorkspaceNaming(parentPath: string) {
     clientState.layout.swins.open(
-      "create-workspace",
+      swinsLayout.createWorkspace.key,
       {
         parentPath,
         onComplete: handleWorkspaceCreated,

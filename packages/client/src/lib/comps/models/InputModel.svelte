@@ -5,6 +5,7 @@
   import { providers } from "@sila/core";
   import { getActiveProviders } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
   import {
     splitModelString,
@@ -19,7 +20,7 @@
 
   function onRequestChange() {
     clientState.layout.swins.open(
-      "select-model",
+      swinsLayout.selectModel.key,
       {
         selectedModel: value,
         onModelSelect: (model: string) => {

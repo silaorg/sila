@@ -50,7 +50,7 @@
         <div class="card preset-tonal p-4 space-y-4 mb-4">
           <p>We have at least one provider setup, so we can start a new conversation</p>
           <SwinsNavButton
-            component="new-thread"
+            component="newThread"
             title="New conversation"
             className="btn preset-filled"
           >

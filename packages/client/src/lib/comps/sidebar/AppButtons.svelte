@@ -34,7 +34,7 @@
     {#if config.visible}
       <li>
         <SwinsNavButton
-          component="new-thread"
+          component="newThread"
           title="New conversation"
           props={{ appConfig: config }}
           className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"

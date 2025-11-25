@@ -27,7 +27,7 @@
   <div class="flex justify-between items-center">
     <h3 class="h3">Your Assistants</h3>
     <SwinsNavButton
-      component="app-config"
+      component="appConfig"
       title="New Assistant"
       className="btn preset-filled-primary-500"
     >

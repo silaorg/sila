@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Plus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
 
   const clientState = useClientState();
 
@@ -14,7 +15,7 @@
     if (!hasAppConfig) return;
 
     clientState.layout.swins.open(
-      "new-thread",
+      swinsLayout.newThread.key,
       { targetPanelId: panelId },
       "New conversation"
     );

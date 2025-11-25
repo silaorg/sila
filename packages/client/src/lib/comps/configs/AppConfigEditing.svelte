@@ -4,6 +4,7 @@
   import { type AppConfig, uuid } from "@sila/core";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
 
   let { configId }: { configId?: string } = $props();
@@ -72,7 +73,7 @@
       });
       document.dispatchEvent(event);
 
-      if (!clientState.layout.swins.popTo("apps")) {
+      if (!clientState.layout.swins.popTo(swinsLayout.apps.key)) {
         clientState.layout.swins.clear();
       }
     } else {
@@ -105,8 +106,8 @@
   {#if isDefault}
     <p>
       {$txtStore.appConfigPage.defaultConfigMessage}
-      <SwinsNavButton
-        component="app-config"
+        <SwinsNavButton
+        component="appConfig"
         className="anchor"
         title={$txtStore.appConfigPage.defaultConfigGotoNew}
       >

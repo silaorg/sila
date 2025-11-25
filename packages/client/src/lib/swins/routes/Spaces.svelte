@@ -18,7 +18,7 @@
   <h3 class="h3">{$txtStore.spacesPage.title}</h3>
   <SwinsNavButton
     className="btn preset-filled-primary-500"
-    component="open-space"
+    component="openSpace"
     title="Add a workspace"
   >
     <Plus size={16} />

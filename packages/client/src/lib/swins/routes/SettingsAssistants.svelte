@@ -41,7 +41,7 @@
     </div>
     <div class="flex justify-end">
       <SwinsNavButton
-        component="app-config"
+        component="appConfig"
         title="New Assistant"
         className="btn preset-filled-primary-500"
       >

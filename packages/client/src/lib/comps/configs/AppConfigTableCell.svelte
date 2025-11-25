@@ -10,6 +10,7 @@
   import { txtStore } from "@sila/client/state/txtStore";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
   const clientState = useClientState();
 
   let { config }: { config: AppConfig } = $props();
@@ -51,7 +52,7 @@
           title="Start Chat"
           aria-label="Start Chat"
           onclick={() => {
-            clientState.layout.swins.open("new-thread", { appConfig: config }, "New conversation");
+            clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
           }}
         >
           <MessageCircle class="w-4 h-4 group-hover:text-primary-600" />
@@ -66,7 +67,7 @@
         class="block text-left min-w-0"
         title={config.name}
         onclick={() => {
-          clientState.layout.swins.open("new-thread", { appConfig: config }, "New conversation");
+          clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
         }}
       >
         <strong class="truncate block">{config.name}</strong>
@@ -80,7 +81,7 @@
     <Tooltip contentBase="card bg-surface-200-800 p-2">
       {#snippet trigger()}
         <SwinsNavButton
-          component="app-config"
+          component="appConfig"
           title="Edit Assistant"
           props={{ configId: config.id }}
           className="inline-flex items-center justify-center p-1"

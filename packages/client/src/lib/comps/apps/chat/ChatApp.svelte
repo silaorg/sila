@@ -14,6 +14,7 @@
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { provideChatAppData } from "./chatAppContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -237,7 +238,7 @@
       return;
     }
 
-    clientState.layout.swins.open("files", { filesRoot }, "Chat files");
+    clientState.layout.swins.open(swinsLayout.files.key, { filesRoot }, "Chat files");
   }
 
   export async function scrollToMessage(messageId: string) {
