@@ -25,7 +25,7 @@
   const runAction = (action: ShortcutId) => {
     switch (action) {
       case "newConversation":
-        clientState.layout.swins.open("new-thread", {}, "New conversation");
+        clientState.layout.swins.replace("new-thread", {}, "New conversation");
         break;
       case "toggleSidebar":
         clientState.currentSpaceState?.layout.sidebar.toggle();
