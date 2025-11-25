@@ -103,7 +103,10 @@ describe('Text File AI Integration', () => {
       const content = toText(langMessage);
 
       expect(content).toContain('What number is in this file?');
-      expect(content).toContain('--- File: test-number.txt (file:assets/test-number.txt) ---');
+      expect(content).toContain('Attachments:');
+      expect(content).toContain('path: file:assets/test-number.txt');
+      expect(content).toMatch(/uri: sila:\/\/spaces\/.+\/files\//);
+      expect(content).toContain('Total characters: 4');
       expect(content).toContain('8899');
     });
 
@@ -129,7 +132,9 @@ function test() {
       const langMessage = await convert(agent, message);
       const content = toText(langMessage);
 
-      expect(content).toContain('--- File: test.md (file:assets/test.md) ---');
+      expect(content).toContain('--- File: test.md (text) ---');
+      expect(content).toContain('Path: file:assets/test.md');
+      expect(content).toMatch(/URI: sila:\/\/spaces\/.+\/files\//);
       expect(content).toContain('# Test File');
       expect(content).toContain('**8899**');
     });
@@ -148,8 +153,10 @@ function test() {
       const langMessage = await convert(agent, message);
       const content = toText(langMessage);
 
-      expect(content).toContain('--- File: number.txt (file:assets/number.txt) ---');
-      expect(content).toContain('--- File: greeting.txt (file:assets/greeting.txt) ---');
+      expect(content).toContain('--- File: number.txt (text) ---');
+      expect(content).toContain('Path: file:assets/number.txt');
+      expect(content).toContain('--- File: greeting.txt (text) ---');
+      expect(content).toContain('Path: file:assets/greeting.txt');
       expect(content).toContain('8899');
       expect(content).toContain('Hello World');
     });
@@ -191,7 +198,7 @@ function test() {
 
       expect(Array.isArray(items)).toBe(true);
       expect(items.some((item: any) => item?.type === 'image')).toBe(true);
-      expect(items.filter((item: any) => item?.type === 'text').map((item: any) => item.text).join('\n')).toContain('--- File: notes.txt (file:assets/notes.txt) ---');
+      expect(items.filter((item: any) => item?.type === 'text').map((item: any) => item.text).join('\n')).toContain('Path: file:assets/notes.txt');
     });
 
     it('falls back to textual description for image attachments when vision is disabled', async () => {
@@ -218,7 +225,9 @@ function test() {
       const langMessage = await convert(agent, message, false);
       const content = toText(langMessage);
 
-      expect(content).toContain('[User attached 1 image(s): diagram.png (file:assets/diagram.png)]');
+      expect(content).toContain('Images attached (vision disabled):');
+      expect(content).toContain('path: file:assets/diagram.png');
+      expect(content).toMatch(/uri: sila:\/\/spaces\/.+\/files\//);
     });
   });
 });

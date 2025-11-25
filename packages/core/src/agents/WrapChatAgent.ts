@@ -3,13 +3,14 @@ import { AgentServices } from "./AgentServices";
 import { BindedVertex, ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
 import type { AppConfig } from "../models";
-import type { ThreadMessageWithResolvedFiles } from "../models";
 import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
 import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions, agentToolUsageInstructions } from "./prompts/wrapChatAgentInstructions";
 import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
+import { convertToLangMessage, extractTextFromDataUrl } from "./convertToLangMessage";
+import { FileResolver } from "../spaces/files/FileResolver";
 
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
@@ -20,6 +21,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   private isRunning = false;
   private pendingAssistantImages = new Map<string, Array<{ dataUrl: string; mimeType?: string; name?: string; width?: number; height?: number }>>();
   private stopEventUnsubscribe?: () => void;
+  private fileResolver: FileResolver;
   private currentRun:
     | {
         abortController: AbortController;
@@ -31,6 +33,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
     super();
     this.chatAgent = new ChatAgent();
+    this.fileResolver = new FileResolver(agentServices.space);
   }
 
   /**
@@ -74,74 +77,12 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   }
 
   private async convertToLangMessage(m: ThreadMessage, supportsVision: boolean = true): Promise<LangMessage> {
-    const normalizedRole = (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user";
-    const hasFiles = Array.isArray(m.files) && m.files.length > 0;
-    if (!hasFiles) {
-      return new LangMessage(normalizedRole, m.text || "", m.meta ?? {});
-    }
-
-    const resolved: ThreadMessageWithResolvedFiles = await this.data.resolveMessageFiles(m);
-    const images = resolved.files?.filter((f) => f?.kind === 'image') || [];
-    const textFiles = resolved.files?.filter((f) => f?.kind === 'text') || [];
-
-    if (supportsVision && images.length > 0) {
-      const items: Array<
-        | { type: "text"; text: string }
-        | { type: "image"; base64: string; mimeType?: string; width?: number; height?: number; metadata?: Record<string, any> }
-      > = [];
-
-      if (m.text && m.text.trim().length > 0) {
-        items.push({ type: 'text', text: m.text });
-      }
-
-      for (const tf of textFiles) {
-        const content = this.extractTextFromDataUrl(tf.dataUrl);
-        if (content) {
-          const pathSuffix = tf.path ? ` (${tf.path})` : "";
-          items.push({
-            type: 'text',
-            text: `\n\n--- File: ${tf.name}${pathSuffix} ---\n` + content,
-          });
-        }
-      }
-
-      for (const img of images) {
-        const { base64, mimeType } = this.parseDataUrl(img.dataUrl);
-        const metadata: Record<string, any> = {};
-        if (img.name) metadata.name = img.name;
-        if (img.path) metadata.path = img.path;
-
-        items.push({
-          type: 'image',
-          base64,
-          mimeType,
-          width: img.width,
-          height: img.height,
-          metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        });
-      }
-      return new LangMessage(normalizedRole, items, m.meta ?? {});
-    }
-
-    let content = m.text || "";
-    for (const tf of textFiles) {
-      const t = this.extractTextFromDataUrl(tf.dataUrl);
-      if (t) {
-        const pathSuffix = tf.path ? ` (${tf.path})` : "";
-        content += `\n\n--- File: ${tf.name}${pathSuffix} ---\n` + t;
-      }
-    }
-    if (images.length > 0) {
-      const names = images
-        .map((a) => {
-          const baseName = a.name ?? 'image';
-          return a.path ? `${baseName} (${a.path})` : baseName;
-        })
-        .join(', ');
-      content += `\n\n[User attached ${images.length} image(s): ${names}]`;
-    }
-
-    return new LangMessage(normalizedRole, content, m.meta ?? {});
+    return await convertToLangMessage({
+      message: m,
+      data: this.data,
+      fileResolver: this.fileResolver,
+      supportsVision,
+    });
   }
 
   private async convertToLangMessages(messages: ThreadMessage[], supportsVision: boolean = true): Promise<LangMessage[]> {
@@ -326,27 +267,8 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     }
   }
 
-  private parseDataUrl(dataUrl: string): { base64: string; mimeType?: string } {
-    try {
-      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
-      if (match && match[2]) {
-        return { mimeType: match[1], base64: match[2] };
-      }
-    } catch { }
-    return { base64: dataUrl };
-  }
-
   private extractTextFromDataUrl(dataUrl: string | undefined): string | null {
-    if (!dataUrl) return null;
-    try {
-      const textDataUrlMatch = dataUrl.match(/^data:(text\/[^;]+);base64,(.+)$/);
-      if (!textDataUrlMatch) return null;
-      const [, , base64] = textDataUrlMatch;
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      return new TextDecoder().decode(bytes);
-    } catch {
-      return null;
-    }
+    return extractTextFromDataUrl(dataUrl);
   }
 
   /** Extract image content parts from a LangMessage when content is an array */
