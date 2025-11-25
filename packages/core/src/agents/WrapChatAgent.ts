@@ -1,4 +1,10 @@
-import { Agent, ChatAgent, HttpRequestError, LangMessage, LangMessages } from "aiwrapper";
+import {
+  Agent,
+  ChatAgent,
+  HttpRequestError,
+  LangMessage,
+  LangMessages,
+} from "aiwrapper";
 import { AgentServices } from "./AgentServices";
 import { BindedVertex, ChatAppData } from "@sila/core";
 import type { ThreadMessage } from "../models";
@@ -7,30 +13,54 @@ import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
-import { agentEnvironmentInstructions, agentMetaInfo, agentFormattingInstructions, agentToolUsageInstructions } from "./prompts/wrapChatAgentInstructions";
+import {
+  agentEnvironmentInstructions,
+  agentFormattingInstructions,
+  agentMetaInfo,
+  agentToolUsageInstructions,
+} from "./prompts/wrapChatAgentInstructions";
 import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
-import { convertToLangMessage, extractTextFromDataUrl } from "./convertToLangMessage";
+import {
+  convertToLangMessage,
+  extractTextFromDataUrl,
+} from "./convertToLangMessage";
 import { FileResolver } from "../spaces/files/FileResolver";
 
 /**
- * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and 
+ * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and
  * decides when to reply
  */
-export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" }> {
+export class WrapChatAgent
+  extends Agent<void, void, { type: "messageGenerated" }> {
   private chatAgent: ChatAgent;
   private isRunning = false;
-  private pendingAssistantImages = new Map<string, Array<{ dataUrl: string; mimeType?: string; name?: string; width?: number; height?: number }>>();
+  private pendingAssistantImages = new Map<
+    string,
+    Array<
+      {
+        dataUrl: string;
+        mimeType?: string;
+        name?: string;
+        width?: number;
+        height?: number;
+      }
+    >
+  >();
   private stopEventUnsubscribe?: () => void;
   private fileResolver: FileResolver;
   private currentRun:
     | {
-        abortController: AbortController;
-        targetMessages: Array<BindedVertex<ThreadMessage>>;
-        unsubscribe?: () => void;
-      }
+      abortController: AbortController;
+      targetMessages: Array<BindedVertex<ThreadMessage>>;
+      unsubscribe?: () => void;
+    }
     | undefined;
 
-  constructor(private data: ChatAppData, private agentServices: AgentServices, private appTree: AppTree) {
+  constructor(
+    private data: ChatAppData,
+    private agentServices: AgentServices,
+    private appTree: AppTree,
+  ) {
     super();
     this.chatAgent = new ChatAgent();
     this.fileResolver = new FileResolver(agentServices.space);
@@ -68,7 +98,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
     this.isRunning = true;
     try {
-      const messages = vertices.map(v => v.bind<ThreadMessage>());
+      const messages = vertices.map((v) => v.bind<ThreadMessage>());
 
       await this.reply(messages as ThreadMessage[]);
     } finally {
@@ -76,23 +106,27 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
     }
   }
 
-  private async convertToLangMessage(m: ThreadMessage, supportsVision: boolean = true): Promise<LangMessage> {
-    return await convertToLangMessage({
-      message: m,
-      data: this.data,
-      fileResolver: this.fileResolver,
-      supportsVision,
-    });
-  }
-
-  private async convertToLangMessages(messages: ThreadMessage[], supportsVision: boolean = true): Promise<LangMessage[]> {
-    return await Promise.all(messages.map(async (m) => await this.convertToLangMessage(m, supportsVision)));
+  private async convertToLangMessages(
+    messages: ThreadMessage[],
+    supportsVision: boolean = true,
+  ): Promise<LangMessage[]> {
+    return await Promise.all(
+      messages.map(async (m) =>
+        await convertToLangMessage({
+          message: m,
+          data: this.data,
+          fileResolver: this.fileResolver,
+          supportsVision,
+        })
+      ),
+    );
   }
 
   private async reply(messages: ThreadMessage[]): Promise<void> {
     // Resolve config
-    let config: AppConfig | undefined = this.data.configId ?
-      this.agentServices.space.getAppConfig(this.data.configId) : undefined;
+    let config: AppConfig | undefined = this.data.configId
+      ? this.agentServices.space.getAppConfig(this.data.configId)
+      : undefined;
 
     if (!config) {
       config = this.agentServices.space.getAppConfig("default");
@@ -112,23 +146,32 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
       const supportsVision = true;
       // Remap messages from vertices into LangMessage[]
-      const langMessages = new LangMessages(await this.convertToLangMessages(messages, supportsVision));
+      const langMessages = new LangMessages(
+        await this.convertToLangMessages(messages, supportsVision),
+      );
 
-      const fetchForAgent = createWorkspaceProxyFetch(this.agentServices.space, this.appTree);
+      const fetchForAgent = createWorkspaceProxyFetch(
+        this.agentServices.space,
+        this.appTree,
+      );
       langMessages.availableTools = this.agentServices.getToolsForModel(
         resolvedModel,
-        { fetchImpl: fetchForAgent, appTree: this.appTree }
+        { fetchImpl: fetchForAgent, appTree: this.appTree },
       );
 
       // Add the assistant (config) instructions
-      const instructions: string[] = config.instructions ? [config.instructions] : [];
+      const instructions: string[] = config.instructions
+        ? [config.instructions]
+        : [];
 
       // Environment instructions
       instructions.push(agentEnvironmentInstructions());
 
       if (langMessages.availableTools.length > 0) {
         // Tool usage instructions
-        instructions.push(agentToolUsageInstructions(langMessages.availableTools));
+        instructions.push(
+          agentToolUsageInstructions(langMessages.availableTools),
+        );
       }
 
       // How to format messages
@@ -138,14 +181,16 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const now = new Date();
       const localDateTime = now.toLocaleString();
       const utcIso = now.toISOString();
-      instructions.push(agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }));
+      instructions.push(
+        agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }),
+      );
 
       langMessages.instructions = instructions.join("\n\n");
 
       let targetMsgCount = -1;
       let targetMsg: BindedVertex<ThreadMessage> | undefined;
       const unsubscribe = this.chatAgent.subscribe(async (event) => {
-        if (event.type === 'streaming') {
+        if (event.type === "streaming") {
           const incomingMsg = event.data.msg;
 
           const isNewMsg = targetMsgCount !== event.data.idx;
@@ -164,25 +209,29 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
             targetMessages.push(targetMsg);
           }
 
-          if (targetMsg && (incomingMsg.role === "assistant" || incomingMsg.role === "tool-results")) {
+          if (
+            targetMsg &&
+            (incomingMsg.role === "assistant" ||
+              incomingMsg.role === "tool-results")
+          ) {
             const contentText = incomingMsg.text;
             const toolRequests = incomingMsg.toolRequests ?? [];
             const toolResults = incomingMsg.toolResults ?? [];
             const reasoning = incomingMsg.reasoning;
-            targetMsg.$useTransients(m => {
+            targetMsg.$useTransients((m) => {
               m.text = contentText;
               if (toolRequests.length > 0) {
-                m.toolRequests = toolRequests.map(request => ({
+                m.toolRequests = toolRequests.map((request) => ({
                   callId: request.callId,
                   name: request.name,
-                  arguments: request.arguments
+                  arguments: request.arguments,
                 }));
               }
               if (toolResults.length > 0) {
-                m.toolResults = toolResults.map(result => ({
+                m.toolResults = toolResults.map((result) => ({
                   toolId: (result as any).toolId ?? result.callId ?? "",
                   name: result.name,
-                  result: result.result
+                  result: result.result,
                 }));
               }
               if (reasoning) {
@@ -193,8 +242,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
             // Collect images during streaming; persist on finish
             this.collectAssistantImages(incomingMsg, targetMsg);
           }
-
-        } else if (event.type === 'finished') {
+        } else if (event.type === "finished") {
           for (const msg of targetMessages) {
             if (msg.inProgress) {
               msg.inProgress = false;
@@ -216,9 +264,9 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
 
           // Emit custom event when message generation is complete
           this.emit({ type: "messageGenerated" });
-        } else if (event.type === 'error') {
+        } else if (event.type === "error") {
           // @TODO: should we do something here?
-        } else if (event.type === 'aborted') {
+        } else if (event.type === "aborted") {
           for (const msg of targetMessages) {
             if (msg.inProgress) {
               msg.inProgress = false;
@@ -233,7 +281,9 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const abortController = new AbortController();
       this.currentRun = { abortController, targetMessages, unsubscribe };
 
-      await this.chatAgent.run(langMessages, { signal: abortController.signal });
+      await this.chatAgent.run(langMessages, {
+        signal: abortController.signal,
+      });
 
       unsubscribe();
       this.currentRun = undefined;
@@ -251,7 +301,7 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       }
 
       let errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       if (error instanceof HttpRequestError) {
         if (error.body) {
           errorMessage = error.bodyText || errorMessage;
@@ -272,24 +322,62 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   }
 
   /** Extract image content parts from a LangMessage when content is an array */
-  private extractImageParts(msg: LangMessage): Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> {
-    const result: Array<{ dataUrl?: string; mimeType?: string; base64?: string; name?: string; width?: number; height?: number }> = [];
-    const items: any[] = Array.isArray((msg as any).items) ? (msg as any).items : [];
+  private extractImageParts(
+    msg: LangMessage,
+  ): Array<
+    {
+      dataUrl?: string;
+      mimeType?: string;
+      base64?: string;
+      name?: string;
+      width?: number;
+      height?: number;
+    }
+  > {
+    const result: Array<
+      {
+        dataUrl?: string;
+        mimeType?: string;
+        base64?: string;
+        name?: string;
+        width?: number;
+        height?: number;
+      }
+    > = [];
+    const items: any[] = Array.isArray((msg as any).items)
+      ? (msg as any).items
+      : [];
     for (const item of items) {
-      if (!item || item.type !== 'image') continue;
+      if (!item || item.type !== "image") continue;
       if (typeof item.base64 === "string") {
-        const mime = item.mimeType || 'image/png';
+        const mime = item.mimeType || "image/png";
         const dataUrl = `data:${mime};base64,${item.base64}`;
-        result.push({ dataUrl, mimeType: mime, base64: item.base64, name: item.metadata?.name, width: item.width, height: item.height });
+        result.push({
+          dataUrl,
+          mimeType: mime,
+          base64: item.base64,
+          name: item.metadata?.name,
+          width: item.width,
+          height: item.height,
+        });
       } else if (typeof item.url === "string" && item.url.startsWith("data:")) {
-        result.push({ dataUrl: item.url, mimeType: item.mimeType, name: item.metadata?.name, width: item.width, height: item.height });
+        result.push({
+          dataUrl: item.url,
+          mimeType: item.mimeType,
+          name: item.metadata?.name,
+          width: item.width,
+          height: item.height,
+        });
       }
     }
     return result;
   }
 
   /** During streaming, collect assistant images as data URLs on the transient map (no disk I/O yet) */
-  private collectAssistantImages(incomingMsg: LangMessage, targetMsg: BindedVertex<ThreadMessage>): void {
+  private collectAssistantImages(
+    incomingMsg: LangMessage,
+    targetMsg: BindedVertex<ThreadMessage>,
+  ): void {
     try {
       const parts = this.extractImageParts(incomingMsg);
       if (!parts || parts.length === 0) return;
@@ -297,8 +385,14 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       for (const p of parts) {
         if (!p?.dataUrl) continue;
         // Simple in-memory dedupe by dataUrl string
-        if (!items.some(x => x.dataUrl === p.dataUrl)) {
-          items.push({ dataUrl: p.dataUrl, mimeType: p.mimeType, name: p.name, width: p.width, height: p.height });
+        if (!items.some((x) => x.dataUrl === p.dataUrl)) {
+          items.push({
+            dataUrl: p.dataUrl,
+            mimeType: p.mimeType,
+            name: p.name,
+            width: p.width,
+            height: p.height,
+          });
         }
       }
       this.pendingAssistantImages.set(targetMsg.id, items);
@@ -308,7 +402,9 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
   }
 
   /** On finish, persist collected assistant images and attach file refs once */
-  private async persistPendingAssistantImages(targetMsg: BindedVertex<ThreadMessage>): Promise<void> {
+  private async persistPendingAssistantImages(
+    targetMsg: BindedVertex<ThreadMessage>,
+  ): Promise<void> {
     const items = this.pendingAssistantImages.get(targetMsg.id);
     if (!items || items.length === 0) return;
     this.pendingAssistantImages.delete(targetMsg.id);
@@ -317,31 +413,46 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       const store = this.agentServices.space.getFileStore();
       if (!store) return;
 
-      const { targetTree, parentFolder } = await this.data.resolveFileTarget?.({ treeId: this.appTree.getId() })
-        ?? { targetTree: this.appTree, parentFolder: this.appTree.tree.getVertexByPath('files') || this.appTree.tree.root!.newNamedChild('files') };
+      const { targetTree, parentFolder } =
+        await this.data.resolveFileTarget?.({ treeId: this.appTree.getId() }) ??
+          {
+            targetTree: this.appTree,
+            parentFolder: this.appTree.tree.getVertexByPath("files") ||
+              this.appTree.tree.root!.newNamedChild("files"),
+          };
 
       const refs: FileReference[] = [];
       for (const part of items) {
         const put = await store.putDataUrl(part.dataUrl);
         const att: AttachmentPreview = {
           id: crypto.randomUUID(),
-          kind: 'image',
-          name: part.name || 'image',
-          mimeType: part.mimeType || 'image/png',
+          kind: "image",
+          name: part.name || "image",
+          mimeType: part.mimeType || "image/png",
           size: put.size,
           dataUrl: part.dataUrl,
           width: part.width,
           height: part.height,
         };
-        const fileVertex = FilesTreeData.saveFileInfoFromAttachment(parentFolder, att, put.hash);
+        const fileVertex = FilesTreeData.saveFileInfoFromAttachment(
+          parentFolder,
+          att,
+          put.hash,
+        );
         refs.push({ tree: targetTree.getId(), vertex: fileVertex.id });
       }
 
       if (refs.length > 0) {
         targetMsg.$useTransients((m) => {
-          const existing = Array.isArray(m.files) ? (m.files as any as FileReference[]) : [];
-          const existingSet = new Set(existing.map(r => r.tree + ':' + r.vertex));
-          const uniqueToAdd = refs.filter(r => !existingSet.has(r.tree + ':' + r.vertex));
+          const existing = Array.isArray(m.files)
+            ? (m.files as any as FileReference[])
+            : [];
+          const existingSet = new Set(
+            existing.map((r) => r.tree + ":" + r.vertex),
+          );
+          const uniqueToAdd = refs.filter((r) =>
+            !existingSet.has(r.tree + ":" + r.vertex)
+          );
           m.files = [...existing, ...uniqueToAdd];
         });
       }
@@ -356,5 +467,4 @@ export class WrapChatAgent extends Agent<void, void, { type: "messageGenerated" 
       controller.abort();
     }
   }
-
 }
