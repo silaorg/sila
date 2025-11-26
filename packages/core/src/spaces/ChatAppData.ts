@@ -7,7 +7,6 @@ import { AppTree } from "./AppTree";
 import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
 import type { FileReference } from "./files/FileResolver";
-import { FileResolver } from "./files/FileResolver";
 import { LangMessage, ToolRequest, ToolResult } from "aiwrapper";
 
 export class ChatAppData {
@@ -19,7 +18,6 @@ export class ChatAppData {
   private referenceInSpace: Vertex;
   // @TODO temporary: support update callback for message edits/branch switching
   private updateCallbacks: Set<(vertices: Vertex[]) => void> = new Set();
-  private fileResolver: FileResolver;
 
   static createNewChatTree(space: Space, configId: string): AppTree {
     const tree = space.newAppTree("default-chat").tree;
@@ -38,7 +36,6 @@ export class ChatAppData {
 
   constructor(private space: Space, private appTree: AppTree) {
     const root = appTree.tree.root;
-    this.fileResolver = new FileResolver(space);
 
     if (!root) {
       throw new Error("Root vertex not found");
@@ -119,7 +116,7 @@ export class ChatAppData {
       return message as ThreadMessageWithResolvedFiles;
     }
 
-    const fileData = await this.fileResolver.getFileData(fileRefs);
+    const fileData = await this.space.fileResolver.getFileData(fileRefs);
     
     // Create a new message object with resolved files
     return {
