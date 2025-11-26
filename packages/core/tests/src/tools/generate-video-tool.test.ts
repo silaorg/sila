@@ -2,17 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, readFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import {
-  Space,
-  FileSystemPersistenceLayer,
-  ChatAppData,
-  AppTree,
-} from "@sila/core";
+import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
 import { getToolGenerateVideo } from "../../../src/agents/tools/toolGenerateVideo";
 import { getToolLs } from "../../../src/agents/tools/toolLs";
-import { FileResolver } from "../../../src/spaces/files/FileResolver";
-import { ChatAppData } from "@sila/core";
 
 const testInputDir = path.join(__dirname, "test-input");
 
@@ -148,7 +141,7 @@ describe("generate_video tool", () => {
     expect(outputPath).toMatch(/^file:/);
 
     // Verify the generated video file exists and can be read
-    const resolver = new FileResolver(space);
+    const resolver = space.fileResolver;
     const isWorkspacePath = outputPath.startsWith("file:///");
     const relativeRootVertex = isWorkspacePath 
       ? undefined 
@@ -162,4 +155,3 @@ describe("generate_video tool", () => {
     expect(fileVertex.name).toBeDefined();
   });
 });
-

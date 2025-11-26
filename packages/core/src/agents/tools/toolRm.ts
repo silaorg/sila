@@ -1,7 +1,6 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 export function getToolRm(space: Space, appTree?: AppTree): LangToolWithHandler {
@@ -28,7 +27,7 @@ export function getToolRm(space: Space, appTree?: AppTree): LangToolWithHandler 
         );
       }
 
-      const resolver = new FileResolver(space);
+      const resolver = space.fileResolver;
       const isWorkspacePath = uri.startsWith("file:///");
       
       let target;

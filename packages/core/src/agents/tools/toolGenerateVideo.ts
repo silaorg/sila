@@ -1,7 +1,6 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgToVideoGen } from "../../tools/falaiVideo";
 import { ensureFileParent } from "./fileUtils";
@@ -101,7 +100,7 @@ export function getToolGenerateVideo(
         }
 
         // Resolve input image using FileResolver.pathToVertex
-        const resolver = new FileResolver(space);
+        const resolver = space.fileResolver;
         const isWorkspacePath = inputFile.startsWith("file:///");
         
         let inputVertex;
@@ -223,8 +222,7 @@ export function getToolGenerateVideo(
         const chatData = new ChatAppData(space, targetTree);
         const { targetTree: finalTree, parentFolder: defaultParentFolder } = await chatData.resolveFileTarget();
 
-        const pathResolver = new FileResolver();
-        pathResolver.setSpace(space);
+        const pathResolver = space.fileResolver;
 
         let parentFolder: any;
         let fileName: string;
@@ -280,4 +278,3 @@ export function getToolGenerateVideo(
     },
   };
 }
-

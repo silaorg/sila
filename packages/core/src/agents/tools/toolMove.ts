@@ -4,7 +4,6 @@ import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
 import { ChatAppData } from "@sila/core";
 import { ensureFileParent, ensureChatAssetsRoot } from "./fileUtils";
-import { FileResolver } from "../../spaces/files/FileResolver";
 
 export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandler {
   return {
@@ -41,7 +40,7 @@ export function getToolMove(space: Space, appTree?: AppTree): LangToolWithHandle
       }
 
       // Resolve source
-      const resolver = new FileResolver(space);
+      const resolver = space.fileResolver;
       const sourceIsWorkspace = source.startsWith("file:///");
       
       let sourceVertex: Vertex;

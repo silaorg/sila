@@ -37,16 +37,16 @@ export class SpaceState {
     this.spaceManager = spaceManager;
     this.getAppFs = getAppFs;
     this.layout.spaceId = pointer.id;
-    this.fileResolver = new FileResolver();
     this.vertexViewer = new VertexViewer();
 
     const space = this.spaceManager.getSpace(pointer.id);
+    this.fileResolver = space?.fileResolver ?? new FileResolver();
 
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {
       this.space = space;
       this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
-      this.fileResolver.setSpace(space);
+      this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 
       let allConnected = true;
@@ -76,7 +76,7 @@ export class SpaceState {
       this.space = await this.loadSpace();
 
       if (this.space) {
-        this.fileResolver.setSpace(this.space);
+        this.fileResolver = this.space.fileResolver;
         this.vertexViewer.setSpace(this.space);
 
         // Load space-specific theme and layout

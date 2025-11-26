@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, FileResolver, ChatAppData } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData } from '@sila/core';
 import type { AttachmentPreview } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 
@@ -85,7 +85,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     expect(refs[0].vertex).toBeDefined();
 
     // Resolve for UI/AI consumption
-    const resolver = new FileResolver(space);
+    const resolver = space.fileResolver;
     const resolved = await resolver.getFileData(refs as any);
 
     // Should resolve to one image and one text with dataUrl
@@ -150,7 +150,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     expect(refs[0].vertex).toBeDefined();
 
     // Resolve for UI/AI consumption
-    const resolver = new FileResolver(space);
+    const resolver = space.fileResolver;
     const resolved = await resolver.getFileData(refs as any);
 
     // Should resolve to one image with dataUrl
@@ -224,5 +224,4 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     unsubscribe();
   });
 });
-
 

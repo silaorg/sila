@@ -2,7 +2,6 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 type LsEntryKind = "file" | "folder";
@@ -40,7 +39,7 @@ export function getToolLs(space: Space, appTree?: AppTree): LangToolWithHandler 
       }
 
       // Use FileResolver.pathToVertex
-      const resolver = new FileResolver(space);
+      const resolver = space.fileResolver;
       const isWorkspacePath = uri.startsWith("file:///");
       
       let folderVertex: Vertex;

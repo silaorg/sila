@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, FileResolver } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import type { FileReference } from '@sila/core';
+import type { FileResolver } from '@sila/core';
 
 // Simple attachment types for testing
 interface SimpleAttachment {
@@ -115,7 +116,7 @@ describe('Simplified File Previews (Core)', () => {
     };
 
     // Create framework-agnostic file resolver
-    fileResolver = new FileResolver(testSpace);
+    fileResolver = testSpace.fileResolver;
   });
 
   afterEach(async () => {

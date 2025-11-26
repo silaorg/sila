@@ -1,7 +1,6 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgGen } from "../../tools/falai";
 import { ensureFileParent } from "./fileUtils";
@@ -82,7 +81,7 @@ export function getToolGenerateImage(
         // Resolve input images if provided
         let imageUrls: string[] = [];
         if (inputFiles && Array.isArray(inputFiles) && inputFiles.length > 0) {
-          const resolver = new FileResolver(space);
+          const resolver = space.fileResolver;
           const fileRefs: Array<{ tree: string; vertex: string }> = [];
 
           // Convert file paths to file references
@@ -210,8 +209,7 @@ export function getToolGenerateImage(
         const chatData = new ChatAppData(space, targetTree);
         const { targetTree: finalTree, parentFolder: defaultParentFolder } = await chatData.resolveFileTarget();
 
-        const pathResolver = new FileResolver();
-        pathResolver.setSpace(space);
+        const pathResolver = space.fileResolver;
 
         for (let i = 0; i < result.urls.length; i++) {
           const imageUrl = result.urls[i];
@@ -323,4 +321,3 @@ export function getToolGenerateImage(
     },
   };
 }
-

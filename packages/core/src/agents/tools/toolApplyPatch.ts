@@ -3,7 +3,6 @@ import { applyDiff_v4a } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 type ApplyPatchOperation =
@@ -175,7 +174,7 @@ async function handleUpdate(
     throw new Error("apply_patch: FileStore is not configured for this space");
   }
 
-  const resolver = new FileResolver(space);
+  const resolver = space.fileResolver;
   const isWorkspacePath = uri.startsWith("file:///");
   
   let fileVertex;
@@ -238,7 +237,7 @@ async function handleDelete(
   appTree: AppTree | undefined,
   uri: string
 ): Promise<void> {
-  const resolver = new FileResolver(space);
+  const resolver = space.fileResolver;
   const isWorkspacePath = uri.startsWith("file:///");
   
   let target;

@@ -1,7 +1,6 @@
 import { ChatAgent, LangMessage, LangMessages, type LangToolWithHandler, type LanguageProvider } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { resolveFileVertex } from "./workspaceProxyFetch";
 
 interface ImagePayload {
@@ -54,7 +53,7 @@ async function resolveFileImage(
   appTree: AppTree | undefined,
   uri: string,
 ): Promise<ImagePayload> {
-  const resolver = new FileResolver(space);
+  const resolver = space.fileResolver;
   const vertex = resolveFileVertex(uri, space, appTree);
   const treeId = uri.startsWith("file:///")
     ? space.getId()

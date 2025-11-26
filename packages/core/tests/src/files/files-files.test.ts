@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Space, SpaceManager, FileSystemPersistenceLayer, createFileStore, FilesTreeData, AttachmentKind } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
-import { FileResolver } from '@sila/core';
 import { ChatAppData } from '@sila/core';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -159,7 +158,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		};
 
 		// Test file resolution
-		const fileResolver = new FileResolver(space);
+		const fileResolver = space.fileResolver;
 		const resolvedAttachments = await fileResolver.getFileData(messageWithFileRef.files);
 
 		expect(resolvedAttachments).toHaveLength(1);

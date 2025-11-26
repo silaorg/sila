@@ -1,7 +1,6 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { ChatAppData } from "../../spaces/ChatAppData";
 import { resolveWorkspaceFileUrl } from "./workspaceProxyFetch";
 import type { FlowWorkerRequest, FlowWorkerResponse } from "./flowWorker";
@@ -46,7 +45,7 @@ export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHan
       }
 
       // Resolve the file path
-      const resolver = new FileResolver(space);
+      const resolver = space.fileResolver;
       const isWorkspacePath = path.startsWith("file:///");
       
       let flowVertex;
@@ -109,7 +108,7 @@ export function getToolTestFlow(space: Space, appTree?: AppTree): LangToolWithHa
         );
       }
 
-      const resolver = new FileResolver(space);
+      const resolver = space.fileResolver;
       const isWorkspacePath = path.startsWith("file:///");
       
       let flowVertex;
@@ -268,4 +267,3 @@ async function executeInWorker(
     worker.postMessage(request);
   });
 }
-

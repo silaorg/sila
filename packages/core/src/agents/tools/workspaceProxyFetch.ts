@@ -3,7 +3,6 @@ import { proxyFetch } from "../../utils";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import type { Vertex } from "reptree";
-import { FileResolver } from "../../spaces/files/FileResolver";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 const MAX_TEXT_BYTES = 1024 * 1024; // 1 MB safety limit for tool reads
@@ -41,7 +40,7 @@ export function resolveFileVertex(
     throw new Error(`Unsupported URI scheme for workspace file resolver: ${url}`);
   }
 
-  const resolver = new FileResolver(space);
+  const resolver = space.fileResolver;
   const isWorkspacePath = url.startsWith("file:///");
 
   try {
@@ -137,5 +136,4 @@ function isTextLikeMime(mime: string): boolean {
   }
   return false;
 }
-
 

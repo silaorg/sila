@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, FileResolver, ChatAppData } from '@sila/core';
+import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData } from '@sila/core';
 import type { AttachmentPreview } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 

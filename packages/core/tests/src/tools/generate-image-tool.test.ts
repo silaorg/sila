@@ -6,14 +6,10 @@ import {
   Space,
   FileSystemPersistenceLayer,
   ChatAppData,
-  createFileStore,
-  FilesTreeData,
 } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
 import { getToolGenerateImage } from "../../../src/agents/tools/toolGenerateImage";
 import { getToolLs } from "../../../src/agents/tools/toolLs";
-import { FileResolver } from "../../../src/spaces/files/FileResolver";
-import { ChatAppData } from "@sila/core";
 
 const testInputDir = path.join(__dirname, "test-input");
 
@@ -161,7 +157,7 @@ describe("generate_image tool", () => {
     expect(outputPath).toMatch(/^file:/);
 
     // Verify the generated image file exists and can be read
-    const resolver = new FileResolver(space);
+    const resolver = space.fileResolver;
     const isWorkspacePath = outputPath.startsWith("file:///");
     const relativeRootVertex = isWorkspacePath 
       ? undefined 
@@ -379,7 +375,7 @@ describe("generate_image tool", () => {
     expect(outputPath).toMatch(/^file:/);
 
     // Verify the generated image file exists and can be read
-    const resolver = new FileResolver(space);
+    const resolver = space.fileResolver;
     const isWorkspacePath = outputPath.startsWith("file:///");
     const relativeRootVertex = isWorkspacePath 
       ? undefined 
@@ -393,4 +389,3 @@ describe("generate_image tool", () => {
     expect(fileVertex.name).toBeDefined();
   });
 });
-

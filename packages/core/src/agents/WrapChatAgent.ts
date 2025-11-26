@@ -24,7 +24,7 @@ import {
   convertToLangMessage,
   extractTextFromDataUrl,
 } from "./convertToLangMessage";
-import { FileResolver } from "../spaces/files/FileResolver";
+import type { FileResolver } from "../spaces/files/FileResolver";
 
 /**
  * A wrapper around a chat agent (from aiwrapper) that handles vertices in the app tree and
@@ -63,7 +63,7 @@ export class WrapChatAgent
   ) {
     super();
     this.chatAgent = new ChatAgent();
-    this.fileResolver = new FileResolver(agentServices.space);
+    this.fileResolver = agentServices.space.fileResolver;
   }
 
   /**
