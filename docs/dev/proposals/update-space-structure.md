@@ -292,7 +292,7 @@ class SecretsTree {
     const encrypted = await this.encrypt(value);
     
     // Store encrypted data in mutable storage
-    const fileStore = this.space.getFileStore();
+    const fileStore = this.space.fileStore;
     if (fileStore) {
       await fileStore.putMutable(uuid, new TextEncoder().encode(encrypted));
     }
@@ -320,7 +320,7 @@ class SecretsTree {
     if (!secretVertex) return undefined;
     
     const uuid = secretVertex.getProperty('uuid') as string;
-    const fileStore = this.space.getFileStore();
+    const fileStore = this.space.fileStore;
     if (!fileStore) return undefined;
     
     const encrypted = await fileStore.getMutable(uuid);

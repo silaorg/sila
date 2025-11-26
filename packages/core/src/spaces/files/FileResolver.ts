@@ -216,7 +216,7 @@ export class FileResolver {
     }
 
     const resolved: ResolvedFileWithData[] = [];
-    const fileStore = this.space.getFileStore();
+    const fileStore = this.space.fileStore;
 
     for (const file of fileRefs) {
       // If has file reference, resolve it

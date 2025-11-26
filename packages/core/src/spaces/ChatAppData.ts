@@ -281,7 +281,7 @@ export class ChatAppData {
 
     // If there are attachments, persist to CAS and build refs BEFORE creating the message
     if (message.attachments && message.attachments.length > 0) {
-      const store = this.space.getFileStore();
+      const store = this.space.fileStore;
       if (!store) {
         throw new Error("FileStore is required to save attachments");
       }

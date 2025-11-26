@@ -17,20 +17,20 @@ export class Space {
   private appTrees: Map<string, AppTree> = new Map();
   private newTreeObservers: ((treeId: string) => void)[] = [];
   private treeLoadObservers: ((treeId: string) => void)[] = [];
-  private treeLoader: ((treeId: string) => Promise<AppTree | undefined>) | undefined;
+  private treeLoader:
+    | ((treeId: string) => Promise<AppTree | undefined>)
+    | undefined;
+  private _fileStore: FileStore | null = null;
   readonly appTreesVertex: Vertex;
-
-  private fileStoreProvider: FileStoreProvider | null = null;
-
   readonly appConfigs: AppConfigsData;
 
   static isValid(tree: RepTree): boolean {
-    const apps = tree.getVertexByPath('configs');
+    const apps = tree.getVertexByPath("configs");
     if (!apps) {
       return false;
     }
 
-    const chats = tree.getVertexByPath('threads');
+    const chats = tree.getVertexByPath("threads");
     if (!chats) {
       return false;
     }
@@ -41,34 +41,17 @@ export class Space {
   static newSpace(peerId: string): Space {
     const tree = new RepTree(peerId);
 
-    /*
-    // @TODO: perhaps define the stucture like this:
-    ```js
-    {
-      version: '0',
-      onboarding: true,
-      $children: {
-        configs,
-        threads,
-        providers,
-        settings,
-        files
-      }
-    }
-    ```
-    */
-
     const root = tree.createRoot();
     root.setProperties({
-      'version': '0',
-      'onboarding': true
+      "version": "0",
+      "onboarding": true,
     });
-    const appConfigs = root.newNamedChild('configs');
+    const appConfigs = root.newNamedChild("configs");
     appConfigs.newChild(Space.getDefaultAppConfig());
-    root.newNamedChild('threads');
-    root.newNamedChild('providers');
-    root.newNamedChild('settings');
-    root.newNamedChild('assets');
+    root.newNamedChild("threads");
+    root.newNamedChild("providers");
+    root.newNamedChild("settings");
+    root.newNamedChild("assets");
 
     return new Space(tree);
   }
@@ -86,8 +69,8 @@ export class Space {
       throw new Error("Invalid tree structure");
     }
 
-    this.appTreesVertex = tree.getVertexByPath('threads') as Vertex;
-    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath('configs')!);
+    this.appTreesVertex = tree.getVertexByPath("threads") as Vertex;
+    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath("configs")!);
   }
 
   /** Space id is the same as the root vertex id of the space tree */
@@ -96,11 +79,11 @@ export class Space {
   }
 
   setFileStoreProvider(provider: FileStoreProvider) {
-    this.fileStoreProvider = provider;
+    this._fileStore = createFileStore(provider);
   }
 
-  getFileStore(): FileStore | null {
-    return createFileStore(this.fileStoreProvider);
+  get fileStore(): FileStore | null {
+    return this._fileStore;
   }
 
   get rootVertex(): Vertex {
@@ -125,7 +108,7 @@ export class Space {
   }
 
   get hasSetupProviders(): boolean {
-    const providersVertex = this.tree.getVertexByPath('providers');
+    const providersVertex = this.tree.getVertexByPath("providers");
     return providersVertex ? providersVertex.children.length > 0 : false;
   }
 
@@ -139,11 +122,10 @@ export class Space {
     const appTree = AppTree.newAppTree(this.tree.peerId, appId);
 
     if (targetRefVertex) {
-      targetRefVertex.setProperty('tid', appTree.getId());
-    }
-    // If no target vertex is provided, create a new vertex in 'threads' of the space and reference the app tree in it
+      targetRefVertex.setProperty("tid", appTree.getId());
+    } // If no target vertex is provided, create a new vertex in 'threads' of the space and reference the app tree in it
     else {
-      const appsTrees = this.tree.getVertexByPath('threads');
+      const appsTrees = this.tree.getVertexByPath("threads");
 
       if (!appsTrees) {
         throw new Error("Apps trees vertex not found");
@@ -181,7 +163,11 @@ export class Space {
   }
 
   // @TODO: make part of Vertex
-  findObjectWithPropertyAtPath(path: string, key: string, value: VertexPropertyType): object | undefined {
+  findObjectWithPropertyAtPath(
+    path: string,
+    key: string,
+    value: VertexPropertyType,
+  ): object | undefined {
     const arr = this.getArray<object>(path);
     // Check if the object has the property and its value matches the given value
     return arr.find((obj: object) => {
@@ -222,7 +208,7 @@ export class Space {
   }
 
   unobserveNewAppTree(observer: (appTreeId: string) => void) {
-    this.newTreeObservers = this.newTreeObservers.filter(l => l !== observer);
+    this.newTreeObservers = this.newTreeObservers.filter((l) => l !== observer);
   }
 
   observeTreeLoad(observer: (appTreeId: string) => void) {
@@ -230,10 +216,14 @@ export class Space {
   }
 
   unobserveTreeLoad(observer: (appTreeId: string) => void) {
-    this.treeLoadObservers = this.treeLoadObservers.filter(l => l !== observer);
+    this.treeLoadObservers = this.treeLoadObservers.filter((l) =>
+      l !== observer
+    );
   }
 
-  registerTreeLoader(loader: (appTreeId: string) => Promise<AppTree | undefined>) {
+  registerTreeLoader(
+    loader: (appTreeId: string) => Promise<AppTree | undefined>,
+  ) {
     this.treeLoader = loader;
   }
 
@@ -246,7 +236,7 @@ export class Space {
   }
 
   getAppTreeIds(): ReadonlyArray<string> {
-    return this.appTreesVertex.children.map(v => v.id);
+    return this.appTreesVertex.children.map((v) => v.id);
   }
 
   deleteAppTree(appTreeId: string) {
@@ -258,7 +248,7 @@ export class Space {
 
   getVertexReferencingAppTree(appTreeId: string): Vertex | undefined {
     for (const vertex of this.appTreesVertex.children) {
-      if (vertex.getProperty('tid') === appTreeId) {
+      if (vertex.getProperty("tid") === appTreeId) {
         return vertex;
       }
     }
@@ -267,11 +257,9 @@ export class Space {
   }
 
   createVertex() {
-
   }
 
   setProps() {
-
   }
 
   getArray<T>(path: string): T[] {
@@ -283,7 +271,7 @@ export class Space {
   }
 
   private vertexChildrenToTypedArray<T>(vertex: Vertex): T[] {
-    return vertex.children.map(child => {
+    return vertex.children.map((child) => {
       if (!child) return null;
 
       const properties = child.getProperties();
@@ -292,18 +280,18 @@ export class Space {
   }
 
   getAppConfigs(): AppConfig[] {
-    return this.getArray<AppConfig>('configs');
+    return this.getArray<AppConfig>("configs");
   }
 
   getAppConfig(configId: string): AppConfig | undefined {
-    const config = this.findObjectWithPropertyAtPath('configs', 'id', configId);
+    const config = this.findObjectWithPropertyAtPath("configs", "id", configId);
 
     if (configId === "default") {
       const defaultConfig = Space.getDefaultAppConfig();
 
       return {
         ...config,
-        ...defaultConfig
+        ...defaultConfig,
       } as AppConfig;
     }
 
@@ -326,10 +314,14 @@ export class Space {
 
   // Get provider config and add API key from secrets if it's a cloud provider
   getModelProviderConfig(providerId: string): ModelProviderConfig | undefined {
-    const config = this.getFirstObjectWithPropertyAtPath('providers', 'id', providerId) as ModelProviderConfig | undefined;
+    const config = this.getFirstObjectWithPropertyAtPath(
+      "providers",
+      "id",
+      providerId,
+    ) as ModelProviderConfig | undefined;
     if (!config) return undefined;
 
-    if (config.type === 'cloud') {
+    if (config.type === "cloud") {
       const apiKey = this.getServiceApiKey(providerId);
       if (apiKey) {
         config.apiKey = apiKey;
@@ -340,9 +332,9 @@ export class Space {
   }
 
   getModelProviderConfigs(): ModelProviderConfig[] {
-    const configs = this.getArray('providers') as ModelProviderConfig[];
-    return configs.map(config => {
-      if (config.type === 'cloud') {
+    const configs = this.getArray("providers") as ModelProviderConfig[];
+    return configs.map((config) => {
+      if (config.type === "cloud") {
         const apiKey = this.getServiceApiKey(config.id);
         if (apiKey) {
           return { ...config, apiKey };
@@ -353,13 +345,19 @@ export class Space {
   }
 
   deleteModelProviderConfig(providerId: string) {
-    const providerVertex = this.getFirstVertexWithPropertyAtPath('providers', 'id', providerId);
+    const providerVertex = this.getFirstVertexWithPropertyAtPath(
+      "providers",
+      "id",
+      providerId,
+    );
     if (!providerVertex) return;
 
     this.tree.deleteVertex(providerVertex.id);
   }
 
-  async getModelProviderStatus(targetLLMOrProvider: string): Promise<"valid" | "invalid" | "not-setup"> {
+  async getModelProviderStatus(
+    targetLLMOrProvider: string,
+  ): Promise<"valid" | "invalid" | "not-setup"> {
     const providerId = targetLLMOrProvider.split("/")[0];
     const config = this.getModelProviderConfig(providerId);
 
@@ -385,13 +383,21 @@ export class Space {
 
     // Set all properties from the item
     for (const [key, value] of Object.entries(item)) {
-      this.tree.setVertexProperty(newVertex.id, key, value as VertexPropertyType);
+      this.tree.setVertexProperty(
+        newVertex.id,
+        key,
+        value as VertexPropertyType,
+      );
     }
 
     return newVertex;
   }
 
-  private getFirstVertexWithPropertyAtPath(path: string, key: string, value: VertexPropertyType): Vertex | undefined {
+  private getFirstVertexWithPropertyAtPath(
+    path: string,
+    key: string,
+    value: VertexPropertyType,
+  ): Vertex | undefined {
     const vertex = this.tree.getVertexByPath(path);
     if (!vertex) return undefined;
 
@@ -405,7 +411,11 @@ export class Space {
     return undefined;
   }
 
-  getFirstObjectWithPropertyAtPath(path: string, key: string, value: VertexPropertyType): object | undefined {
+  getFirstObjectWithPropertyAtPath(
+    path: string,
+    key: string,
+    value: VertexPropertyType,
+  ): object | undefined {
     const vertex = this.getFirstVertexWithPropertyAtPath(path, key, value);
     if (!vertex) return undefined;
 
@@ -435,11 +445,15 @@ export class Space {
 
   // Example usage methods:
   addAppConfig(config: AppConfig): Vertex {
-    return this.insertIntoArray('configs', config);
+    return this.insertIntoArray("configs", config);
   }
 
   updateAppConfig(configId: string, updates: Partial<AppConfig>): void {
-    const vertexId = this.getFirstVertexWithPropertyAtPath('configs', 'id', configId);
+    const vertexId = this.getFirstVertexWithPropertyAtPath(
+      "configs",
+      "id",
+      configId,
+    );
     if (!vertexId) {
       throw new Error(`App config ${configId} not found`);
     }
@@ -453,12 +467,12 @@ export class Space {
 
   // For cloud providers, store API key in secrets and remove from config
   saveModelProviderConfig(config: ModelProviderConfig) {
-    if (config.type === 'cloud' && 'apiKey' in config) {
+    if (config.type === "cloud" && "apiKey" in config) {
       const { apiKey, ...configWithoutKey } = config;
       this.setApiKey(config.id, apiKey);
-      this.insertIntoArray('providers', configWithoutKey);
+      this.insertIntoArray("providers", configWithoutKey);
     } else {
-      this.insertIntoArray('providers', config);
+      this.insertIntoArray("providers", config);
     }
   }
 
@@ -497,7 +511,7 @@ export class Space {
    * @param config Provider configuration
    * @returns The generated provider ID
    */
-  addCustomProvider(config: Omit<CustomProviderConfig, 'id' | 'type'>): string {
+  addCustomProvider(config: Omit<CustomProviderConfig, "id" | "type">): string {
     // Generate a unique ID with a custom prefix
     const id = `custom-${uuid()}`;
 
@@ -505,7 +519,7 @@ export class Space {
     const fullConfig: CustomProviderConfig = {
       ...config,
       id,
-      type: 'cloud'
+      type: "cloud",
     };
 
     // Save the config
@@ -519,8 +533,13 @@ export class Space {
    * @param id Provider ID
    * @param updates Partial updates to apply
    */
-  updateCustomProvider(id: string, updates: Partial<Omit<CustomProviderConfig, 'id' | 'type'>>): void {
-    const config = this.getModelProviderConfig(id) as CustomProviderConfig | undefined;
+  updateCustomProvider(
+    id: string,
+    updates: Partial<Omit<CustomProviderConfig, "id" | "type">>,
+  ): void {
+    const config = this.getModelProviderConfig(id) as
+      | CustomProviderConfig
+      | undefined;
     if (!config) {
       throw new Error(`Custom provider with ID ${id} not found`);
     }
@@ -530,7 +549,7 @@ export class Space {
       ...config,
       ...updates,
       id,
-      type: 'cloud'
+      type: "cloud",
     };
 
     // Delete the old config
@@ -554,12 +573,12 @@ export class Space {
    */
   getCustomProviders(): CustomProviderConfig[] {
     return this.getModelProviderConfigs()
-      .filter(config =>
+      .filter((config) =>
         // Identify custom providers by ID prefix
-        config.id.startsWith('custom-') &&
+        config.id.startsWith("custom-") &&
         // Ensure it has the required properties of a custom provider
-        'baseApiUrl' in config &&
-        'modelId' in config
+        "baseApiUrl" in config &&
+        "modelId" in config
       ) as CustomProviderConfig[];
   }
 }

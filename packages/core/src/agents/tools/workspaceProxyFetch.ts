@@ -92,7 +92,7 @@ async function readTextFromFileVertex(
   fileVertex: Vertex,
   logicalPath: string
 ): Promise<string> {
-  const store = space.getFileStore();
+  const store = space.fileStore;
   if (!store) {
     throw new Error("FileStore is not configured for this space");
   }

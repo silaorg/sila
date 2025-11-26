@@ -50,7 +50,7 @@ class SvelteFileResolver {
         return null;
       }
 
-      const fileStore = this.clientState.currentSpace.getFileStore();
+      const fileStore = this.clientState.currentSpace.fileStore;
       if (!fileStore) {
         return null;
       }

@@ -98,7 +98,7 @@ describe('AI Image Integration', () => {
     });
 
     // Store image in CAS and create a file vertex under this chat tree
-    const store = space.getFileStore()!;
+    const store = space.fileStore!;
     const { hash } = await store.putBytes(new Uint8Array(catImageBuffer), 'image/jpeg');
     const parentFolder = FilesTreeData.ensureFolderPath(chatTree, ['files']);
     const fileVertex = FilesTreeData.saveFileInfo(

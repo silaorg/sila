@@ -92,7 +92,7 @@ export function getToolGenerateVideo(
       }
 
       try {
-        const fileStore = space.getFileStore();
+        const fileStore = space.fileStore;
         if (!fileStore) {
           return {
             status: "failed",

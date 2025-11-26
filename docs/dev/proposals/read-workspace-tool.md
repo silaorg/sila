@@ -57,8 +57,8 @@ Goal: extend the existing `read` tool so `WrapChatAgent` can read not only remot
      - Subsequent segments match `child.name` (`Vertex.name`).
   4. When reaching the final vertex, treat it as a file vertex and read its bytes from CAS:
      - Use `FileResolver.resolveVertexToFileReference` or a small helper to convert the file vertex into `{ hash, mimeType, size, ... }`.
-     - Use `space.getFileStore()` to access the CAS:
-       - `const store = space.getFileStore();`
+     - Use `space.fileStore` to access the CAS:
+       - `const store = space.fileStore;`
        - `const bytes = await store.getBytes(hash);`
   5. Convert bytes to text:
      - Support at least `text/*` and `application/json` and `application/markdown` MIME types.
@@ -164,7 +164,7 @@ function createWorkspaceProxyFetch(space: Space, appTree?: AppTree): ProxyFetch 
 ### Using CAS (`FileStore`) and file metadata
 
 - We already have:
-  - `Space.getFileStore(): FileStore | null` → CAS backend.
+  - `Space.fileStore: FileStore | null` → CAS backend.
   - `FilesTreeData.saveFileInfoFromAttachment` and `FileResolver` for mapping file vertices to URLs and bytes.
 - For this proposal:
   - Reading workspace/chat text files will use `FileStore.getBytes(hash)` and `TextDecoder`.

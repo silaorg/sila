@@ -93,7 +93,7 @@ async function handleCreate(
     throw new Error("apply_patch: missing diff for create operation");
   }
 
-  const store = space.getFileStore();
+  const store = space.fileStore;
   if (!store) {
     throw new Error("apply_patch: FileStore is not configured for this space");
   }
@@ -170,7 +170,7 @@ async function handleUpdate(
     throw new Error("apply_patch: missing diff for update operation");
   }
 
-  const store = space.getFileStore();
+  const store = space.fileStore;
   if (!store) {
     throw new Error("apply_patch: FileStore is not configured for this space");
   }

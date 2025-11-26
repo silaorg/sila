@@ -42,7 +42,7 @@ describe('File Store Integration', () => {
   describe('Text File Storage', () => {
     it('should store text files in CAS correctly', async () => {
       // Get the file store
-      const fileStore = space.getFileStore();
+      const fileStore = space.fileStore;
       expect(fileStore).toBeTruthy();
 
       // Create a simple text file
@@ -63,7 +63,7 @@ describe('File Store Integration', () => {
     });
 
     it('should store markdown files in CAS correctly', async () => {
-      const fileStore = space.getFileStore();
+      const fileStore = space.fileStore;
       expect(fileStore).toBeTruthy();
 
       // Create a markdown file
@@ -90,7 +90,7 @@ The number is: **8899**`;
     });
 
     it('should handle large text files', async () => {
-      const fileStore = space.getFileStore();
+      const fileStore = space.fileStore;
       expect(fileStore).toBeTruthy();
 
       // Create a large text file
@@ -115,7 +115,7 @@ The number is: **8899**`;
   describe('File Store Provider Setup', () => {
     it('should have file store provider set up correctly', async () => {
       // Check that the space has a file store provider
-      const fileStore = space.getFileStore();
+      const fileStore = space.fileStore;
       expect(fileStore).toBeTruthy();
 
       // Test that we can store and retrieve data

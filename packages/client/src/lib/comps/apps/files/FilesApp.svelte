@@ -125,7 +125,7 @@
     isUploading = true;
 
     try {
-      const store = clientState.currentSpace?.getFileStore();
+      const store = clientState.currentSpace?.fileStore;
       if (!store) {
         console.error("File store not available");
         return;

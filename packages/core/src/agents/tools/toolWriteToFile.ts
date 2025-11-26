@@ -86,7 +86,7 @@ async function handleWrite(
   uri: string,
   content: string
 ): Promise<void> {
-  const store = space.getFileStore();
+  const store = space.fileStore;
   if (!store) {
     throw new Error("write_to_file: FileStore is not configured for this space");
   }

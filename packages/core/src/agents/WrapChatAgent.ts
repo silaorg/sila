@@ -410,7 +410,7 @@ export class WrapChatAgent
     this.pendingAssistantImages.delete(targetMsg.id);
 
     try {
-      const store = this.agentServices.space.getFileStore();
+      const store = this.agentServices.space.fileStore;
       if (!store) return;
 
       const { targetTree, parentFolder } =
