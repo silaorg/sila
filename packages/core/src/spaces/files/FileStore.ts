@@ -1,34 +1,40 @@
-export interface FileStore {
-	// Existing CAS methods (immutable, content-addressed)
-	putDataUrl(dataUrl: string): Promise<{ hash: string; size: number }>;
-	putBytes(bytes: Uint8Array): Promise<{ hash: string; size: number }>;
-	exists(hash: string): Promise<boolean>;
-	getBytes(hash: string): Promise<Uint8Array>;
-	getDataUrl(hash: string): Promise<string>;
-	delete(hash: string): Promise<void>;
-	
-	// New mutable storage methods (uuid-addressed)
-	putMutable(uuid: string, bytes: Uint8Array): Promise<void>;
-	getMutable(uuid: string): Promise<Uint8Array>;
-	existsMutable(uuid: string): Promise<boolean>;
-	deleteMutable(uuid: string): Promise<void>;
-	
-	// Helper method for creating mutable copy from immutable file
-	createMutableCopyFromHash(hash: string, uuid?: string): Promise<{ uuid: string; size: number }>;
-}
-
 import type { AppFileSystem } from "../../appFs";
+import { bytesToDataUrl, dataUrlToBytes } from "./dataUrl";
+
+export interface FileStore {
+  // Existing CAS methods (immutable, content-addressed)
+  putDataUrl(dataUrl: string): Promise<{ hash: string; size: number }>;
+  putBytes(bytes: Uint8Array): Promise<{ hash: string; size: number }>;
+  exists(hash: string): Promise<boolean>;
+  getBytes(hash: string): Promise<Uint8Array>;
+  getDataUrl(hash: string): Promise<string>;
+  delete(hash: string): Promise<void>;
+
+  // New mutable storage methods (uuid-addressed)
+  putMutable(uuid: string, bytes: Uint8Array): Promise<void>;
+  getMutable(uuid: string): Promise<Uint8Array>;
+  existsMutable(uuid: string): Promise<boolean>;
+  deleteMutable(uuid: string): Promise<void>;
+
+  // Helper method for creating mutable copy from immutable file
+  createMutableCopyFromHash(
+    hash: string,
+    uuid?: string,
+  ): Promise<{ uuid: string; size: number }>;
+}
 
 export type FileStoreProvider = {
 	getSpaceRootPath(): string;
 	getFs(): AppFileSystem | null;
 };
 
-export function createFileStore(provider: FileStoreProvider | null): FileStore | null {
-	if (!provider) return null;
-	const fs = provider.getFs();
-	if (!fs) return null;
-	return new FileSystemFileStore(provider.getSpaceRootPath(), fs);
+export function createFileStore(
+  provider: FileStoreProvider | null,
+): FileStore | null {
+  if (!provider) return null;
+  const fs = provider.getFs();
+  if (!fs) return null;
+  return new FileSystemFileStore(provider.getSpaceRootPath(), fs);
 }
 
 function bytesToHex(bytes: Uint8Array): string {
@@ -42,26 +48,6 @@ async function sha256(bytes: Uint8Array): Promise<string> {
 	const view = new Uint8Array(bytes.buffer as ArrayBuffer, bytes.byteOffset, bytes.byteLength);
 	const digest = await crypto.subtle.digest("SHA-256", view);
 	return bytesToHex(new Uint8Array(digest));
-}
-
-function parseDataUrl(dataUrl: string): Uint8Array {
-	const match = dataUrl.match(/^data:([^;]*);base64,(.*)$/);
-	if (!match) {
-		throw new Error("Unsupported data URL format");
-	}
-
-	const b64 = match[2];
-	let bin: Uint8Array;
-	if (typeof Buffer !== "undefined") {
-		const buf = Buffer.from(b64, "base64");
-		bin = new Uint8Array(buf);
-	} else {
-		const str = atob(b64);
-		const out = new Uint8Array(str.length);
-		for (let i = 0; i < str.length; i++) out[i] = str.charCodeAt(i);
-		bin = out;
-	}
-	return bin;
 }
 
 function makeBytesPath(spaceRoot: string, hash: string): string {
@@ -99,7 +85,7 @@ class FileSystemFileStore implements FileStore {
 	constructor(private spaceRoot: string, private fs: AppFileSystem) {}
 
 	async putDataUrl(dataUrl: string): Promise<{ hash: string; size: number }> {
-		const data = parseDataUrl(dataUrl);
+		const data = dataUrlToBytes(dataUrl);
 		return await this.putBytes(data);
 	}
 
@@ -127,9 +113,8 @@ class FileSystemFileStore implements FileStore {
 
 	async getDataUrl(hash: string): Promise<string> {
 		const bytes = await this.getBytes(hash);
-		const base64 = typeof Buffer !== "undefined" ? Buffer.from(bytes).toString("base64") : btoa(String.fromCharCode(...bytes));
 		// mimeType is unknown at CAS level; callers can override if known
-		return `data:application/octet-stream;base64,${base64}`;
+		return bytesToDataUrl(bytes);
 	}
 
 	async delete(hash: string): Promise<void> {

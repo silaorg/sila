@@ -1,6 +1,12 @@
 import { Vertex } from "reptree";
 import type { Space } from "../Space";
-import { ChatAppData } from "../ChatAppData";
+import { bytesToDataUrl } from "./dataUrl";
+import {
+  getRootForPath,
+  parseFileUri,
+  resolvePathFromRoot,
+  vertexToFileUri,
+} from "./filePathUtils";
 
 export interface FileReference {
   tree: string;
@@ -279,12 +285,9 @@ export class FileResolver {
     }
 
     // Load the bytes from CAS or mutable store depending on identifier
-    let bytes: Uint8Array;
-    if (hash) {
-      bytes = await fileStore.getBytes(hash);
-    } else {
-      bytes = await fileStore.getMutable(id as string);
-    }
+    const bytes = hash
+      ? await fileStore.getBytes(hash)
+      : await fileStore.getMutable(id as string);
 
     // Get metadata from the file vertex
     const mimeType = fileVertex.getProperty("mimeType") as string;
@@ -302,15 +305,10 @@ export class FileResolver {
     }
 
     // Convert bytes to data URL with proper MIME type
-    let base64: string;
-    if (typeof Buffer !== "undefined") {
-      base64 = Buffer.from(bytes).toString("base64");
-    } else {
-      // Browser environment - convert Uint8Array to base64 safely
-      const binaryString = Array.from(bytes, (byte: number) => String.fromCharCode(byte)).join('');
-      base64 = btoa(binaryString);
-    }
-    const dataUrl = `data:${mimeType || 'application/octet-stream'};base64,${base64}`;
+    const dataUrl = bytesToDataUrl(
+      bytes,
+      mimeType || "application/octet-stream",
+    );
 
     return {
       id: fileRef.vertex,
@@ -337,25 +335,7 @@ export class FileResolver {
       throw new Error("No current space available");
     }
 
-    const isWorkspaceVertex = vertex.tree.root?.id === this.space?.tree.root?.id;
-    const pathPrefix = isWorkspaceVertex ? "file:///" : "file:";
-
-    const segments: string[] = [];
-    let current: Vertex | undefined = vertex;
-
-    while (current && current.id !== vertex.tree.root?.id) {
-      if (current.name) {
-        segments.unshift(current.name);
-      }
-      current = current.parent as Vertex | undefined;
-    }
-
-    if (segments.length === 0) {
-      throw new Error("Cannot build path: vertex is at space root");
-    }
-
-    const path = `${pathPrefix}${segments.join("/")}`;
-    return path;
+    return vertexToFileUri(this.space, vertex);
   }
 
   pathToVertex(path: string, relativeRootVertex?: Vertex): Vertex {
@@ -363,53 +343,18 @@ export class FileResolver {
       throw new Error("No current space available");
     }
 
-    const isWorkspacePath = path.startsWith("file:///");
+    const { isWorkspacePath, segments } = parseFileUri(path);
 
     if (isWorkspacePath) {
-      const spaceRoot = this.space?.rootVertex;
-      const pathWithoutPrefix = path.slice("file:///".length);
-      const vertex = spaceRoot?.tree.getVertexByPath(pathWithoutPrefix);
-      if (!vertex) {
-        throw new Error(`Vertex not found at path: ${path}`);
-      }
-
-      return vertex;
+      const root = getRootForPath(this.space, undefined, true);
+      return resolvePathFromRoot(root, segments, path);
     }
 
     if (!relativeRootVertex) {
       throw new Error("Relative root vertex is required for local paths");
     }
 
-    const pathWithoutPrefix = path.slice("file:".length).trim();
-    
-    // Handle empty path - return the relative root vertex
-    if (pathWithoutPrefix === "" || pathWithoutPrefix === "/") {
-      return relativeRootVertex;
-    }
-    
-    // Normalize path segments (remove leading/trailing slashes, filter empty)
-    const segments = pathWithoutPrefix.split("/").filter(s => s && s !== "." && s !== "/");
-    
-    // If first segment is "assets", remove it (since we're already starting from assets root)
-    if (segments.length > 0 && segments[0] === ChatAppData.ASSETS_ROOT_PATH) {
-      segments.shift();
-    }
-    
-    // Walk from relativeRootVertex using segments
-    let current: Vertex | undefined = relativeRootVertex;
-    for (const seg of segments) {
-      if (!current) {
-        throw new Error(`Vertex not found at path: ${path}`);
-      }
-      const children: Vertex[] = current.children ?? [];
-      current = children.find((c: Vertex) => c.name === seg);
-      if (!current) {
-        throw new Error(`Vertex not found at path: ${path}`);
-      }
-    }
-    
-    return current;
-
+    return resolvePathFromRoot(relativeRootVertex, segments, path);
   }
 
   /**

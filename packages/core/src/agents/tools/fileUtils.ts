@@ -1,51 +1,14 @@
 import { Space } from "../../spaces/Space";
 import { AppTree } from "../../spaces/AppTree";
 import { Vertex } from "reptree";
-import { ChatAppData } from "@sila/core";
+import {
+  ensureChatAssetsRoot,
+  ensureFolder,
+  getRootForPath,
+  parseFileUri,
+} from "../../spaces/files/filePathUtils";
 
-/**
- * Ensures that a folder path exists, creating intermediate folders as needed.
- * Returns the final folder vertex.
- */
-export function ensureFolder(root: Vertex, segments: string[]): Vertex {
-  let current: Vertex = root;
-
-  for (const seg of segments) {
-    const children: Vertex[] = current.children ?? [];
-    let next: Vertex | undefined = children.find((c: Vertex) => c.name === seg);
-
-    if (!next) {
-      // Create folder
-      next = current.newNamedChild(seg, {
-        createdAt: Date.now(),
-      }) as Vertex;
-    } else {
-      // Verify it's a folder
-      const mimeType = next.getProperty("mimeType") as string | undefined;
-      if (mimeType) {
-        throw new Error(`Path segment '${seg}' is a file, not a folder`);
-      }
-    }
-    current = next;
-  }
-
-  return current;
-}
-
-/**
- * Ensures the chat assets root exists and returns it.
- */
-export function ensureChatAssetsRoot(appTree: AppTree): Vertex {
-  const rootPath = ChatAppData.ASSETS_ROOT_PATH;
-  let assetsRoot = appTree.tree.getVertexByPath(rootPath) as Vertex | undefined;
-  
-  if (!assetsRoot) {
-    assetsRoot = appTree.tree.root!.newNamedChild(rootPath) as Vertex;
-    assetsRoot.setProperty("createdAt", Date.now());
-  }
-  
-  return assetsRoot;
-}
+export { ensureChatAssetsRoot };
 
 export function inferTextMimeFromPath(path: string): string | undefined {
   const lower = path.toLowerCase();
@@ -82,26 +45,8 @@ export function ensureFileParent(
   appTree: AppTree | undefined,
   uri: string
 ): { parent: Vertex; name: string } {
-  if (!uri.startsWith("file:")) {
-    throw new Error(`Invalid URI: ${uri}`);
-  }
-
-  let root: Vertex;
-  let segments: string[];
-
-  if (uri.startsWith("file:///")) {
-    root = space.rootVertex;
-    const path = uri.slice("file:///".length);
-    segments = path.split("/").filter(Boolean);
-  } else {
-    if (!appTree) throw new Error("Chat context required");
-    root = ensureChatAssetsRoot(appTree);
-    const rawPath = uri.slice("file:".length).trim();
-    segments = rawPath.split("/").filter(s => s && s !== "." && s !== "/");
-    if (segments.length > 0 && segments[0] === ChatAppData.ASSETS_ROOT_PATH) {
-      segments.shift();
-    }
-  }
+  const { isWorkspacePath, segments } = parseFileUri(uri);
+  const root = getRootForPath(space, appTree, isWorkspacePath);
 
   if (segments.length === 0) {
     throw new Error("Path is empty or is root");
@@ -119,26 +64,8 @@ export function ensurePath(
   appTree: AppTree | undefined,
   uri: string
 ): Vertex {
-  if (!uri.startsWith("file:")) {
-    throw new Error(`Invalid URI: ${uri}`);
-  }
-
-  let root: Vertex;
-  let segments: string[];
-
-  if (uri.startsWith("file:///")) {
-    root = space.rootVertex;
-    const path = uri.slice("file:///".length);
-    segments = path.split("/").filter(Boolean);
-  } else {
-    if (!appTree) throw new Error("Chat context required");
-    root = ensureChatAssetsRoot(appTree);
-    const rawPath = uri.slice("file:".length).trim();
-    segments = rawPath.split("/").filter(s => s && s !== "." && s !== "/");
-    if (segments.length > 0 && segments[0] === ChatAppData.ASSETS_ROOT_PATH) {
-      segments.shift();
-    }
-  }
+  const { isWorkspacePath, segments } = parseFileUri(uri);
+  const root = getRootForPath(space, appTree, isWorkspacePath);
 
   if (segments.length === 0) {
     throw new Error("Path is empty or is root");
@@ -146,4 +73,3 @@ export function ensurePath(
 
   return ensureFolder(root, segments);
 }
-
