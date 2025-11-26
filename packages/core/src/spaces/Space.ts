@@ -7,7 +7,7 @@ import { validateKey } from "../tools/providerKeyValidators";
 import { Vertex } from "reptree";
 import { AppConfigsData } from "./AppConfigsData";
 import uuid from "../utils/uuid";
-import { type FileStore, createFileStore, FileResolver } from "./files";
+import { createFileStore, FileResolver, type FileStore } from "./files";
 import type { FileStoreProvider } from "./files/FileStore";
 
 export class Space {
@@ -20,7 +20,7 @@ export class Space {
     | ((treeId: string) => Promise<AppTree | undefined>)
     | undefined;
   private _fileStore: FileStore | null = null;
-  
+
   readonly appTreesVertex: Vertex;
   readonly appConfigs: AppConfigsData;
   readonly fileResolver: FileResolver;
@@ -76,15 +76,6 @@ export class Space {
     this.fileResolver = new FileResolver(this);
   }
 
-  /** Space id is the same as the root vertex id of the space tree */
-  getId(): string {
-    return this.tree.root!.id;
-  }
-
-  setFileStoreProvider(provider: FileStoreProvider) {
-    this._fileStore = createFileStore(provider);
-  }
-
   get fileStore(): FileStore | null {
     return this._fileStore;
   }
@@ -113,6 +104,15 @@ export class Space {
   get hasSetupProviders(): boolean {
     const providersVertex = this.tree.getVertexByPath("providers");
     return providersVertex ? providersVertex.children.length > 0 : false;
+  }
+
+  /** Space id is the same as the root vertex id of the space tree */
+  getId(): string {
+    return this.tree.root!.id;
+  }
+
+  setFileStoreProvider(provider: FileStoreProvider) {
+    this._fileStore = createFileStore(provider);
   }
 
   /**

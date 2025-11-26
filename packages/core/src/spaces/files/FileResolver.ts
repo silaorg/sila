@@ -42,6 +42,9 @@ export interface ResolvedFileInfoWithKind extends ResolvedFileInfo {
   kind: string;
 }
 
+/**
+ * FileResolver is for resolving file references within a Space file store.
+ */
 export class FileResolver {
   private space: Space | null = null;
 
@@ -59,20 +62,22 @@ export class FileResolver {
    * Resolves a single file reference to file information - the reference will contain a URL to the file
    * Framework-agnostic method for resolving file references
    */
-  async resolveFileReference(fileRef: FileReference): Promise<ResolvedFileInfo | null> {
+  async resolveFileReference(
+    fileRef: FileReference,
+  ): Promise<ResolvedFileInfo | null> {
     if (!this.space) {
-      console.error('No space available for file resolution');
+      console.error("No space available for file resolution");
       return null;
     }
 
     try {
       // Validate fileRef before proceeding
       if (!fileRef.tree || !fileRef.vertex) {
-        console.error('Invalid file reference:', fileRef);
+        console.error("Invalid file reference:", fileRef);
         return null;
       }
 
-      // Load the files app tree      
+      // Load the files app tree
       const filesTree = await this.space.loadAppTree(fileRef.tree);
       if (!filesTree) {
         console.error(`Files tree not found: ${fileRef.tree}`);
@@ -86,24 +91,25 @@ export class FileResolver {
         return null;
       }
 
-
       if (!fileVertex) {
-        console.error('File vertex not found:', fileRef);
+        console.error("File vertex not found:", fileRef);
         return null;
       }
 
       // Extract metadata from the file vertex
-      const hash = fileVertex.getProperty('hash') as string | undefined;
-      const id = fileVertex.getProperty('id') as string | undefined;
+      const hash = fileVertex.getProperty("hash") as string | undefined;
+      const id = fileVertex.getProperty("id") as string | undefined;
       const storageId = hash ?? id;
       const name = fileVertex.name;
-      const mimeType = fileVertex.getProperty('mimeType') as string;
-      const size = fileVertex.getProperty('size') as number;
-      const width = fileVertex.getProperty('width') as number;
-      const height = fileVertex.getProperty('height') as number;
+      const mimeType = fileVertex.getProperty("mimeType") as string;
+      const size = fileVertex.getProperty("size") as number;
+      const width = fileVertex.getProperty("width") as number;
+      const height = fileVertex.getProperty("height") as number;
 
       if (!storageId) {
-        console.error(`File vertex missing storage id (hash/id): ${fileVertex.id}`);
+        console.error(
+          `File vertex missing storage id (hash/id): ${fileVertex.id}`,
+        );
         return null;
       }
 
@@ -116,7 +122,7 @@ export class FileResolver {
       if (name) {
         params.push(`name=${encodeURIComponent(name)}`);
       }
-      const query = params.length > 0 ? `?${params.join('&')}` : '';
+      const query = params.length > 0 ? `?${params.join("&")}` : "";
 
       // @TODO: we will need to generate a web-based URL if this method runs from the server
       // e.g `api.silain.com/spaces/${spaceId}/files/${storageId}${query}`;
@@ -124,7 +130,7 @@ export class FileResolver {
 
       return {
         id: fileVertex.id,
-        name: name || 'Unknown file',
+        name: name || "Unknown file",
         mimeType,
         size,
         width,
@@ -133,30 +139,37 @@ export class FileResolver {
         hash: storageId,
       };
     } catch (error) {
-      console.error('Failed to resolve file reference:', error);
+      console.error("Failed to resolve file reference:", error);
       return null;
     }
   }
 
+  /**
+   * Resolves a single file vertex to file information - the reference will contain a URL to the file and metadata
+   * @param fileVertex
+   * @returns
+   */
   resolveVertexToFileReference(fileVertex: Vertex): ResolvedFileInfo | null {
     if (!this.space) {
-      console.error('No space available for file resolution');
+      console.error("No space available for file resolution");
       return null;
     }
 
     try {
       // Extract metadata from the file vertex
-      const hash = fileVertex.getProperty('hash') as string | undefined;
-      const id = fileVertex.getProperty('id') as string | undefined;
+      const hash = fileVertex.getProperty("hash") as string | undefined;
+      const id = fileVertex.getProperty("id") as string | undefined;
       const storageId = hash ?? id;
       const name = fileVertex.name;
-      const mimeType = fileVertex.getProperty('mimeType') as string;
-      const size = fileVertex.getProperty('size') as number;
-      const width = fileVertex.getProperty('width') as number;
-      const height = fileVertex.getProperty('height') as number;
+      const mimeType = fileVertex.getProperty("mimeType") as string;
+      const size = fileVertex.getProperty("size") as number;
+      const width = fileVertex.getProperty("width") as number;
+      const height = fileVertex.getProperty("height") as number;
 
       if (!storageId) {
-        console.error(`File vertex missing storage id (hash/id): ${fileVertex.id}`);
+        console.error(
+          `File vertex missing storage id (hash/id): ${fileVertex.id}`,
+        );
         return null;
       }
 
@@ -169,7 +182,7 @@ export class FileResolver {
       if (name) {
         params.push(`name=${encodeURIComponent(name)}`);
       }
-      const query = params.length > 0 ? `?${params.join('&')}` : '';
+      const query = params.length > 0 ? `?${params.join("&")}` : "";
 
       // @TODO: we will need to generate a web-based URL if this method runs from the server
       // e.g `api.silain.com/spaces/${spaceId}/files/${storageId}${query}`;
@@ -177,7 +190,7 @@ export class FileResolver {
 
       return {
         id: fileVertex.id,
-        name: name || 'Unknown file',
+        name: name || "Unknown file",
         mimeType,
         size,
         width,
@@ -186,7 +199,7 @@ export class FileResolver {
         hash: storageId,
       };
     } catch (error) {
-      console.error('Failed to resolve file reference:', error);
+      console.error("Failed to resolve file reference:", error);
       return null;
     }
   }
@@ -211,9 +224,11 @@ export class FileResolver {
    * Resolves file references in attachments to data URLs - so the object itself contains the data
    * Used for UI rendering and AI consumption
    */
-  async getFileData(fileRefs: FileReference[]): Promise<ResolvedFileWithData[]> {
+  async getFileData(
+    fileRefs: FileReference[],
+  ): Promise<ResolvedFileWithData[]> {
     if (!this.space) {
-      console.error('No space available for file resolution');
+      console.error("No space available for file resolution");
       return [];
     }
 
@@ -230,7 +245,7 @@ export class FileResolver {
         try {
           const resolvedAttachment = await this.resolveFileReferenceToData(
             file,
-            fileStore
+            fileStore,
           );
           if (resolvedAttachment) {
             resolved.push(resolvedAttachment);
@@ -252,10 +267,10 @@ export class FileResolver {
    */
   private async resolveFileReferenceToData(
     fileRef: FileReference,
-    fileStore: any
+    fileStore: any,
   ): Promise<ResolvedFileWithData | null> {
     if (!this.space) {
-      console.error('No space available for file resolution');
+      console.error("No space available for file resolution");
       return null;
     }
 
@@ -312,8 +327,11 @@ export class FileResolver {
 
     return {
       id: fileRef.vertex,
-      kind: mimeType?.startsWith('text/') ? 'text' : (mimeType?.startsWith('image/') ? 'image' : 'file'),
-      name: (fileVertex.name as string) || (fileVertex.getProperty("name") as string),
+      kind: mimeType?.startsWith("text/")
+        ? "text"
+        : (mimeType?.startsWith("image/") ? "image" : "file"),
+      name: (fileVertex.name as string) ||
+        (fileVertex.getProperty("name") as string),
       alt: undefined,
       dataUrl,
       mimeType,
@@ -338,6 +356,12 @@ export class FileResolver {
     return vertexToFileUri(this.space, vertex);
   }
 
+  /**
+   * Convert a file path string to a vertex that refers to that file
+   * @param path
+   * @param relativeRootVertex
+   * @returns
+   */
   pathToVertex(path: string, relativeRootVertex?: Vertex): Vertex {
     if (!this.space) {
       throw new Error("No current space available");
@@ -366,7 +390,7 @@ export class FileResolver {
    */
   async searchFileMentions(
     query: string,
-    relativeRootVertex?: Vertex
+    relativeRootVertex?: Vertex,
   ): Promise<Array<{ path: string; name: string }>> {
     const trimmed = query.trim().toLowerCase();
     const results: Array<{ path: string; name: string }> = [];
