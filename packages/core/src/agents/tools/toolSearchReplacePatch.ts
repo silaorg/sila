@@ -30,6 +30,8 @@ new text
 You can include multiple file sections in one patch; the tool applies each in order (creates missing files by default). Paths must be workspace (file:///...) or chat (file:...) URIs.
 
 Each SEARCH block is matched once (first exact occurrence); include enough lines in SEARCH to uniquely target the intended text. An empty SEARCH replaces the entire file content for that section.
+
+After applying a patch, read the patched file to confirm the changes.
 `;
 
 export function getToolSearchReplacePatch(
@@ -69,9 +71,12 @@ export function getToolSearchReplacePatch(
 
         for (const filePatch of filePatches) {
           const uri = normalizeUri(filePatch.path);
-          const changes = await handlePatch(space, appTree, uri, filePatch.blocks, true);
-          totalChanges += changes;
-          summaries.push(`${filePatch.path} (${changes} change${changes === 1 ? "" : "s"})`);
+          const result = await handlePatch(space, appTree, uri, filePatch.blocks, true);
+          totalChanges += result.changes;
+          const details = result.info.length ? ` [${result.info.join(", ")}]` : "";
+          summaries.push(
+            `${filePatch.path}: ${result.changes} change${result.changes === 1 ? "" : "s"}${details}`,
+          );
         }
 
         return {
@@ -128,8 +133,13 @@ function normalizeUri(path: string): string {
   return uri;
 }
 
-function applyBlocksToContent(content: string, blocks: SearchReplaceBlock[]): string {
+function applyBlocksToContent(
+  content: string,
+  blocks: SearchReplaceBlock[],
+  pathHint?: string,
+): { updated: string; info: string[] } {
   let updated = content;
+  const info: string[] = [];
 
   for (const block of blocks) {
     const search = block.search;
@@ -137,19 +147,25 @@ function applyBlocksToContent(content: string, blocks: SearchReplaceBlock[]): st
     if (search === "") {
       // If SEARCH is empty, replace the whole content
       updated = block.replace;
+      info.push("replaced entire file");
       continue;
     }
 
     const index = updated.indexOf(search);
     if (index === -1) {
       const preview = search.length > 80 ? `${search.slice(0, 77)}...` : search;
-      throw new Error(`SEARCH block not found: ${preview}`);
+      const tip = "Ensure the SEARCH text matches exactly, including whitespace and newlines.";
+      throw new Error(
+        `SEARCH block not found${pathHint ? ` in ${pathHint}` : ""}: ${preview}. ${tip}`,
+      );
     }
 
+    const lineNumber = updated.slice(0, index).split("\n").length;
     updated = `${updated.slice(0, index)}${block.replace}${updated.slice(index + search.length)}`;
+    info.push(`replaced at line ${lineNumber}`);
   }
 
-  return updated;
+  return { updated, info };
 }
 
 async function handlePatch(
@@ -158,7 +174,7 @@ async function handlePatch(
   uri: string,
   blocks: SearchReplaceBlock[],
   createIfMissing: boolean,
-): Promise<number> {
+): Promise<{ changes: number; info: string[] }> {
   const store = space.fileStore;
   if (!store) {
     throw new Error("apply_search_replace_patch: FileStore is not configured for this space");
@@ -189,7 +205,7 @@ async function handlePatch(
     }
   }
 
-  const updated = applyBlocksToContent(currentContent, blocks);
+  const { updated, info } = applyBlocksToContent(currentContent, blocks, uri);
 
   const inferredMime = mimeType || inferTextMimeFromPath(name) || "text/plain";
   validateTextMimeType(inferredMime);
@@ -218,7 +234,7 @@ async function handlePatch(
     });
   }
 
-  return blocks.length;
+  return { changes: info.length, info };
 }
 
 function parseFilePatches(rawPatch: string): FilePatch[] {
