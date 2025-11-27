@@ -12,6 +12,7 @@ import { getToolMkdir } from "./tools/toolMkdir";
 import { getToolRm } from "./tools/toolRm";
 import { getToolMove } from "./tools/toolMove";
 import { getToolApplyPatch } from "./tools/toolApplyPatch";
+import { getToolSearchReplacePatch } from "./tools/toolSearchReplacePatch";
 import { getToolWriteToFile } from "./tools/toolWriteToFile";
 import { getToolGenerateImage } from "./tools/toolGenerateImage";
 import { getToolGenerateVideo } from "./tools/toolGenerateVideo";
@@ -211,6 +212,7 @@ export class AgentServices {
     tools.push(getToolMove(this.space, appTree));
 
     if (!useApplyPatch) {
+      tools.push(getToolSearchReplacePatch(this.space, appTree));
       tools.push(getToolWriteToFile(this.space, appTree));
     }
 
