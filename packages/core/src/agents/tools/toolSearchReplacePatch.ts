@@ -1,7 +1,8 @@
 import type { LangToolWithHandler } from "aiwrapper";
-import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
+import type { Space } from "../../spaces/Space";
 import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
+import type { AgentTool } from "./AgentTool";
 
 interface SearchReplacePatchResult {
   status: "completed" | "failed";
@@ -31,67 +32,70 @@ You can include multiple file sections in one patch; the tool applies each in or
 
 Each SEARCH block is matched once (first exact occurrence); include enough lines in SEARCH to uniquely target the intended text. An empty SEARCH replaces the entire file content for that section.
 
-After applying a patch, read the patched file to confirm the changes.
-`;
+After applying a patch, read the patched file to confirm the changes.`;
 
-export function getToolSearchReplacePatch(
-  space: Space,
-  appTree?: AppTree
-): LangToolWithHandler {
-  return {
-    name: "apply_search_replace_patch",
-    description:
-      "Apply SEARCH/REPLACE patches across one or more files using path-prefixed blocks.",
-    parameters: {
-      type: "object",
-      properties: {
-        patch: {
-          type: "string",
-          description:
-            "Patch text with file path lines and SEARCH/REPLACE blocks (<<<<<<< SEARCH / ======= / >>>>>>> REPLACE).",
-        },
+export const toolSearchReplacePatch: AgentTool = {
+  name: "apply_search_replace_patch",
+  description:
+    "Apply SEARCH/REPLACE patches across one or more files using path-prefixed blocks.",
+  instructions: searchReplacePatchInstruciton,
+  parameters: {
+    type: "object",
+    properties: {
+      patch: {
+        type: "string",
+        description:
+          "Patch text with file path lines and SEARCH/REPLACE blocks (<<<<<<< SEARCH / ======= / >>>>>>> REPLACE).",
       },
-      required: ["patch"],
     },
-    handler: async (args: Record<string, any>): Promise<SearchReplacePatchResult> => {
-      const patch = args.patch as string | undefined;
+    required: ["patch"],
+  },
+  getTool(services, appTree): LangToolWithHandler {
+    const space = services.space;
+    return {
+      name: this.name,
+      description: this.description!,
+      parameters: this.parameters!,
+      handler: async (args: Record<string, any>): Promise<SearchReplacePatchResult> => {
+        const patch = args.patch as string | undefined;
 
-      if (typeof patch !== "string" || !patch.trim()) {
-        return {
-          status: "failed",
-          output: "Invalid patch: must be a non-empty string",
-        };
-      }
-
-      try {
-        const filePatches = parseFilePatches(patch);
-
-        let totalChanges = 0;
-        const summaries: string[] = [];
-
-        for (const filePatch of filePatches) {
-          const uri = normalizeUri(filePatch.path);
-          const result = await handlePatch(space, appTree, uri, filePatch.blocks, true);
-          totalChanges += result.changes;
-          const details = result.info.length ? ` [${result.info.join(", ")}]` : "";
-          summaries.push(
-            `${filePatch.path}: ${result.changes} change${result.changes === 1 ? "" : "s"}${details}`,
-          );
+        if (typeof patch !== "string" || !patch.trim()) {
+          return {
+            status: "failed",
+            output: "Invalid patch: must be a non-empty string",
+          };
         }
 
-        return {
-          status: "completed",
-          output: `Patched ${filePatches.length} file${filePatches.length === 1 ? "" : "s"} (${totalChanges} change${totalChanges === 1 ? "" : "s"}): ${summaries.join("; ")}`,
-        };
-      } catch (error: any) {
-        return {
-          status: "failed",
-          output: `Error: ${error?.message ?? String(error)}`,
-        };
-      }
-    },
-  };
-}
+        try {
+          const filePatches = parseFilePatches(patch);
+
+          let totalChanges = 0;
+          const summaries: string[] = [];
+
+          for (const filePatch of filePatches) {
+            const uri = normalizeUri(filePatch.path);
+            const result = await handlePatch(space, appTree, uri, filePatch.blocks, true);
+            totalChanges += result.changes;
+            const details = result.info.length ? ` [${result.info.join(", ")}]` : "";
+            summaries.push(
+              `${filePatch.path}: ${result.changes} change${result.changes === 1 ? "" : "s"}${details}`,
+            );
+          }
+
+          return {
+            status: "completed",
+            output: `Patched ${filePatches.length} file${filePatches.length === 1 ? "" : "s"} (${totalChanges} change${totalChanges === 1 ? "" : "s"}): ${summaries.join("; ")}`,
+          };
+        } catch (error: any) {
+          return {
+            status: "failed",
+            output: `Error: ${error?.message ?? String(error)}`,
+          };
+        }
+      },
+    };
+  },
+};
 
 function stripCodeFence(raw: string): string {
   const trimmed = raw.trim();

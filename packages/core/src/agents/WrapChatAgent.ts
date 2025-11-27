@@ -19,7 +19,6 @@ import {
   agentMetaInfo,
   agentToolUsageInstructions,
 } from "./prompts/wrapChatAgentInstructions";
-import { createWorkspaceProxyFetch } from "./tools/workspaceProxyFetch";
 import {
   convertToLangMessage,
   extractTextFromDataUrl,
@@ -150,14 +149,12 @@ export class WrapChatAgent
         await this.convertToLangMessages(messages, supportsVision),
       );
 
-      const fetchForAgent = createWorkspaceProxyFetch(
-        this.agentServices.space,
-        this.appTree,
-      );
-      langMessages.availableTools = this.agentServices.getToolsForModel(
+      const { toolDefs, tools } = this.agentServices.getToolsForModel(
         resolvedModel,
-        { fetchImpl: fetchForAgent, appTree: this.appTree },
+        { appTree: this.appTree },
       );
+
+      langMessages.availableTools = tools;
 
       // Add the assistant (config) instructions
       const instructions: string[] = config.instructions
@@ -167,10 +164,10 @@ export class WrapChatAgent
       // Environment instructions
       instructions.push(agentEnvironmentInstructions());
 
-      if (langMessages.availableTools.length > 0) {
+      if (toolDefs.length > 0) {
         // Tool usage instructions
         instructions.push(
-          agentToolUsageInstructions(langMessages.availableTools),
+          agentToolUsageInstructions(toolDefs),
         );
       }
 

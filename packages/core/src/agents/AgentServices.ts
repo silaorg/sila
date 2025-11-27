@@ -4,19 +4,18 @@ import { Space } from '../spaces/Space';
 import { getProviderModels } from '../tools/providerModels';
 import { splitModelString } from '../utils/modelUtils';
 import { LangTool } from 'aiwrapper/dist/lang/messages';
-import { getToolRead } from './tools/toolRead';
-import type { ProxyFetch } from "../utils/proxyFetch";
 import type { AppTree } from "../spaces/AppTree";
-import { getToolLs } from "./tools/toolLs";
-import { getToolMkdir } from "./tools/toolMkdir";
-import { getToolRm } from "./tools/toolRm";
-import { getToolMove } from "./tools/toolMove";
-import { getToolApplyPatch } from "./tools/toolApplyPatch";
-import { getToolSearchReplacePatch } from "./tools/toolSearchReplacePatch";
-import { getToolWriteToFile } from "./tools/toolWriteToFile";
-import { getToolGenerateImage } from "./tools/toolGenerateImage";
-import { getToolGenerateVideo } from "./tools/toolGenerateVideo";
-import { getToolLook } from "./tools/toolLook";
+import { toolRead } from "./tools/toolRead";
+import { toolLs } from "./tools/toolLs";
+import { toolMkdir } from "./tools/toolMkdir";
+import { toolRm } from "./tools/toolRm";
+import { toolMove } from "./tools/toolMove";
+import { toolApplyPatch } from "./tools/toolApplyPatch";
+import { toolSearchReplacePatch } from "./tools/toolSearchReplacePatch";
+import { toolGenerateImage } from "./tools/toolGenerateImage";
+import { toolGenerateVideo } from "./tools/toolGenerateVideo";
+import { toolLook } from "./tools/toolLook";
+import type { AgentTool } from "./tools/AgentTool";
 
 export class AgentServices {
   readonly space: Space;
@@ -177,52 +176,43 @@ export class AgentServices {
 
   getToolsForModel(
     model: { provider: string; model: string } | null,
-    opts?: { fetchImpl?: ProxyFetch; appTree?: AppTree }
-  ): LangTool[] {
+    opts?: { appTree?: AppTree }
+  ): { toolDefs: AgentTool[], tools: LangTool[] } {
     const tools: LangTool[] = [];
-
-    const fetchImpl = opts?.fetchImpl;
     const appTree = opts?.appTree;
+    if (!appTree) {
+      throw new Error("appTree is required to build agent tools");
+    }
     let useApplyPatch = false;
 
     if (model && model.provider === "openai") {
       tools.push({ name: "web_search" });
 
-      // @TODO: check if model can generate images
-      //tools.push({ name: "image_generation" });
-
-      // At the moment only OpenAI's GPT-5.1 supports the apply_patch tool
       if (model.model.includes("gpt-5.1")) {
-        tools.push(getToolApplyPatch(this.space, appTree));
         useApplyPatch = true;
       }
     }
 
-    tools.push(fetchImpl ? getToolRead(fetchImpl) : getToolRead());
+    const toolDefs: AgentTool[] = [
+      toolRead,
+      toolLook,
+      toolLs,
+      toolMkdir,
+      toolRm,
+      toolMove,
+      useApplyPatch ? toolApplyPatch : toolSearchReplacePatch,
+      toolGenerateImage,
+      toolGenerateVideo,
+    ];
 
-    const providerFactory = model
-      ? () => this.createLanguageProvider(model.provider, model.model)
-      : () => this.lang();
-    tools.push(getToolLook(this.space, appTree, providerFactory));
-
-    // Files tools (ls, mkdir, rm, move, apply_patch) available for all providers; rely on space + optional appTree
-    tools.push(getToolLs(this.space, appTree));
-    tools.push(getToolMkdir(this.space, appTree));
-    tools.push(getToolRm(this.space, appTree));
-    tools.push(getToolMove(this.space, appTree));
-
-    if (!useApplyPatch) {
-      tools.push(getToolSearchReplacePatch(this.space, appTree));
-      //tools.push(getToolWriteToFile(this.space, appTree));
+    for (const tool of toolDefs) {
+      tools.push(tool.getTool(this, appTree));
     }
 
-    // Image generation tool (available for all providers)
-    tools.push(getToolGenerateImage(this.space, appTree));
-    
-    // Video generation tool (available for all providers)
-    tools.push(getToolGenerateVideo(this.space, appTree));
-
-    return tools;
+    return {
+      toolDefs,
+      tools
+    }
   }
 
   async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {

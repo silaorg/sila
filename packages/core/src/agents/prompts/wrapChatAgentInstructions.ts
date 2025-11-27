@@ -1,5 +1,6 @@
 import { LangTool } from "aiwrapper";
 import { searchReplacePatchInstruciton } from "../tools/toolSearchReplacePatch";
+import { AgentTool } from "../tools/AgentTool";
 
 export function agentEnvironmentInstructions(): string {
   return `<environment>
@@ -10,17 +11,14 @@ Workspace holds conversations, files, and assistants for a project or interest o
 `;
 }
 
-export function agentToolUsageInstructions(tools: LangTool[]): string {
-  const hasSearchReplaceTool = tools.some((t) =>
-    t.name === "apply_search_replace_patch"
-  );
-
-  // @TODO: reference the tool name from the tool itself
+export function agentToolUsageInstructions(tools: AgentTool[]): string {
   const toolSpecificInstructions: string[] = [];
-  if (hasSearchReplaceTool) {
-    toolSpecificInstructions.push(
-      `<apply_search_replace_patch>${searchReplacePatchInstruciton}</apply_search_replace_patch>`,
-    );
+  for (const tool of tools) {
+    if (tool.instructions) {
+      toolSpecificInstructions.push(
+        `<${tool.name}>${searchReplacePatchInstruciton}</${tool.name}>`,
+      );
+    }
   }
 
   // @TODO: accept tools list and extract additional (optional) instructions from them and put in the instructions section
@@ -31,7 +29,7 @@ You can find the workspace files in "file:///assets/" dir and files from the cur
 
 After you use tools - always give a brief summary of what you did.
 
-${toolSpecificInstructions.join("\n\n")}
+${toolSpecificInstructions.join("\n")}
 </tool-usage>`;
 }
 

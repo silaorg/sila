@@ -5,6 +5,7 @@ import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgToVideoGen } from "../../tools/falaiVideo";
 import { ensureFileParent } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
+import type { AgentTool } from "./AgentTool";
 
 interface GenerateVideoResult {
   status: "completed" | "failed";
@@ -12,15 +13,18 @@ interface GenerateVideoResult {
   files?: string[];
 }
 
-export function getToolGenerateVideo(
+function buildToolGenerateVideo(
   space: Space,
-  appTree?: AppTree
+  appTree: AppTree | undefined,
+  description?: string,
+  parameters?: LangToolWithHandler["parameters"]
 ): LangToolWithHandler {
   return {
     name: "generate_video",
     description:
+      description ||
       "Generate a video from an image using AI. Accepts a file path to an input image and a prompt describing the desired animation. Returns the file path to the generated video. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format videos with previews: ![description](<file:///assets/file.mp4>).",
-    parameters: {
+    parameters: parameters ?? {
       type: "object",
       properties: {
         prompt: {
@@ -278,3 +282,50 @@ export function getToolGenerateVideo(
     },
   };
 }
+
+export const toolGenerateVideo: AgentTool = {
+  name: "generate_video",
+  description:
+    "Generate a video from an image using AI. Accepts a file path to an input image and a prompt describing the desired animation. Returns the file path to the generated video. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format videos with previews: ![description](<file:///assets/file.mp4>).",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "The prompt describing the desired animation or motion for the video.",
+      },
+      input_file: {
+        type: "string",
+        description:
+          "File path (e.g., 'file:///assets/image.jpg' or 'file:image.jpg') to the image to animate. Required.",
+      },
+      output_path: {
+        type: "string",
+        description:
+          "Optional file path where to save the generated video. If not provided, video will be saved with an auto-generated name in the chat files folder.",
+      },
+      duration: {
+        type: "number",
+        description: "Duration of the video in seconds. Default is 5 seconds.",
+      },
+      aspect_ratio: {
+        type: "string",
+        enum: ["auto", "16:9", "9:16", "1:1"],
+        description: "Aspect ratio of the generated video. Use 'auto' to match input image, or specify a ratio.",
+      },
+      resolution: {
+        type: "string",
+        enum: ["720p", "1080p"],
+        description: "Resolution of the generated video. Default is 720p.",
+      },
+      generate_audio: {
+        type: "boolean",
+        description: "Whether to generate audio for the video. Default is true.",
+      },
+    },
+    required: ["prompt", "input_file"],
+  },
+  getTool(services, appTree) {
+    return buildToolGenerateVideo(services.space, appTree, this.description, this.parameters);
+  },
+};

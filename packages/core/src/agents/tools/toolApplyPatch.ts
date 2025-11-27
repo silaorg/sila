@@ -1,9 +1,10 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import { applyDiff_v4a } from "aiwrapper";
-import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
+import type { Space } from "../../spaces/Space";
 import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
+import type { AgentTool } from "./AgentTool";
 
 type ApplyPatchOperation =
   | { type: "create_file"; path: string; diff: string }
@@ -15,72 +16,71 @@ interface ApplyPatchResult {
   output: string;
 }
 
-export function getToolApplyPatch(
-  space: Space,
-  appTree?: AppTree
-): LangToolWithHandler {
-  return {
-    // OpenAI's apply_patch is a built-in tool. Name must be "apply_patch";
-    // parameters are defined by the model. We expose an empty schema here
-    // to satisfy typing, but the model will send its own structure.
-    name: "apply_patch",
-    description: "Apply text patches to files in this workspace using OpenAI's apply_patch tool.",
-    parameters: {},
-    handler: async (args: Record<string, any>): Promise<ApplyPatchResult> => {
-      const op = args.operation as ApplyPatchOperation | undefined;
-      if (!op || typeof op !== "object" || !("type" in op) || !("path" in op)) {
-        return {
-          status: "failed",
-          output: "Invalid operation: missing type or path",
-        };
-      }
-
-      // Normalize URI
-      let uri = op.path;
-      if (!uri.startsWith("file:") && !uri.startsWith("/")) {
-        uri = `file:${uri}`;
-      } else if (uri.startsWith("/")) {
-        uri = `file://${uri}`;
-      }
-
-      try {
-        if (op.type === "create_file") {
-          await handleCreate(space, appTree, uri, op.diff);
+export const toolApplyPatch: AgentTool = {
+  name: "apply_patch",
+  description: "Apply text patches to files in this workspace using OpenAI's apply_patch tool.",
+  parameters: {},
+  getTool(services, appTree): LangToolWithHandler {
+    const space = services.space;
+    return {
+      name: this.name,
+      description: this.description!,
+      parameters: this.parameters!,
+      handler: async (args: Record<string, any>): Promise<ApplyPatchResult> => {
+        const op = args.operation as ApplyPatchOperation | undefined;
+        if (!op || typeof op !== "object" || !("type" in op) || !("path" in op)) {
           return {
-            status: "completed",
-            output: `Created ${op.path}`,
+            status: "failed",
+            output: "Invalid operation: missing type or path",
           };
         }
 
-        if (op.type === "update_file") {
-          await handleUpdate(space, appTree, uri, op.diff);
-          return {
-            status: "completed",
-            output: `Updated ${op.path}`,
-          };
+        let uri = op.path;
+        if (!uri.startsWith("file:") && !uri.startsWith("/")) {
+          uri = `file:${uri}`;
+        } else if (uri.startsWith("/")) {
+          uri = `file://${uri}`;
         }
 
-        if (op.type === "delete_file") {
-          await handleDelete(space, appTree, uri);
+        try {
+          if (op.type === "create_file") {
+            await handleCreate(space, appTree, uri, op.diff);
+            return {
+              status: "completed",
+              output: `Created ${op.path}`,
+            };
+          }
+
+          if (op.type === "update_file") {
+            await handleUpdate(space, appTree, uri, op.diff);
+            return {
+              status: "completed",
+              output: `Updated ${op.path}`,
+            };
+          }
+
+          if (op.type === "delete_file") {
+            await handleDelete(space, appTree, uri);
+            return {
+              status: "completed",
+              output: `Deleted ${op.path}`,
+            };
+          }
+
           return {
-            status: "completed",
-            output: `Deleted ${op.path}`,
+            status: "failed",
+            output: `Unknown operation type: ${(op as any).type}`,
+          };
+        } catch (error: any) {
+          return {
+            status: "failed",
+            output: `Error: ${error?.message ?? String(error)}`,
           };
         }
-
-        return {
-          status: "failed",
-          output: `Unknown operation type: ${(op as any).type}`,
-        };
-      } catch (error: any) {
-        return {
-          status: "failed",
-          output: `Error: ${error?.message ?? String(error)}`,
-        };
-      }
-    },
-  };
-}
+      },
+    };
+  },
+};
 
 async function handleCreate(
   space: Space,

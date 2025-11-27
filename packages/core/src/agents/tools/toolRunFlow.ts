@@ -4,6 +4,7 @@ import type { AppTree } from "../../spaces/AppTree";
 import { ChatAppData } from "../../spaces/ChatAppData";
 import { resolveWorkspaceFileUrl } from "./workspaceProxyFetch";
 import type { FlowWorkerRequest, FlowWorkerResponse } from "./flowWorker";
+import type { AgentTool } from "./AgentTool";
 
 interface RunFlowResult {
   success: boolean;
@@ -14,12 +15,18 @@ interface RunFlowResult {
   error?: string;
 }
 
-export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHandler {
+function buildRunFlowTool(
+  space: Space,
+  appTree: AppTree | undefined,
+  description?: string,
+  parameters?: LangToolWithHandler["parameters"]
+): LangToolWithHandler {
   return {
     name: "run_flow",
     description:
+      description ||
       "Execute a JavaScript flow file (.flow.js) from the workspace. The file will be executed in a sandboxed environment with limited resources.",
-    parameters: {
+    parameters: parameters ?? {
       type: "object",
       properties: {
         path: {
@@ -78,12 +85,18 @@ export function getToolRunFlow(space: Space, appTree?: AppTree): LangToolWithHan
   };
 }
 
-export function getToolTestFlow(space: Space, appTree?: AppTree): LangToolWithHandler {
+function buildTestFlowTool(
+  space: Space,
+  appTree: AppTree | undefined,
+  description?: string,
+  parameters?: LangToolWithHandler["parameters"]
+): LangToolWithHandler {
   return {
     name: "test_flow",
     description:
+      description ||
       "Execute a JavaScript flow file (.flow.js) using simulated services. Useful for validating inputs/outputs before real services exist.",
-    parameters: {
+    parameters: parameters ?? {
       type: "object",
       properties: {
         path: {
@@ -136,6 +149,56 @@ export function getToolTestFlow(space: Space, appTree?: AppTree): LangToolWithHa
     },
   };
 }
+
+export const toolRunFlow: AgentTool = {
+  name: "run_flow",
+  description:
+    "Execute a JavaScript flow file (.flow.js) from the workspace. The file will be executed in a sandboxed environment with limited resources.",
+  parameters: {
+    type: "object",
+    properties: {
+      path: {
+        type: "string",
+        description:
+          "Path to the .flow.js file. Use 'file:' for chat files (e.g. file:flows/test.flow.js) or 'file:///assets/...' for workspace assets.",
+      },
+      args: {
+        type: "array",
+        items: { type: "string" },
+        description: "Optional arguments to pass to the flow script (accessible via process.argv in the script).",
+      },
+    },
+    required: ["path"],
+  },
+  getTool(services, appTree) {
+    return buildRunFlowTool(services.space, appTree, this.description, this.parameters);
+  },
+};
+
+export const toolTestFlow: AgentTool = {
+  name: "test_flow",
+  description:
+    "Execute a JavaScript flow file (.flow.js) using simulated services. Useful for validating inputs/outputs before real services exist.",
+  parameters: {
+    type: "object",
+    properties: {
+      path: {
+        type: "string",
+        description:
+          "Path to the .flow.js file. Use 'file:' for chat files (e.g. file:flows/test.flow.js) or 'file:///assets/...' for workspace assets.",
+      },
+      inputs: {
+        type: "object",
+        additionalProperties: true,
+        description: "Optional map of sample inputs keyed by input id.",
+      },
+    },
+    required: ["path"],
+  },
+  getTool(services, appTree) {
+    return buildTestFlowTool(services.space, appTree, this.description, this.parameters);
+  },
+};
   
 export const TEST_SERVICE_DESCRIPTORS = {
   img: { simulate: "img" },

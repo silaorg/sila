@@ -2,20 +2,23 @@ import type { LangToolWithHandler } from "aiwrapper";
 import type { Space } from "../../spaces/Space";
 import type { AppTree } from "../../spaces/AppTree";
 import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
+import type { AgentTool } from "./AgentTool";
 
 interface WriteToFileResult {
   status: "completed" | "failed";
   output: string;
 }
 
-export function getToolWriteToFile(
+function buildToolWriteToFile(
   space: Space,
-  appTree?: AppTree
+  appTree: AppTree | undefined,
+  description?: string,
+  parameters?: LangToolWithHandler["parameters"]
 ): LangToolWithHandler {
   return {
     name: "write_to_file",
-    description: "Write full content to a file. If the file exists, it will be overwritten. If not, it will be created.",
-    parameters: {
+    description: description || "Write full content to a file. If the file exists, it will be overwritten. If not, it will be created.",
+    parameters: parameters ?? {
       type: "object",
       properties: {
         path: {
@@ -79,6 +82,28 @@ export function getToolWriteToFile(
     },
   };
 }
+
+export const toolWriteToFile: AgentTool = {
+  name: "write_to_file",
+  description: "Write full content to a file. If the file exists, it will be overwritten. If not, it will be created.",
+  parameters: {
+    type: "object",
+    properties: {
+      path: {
+        type: "string",
+        description: "The path to the file to write. Can be a workspace path (e.g. 'file:///assets/brand.md') or a chat path (e.g. 'file:notes.md' or just 'notes.md')."
+      },
+      content: {
+        type: "string",
+        description: "The full content to write to the file."
+      }
+    },
+    required: ["path", "content"]
+  },
+  getTool(services, appTree) {
+    return buildToolWriteToFile(services.space, appTree, this.description, this.parameters);
+  },
+};
 
 async function handleWrite(
   space: Space,

@@ -5,6 +5,7 @@ import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgGen } from "../../tools/falai";
 import { ensureFileParent } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
+import type { AgentTool } from "./AgentTool";
 
 interface GenerateImageResult {
   status: "completed" | "failed";
@@ -12,15 +13,18 @@ interface GenerateImageResult {
   files?: string[];
 }
 
-export function getToolGenerateImage(
+function buildToolGenerateImage(
   space: Space,
-  appTree?: AppTree
+  appTree: AppTree | undefined,
+  description?: string,
+  parameters?: LangToolWithHandler["parameters"]
 ): LangToolWithHandler {
   return {
     name: "generate_image",
     description:
+      description ||
       "Generate or edit images using AI. Accepts file paths to existing images (for editing) and a prompt. Returns file paths to the generated images. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format images with previews: ![description](<file:///assets/file.jpg>).",
-    parameters: {
+    parameters: parameters ?? {
       type: "object",
       properties: {
         prompt: {
@@ -321,3 +325,39 @@ export function getToolGenerateImage(
     },
   };
 }
+
+export const toolGenerateImage: AgentTool = {
+  name: "generate_image",
+  description:
+    "Generate or edit images using AI. Accepts file paths to existing images (for editing) and a prompt. Returns file paths to the generated images. Use 'file:///assets/...' for workspace files or 'file:...' for chat files. When showing results to users, format images with previews: ![description](<file:///assets/file.jpg>).",
+  parameters: {
+    type: "object",
+    properties: {
+      prompt: {
+        type: "string",
+        description: "The prompt describing what to generate or how to edit the images.",
+      },
+      input_files: {
+        type: "array",
+        items: {
+          type: "string",
+        },
+        description:
+          "Optional array of file paths (e.g., 'file:///assets/image.jpg' or 'file:image.jpg') to images to use as input for editing. If not provided, will generate a new image based on the prompt alone.",
+      },
+      output_path: {
+        type: "string",
+        description:
+          "Optional file path where to save the generated image(s). If not provided or multiple images generated, images will be saved with auto-generated names in the chat files folder. For multiple images, base path will be used with numbered suffixes.",
+      },
+      num_images: {
+        type: "number",
+        description: "Number of images to generate. Default is 1, max is 4.",
+      },
+    },
+    required: ["prompt"],
+  },
+  getTool(services, appTree) {
+    return buildToolGenerateImage(services.space, appTree, this.description, this.parameters);
+  },
+};
