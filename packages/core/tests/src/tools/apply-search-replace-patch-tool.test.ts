@@ -40,14 +40,14 @@ describe("apply_search_replace_patch tool", () => {
       content: "line1\nline2\nline3\n",
     });
 
-    const patch = `<<<<<<< SEARCH
+    const patch = `file:///assets/example.txt
+<<<<<<< SEARCH
 line2
 =======
 updated line2
 >>>>>>> REPLACE`;
 
     const result = await patchTool.handler({
-      path: "file:///assets/example.txt",
       patch,
     });
 
@@ -74,13 +74,13 @@ updated line2
 
     const patchTool = getToolSearchReplacePatch(space);
 
-    const patch = `<<<<<<< SEARCH
+    const patch = `file:///assets/newfile.md
+<<<<<<< SEARCH
 =======
 brand new content
 >>>>>>> REPLACE`;
 
     const result = await patchTool.handler({
-      path: "file:///assets/newfile.md",
       patch,
     });
 

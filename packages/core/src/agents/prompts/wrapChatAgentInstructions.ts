@@ -1,4 +1,5 @@
 import { LangTool } from "aiwrapper";
+import { searchReplacePatchInstruciton } from "../tools/toolSearchReplacePatch";
 
 export function agentEnvironmentInstructions(): string {
   return `<environment>
@@ -10,6 +11,18 @@ Workspace holds conversations, files, and assistants for a project or interest o
 }
 
 export function agentToolUsageInstructions(tools: LangTool[]): string {
+  const hasSearchReplaceTool = tools.some((t) =>
+    t.name === "apply_search_replace_patch"
+  );
+
+  // @TODO: reference the tool name from the tool itself
+  const toolSpecificInstructions: string[] = [];
+  if (hasSearchReplaceTool) {
+    toolSpecificInstructions.push(
+      `<apply_search_replace_patch>${searchReplacePatchInstruciton}</apply_search_replace_patch>`,
+    );
+  }
+
   // @TODO: accept tools list and extract additional (optional) instructions from them and put in the instructions section
   return `<tool-usage>
 Feel free to explore files in the workspace, create new directories and files or edit existing ones.
@@ -17,6 +30,8 @@ Feel free to explore files in the workspace, create new directories and files or
 You can find the workspace files in "file:///assets/" dir and files from the current chat in "file:assets/" dir (no slashes).
 
 After you use tools - always give a brief summary of what you did.
+
+${toolSpecificInstructions.join("\n\n")}
 </tool-usage>`;
 }
 
@@ -46,9 +61,12 @@ export function agentMetaInfo(params: {
   return `<meta>
 Current local date and time: ${params.localDateTime}
 Current UTC time (ISO): ${params.utcIso}
-${params.resolvedModel ? `\nModel: ${params.resolvedModel.provider}/${params.resolvedModel.model}` : ''}
+${
+    params.resolvedModel
+      ? `\nModel: ${params.resolvedModel.provider}/${params.resolvedModel.model}`
+      : ""
+  }
 Current assistant (your) name: ${params.config.name}
 </meta>
 `;
 }
-

@@ -13,6 +13,25 @@ interface SearchReplaceBlock {
   replace: string;
 }
 
+interface FilePatch {
+  path: string;
+  blocks: SearchReplaceBlock[];
+}
+
+export const searchReplacePatchInstruciton = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then the block:
+
+file:///assets/example.txt
+<<<<<<< SEARCH
+old text
+=======
+new text
+>>>>>>> REPLACE
+
+You can include multiple file sections in one patch; the tool applies each in order (creates missing files by default). Paths must be workspace (file:///...) or chat (file:...) URIs.
+
+Each SEARCH block is matched once (first exact occurrence); include enough lines in SEARCH to uniquely target the intended text. An empty SEARCH replaces the entire file content for that section.
+`;
+
 export function getToolSearchReplacePatch(
   space: Space,
   appTree?: AppTree
@@ -20,39 +39,20 @@ export function getToolSearchReplacePatch(
   return {
     name: "apply_search_replace_patch",
     description:
-      "Apply Aider-style SEARCH/REPLACE patches to a file. Works with any model.",
+      "Apply SEARCH/REPLACE patches across one or more files using path-prefixed blocks.",
     parameters: {
       type: "object",
       properties: {
-        path: {
-          type: "string",
-          description:
-            "The file path to patch. Accepts workspace paths like 'file:///assets/file.txt' or chat paths like 'file:note.txt'.",
-        },
         patch: {
           type: "string",
           description:
-            "Patch text using SEARCH/REPLACE blocks (<<<<<<< SEARCH / ======= / >>>>>>> REPLACE).",
-        },
-        create_if_missing: {
-          type: "boolean",
-          description:
-            "Create the file if it does not exist (default: true, creates empty file before applying patch).",
+            "Patch text with file path lines and SEARCH/REPLACE blocks (<<<<<<< SEARCH / ======= / >>>>>>> REPLACE).",
         },
       },
-      required: ["path", "patch"],
+      required: ["patch"],
     },
     handler: async (args: Record<string, any>): Promise<SearchReplacePatchResult> => {
-      const path = args.path as string | undefined;
       const patch = args.patch as string | undefined;
-      const createIfMissing = args.create_if_missing !== false;
-
-      if (!path || typeof path !== "string") {
-        return {
-          status: "failed",
-          output: "Invalid path: must be a non-empty string",
-        };
-      }
 
       if (typeof patch !== "string" || !patch.trim()) {
         return {
@@ -61,18 +61,22 @@ export function getToolSearchReplacePatch(
         };
       }
 
-      let uri = path;
-      if (!uri.startsWith("file:") && !uri.startsWith("/")) {
-        uri = `file:${uri}`;
-      } else if (uri.startsWith("/")) {
-        uri = `file://${uri}`;
-      }
-
       try {
-        const changes = await handlePatch(space, appTree, uri, patch, createIfMissing);
+        const filePatches = parseFilePatches(patch);
+
+        let totalChanges = 0;
+        const summaries: string[] = [];
+
+        for (const filePatch of filePatches) {
+          const uri = normalizeUri(filePatch.path);
+          const changes = await handlePatch(space, appTree, uri, filePatch.blocks, true);
+          totalChanges += changes;
+          summaries.push(`${filePatch.path} (${changes} change${changes === 1 ? "" : "s"})`);
+        }
+
         return {
           status: "completed",
-          output: `Patched ${path} (${changes} change${changes === 1 ? "" : "s"})`,
+          output: `Patched ${filePatches.length} file${filePatches.length === 1 ? "" : "s"} (${totalChanges} change${totalChanges === 1 ? "" : "s"}): ${summaries.join("; ")}`,
         };
       } catch (error: any) {
         return {
@@ -114,6 +118,16 @@ function parseSearchReplaceBlocks(patch: string): SearchReplaceBlock[] {
   return blocks;
 }
 
+function normalizeUri(path: string): string {
+  let uri = path;
+  if (!uri.startsWith("file:") && !uri.startsWith("/")) {
+    uri = `file:${uri}`;
+  } else if (uri.startsWith("/")) {
+    uri = `file://${uri}`;
+  }
+  return uri;
+}
+
 function applyBlocksToContent(content: string, blocks: SearchReplaceBlock[]): string {
   let updated = content;
 
@@ -142,7 +156,7 @@ async function handlePatch(
   space: Space,
   appTree: AppTree | undefined,
   uri: string,
-  rawPatch: string,
+  blocks: SearchReplaceBlock[],
   createIfMissing: boolean,
 ): Promise<number> {
   const store = space.fileStore;
@@ -175,8 +189,6 @@ async function handlePatch(
     }
   }
 
-  const patch = stripCodeFence(rawPatch);
-  const blocks = parseSearchReplaceBlocks(patch);
   const updated = applyBlocksToContent(currentContent, blocks);
 
   const inferredMime = mimeType || inferTextMimeFromPath(name) || "text/plain";
@@ -207,4 +219,32 @@ async function handlePatch(
   }
 
   return blocks.length;
+}
+
+function parseFilePatches(rawPatch: string): FilePatch[] {
+  const cleaned = stripCodeFence(rawPatch);
+  const fileBlockRegex =
+    /^([^\n`][^\n]*)\n\s*(?:```[^\n]*\n)?(<<<<<<< SEARCH[\s\S]*?>>>>>>> REPLACE)(?:\n```)?/gm;
+
+  const grouped = new Map<string, SearchReplaceBlock[]>();
+  let match: RegExpExecArray | null;
+
+  while ((match = fileBlockRegex.exec(cleaned)) !== null) {
+    const path = match[1].trim();
+    const blockText = match[2];
+
+    if (!path) {
+      continue;
+    }
+
+    const blocks = parseSearchReplaceBlocks(blockText);
+    const existing = grouped.get(path) ?? [];
+    grouped.set(path, [...existing, ...blocks]);
+  }
+
+  if (grouped.size === 0) {
+    throw new Error("No file paths found in patch");
+  }
+
+  return Array.from(grouped.entries()).map(([path, blocks]) => ({ path, blocks }));
 }

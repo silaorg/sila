@@ -213,7 +213,7 @@ export class AgentServices {
 
     if (!useApplyPatch) {
       tools.push(getToolSearchReplacePatch(this.space, appTree));
-      tools.push(getToolWriteToFile(this.space, appTree));
+      //tools.push(getToolWriteToFile(this.space, appTree));
     }
 
     // Image generation tool (available for all providers)

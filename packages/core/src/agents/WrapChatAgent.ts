@@ -266,6 +266,7 @@ export class WrapChatAgent
           this.emit({ type: "messageGenerated" });
         } else if (event.type === "error") {
           // @TODO: should we do something here?
+          console.error("Agent error:", event);
         } else if (event.type === "aborted") {
           for (const msg of targetMessages) {
             if (msg.inProgress) {
