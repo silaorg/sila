@@ -55,7 +55,7 @@ export const toolRm: AgentTool = {
           ? space.rootVertex
           : (appTree?.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH) || null);
 
-        if (isWorkspacePath && target.id === scopeRoot.id) {
+        if (isWorkspacePath && target.id === scopeRoot!.id) {
           throw new Error("rm: cannot delete workspace root");
         }
 

@@ -201,6 +201,7 @@ export class AgentServices {
       toolRm,
       toolMove,
       useApplyPatch ? toolApplyPatch : toolSearchReplacePatch,
+      // @TODO: only activate them if fal.ai is setup
       toolGenerateImage,
       toolGenerateVideo,
     ];
