@@ -10,6 +10,7 @@ export const AnalyticsEvents = {
   AssistantUpdated: "assistant_updated",
   AssistantDeleted: "assistant_deleted",
   ChatStarted: "chat_started",
+  ChatOpened: "chat_opened",
   ChatSent: "chat_sent",
   ChatEdited: "chat_edited",
   ChatBranchCreated: "chat_branch_created",

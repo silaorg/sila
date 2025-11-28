@@ -155,7 +155,7 @@
   onMount(() => {
     messages = data.messageVertices;
     refreshHasFiles();
-    spaceTelemetry?.chatStarted({
+    spaceTelemetry?.chatOpened({
       chat_id: data.threadId,
       assistant_id: data.configId,
     });

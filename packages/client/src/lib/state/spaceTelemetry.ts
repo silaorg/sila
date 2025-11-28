@@ -57,6 +57,10 @@ export class SpaceTelemetry {
     this.capture(AnalyticsEvents.ChatStarted, props);
   }
 
+  chatOpened(props: { chat_id: string; assistant_id?: string }) {
+    this.capture(AnalyticsEvents.ChatOpened, props);
+  }
+
   chatSent(props: {
     thread_id: string;
     message_length: number;
