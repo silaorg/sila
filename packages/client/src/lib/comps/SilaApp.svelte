@@ -39,7 +39,7 @@
 
       if (!apiKey || !host) {
         console.error("Analytics not configured: missing env vars");
-        return null;
+        return undefined;
       }
 
       return {
