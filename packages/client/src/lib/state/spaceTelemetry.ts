@@ -1,28 +1,30 @@
-import type posthog from "posthog-js";
 import type { Space } from "@sila/core";
 import {
   AnalyticsErrors,
   AnalyticsEvents,
   type AnalyticsName,
 } from "./analyticsEvents";
+import { AppTelemetry } from "./clientTelemetry";
 
-export class SpaceAnalytics {
+export class SpaceTelemetry {
   constructor(
-    private analytics: typeof posthog | null,
-    private analyticsBase: Record<string, unknown>,
-    private spaceId?: string,
+    private analytics: AppTelemetry,
     private getSpace: () => Space | null = () => null,
   ) {}
 
   private capture(event: AnalyticsName, props?: Record<string, unknown>) {
     if (!this.analytics) return;
     const space = this.getSpace();
-    const merged = { ...this.analyticsBase, ...(props ?? {}) };
-    if (this.spaceId && !("space_id" in merged)) {
-      merged.space_id = this.spaceId;
+    const merged = { ...(props ?? {}) };
+
+    const spaceId = space?.getId();
+    const spaceName = space?.name;
+
+    if (spaceId) {
+      merged.space_id = spaceId;
     }
-    if (!("space_name" in merged) && space?.name) {
-      merged.space_name = space.name;
+    if (spaceName) {
+      merged.space_name = spaceName;
     }
     this.analytics.capture(event, merged);
   }

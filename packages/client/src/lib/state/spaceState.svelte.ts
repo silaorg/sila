@@ -16,10 +16,16 @@ import {
   setSecret
 } from "@sila/client/localDb";
 import { Backend, FileResolver } from "@sila/core";
-import posthog from "posthog-js";
-import { SpaceAnalytics } from "./spaceAnalytics";
-import { getAnalyticsBase } from "./analyticsBase";
+import { SpaceTelemetry } from "./spaceTelemetry";
 import VertexViewer from "./vertexViewer.svelte";
+import { AppTelemetry } from "./clientTelemetry";
+
+export type SpaceStateConfig = {
+  pointer: SpacePointer;
+  spaceManager: SpaceManager;
+  analytics: AppTelemetry;
+  getAppFs?: () => AppFileSystem | null;
+};
 
 export class SpaceState {
   pointer: SpacePointer;
@@ -34,25 +40,24 @@ export class SpaceState {
   private getAppFs: () => AppFileSystem | null;
 
   private backend: Backend | null = null;
-  spaceAnalytics: SpaceAnalytics;
+  spaceTelemetry: SpaceTelemetry;
 
-  constructor(pointer: SpacePointer, spaceManager: SpaceManager, getAppFs: () => AppFileSystem | null = () => null) {
-    this.pointer = pointer;
-    this.spaceManager = spaceManager;
-    this.getAppFs = getAppFs;
-    this.layout.spaceId = pointer.id;
+  constructor(config: SpaceStateConfig) {
+    this.pointer = config.pointer;
+    this.spaceManager = config.spaceManager;
+    this.getAppFs = config.getAppFs ? config.getAppFs : () => null;
+    this.layout.spaceId = this.pointer.id;
     this.vertexViewer = new VertexViewer();
 
-    const space = this.spaceManager.getSpace(pointer.id);
+    const space = this.spaceManager.getSpace(this.pointer.id);
     this.fileResolver = space?.fileResolver ?? new FileResolver();
-    const analytics = typeof window === "undefined" ? null : posthog;
-    const analyticsBase = getAnalyticsBase();
-    this.spaceAnalytics = new SpaceAnalytics(analytics, analyticsBase, this.pointer.id, () => this.space);
+    
+    this.spaceTelemetry = new SpaceTelemetry(config.analytics, () => this.space);
 
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {
       this.space = space;
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(pointer.id) || [];
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.id) || [];
       this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 

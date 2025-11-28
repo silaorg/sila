@@ -45,7 +45,7 @@
 
   onMount(() => {
     if (space) {
-      spaceState?.spaceAnalytics.onboardingOpened({ space_name: space.name });
+      spaceState?.spaceTelemetry.onboardingOpened({ space_name: space.name });
       let name = space.name;
       // If the space has no name, use the last part of the URI as the name
       if (!name && spaceState?.pointer.uri) {
@@ -62,7 +62,7 @@
 
   function handleProviderConnect(provider: ModelProvider) {
     hasSetupProvider = true;
-    spaceState?.spaceAnalytics.onboardingProviderConnected({
+    spaceState?.spaceTelemetry.onboardingProviderConnected({
       provider_id: provider.id
     });
   }
@@ -92,7 +92,7 @@
     if (space) {
       const rootVertex = space.tree.root!;
       space.tree.setVertexProperty(rootVertex.id, "onboarding", false);
-      spaceState?.spaceAnalytics.onboardingCompleted({
+      spaceState?.spaceTelemetry.onboardingCompleted({
         provider_connected: hasSetupProvider
       });
       // Potentially navigate away or show a success message

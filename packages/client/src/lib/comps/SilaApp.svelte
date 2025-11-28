@@ -19,35 +19,43 @@
     config,
     state,
     children,
-  }: { config: ClientStateConfig | null; state?: ClientState; children?: Snippet } = $props();
+  }: {
+    config: ClientStateConfig | null;
+    state?: ClientState;
+    children?: Snippet;
+  } = $props();
 
   const providedState = $derived(state || new ClientState());
 
   const runtimeMode = getRuntimeMode();
 
-  const analyticsConfig = $derived.by((): ClientStateConfig["analyticsConfig"] => {
-    const apiKeyBase = "POSTHOG_API_KEY";
-    const hostKeyBase = "POSTHOG_API_HOST";
+  const defaultTelemetryConfig = $derived.by(
+    (): ClientStateConfig["telemetryConfig"] => {
+      const apiKeyBase = "POSTHOG_API_KEY";
+      const hostKeyBase = "POSTHOG_API_HOST";
 
-    const apiKey = readEnvForMode(apiKeyBase, runtimeMode);
-    const host = readEnvForMode(hostKeyBase, runtimeMode);
+      const apiKey = readEnvForMode(apiKeyBase, runtimeMode);
+      const host = readEnvForMode(hostKeyBase, runtimeMode);
 
-    if (!apiKey || !host) {
-      console.error("Analytics not configured: missing env vars");
-      return null;
-    }
+      if (!apiKey || !host) {
+        console.error("Analytics not configured: missing env vars");
+        return null;
+      }
 
-    return {
-      apiKey,
-      host,
-      debug: runtimeMode === "development",
-      autocapture: false
-    };
-  });
+      return {
+        apiKey,
+        host,
+        debug: runtimeMode === "development",
+      };
+    },
+  );
 
   const resolvedConfig = $derived.by(() => {
     if (!config) return null;
-    return { ...config, analyticsConfig: analyticsConfig ?? config.analyticsConfig ?? null };
+    return {
+      ...config,
+      telemetryConfig: config.telemetryConfig ? config.telemetryConfig : defaultTelemetryConfig,
+    };
   });
 
   $effect(() => {
@@ -65,10 +73,10 @@
   });
 
   console.log(
-    "👋 Hey, if you see any bugs - please report them to https://github.com/silaorg/sila/issues"
+    "👋 Hey, if you see any bugs - please report them to https://github.com/silaorg/sila/issues",
   );
   console.log(
-    "Reach out to the author of the project with any questions - Dmitry at d@dkury.com"
+    "Reach out to the author of the project with any questions - Dmitry at d@dkury.com",
   );
 </script>
 

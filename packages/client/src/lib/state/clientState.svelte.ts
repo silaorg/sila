@@ -1,22 +1,31 @@
-import { AuthStore, type User } from './auth.svelte';
-import { ThemeStore } from './theme.svelte';
-import { SpaceState } from './spaceState.svelte';
-import { isDevMode, spaceInspectorOpen } from './devMode';
-import { txtStore } from './txtStore';
-import { setupSwins, swinsLayout } from './swinsLayout';
+import { AuthStore, type User } from "./auth.svelte";
+import { ThemeStore } from "./theme.svelte";
+import { SpaceState } from "./spaceState.svelte";
+import { isDevMode, spaceInspectorOpen } from "./devMode";
+import { txtStore } from "./txtStore";
+import { setupSwins, swinsLayout } from "./swinsLayout";
 import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
-import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
-import { initializeDatabase, savePointers, saveConfig, deleteSpace, saveCurrentSpaceId } from "@sila/client/localDb";
-import { SpaceManager, Space, AppTree, type Vertex, getRuntimeMode } from "@sila/core";
-import { AppFileSystem } from '../appFs';
-import type { AppDialogs } from '../appDialogs';
-import { uuid } from '@sila/core';
+import {
+  checkIfCanCreateSpaceAndReturnPath,
+  checkIfPathHasValidStructureAndReturnActualRootPath,
+  loadSpaceMetadataFromPath,
+} from "../spaces/fileSystemSpaceUtils";
+import {
+  deleteSpace,
+  initializeDatabase,
+  saveConfig,
+  saveCurrentSpaceId,
+  savePointers,
+} from "@sila/client/localDb";
+import { Space, SpaceManager } from "@sila/core";
+import { AppFileSystem } from "../appFs";
+import type { AppDialogs } from "../appDialogs";
+import { uuid } from "@sila/core";
 import { toast } from "svelte-sonner";
-import { EventStacks } from '../utils/eventStacks';
-import posthog from 'posthog-js';
-import { AnalyticsEvents, type AnalyticsName } from './analyticsEvents';
-import { getAnalyticsBase } from './analyticsBase';
+import { EventStacks } from "../utils/eventStacks";
+import { AnalyticsEvents, type AnalyticsName } from "./analyticsEvents";
+import { type AnalyticsConfig, AppTelemetry } from "./clientTelemetry";
 
 interface AuthTokens {
   access_token: string;
@@ -28,26 +37,15 @@ export type ClientStateConfig = {
   initState?: ClientState;
   fs?: AppFileSystem;
   dialog?: AppDialogs;
-  analyticsConfig?: AnalyticsConfig | null;
-}
+  telemetryConfig?: AnalyticsConfig;
+};
 
 type SpaceStatus = "disconnected" | "loading" | "ready" | "error";
-
-type AnalyticsConfig = {
-  enabled?: boolean;
-  apiKey: string;
-  host: string;
-  devApiKey?: string;
-  devHost?: string;
-  debug?: boolean;
-  autocapture?: boolean;
-  persistence?: 'memory' | 'localStorage' | 'cookie';
-};
 
 /**
  * Central hub for client-side state management.
  * We reference all client-related states here and pass them to components via a Svelte context.
- * See: ClientStateProvider.svelte - this component takes a ClientState instance and shares it in a context 
+ * See: ClientStateProvider.svelte - this component takes a ClientState instance and shares it in a context
  * that components within ClientStateProvider.svelte can access.
  */
 export class ClientState {
@@ -58,15 +56,16 @@ export class ClientState {
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
   private _dialog: AppDialogs | null = null;
-  analytics: typeof posthog | null = null;
-  analyticsBase: Record<string, unknown> = {};
+  appTelemetry = new AppTelemetry();
 
   currentSpaceState: SpaceState | null = $state(null); // @TODO: consider making it a derived state
   currentSpace: Space | null = $derived(this.currentSpaceState?.space || null);
 
   // @TODO: can we get rid of them and instead rely on _spaceStates?
   pointers: SpacePointer[] = $state([]);
-  currentSpaceId: string | null = $derived(this.currentSpaceState?.pointer.id || null);
+  currentSpaceId: string | null = $derived(
+    this.currentSpaceState?.pointer.id || null,
+  );
   config: Record<string, unknown> = $state({});
   auth = new AuthStore();
 
@@ -119,7 +118,7 @@ export class ClientState {
 
   dev = {
     isDevMode,
-    spaceInspectorOpen
+    spaceInspectorOpen,
   };
   texts = txtStore;
   // Generic LIFO event stacks (e.g., "close") that components can subscribe to
@@ -130,48 +129,19 @@ export class ClientState {
     return this.events.emit("close");
   }
 
-  private initAnalytics(config: AnalyticsConfig | null): void {
-    if (typeof window === "undefined") return;
-    if (!config || config.enabled === false) return;
-    const mode = getRuntimeMode();
-    const isProd = mode === "production";
-    const apiKey = isProd ? config.apiKey : config.devApiKey ?? config.apiKey;
-    const host = isProd ? config.host : config.devHost ?? config.host;
-    if (!apiKey || !host) return;
-
-    try {
-      this.analyticsBase = getAnalyticsBase();
-      posthog.init(apiKey, {
-        api_host: host,
-        debug: config.debug,
-        autocapture: config.autocapture ?? false,
-        persistence: config.persistence
-      });
-      this.analytics = posthog;
-    } catch (err) {
-      console.error("Failed to init analytics", err);
-      this.analytics = null;
-    }
-  }
-
   track(event: AnalyticsName, props?: Record<string, unknown>): void {
-    if (!this.analytics) return;
-    try {
-      this.analytics.capture(event, { ...this.analyticsBase, ...(props ?? {}) });
-    } catch (err) {
-      console.error("Failed to track analytics event", err);
-    }
+    this.appTelemetry.capture(event, props);
   }
 
   layout = {
     swins: setupSwins(),
 
     openSettings: () => {
-      this.layout.swins.open(swinsLayout.settings.key, {}, 'Settings');
+      this.layout.swins.open(swinsLayout.settings.key, {}, "Settings");
     },
     openSpaces: () => {
-      this.layout.swins.open(swinsLayout.spaces.key, {}, 'Workspaces');
-    }
+      this.layout.swins.open(swinsLayout.spaces.key, {}, "Workspaces");
+    },
   };
 
   async init(initState?: ClientStateConfig): Promise<void> {
@@ -181,10 +151,10 @@ export class ClientState {
 
     this._fs = initState?.fs || null;
     this._dialog = initState?.dialog || null;
-    this.initAnalytics(initState?.analyticsConfig ?? null);
+    this.appTelemetry.init(initState?.telemetryConfig ?? null);
 
     await this.loadFromLocalDb();
-    this.track(AnalyticsEvents.AppOpened, { spaces: this.pointers.length });
+    this.appTelemetry.capture(AnalyticsEvents.AppOpened, { spaces: this.pointers.length });
 
     this._init = true;
   }
@@ -202,16 +172,23 @@ export class ClientState {
       this.config = config;
 
       // Create SpaceState instances for all pointers
-      this._spaceStates = pointers.map(pointer => new SpaceState(pointer, this._spaceManager, () => this._fs));
+      this._spaceStates = pointers.map((pointer) =>
+        new SpaceState({
+          pointer,
+          spaceManager: this._spaceManager,
+          analytics: this.appTelemetry,
+          getAppFs: () => this._fs,
+        })
+      );
 
       // Register existing spaces with electron file system for file protocol
-      if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
+      if (typeof window !== "undefined" && (window as any).electronFileSystem) {
         for (const pointer of pointers) {
           (window as any).electronFileSystem.registerSpace(
             pointer.id,
             pointer.uri,
             pointer.name,
-            pointer.createdAt
+            pointer.createdAt,
           );
         }
       }
@@ -227,10 +204,11 @@ export class ClientState {
 
       // Set final status
       this._updateCurrentSpace();
-
     } catch (error) {
-      console.error('Failed to initialize client state:', error);
-      this._initializationError = error instanceof Error ? error.message : String(error);
+      console.error("Failed to initialize client state:", error);
+      this._initializationError = error instanceof Error
+        ? error.message
+        : String(error);
     }
   }
 
@@ -267,23 +245,32 @@ export class ClientState {
     };
 
     // Create persistence layers based on URI
-    const persistenceLayers = createPersistenceLayersForURI(spaceId, pointer.uri, this._fs);
+    const persistenceLayers = createPersistenceLayersForURI(
+      spaceId,
+      pointer.uri,
+      this._fs,
+    );
 
     await this._spaceManager.addNewSpace(space, persistenceLayers);
 
     // Register space with electron file system for file protocol
-    if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
       (window as any).electronFileSystem.registerSpace(
         spaceId,
         pointer.uri,
         space.name || null,
-        space.createdAt
+        space.createdAt,
       );
     }
 
     // Add to our collections
     this.pointers = [...this.pointers, pointer];
-    const newSpaceState = new SpaceState(pointer, this._spaceManager, () => this._fs);
+    const newSpaceState = new SpaceState({
+      pointer,
+      spaceManager: this._spaceManager,
+      analytics: this.appTelemetry,
+      getAppFs: () => this._fs,
+    });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space
@@ -291,7 +278,10 @@ export class ClientState {
 
     this._updateCurrentSpace();
     await this._saveState();
-    this.track(AnalyticsEvents.SpaceCreated, { spaceId, uriScheme: pointer.uri.split("://")[0] || "unknown" });
+    this.appTelemetry.capture(AnalyticsEvents.SpaceCreated, {
+      spaceId,
+      uriScheme: pointer.uri.split("://")[0] || "unknown",
+    });
 
     return spaceId;
   }
@@ -321,7 +311,12 @@ export class ClientState {
 
     // Update client state collections
     this.pointers = [...this.pointers, pointer];
-    const newSpaceState = new SpaceState(pointer, this._spaceManager, () => this._fs);
+    const newSpaceState = new SpaceState({
+      pointer,
+      spaceManager: this._spaceManager,
+      analytics: this.appTelemetry,
+      getAppFs: () => this._fs,
+    });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space without saving to local DB
@@ -330,7 +325,7 @@ export class ClientState {
 
     // Mark client initialized for in-memory usage scenarios (gallery/tests)
     this._init = true;
-    this.track(AnalyticsEvents.SpaceCreatedDemo, { spaceId });
+    this.appTelemetry.capture(AnalyticsEvents.SpaceCreatedDemo, { spaceId });
 
     return spaceId;
   }
@@ -340,12 +335,14 @@ export class ClientState {
    */
   async removeSpace(spaceId: string): Promise<void> {
     // Unregister space from electron file system
-    if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
       (window as any).electronFileSystem.unregisterSpace(spaceId);
     }
 
     // Find and disconnect the space being removed (since we keep spaces connected now)
-    const spaceToRemove = this._spaceStates.find(s => s.pointer.id === spaceId);
+    const spaceToRemove = this._spaceStates.find((s) =>
+      s.pointer.id === spaceId
+    );
     if (spaceToRemove) {
       spaceToRemove.disconnect();
     }
@@ -356,8 +353,10 @@ export class ClientState {
     }
 
     // Remove from our collections
-    this.pointers = this.pointers.filter(p => p.id !== spaceId);
-    this._spaceStates = this._spaceStates.filter(s => s.pointer.id !== spaceId);
+    this.pointers = this.pointers.filter((p) => p.id !== spaceId);
+    this._spaceStates = this._spaceStates.filter((s) =>
+      s.pointer.id !== spaceId
+    );
 
     // Update current space if it was removed
     if (this.currentSpaceId === spaceId) {
@@ -382,12 +381,12 @@ export class ClientState {
    */
   async updateSpaceName(spaceId: string, name: string): Promise<void> {
     // Update in pointers
-    this.pointers = this.pointers.map(p =>
+    this.pointers = this.pointers.map((p) =>
       p.id === spaceId ? { ...p, name } : p
     );
 
     // Update in SpaceState
-    const spaceState = this._spaceStates.find(s => s.pointer.id === spaceId);
+    const spaceState = this._spaceStates.find((s) => s.pointer.id === spaceId);
     if (spaceState) {
       spaceState.pointer = { ...spaceState.pointer, name };
 
@@ -418,7 +417,7 @@ export class ClientState {
    * Dummy implementation for user sign out
    */
   private async _handleUserSignOut(): Promise<void> {
-    // For now, do nothing  
+    // For now, do nothing
     // TODO: Implement when auth is needed
   }
 
@@ -432,7 +431,7 @@ export class ClientState {
     if (!spaceId) return;
 
     // Find and connect to new space
-    const spaceState = this._spaceStates.find(s => s.pointer.id === spaceId);
+    const spaceState = this._spaceStates.find((s) => s.pointer.id === spaceId);
     if (spaceState) {
       try {
         this.currentSpaceState = spaceState;
@@ -442,9 +441,9 @@ export class ClientState {
           await spaceState.connect();
         }
         if (this.currentSpaceState) {
-          this.currentSpaceState.spaceAnalytics.spaceEntered({
+          this.currentSpaceState.spaceTelemetry.spaceEntered({
             space_id: this.currentSpaceState.pointer.id,
-            space_name: this.currentSpaceState.pointer.name
+            space_name: this.currentSpaceState.pointer.name,
           });
         }
       } catch (error) {
@@ -453,7 +452,6 @@ export class ClientState {
         this.currentSpaceState = null;
         // Remove the space from the SpaceManager
         this.removeSpace(spaceId);
-
       }
     }
   }
@@ -475,7 +473,7 @@ export class ClientState {
       await Promise.all([
         savePointers(this.pointers),
         saveConfig(this.config),
-        saveCurrentSpaceId(this.currentSpaceId)
+        saveCurrentSpaceId(this.currentSpaceId),
       ]);
     } catch (error) {
       console.error("Failed to save state:", error);
@@ -514,13 +512,14 @@ export class ClientState {
    */
   async loadSpace(uri: string): Promise<string> {
     // We do this because a user might have selected a folder inside the space directory
-    const spaceRootPath = await checkIfPathHasValidStructureAndReturnActualRootPath(this, uri);
+    const spaceRootPath =
+      await checkIfPathHasValidStructureAndReturnActualRootPath(this, uri);
 
     // Load space metadata from the file system
     const { spaceId } = await loadSpaceMetadataFromPath(this, spaceRootPath);
 
     // Check if space is already loaded
-    const existingPointer = this.pointers.find(p => p.id === spaceId);
+    const existingPointer = this.pointers.find((p) => p.id === spaceId);
     if (existingPointer) {
       // Space already exists, just switch to it
       await this.switchToSpace(spaceId);
@@ -537,18 +536,25 @@ export class ClientState {
     };
 
     // Create persistence layers based on URI (will be IndexedDB + FileSystem)
-    const persistenceLayers = createPersistenceLayersForURI(spaceId, spaceRootPath, this._fs);
+    const persistenceLayers = createPersistenceLayersForURI(
+      spaceId,
+      spaceRootPath,
+      this._fs,
+    );
 
     // Load the space using SpaceManager
-    const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
+    const space = await this._spaceManager.loadSpace(
+      pointer,
+      persistenceLayers,
+    );
 
     // Register space with electron file system for file protocol
-    if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
       (window as any).electronFileSystem.registerSpace(
         spaceId,
         spaceRootPath,
         space.name || null,
-        space.createdAt
+        space.createdAt,
       );
     }
 
@@ -558,7 +564,12 @@ export class ClientState {
 
     // Add to our collections
     this.pointers = [...this.pointers, pointer];
-    const newSpaceState = new SpaceState(pointer, this._spaceManager);
+    const newSpaceState = new SpaceState({
+      pointer,
+      spaceManager: this._spaceManager,
+      analytics: this.appTelemetry,
+      getAppFs: () => this._fs,
+    });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the loaded space
@@ -585,7 +596,9 @@ export class ClientState {
 
     // Load theme for current space
     if (this.currentSpaceState) {
-      await this.currentSpaceState.theme.loadSpaceTheme(this.currentSpaceState.pointer.id);
+      await this.currentSpaceState.theme.loadSpaceTheme(
+        this.currentSpaceState.pointer.id,
+      );
     }
 
     // Try to register spaces with electron file system (in case API is now available)
@@ -596,13 +609,13 @@ export class ClientState {
    * Register all current spaces with the electron file system
    */
   private _registerSpacesWithElectron(): void {
-    if (typeof window !== 'undefined' && (window as any).electronFileSystem) {
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
       for (const pointer of this.pointers) {
         (window as any).electronFileSystem.registerSpace(
           pointer.id,
           pointer.uri,
           pointer.name,
-          pointer.createdAt
+          pointer.createdAt,
         );
       }
     } else {
