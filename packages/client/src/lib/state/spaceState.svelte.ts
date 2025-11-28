@@ -16,6 +16,9 @@ import {
   setSecret
 } from "@sila/client/localDb";
 import { Backend, FileResolver } from "@sila/core";
+import posthog from "posthog-js";
+import { SpaceAnalytics } from "./spaceAnalytics";
+import { getAnalyticsBase } from "./analyticsBase";
 import VertexViewer from "./vertexViewer.svelte";
 
 export class SpaceState {
@@ -31,6 +34,7 @@ export class SpaceState {
   private getAppFs: () => AppFileSystem | null;
 
   private backend: Backend | null = null;
+  spaceAnalytics: SpaceAnalytics;
 
   constructor(pointer: SpacePointer, spaceManager: SpaceManager, getAppFs: () => AppFileSystem | null = () => null) {
     this.pointer = pointer;
@@ -41,6 +45,9 @@ export class SpaceState {
 
     const space = this.spaceManager.getSpace(pointer.id);
     this.fileResolver = space?.fileResolver ?? new FileResolver();
+    const analytics = typeof window === "undefined" ? null : posthog;
+    const analyticsBase = getAnalyticsBase();
+    this.spaceAnalytics = new SpaceAnalytics(analytics, analyticsBase, this.pointer.id, () => this.space);
 
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {

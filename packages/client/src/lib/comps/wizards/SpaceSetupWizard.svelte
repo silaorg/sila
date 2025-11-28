@@ -7,10 +7,14 @@
   import Lightswitch from "@sila/client/comps/basic/Lightswitch.svelte";
   import { onMount } from "svelte";
   import ThemeSwitcher from "../themes/ThemeSwitcher.svelte";
+  import type { ModelProvider } from "@sila/core";
 
   let spaceName = $state("");
   let spaceNameError = $state(""); // Kept for potential future use, though Wizard handles its own validation display
   let hasSetupProvider = $state(false);
+
+  const spaceState = $derived(clientState.currentSpaceState);
+  const space = $derived(clientState.currentSpace);
 
   const presetNames = ["Personal", "Work", "Studies", "School"];
 
@@ -23,7 +27,6 @@
   let currentWizardStep = $state(0);
 
   $effect(() => {
-    const space = clientState.currentSpace;
     if (space) {
       const providerVertex = space.tree.getVertexByPath("providers");
       if (providerVertex) {
@@ -33,23 +36,20 @@
   });
 
   function handleCancel() {
-    const space = clientState.currentSpace;
-
     if (!space) {
       return;
     }
 
-    // Use legacy system for removal operations to maintain compatibility
     clientState.removeSpace(space.getId());
   }
 
   onMount(() => {
-    const space = clientState.currentSpace;
     if (space) {
+      spaceState?.spaceAnalytics.onboardingOpened({ space_name: space.name });
       let name = space.name;
       // If the space has no name, use the last part of the URI as the name
-      if (!name && clientState.currentSpaceState?.pointer.uri) {
-        const uri = clientState.currentSpaceState.pointer.uri;
+      if (!name && spaceState?.pointer.uri) {
+        const uri = spaceState.pointer.uri;
         const parts = uri.split("/");
         if (parts.length > 0) {
           name = parts[parts.length - 1];
@@ -60,8 +60,11 @@
     }
   });
 
-  function handleProviderConnect() {
+  function handleProviderConnect(provider: ModelProvider) {
     hasSetupProvider = true;
+    spaceState?.spaceAnalytics.onboardingProviderConnected({
+      provider_id: provider.id
+    });
   }
 
   function handleStepChange(newStep: number) {
@@ -86,20 +89,17 @@
   }
 
   function completeSetup() {
-    const space = clientState.currentSpace;
     if (space) {
       const rootVertex = space.tree.root!;
       space.tree.setVertexProperty(rootVertex.id, "onboarding", false);
+      spaceState?.spaceAnalytics.onboardingCompleted({
+        provider_connected: hasSetupProvider
+      });
       // Potentially navigate away or show a success message
     }
   }
 
-  let canAdvance = $derived.by(() => {
-    if (currentWizardStep === 0 && !hasSetupProvider) {
-      return false;
-    }
-    return true;
-  });
+  let canAdvance = $derived(currentWizardStep === 0 ? hasSetupProvider : true);
 </script>
 
 <Wizard

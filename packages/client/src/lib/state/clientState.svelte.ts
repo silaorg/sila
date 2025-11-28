@@ -8,12 +8,15 @@ import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
 import { checkIfCanCreateSpaceAndReturnPath, checkIfPathHasValidStructureAndReturnActualRootPath, loadSpaceMetadataFromPath } from "../spaces/fileSystemSpaceUtils";
 import { initializeDatabase, savePointers, saveConfig, deleteSpace, saveCurrentSpaceId } from "@sila/client/localDb";
-import { SpaceManager, Space, AppTree, type Vertex } from "@sila/core";
+import { SpaceManager, Space, AppTree, type Vertex, getRuntimeMode } from "@sila/core";
 import { AppFileSystem } from '../appFs';
 import type { AppDialogs } from '../appDialogs';
 import { uuid } from '@sila/core';
 import { toast } from "svelte-sonner";
 import { EventStacks } from '../utils/eventStacks';
+import posthog from 'posthog-js';
+import { AnalyticsEvents, type AnalyticsName } from './analyticsEvents';
+import { getAnalyticsBase } from './analyticsBase';
 
 interface AuthTokens {
   access_token: string;
@@ -25,9 +28,21 @@ export type ClientStateConfig = {
   initState?: ClientState;
   fs?: AppFileSystem;
   dialog?: AppDialogs;
+  analyticsConfig?: AnalyticsConfig | null;
 }
 
 type SpaceStatus = "disconnected" | "loading" | "ready" | "error";
+
+type AnalyticsConfig = {
+  enabled?: boolean;
+  apiKey: string;
+  host: string;
+  devApiKey?: string;
+  devHost?: string;
+  debug?: boolean;
+  autocapture?: boolean;
+  persistence?: 'memory' | 'localStorage' | 'cookie';
+};
 
 /**
  * Central hub for client-side state management.
@@ -43,6 +58,8 @@ export class ClientState {
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
   private _dialog: AppDialogs | null = null;
+  analytics: typeof posthog | null = null;
+  analyticsBase: Record<string, unknown> = {};
 
   currentSpaceState: SpaceState | null = $state(null); // @TODO: consider making it a derived state
   currentSpace: Space | null = $derived(this.currentSpaceState?.space || null);
@@ -113,6 +130,39 @@ export class ClientState {
     return this.events.emit("close");
   }
 
+  private initAnalytics(config: AnalyticsConfig | null): void {
+    if (typeof window === "undefined") return;
+    if (!config || config.enabled === false) return;
+    const mode = getRuntimeMode();
+    const isProd = mode === "production";
+    const apiKey = isProd ? config.apiKey : config.devApiKey ?? config.apiKey;
+    const host = isProd ? config.host : config.devHost ?? config.host;
+    if (!apiKey || !host) return;
+
+    try {
+      this.analyticsBase = getAnalyticsBase();
+      posthog.init(apiKey, {
+        api_host: host,
+        debug: config.debug,
+        autocapture: config.autocapture ?? false,
+        persistence: config.persistence
+      });
+      this.analytics = posthog;
+    } catch (err) {
+      console.error("Failed to init analytics", err);
+      this.analytics = null;
+    }
+  }
+
+  track(event: AnalyticsName, props?: Record<string, unknown>): void {
+    if (!this.analytics) return;
+    try {
+      this.analytics.capture(event, { ...this.analyticsBase, ...(props ?? {}) });
+    } catch (err) {
+      console.error("Failed to track analytics event", err);
+    }
+  }
+
   layout = {
     swins: setupSwins(),
 
@@ -131,8 +181,10 @@ export class ClientState {
 
     this._fs = initState?.fs || null;
     this._dialog = initState?.dialog || null;
+    this.initAnalytics(initState?.analyticsConfig ?? null);
 
     await this.loadFromLocalDb();
+    this.track(AnalyticsEvents.AppOpened, { spaces: this.pointers.length });
 
     this._init = true;
   }
@@ -239,6 +291,7 @@ export class ClientState {
 
     this._updateCurrentSpace();
     await this._saveState();
+    this.track(AnalyticsEvents.SpaceCreated, { spaceId, uriScheme: pointer.uri.split("://")[0] || "unknown" });
 
     return spaceId;
   }
@@ -277,6 +330,7 @@ export class ClientState {
 
     // Mark client initialized for in-memory usage scenarios (gallery/tests)
     this._init = true;
+    this.track(AnalyticsEvents.SpaceCreatedDemo, { spaceId });
 
     return spaceId;
   }
@@ -386,6 +440,12 @@ export class ClientState {
         // Connect if not already connected
         if (!spaceState.isConnected) {
           await spaceState.connect();
+        }
+        if (this.currentSpaceState) {
+          this.currentSpaceState.spaceAnalytics.spaceEntered({
+            space_id: this.currentSpaceState.pointer.id,
+            space_name: this.currentSpaceState.pointer.name
+          });
         }
       } catch (error) {
         console.log(`Removing space ${spaceId} from SpaceManager`);

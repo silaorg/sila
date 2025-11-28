@@ -3,6 +3,7 @@
   import { type ClientStateConfig } from "@sila/client";
   import ClientStateProvider from "@sila/client/comps/ClientStateProvider.svelte";
   import { ClientState } from "@sila/client";
+  import { getRuntimeMode, readEnvForMode } from "@sila/core";
   import SpaceEntry from "./SpaceEntry.svelte";
   import SwinsContainer from "../swins/SwinsContainer.svelte";
   import ContextMenuHandler from "./ContextMenuHandler.svelte";
@@ -22,9 +23,36 @@
 
   const providedState = $derived(state || new ClientState());
 
+  const runtimeMode = getRuntimeMode();
+
+  const analyticsConfig = $derived.by((): ClientStateConfig["analyticsConfig"] => {
+    const apiKeyBase = "POSTHOG_API_KEY";
+    const hostKeyBase = "POSTHOG_API_HOST";
+
+    const apiKey = readEnvForMode(apiKeyBase, runtimeMode);
+    const host = readEnvForMode(hostKeyBase, runtimeMode);
+
+    if (!apiKey || !host) {
+      console.error("Analytics not configured: missing env vars");
+      return null;
+    }
+
+    return {
+      apiKey,
+      host,
+      debug: runtimeMode === "development",
+      autocapture: false
+    };
+  });
+
+  const resolvedConfig = $derived.by(() => {
+    if (!config) return null;
+    return { ...config, analyticsConfig: analyticsConfig ?? config.analyticsConfig ?? null };
+  });
+
   $effect(() => {
-    if (config) {
-      providedState.init(config);
+    if (resolvedConfig) {
+      providedState.init(resolvedConfig);
     }
   });
 
@@ -44,7 +72,7 @@
   );
 </script>
 
-{#if config}
+{#if resolvedConfig}
   <ClientStateProvider instance={providedState}>
     <!-- Global key handlers -->
     <GlobalKeyHandlers />
