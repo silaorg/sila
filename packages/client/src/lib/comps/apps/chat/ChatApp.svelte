@@ -22,6 +22,7 @@
   let { data }: { data: ChatAppData } = $props();
   provideChatAppData(data);
   const clientState = useClientState();
+  const spaceTelemetry = $derived(clientState.currentSpaceState?.spaceTelemetry);
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
   let messages = $state<Vertex[]>([]);
   let shouldAutoScroll = $state(true);
@@ -154,6 +155,10 @@
   onMount(() => {
     messages = data.messageVertices;
     refreshHasFiles();
+    spaceTelemetry?.chatStarted({
+      chat_id: data.threadId,
+      assistant_id: data.configId,
+    });
 
     const msgsObs = data.observeNewMessages((vertices) => {
       // When new messages arrive, enable auto-scroll and scroll to bottom
@@ -222,6 +227,13 @@
   async function sendMsg(query: string, attachments?: AttachmentPreview[]) {
     // Wait for the message to be created and attachments to be saved
     await data.newMessage({ role: "user", text: query, attachments });
+    spaceTelemetry?.chatSent({
+      thread_id: data.threadId,
+      config_id: data.configId,
+      message_length: query.length,
+      role: "user",
+      attachments_count: attachments?.length ?? 0,
+    });
     // Always scroll to bottom when sending a message, and enable auto-scroll
     shouldAutoScroll = true;
     timeout(scrollToBottom, 100);

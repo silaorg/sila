@@ -58,13 +58,13 @@ export class SpaceTelemetry {
   }
 
   chatSent(props: {
-    chat_id: string;
+    thread_id: string;
     message_length: number;
-    assistant_id?: string;
+    attachments_count?: number;
+    config_id?: string;
     model?: string;
     provider?: string;
-    branch_id?: string;
-    source?: "user" | "assistant";
+    role?: "user" | "assistant";
   }) {
     this.capture(AnalyticsEvents.ChatSent, props);
   }

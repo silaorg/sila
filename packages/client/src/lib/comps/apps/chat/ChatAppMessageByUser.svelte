@@ -150,6 +150,17 @@
 
     return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
   }
+
+  function handleEditSave(text: string) {
+    if (vertex) {
+      data.editMessage(vertex.id, text);
+      clientState.currentSpaceState?.spaceTelemetry.chatEdited({
+        chat_id: data.threadId,
+        message_length: text.length,
+      });
+    }
+    isEditing = false;
+  }
 </script>
 
 <div class="flex gap-3 px-4 py-2 justify-end">
@@ -159,10 +170,7 @@
         <div class="block w-full">
           <ChatAppMessageEditForm
             initialValue={editText}
-            onSave={(text) => {
-              if (vertex) data.editMessage(vertex.id, text);
-              isEditing = false;
-            }}
+            onSave={handleEditSave}
             onCancel={() => (isEditing = false)}
             getFileMentions={searchFileMentions}
           />
