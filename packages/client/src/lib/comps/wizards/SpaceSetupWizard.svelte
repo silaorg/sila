@@ -45,7 +45,7 @@
 
   onMount(() => {
     if (space) {
-      spaceState?.spaceTelemetry.onboardingOpened({ space_name: space.name });
+      spaceState?.spaceTelemetry.onboardingOpened();
       let name = space.name;
       // If the space has no name, use the last part of the URI as the name
       if (!name && spaceState?.pointer.uri) {

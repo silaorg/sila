@@ -18,19 +18,23 @@ export class SpaceTelemetry {
     const merged = { ...(props ?? {}) };
 
     const spaceId = space?.getId();
-    const spaceName = space?.name;
 
     if (spaceId) {
       merged.space_id = spaceId;
     }
-    if (spaceName) {
-      merged.space_name = spaceName;
-    }
     this.analytics.capture(event, merged);
   }
 
-  spaceEntered(props: { space_id: string; space_name?: string | null }) {
+  spaceEntered(props: { space_id: string }) {
     this.capture(AnalyticsEvents.SpaceEntered, props);
+  }
+
+  spaceSwitched(props: { from_space_id?: string | null; to_space_id: string }) {
+    this.capture(AnalyticsEvents.SpaceSwitched, props);
+  }
+
+  spaceRenamed(props: { space_id: string }) {
+    this.capture(AnalyticsEvents.SpaceRenamed, props);
   }
 
   assistantCreated(
@@ -159,7 +163,7 @@ export class SpaceTelemetry {
     this.capture(AnalyticsErrors.SpaceLoadFailed, props);
   }
 
-  onboardingOpened(props?: { space_name?: string | null }) {
+  onboardingOpened(props?: Record<string, unknown>) {
     this.capture(AnalyticsEvents.OnboardingOpened, props);
   }
   onboardingProviderConnected(props: { provider_id: string }) {

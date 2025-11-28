@@ -5,6 +5,7 @@ export const AnalyticsEvents = {
   SpaceCreatedDemo: "space_created_demo",
   SpaceEntered: "space_entered",
   SpaceSwitched: "space_switched",
+  SpaceRenamed: "space_renamed",
   AssistantCreated: "assistant_created",
   AssistantUpdated: "assistant_updated",
   AssistantDeleted: "assistant_deleted",

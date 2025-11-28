@@ -373,13 +373,16 @@ export class ClientState {
     await deleteSpace(spaceId);
 
     this._updateCurrentSpace();
-    await this._saveState();
+   await this._saveState();
   }
 
   /**
    * Update space name
    */
   async updateSpaceName(spaceId: string, name: string): Promise<void> {
+    const existingPointer = this.pointers.find((p) => p.id === spaceId);
+    const previousName = existingPointer?.name;
+
     // Update in pointers
     this.pointers = this.pointers.map((p) =>
       p.id === spaceId ? { ...p, name } : p
@@ -397,6 +400,10 @@ export class ClientState {
       // Update loaded space if exists
       if (spaceState.space) {
         spaceState.space.name = name;
+      }
+
+      if (previousName !== name) {
+        spaceState.spaceTelemetry.spaceRenamed({ space_id: spaceId });
       }
     }
 
@@ -425,6 +432,8 @@ export class ClientState {
    * Internal method to set and connect to current space
    */
   private async _setCurrentSpace(spaceId: string | null): Promise<void> {
+    const previousSpaceId = this.currentSpaceId;
+
     // Don't disconnect current space - keep it connected for fast switching
     this.currentSpaceState = null;
 
@@ -441,9 +450,14 @@ export class ClientState {
           await spaceState.connect();
         }
         if (this.currentSpaceState) {
+          if (previousSpaceId && previousSpaceId !== spaceId) {
+            this.currentSpaceState.spaceTelemetry.spaceSwitched({
+              from_space_id: previousSpaceId,
+              to_space_id: spaceId,
+            });
+          }
           this.currentSpaceState.spaceTelemetry.spaceEntered({
             space_id: this.currentSpaceState.pointer.id,
-            space_name: this.currentSpaceState.pointer.name,
           });
         }
       } catch (error) {
