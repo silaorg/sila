@@ -6,6 +6,7 @@ import type { Vertex } from "reptree";
 import { ChatAppData } from "../../spaces/ChatAppData";
 
 const MAX_TEXT_BYTES = 1024 * 1024; // 1 MB safety limit for tool reads
+const MAX_FILE_BYTES = 10 * 1024 * 1024 * 10; // 100 MB safety limit for binary fetches
 
 /**
  * Resolve a file: URI into text content from the current workspace.
@@ -24,11 +25,45 @@ export async function resolveWorkspaceFileUrl(
   appTree?: AppTree
 ): Promise<string> {
   const fileVertex = resolveFileVertex(url, space, appTree);
+  const logicalPath = getLogicalPath(url);
+  const bytes = await readBytesFromVertex(space, fileVertex, logicalPath, MAX_TEXT_BYTES);
+  
+  const mimeType = (fileVertex.getProperty("mimeType") as string | undefined)?.trim();
+  if (mimeType && !isTextLikeMime(mimeType)) {
+    throw new Error(
+      `File at ${logicalPath} has non-text MIME type (${mimeType}); read tool supports only text files`
+    );
+  }
 
-  // Calculate logical path for error messages
-  const logicalPath = fileVertex.name || "";
+  const decoder = new TextDecoder("utf-8");
+  return decoder.decode(bytes);
+}
 
-  return await readTextFromFileVertex(space, fileVertex, logicalPath);
+async function readWorkspaceFile(
+  url: string,
+  space: Space,
+  appTree?: AppTree
+): Promise<{ data: string | Uint8Array; contentType: string }> {
+  const fileVertex = resolveFileVertex(url, space, appTree);
+  const logicalPath = getLogicalPath(url);
+  const mimeType = (fileVertex.getProperty("mimeType") as string | undefined)?.trim();
+  const isText = !mimeType || isTextLikeMime(mimeType);
+
+  if (isText) {
+    const bytes = await readBytesFromVertex(space, fileVertex, logicalPath, MAX_TEXT_BYTES);
+    const decoder = new TextDecoder("utf-8");
+    const text = decoder.decode(bytes);
+    return {
+      data: text,
+      contentType: mimeType?.includes("charset") ? mimeType : `${mimeType || "text/plain"}; charset=utf-8`
+    };
+  }
+
+  const bytes = await readBytesFromVertex(space, fileVertex, logicalPath, MAX_FILE_BYTES);
+  return {
+    data: bytes,
+    contentType: mimeType || "application/octet-stream"
+  };
 }
 
 export function resolveFileVertex(
@@ -43,26 +78,32 @@ export function resolveFileVertex(
   const resolver = space.fileResolver;
   const isWorkspacePath = url.startsWith("file:///");
 
-  try {
-    if (!isWorkspacePath && !appTree) {
-      throw new Error("Chat file operations require a chat tree context");
-    }
+  if (!isWorkspacePath && !appTree) {
+    throw new Error("Chat file operations require a chat tree context");
+  }
 
+  try {
     const relativeRootVertex = isWorkspacePath
       ? undefined
       : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
 
     return resolver.pathToVertex(url, relativeRootVertex);
   } catch (error) {
-    // Try to construct a helpful error message
-    if (url.startsWith("file:///")) {
-      const path = url.slice("file:///".length);
-      throw new Error(`Workspace file not found at /${path}`);
+    // Provide a helpful error message with the path
+    const logicalPath = getLogicalPath(url);
+    if (isWorkspacePath) {
+      throw new Error(`Workspace file not found at /${logicalPath}`);
     } else {
-      // chat path
-      const rawPath = url.slice("file:".length);
-      throw new Error(`Chat file not found at ${rawPath}`);
+      throw new Error(`Chat file not found at ${logicalPath}`);
     }
+  }
+}
+
+function getLogicalPath(url: string): string {
+  if (url.startsWith("file:///")) {
+    return url.slice("file:///".length);
+  } else {
+    return url.slice("file:".length);
   }
 }
 
@@ -72,11 +113,14 @@ export function createWorkspaceProxyFetch(
 ): ProxyFetch {
   return async (url: string, init?: RequestInit): Promise<Response> => {
     if (url.startsWith("file:")) {
-      const text = await resolveWorkspaceFileUrl(url, space, appTree);
-      return new Response(text, {
+      const { data, contentType } = await readWorkspaceFile(url, space, appTree);
+      // Uint8Array is a valid BodyInit, but TypeScript's types are strict
+      const body: BodyInit = typeof data === "string" ? data : (data as BodyInit);
+
+      return new Response(body, {
         status: 200,
         headers: {
-          "Content-Type": "text/plain; charset=utf-8"
+          "Content-Type": contentType
         }
       });
     }
@@ -86,11 +130,12 @@ export function createWorkspaceProxyFetch(
   };
 }
 
-async function readTextFromFileVertex(
+async function readBytesFromVertex(
   space: Space,
   fileVertex: Vertex,
-  logicalPath: string
-): Promise<string> {
+  logicalPath: string,
+  maxBytes: number
+): Promise<Uint8Array> {
   const store = space.fileStore;
   if (!store) {
     throw new Error("FileStore is not configured for this space");
@@ -103,24 +148,18 @@ async function readTextFromFileVertex(
     throw new Error(`File vertex missing id/hash for ${logicalPath}`);
   }
 
-  const mimeType = fileVertex.getProperty("mimeType") as string | undefined;
-  if (mimeType && !isTextLikeMime(mimeType)) {
-    throw new Error(
-      `File at ${logicalPath} has non-text MIME type (${mimeType}); read tool supports only text files`
-    );
-  }
-
   const bytes = mutableId
     ? await store.getMutable(mutableId)
     : await store.getBytes(hash as string);
-  if (bytes.byteLength > MAX_TEXT_BYTES) {
+
+  if (bytes.byteLength > maxBytes) {
+    const limitName = maxBytes === MAX_TEXT_BYTES ? "read tool" : "proxy fetch";
     throw new Error(
-      `File at ${logicalPath} is too large for read tool (size=${bytes.byteLength} bytes, limit=${MAX_TEXT_BYTES})`
+      `File at ${logicalPath} is too large for ${limitName} (size=${bytes.byteLength} bytes, limit=${maxBytes})`
     );
   }
 
-  const decoder = new TextDecoder("utf-8");
-  return decoder.decode(bytes);
+  return bytes;
 }
 
 function isTextLikeMime(mime: string): boolean {
@@ -136,4 +175,3 @@ function isTextLikeMime(mime: string): boolean {
   }
   return false;
 }
-

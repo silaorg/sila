@@ -1,15 +1,9 @@
-import {
-  ChatAgent,
-  LangMessage,
-  LangMessages,
-  type LangToolWithHandler,
-  type LanguageProvider,
-} from "aiwrapper";
-import type { Space } from "../../spaces/Space";
-import type { AppTree } from "../../spaces/AppTree";
-import { resolveFileVertex } from "./workspaceProxyFetch";
+import { ChatAgent, LangMessage, LangMessages, type LanguageProvider } from "aiwrapper";
+import { createWorkspaceProxyFetch } from "./workspaceProxyFetch";
 import { AgentTool } from "./AgentTool";
-import { AgentServices } from "@sila/core";
+import { AgentServices, type ProxyFetch } from "@sila/core";
+import { bytesToBase64 } from "../../spaces/files/dataUrl";
+import type { AppTree } from "../../spaces/AppTree";
 
 interface ImagePayload {
   base64: string;
@@ -19,27 +13,11 @@ interface ImagePayload {
   source: string;
 }
 
-function dataUrlToPayload(
-  dataUrl: string,
-  fallbackMime?: string,
-): ImagePayload {
-  const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
-  if (!match) {
-    throw new Error(
-      "Unsupported data URL format. Expected base64-encoded image data.",
-    );
-  }
-
-  const [, mime, base64] = match;
-  return {
-    base64,
-    mimeType: mime || fallbackMime,
-    source: "data",
-  };
-}
-
-async function fetchRemoteImage(uri: string): Promise<ImagePayload> {
-  const response = await fetch(uri);
+async function fetchImage(
+  uri: string,
+  fetchImpl: ProxyFetch,
+): Promise<ImagePayload> {
+  const response = await fetchImpl(uri);
   if (!response.ok) {
     throw new Error(
       `Failed to fetch image: ${response.status} ${response.statusText}`,
@@ -57,57 +35,12 @@ async function fetchRemoteImage(uri: string): Promise<ImagePayload> {
 
   const arrayBuffer = await response.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  const base64 = typeof Buffer !== "undefined"
-    ? Buffer.from(bytes).toString("base64")
-    : btoa(String.fromCharCode(...bytes));
+  const base64 = bytesToBase64(bytes);
   return {
     base64,
     mimeType: contentType,
     source: uri,
   };
-}
-
-async function resolveFileImage(
-  space: Space,
-  appTree: AppTree | undefined,
-  uri: string,
-): Promise<ImagePayload> {
-  const resolver = space.fileResolver;
-  const vertex = resolveFileVertex(uri, space, appTree);
-  const treeId = uri.startsWith("file:///") ? space.getId() : appTree!.getId();
-
-  const files = await resolver.getFileData([
-    { tree: treeId, vertex: vertex.id },
-  ]);
-  const image = files.find((file) => file.kind === "image");
-
-  if (!image) {
-    throw new Error("File is not an image or could not be loaded.");
-  }
-
-  const payload = dataUrlToPayload(image.dataUrl, image.mimeType);
-  return {
-    ...payload,
-    width: image.width,
-    height: image.height,
-    source: uri,
-  };
-}
-
-async function resolveImageData(
-  space: Space,
-  appTree: AppTree | undefined,
-  uri: string,
-): Promise<ImagePayload> {
-  if (uri.startsWith("file:")) {
-    return await resolveFileImage(space, appTree, uri);
-  }
-
-  if (uri.startsWith("http://") || uri.startsWith("https://")) {
-    return await fetchRemoteImage(uri);
-  }
-
-  throw new Error("Unsupported URI scheme. Use http(s):// or file: paths.");
 }
 
 function buildLookInstructions(): string {
@@ -189,6 +122,8 @@ export const toolLook: AgentTool = {
     required: ["prompt", "uri"],
   },
   getTool(services: AgentServices, appTree: AppTree) {
+    const fetchImpl: ProxyFetch = createWorkspaceProxyFetch(services.space, appTree);
+
     return {
       name: this.name,
       description: this.description!,
@@ -204,7 +139,7 @@ export const toolLook: AgentTool = {
           throw new Error("`uri` must be a non-empty string.");
         }
 
-        const image = await resolveImageData(services.space, appTree, uri);
+        const image = await fetchImage(uri, fetchImpl);
         // @TODO: figure out how to get an appropriate lang (with vision)
         const description = await runLookAgent(services.lang(), prompt, image);
 

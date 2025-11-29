@@ -5,6 +5,7 @@ import { FilesTreeData } from "../../spaces/files/FilesTreeData";
 import { ImgToVideoGen } from "../../tools/falaiVideo";
 import { ensureFileParent } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
+import { bytesToDataUrl } from "../../spaces/files/dataUrl";
 import type { AgentTool } from "./AgentTool";
 
 interface GenerateVideoResult {
@@ -223,17 +224,7 @@ export const toolGenerateVideo: AgentTool = {
           const extension = contentType.split("/")[1] || "mp4";
 
           // Convert to data URL for storage
-          let base64: string;
-          if (typeof Buffer !== "undefined") {
-            base64 = Buffer.from(videoBytes).toString("base64");
-          } else {
-            const binaryString = Array.from(
-              videoBytes,
-              (byte: number) => String.fromCharCode(byte),
-            ).join("");
-            base64 = btoa(binaryString);
-          }
-          const dataUrl = `data:${contentType};base64,${base64}`;
+          const dataUrl = bytesToDataUrl(videoBytes, contentType);
 
           // Save to file store
           const put = await fileStore.putDataUrl(dataUrl);

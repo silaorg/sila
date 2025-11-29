@@ -1,4 +1,4 @@
-import { proxyFetch, type ProxyFetch } from "@sila/core";
+import type { ProxyFetch } from "@sila/core";
 import { LangToolWithHandler } from "aiwrapper";
 import type { AppTree } from "../../spaces/AppTree";
 import { createWorkspaceProxyFetch } from "./workspaceProxyFetch";
@@ -17,7 +17,7 @@ export const toolRead: AgentTool = {
     required: ["uri"]
   },
   getTool(services, appTree: AppTree): LangToolWithHandler {
-    const fetchImpl: ProxyFetch = createWorkspaceProxyFetch(services.space, appTree) || proxyFetch;
+    const fetchImpl: ProxyFetch = createWorkspaceProxyFetch(services.space, appTree);
     return {
       name: this.name,
       description: this.description!,

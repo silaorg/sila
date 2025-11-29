@@ -16,14 +16,26 @@ export function dataUrlToBytes(dataUrl: string): Uint8Array {
   return out;
 }
 
+/**
+ * Converts bytes to base64 string, handling large arrays safely.
+ * Avoids stack overflow by using Array.from instead of spread operator.
+ */
+export function bytesToBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64");
+  }
+  // Avoid stack overflow for large arrays by using Array.from instead of spread operator
+  const binaryString = Array.from(
+    bytes,
+    (byte: number) => String.fromCharCode(byte),
+  ).join("");
+  return btoa(binaryString);
+}
+
 export function bytesToDataUrl(
   bytes: Uint8Array,
   mimeType: string = "application/octet-stream",
 ): string {
-  const base64 =
-    typeof Buffer !== "undefined"
-      ? Buffer.from(bytes).toString("base64")
-      : btoa(String.fromCharCode(...bytes));
-
+  const base64 = bytesToBase64(bytes);
   return `data:${mimeType};base64,${base64}`;
 }
