@@ -6,6 +6,7 @@ import { ImgToVideoGen } from "../../tools/falaiVideo";
 import { ensureFileParent } from "./fileUtils";
 import { ChatAppData } from "../../spaces/ChatAppData";
 import { bytesToDataUrl } from "../../spaces/files/dataUrl";
+import { resolveFileVertex } from "./workspaceProxyFetch";
 import type { AgentTool } from "./AgentTool";
 
 interface GenerateVideoResult {
@@ -119,24 +120,12 @@ export const toolGenerateVideo: AgentTool = {
             };
           }
 
-          // Resolve input image using FileResolver.pathToVertex
+          // Resolve input image using the same helper as other tools
           const resolver = space.fileResolver;
           const isWorkspacePath = inputFile.startsWith("file:///");
-
           let inputVertex;
           try {
-            if (!isWorkspacePath && !appTree) {
-              return {
-                status: "failed",
-                message: "Chat file operations require a chat tree context",
-              };
-            }
-
-            const relativeRootVertex = isWorkspacePath
-              ? undefined
-              : appTree!.tree.getVertexByPath(ChatAppData.ASSETS_ROOT_PATH);
-
-            inputVertex = resolver.pathToVertex(inputFile, relativeRootVertex);
+            inputVertex = resolveFileVertex(inputFile, space, appTree);
           } catch (error) {
             const errorMessage = error instanceof Error
               ? error.message
@@ -172,7 +161,7 @@ export const toolGenerateVideo: AgentTool = {
 
           const fileRef = { tree: treeId, vertex: inputVertex.id };
           const resolvedFiles = await resolver.getFileData([fileRef]);
-          const images = resolvedFiles.filter((f) => f.kind === "image");
+          const images = resolvedFiles.filter((f: { kind: string }) => f.kind === "image");
 
           if (images.length === 0) {
             return {
