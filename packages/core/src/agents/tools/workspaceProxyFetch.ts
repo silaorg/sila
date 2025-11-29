@@ -162,7 +162,7 @@ async function readBytesFromVertex(
   return bytes;
 }
 
-function isTextLikeMime(mime: string): boolean {
+export function isTextLikeMime(mime: string): boolean {
   if (mime.startsWith("text/")) return true;
   if (
     mime === "application/json" ||

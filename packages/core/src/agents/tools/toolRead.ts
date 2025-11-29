@@ -1,7 +1,7 @@
 import type { ProxyFetch } from "@sila/core";
 import { LangToolWithHandler } from "aiwrapper";
 import type { AppTree } from "../../spaces/AppTree";
-import { createWorkspaceProxyFetch } from "./workspaceProxyFetch";
+import { createWorkspaceProxyFetch, isTextLikeMime } from "./workspaceProxyFetch";
 import type { AgentTool } from "./AgentTool";
 import Defuddle from "defuddle/markdown";
 
@@ -35,6 +35,13 @@ export const toolRead: AgentTool = {
           throw new Error(`Failed to fetch URL: ${res.status} ${res.statusText}`);
         }
         const contentType = res.headers.get("content-type") || "";
+        
+        // Only allow text-like content types
+        if (contentType && !isTextLikeMime(contentType)) {
+          throw new Error(
+            `Cannot read binary file. The read tool only supports text files (got content-type: ${contentType}). Use the look tool for images.`
+          );
+        }
 
         if (contentType.startsWith("text/plain")) {
           return await res.text();
