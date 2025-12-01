@@ -30,7 +30,7 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-tab-header-padding': '0.755rem 1rem',
     '--ttabs-tab-header-font-size': 'var(--base-font-size)',
     '--ttabs-tab-bar-border': 'none',
-    '--ttabs-tab-indicator-size': '2px',
+    '--ttabs-tab-indicator-size': '1px',
     '--ttabs-tab-indicator-offset': '0',
     '--ttabs-transition-duration': '0',
     '--ttabs-transition-timing': 'ease',
