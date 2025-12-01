@@ -2,6 +2,7 @@
   import { Plus } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import IconButton from "@sila/client/comps/ui/IconButton.svelte";
 
   const clientState = useClientState();
 
@@ -22,13 +23,14 @@
   }
 </script>
 
-<button
-  type="button"
-  class="flex items-center justify-center gap-1 px-4 py-1 rounded text-surface-700-300 hover:text-surface-900-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500"
-  onclick={openNewThread}
-  aria-label="Start a new conversation"
+<IconButton
+  ariaLabel="Start a new conversation"
   title="New conversation (Cmd/Ctrl + N)"
   disabled={!hasAppConfig}
+  onclick={openNewThread}
+  className="ml-4"
 >
-  <Plus size={16} />
-</button>
+  {#snippet children()}
+    <Plus size={14} />
+  {/snippet}
+</IconButton>

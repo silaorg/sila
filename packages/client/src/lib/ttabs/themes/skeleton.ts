@@ -41,8 +41,9 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-close-button-hover-color': 'var(--color-surface-700-300)',
     '--ttabs-close-button-hover-bg': 'var(--color-surface-100-900)',
     '--ttabs-tab-close-margin': '8px',
-    '--ttabs-tab-close-size': '16px',
-    '--ttabs-tab-close-border-radius': '50%',
+    // Match the circular icon button size used for the "+" new-tab button
+    '--ttabs-tab-close-size': '22px',
+    '--ttabs-tab-close-border-radius': '9999px',
     
     // Error styling
     '--ttabs-error-bg': 'var(--color-error-100-900)',
