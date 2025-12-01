@@ -39,7 +39,7 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-show-close-button': 'flex', 
     '--ttabs-close-button-color': 'var(--color-surface-500)',
     '--ttabs-close-button-hover-color': 'var(--color-surface-700-300)',
-    '--ttabs-close-button-hover-bg': 'var(--color-surface-200-800)',
+    '--ttabs-close-button-hover-bg': 'var(--color-surface-100-900)',
     '--ttabs-tab-close-margin': '8px',
     '--ttabs-tab-close-size': '16px',
     '--ttabs-tab-close-border-radius': '50%',
