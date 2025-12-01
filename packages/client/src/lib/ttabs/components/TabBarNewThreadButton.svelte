@@ -31,6 +31,6 @@
   className="ml-4"
 >
   {#snippet children()}
-    <Plus size={14} />
+    <Plus size={16} />
   {/snippet}
 </IconButton>
