@@ -15,7 +15,7 @@ docs: update README
 dev: add the core and the client as aliases to the sveltkit config
 
 ## Commit types
-Any product-related feature - "feature(name): description"
+Any product-related feature - "feat(name): description"
 Any product-related fix - "fix(name): description"
 Anything related to building and releasing (including fixes of CI) - "ci: description"
 Anything related to testing - "tests: description"
