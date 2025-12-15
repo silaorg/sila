@@ -28,8 +28,7 @@
 @import '@skeletonlabs/skeleton/themes/wintry';
 
 
-/* KaTeX for math rendering */
-@import 'katex/dist/katex.min.css';
+/* KaTeX for math rendering is imported from JS (see `SilaApp.svelte`) so Vite can bundle fonts. */
 
 @custom-variant dark (&:where(.dark, .dark *));
 
