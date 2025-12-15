@@ -11,11 +11,11 @@
   "scripts": {
     "prepare": "npx airul gen",
     "dev": "concurrently \"npm -w packages/core run watch\" \"npm -w packages/client run watch\" \"npm -w packages/desktop run dev\"",
-    "gallery": "npm -w packages/gallery run dev",
+    "workbench": "npm -w packages/workbench run dev",
     "stop-dev": "pkill -f concurrently 2>/dev/null; lsof -ti:6969 | xargs -r kill -9 2>/dev/null; pkill -f 'tailwindcss.*watch' 2>/dev/null; echo 'Dev servers stopped'",
     "build-demo-space": "npx tsx packages/demo/src/cli.ts",
-    "test": "npm run test:core && npm run test:gallery",
-    "test:gallery": "npm -w packages/gallery run test",
+    "test": "npm run test:core && npm run test:workbench",
+    "test:workbench": "npm -w packages/workbench run test",
     "test:core": "npm -w packages/core run test",
     "release:desktop:patch": "bash -lc 'set -euo pipefail; BRANCH=$(git rev-parse --abbrev-ref HEAD); if [ \"$BRANCH\" != \"main\" ]; then echo \"Releases must be cut from main (current: $BRANCH)\"; exit 1; fi; git fetch origin main --quiet; if ! git merge-base --is-ancestor HEAD origin/main; then echo \"Local main is behind origin/main; please pull\"; exit 1; fi; cd packages/desktop; npm version patch --tag-version-prefix=desktop-v; git push --follow-tags'"
   }

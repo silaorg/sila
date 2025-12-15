@@ -1,16 +1,16 @@
 # Testing in Sila
 
-We have automated tests in two packages: `core` and `gallery`.
+We have automated tests in two packages: `core` and the UI workbench.
 
 `packages/core/tests` is for testing core (without the UI or any client-server logic).
 
-`packages/gallery/tests` is for testing svelte components. The closest we get to e2e testing.
+`packages/workbench/tests` is for testing svelte components. The closest we get to e2e testing (via the UI workbench).
 
 Perhaps we need to setup a proper testing for the `packages/desktop` (Electron app) but didn't do it yet.
 
 ## Testing frameworks
 
-The core tests use Vitest and the gallery uses Playwright.
+The core tests use Vitest and the workbench uses Playwright.
 
 ## Run tests
 From the repository root:
@@ -19,7 +19,7 @@ From the repository root:
 # Install deps
 npm install
 
-# Run all top-level tests (core + gallery)
+# Run all top-level tests (core + workbench)
 npm test
 
 # Run only core tests
@@ -32,13 +32,13 @@ npm -w packages/core run test -- --run src/ai/ai-image.test.ts
 npx vitest --config packages/core/tests/vitest.config.ts
 ```
 
-### Playwright (gallery)
+### Playwright (workbench)
 ```bash
-# Run gallery Playwright tests
-npm -w packages/gallery run test
+# Run workbench Playwright tests
+npm -w packages/workbench run test
 
 # Open Playwright UI runner
-npm -w packages/gallery run test:ui
+npm -w packages/workbench run test:ui
 ```
 
 ## AI provider keys (optional)

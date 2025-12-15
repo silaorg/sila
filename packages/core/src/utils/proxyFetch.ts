@@ -5,7 +5,7 @@ function isBrowser(): boolean {
 }
 
 const defaultProxyFetch: ProxyFetch = async (url: string, init?: RequestInit) => {
-  // In browser (Gallery), go through the local SvelteKit proxy endpoint to avoid CORS
+  // In browser (Workbench), go through the local SvelteKit proxy endpoint to avoid CORS
   if (isBrowser()) {
     const proxiedUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
     return fetch(proxiedUrl, init);

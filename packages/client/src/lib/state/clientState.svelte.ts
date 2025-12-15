@@ -288,7 +288,7 @@ export class ClientState {
 
   /**
    * Add a demo space into the manager without persistence layers.
-   * Useful for demos in the gallery where we don't want to persist to IndexedDB or FS.
+   * Useful for demos in the workbench where we don't want to persist to IndexedDB or FS.
    */
   async addDemoSpace(space: Space, name?: string): Promise<string> {
     const spaceId = space.getId();
@@ -323,7 +323,7 @@ export class ClientState {
     await this._setCurrentSpace(spaceId);
     this._updateCurrentSpace();
 
-    // Mark client initialized for in-memory usage scenarios (gallery/tests)
+    // Mark client initialized for in-memory usage scenarios (workbench/tests)
     this._init = true;
     this.appTelemetry.capture(AnalyticsEvents.SpaceCreatedDemo, { spaceId });
 

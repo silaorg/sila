@@ -1,11 +1,11 @@
-# Components Gallery – Developing Sila components in isolation
+# Components Workbench – Developing Sila components in isolation
 
-This document explains how to use the `packages/gallery` SvelteKit site to build and test Sila UI components in isolation from the main app.
+This document explains how to use the `packages/workbench` SvelteKit site (Workbench) to build and test Sila UI components in isolation from the main app.
 
 ## Quick start
 
-- Start the gallery:
-  - From root: `npm run gallery`
+- Start the workbench:
+  - From root: `npm run workbench`
 - Open: `http://localhost:5173/`
 - Links:
   - Home: basic links and examples
@@ -14,16 +14,16 @@ This document explains how to use the `packages/gallery` SvelteKit site to build
 
 ## Project layout
 
-- `packages/gallery/` – SvelteKit app hosting the gallery
+- `packages/workbench/` – SvelteKit app hosting the workbench
   - `src/routes/` – pages and demos
   - `src/lib/demo/buildSpaceFromConfig.ts` – builds an in-memory `Space` from a demo JSON
-  - `src/routes/api/demo-space/+server.ts` – serves demo JSON to the gallery
+  - `src/routes/api/demo-space/+server.ts` – serves demo JSON to the workbench
 
-## Using the full app in the gallery
+## Using the full app in the workbench
 
 For components that rely on global state (spaces, swins, theme, dialogs), the simplest path is to render the entire app and then navigate to the UI you want to work on.
 
-The gallery `/app` route uses a helper component that loads a demo space and renders the full app:
+The workbench `/app` route uses a helper component that loads a demo space and renders the full app:
 
 ```svelte
 <script lang="ts">
@@ -42,12 +42,12 @@ This gives a realistic environment without writing to disk or requiring any serv
 
 Notes:
 - `/app` sets `ssr = false` to avoid SSR importing browser-only modules.
-- The gallery defaults `onboarding: false`, so the app opens directly without the setup wizard.
-- Styles from `@sila/client/compiled-style.css` are imported globally in the gallery root layout. If styles are missing, ensure the layout import exists and (if needed) run `npm run build -w @sila/client` to generate the CSS.
+- The workbench defaults `onboarding: false`, so the app opens directly without the setup wizard.
+- Styles from `@sila/client/compiled-style.css` are imported globally in the workbench root layout. If styles are missing, ensure the layout import exists and (if needed) run `npm run build -w @sila/client` to generate the CSS.
 
 ## Adding a new component demo page
 
-1) Create a route under `packages/gallery/src/routes/components/<your-demo>/+page.svelte`.
+1) Create a route under `packages/workbench/src/routes/components/<your-demo>/+page.svelte`.
 
 2) For purely presentational components, import directly and pass minimal props:
 
@@ -80,7 +80,7 @@ export const prerender = false;
 
 This pattern establishes the minimum viable app context without persistence.
 
-### Gallery helpers (recommended)
+### Workbench helpers (recommended)
 
 - Use `GallerySilaApp` to run the full app against a demo space.
 - To render Chat in isolation, use the built-in demo component:
@@ -96,12 +96,12 @@ This pattern establishes the minimum viable app context without persistence.
 ## Feeding data to demos
 
 - The default demo JSON is `packages/demo/examples/citybean-coffee.json`.
-- The gallery API at `/api/demo-space` imports and serves that JSON.
+- The workbench API at `/api/demo-space` imports and serves that JSON.
 - You can point it to a different file or add multiple endpoints for different demos.
 - `buildSpaceFromConfig` accepts the config and constructs all assistants, providers, and seed conversations.
-- It also honors an optional `onboarding` boolean (default false in gallery).
+- It also honors an optional `onboarding` boolean (default false in workbench).
 
-## Working with app state in gallery
+## Working with app state in workbench
 
 - `galleryState`: small helper that loads an in-memory demo `Space` once per URL and exposes readiness and the current `Space`.
   - `await galleryState.loadSpace('/api/demo-space')`
@@ -118,7 +118,7 @@ Options:
 
 ## Testing
 
-We use Playwright for end-to-end testing of components and pages in the gallery.
+We use Playwright for end-to-end testing of components and pages in the workbench.
 
 ## Troubleshooting
 
@@ -128,4 +128,4 @@ We use Playwright for end-to-end testing of components and pages in the gallery.
 
 ## Future consolidation
 
-- The builder logic used by the demo CLI (`packages/demo/src/simple-builder.ts`) and the gallery (`buildSpaceFromConfig.ts`) can be unified into a shared module that supports both in-memory and filesystem-backed spaces, minimizing duplication.
+- The builder logic used by the demo CLI (`packages/demo/src/simple-builder.ts`) and the workbench (`buildSpaceFromConfig.ts`) can be unified into a shared module that supports both in-memory and filesystem-backed spaces, minimizing duplication.

@@ -15,7 +15,7 @@ See [Quick Start](./quick-start.md) for the instructions on running, debugging, 
 - **packages/desktop** is a Svelte /w Vite + Electron wrapper that is using the client package. We use it for desktop builds.
 - **packages/mobile** is a SvelteKit + Capacitor wrapper that is using the client package. We use it for mobile builds.
 - **packages/demo** is a tool to create demo workspaces out of a JSON
-- **packages/gallery** is a SvelteKit site for developing and testing Sila components in isolation
+- **packages/workbench** is a SvelteKit workbench for developing and testing Sila components in isolation
 
 ### Quick facts about the tech stack
 
@@ -64,7 +64,7 @@ How Sila serves files directly from CAS using a custom protocol:
 ### [Testing](./testing.md)
 How we test and how to run tests:
 - Core tests (unit/integration) with Vitest in `packages/core/tests`
-- UI integration tests with Playwright in `packages/gallery`
+- UI integration tests with Playwright in the workbench (`packages/workbench`)
 
 ### [Space Management](./space-management.md)
 Managing workspaces and data:
