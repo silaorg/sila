@@ -22,9 +22,11 @@
   function fileToRoutePath(file: string): string {
     // "./components/chat/error/+page.svelte" -> "/components/chat/error"
     // "./+page.svelte" -> "/"
-    const withoutPrefix = file.startsWith("./") ? file.slice(1) : file;
+    // Normalize to a route-style path that always starts with "/"
+    const withoutPrefix = file.replace(/^\.\//, "/");
     const withoutSuffix = withoutPrefix.replace(/\/\+page\.svelte$/, "");
-    return withoutSuffix === "" ? "/" : withoutSuffix;
+    if (withoutSuffix === "") return "/";
+    return withoutSuffix.startsWith("/") ? withoutSuffix : `/${withoutSuffix}`;
   }
 
   function normalize(s: string): string {
