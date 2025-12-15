@@ -1,6 +1,6 @@
 <script lang="ts">
   import SpaceSetupWizard from "@sila/client/comps/wizards/SpaceSetupWizard.svelte";
-  import ClientStateProvider from "@sila/client/state/ClientStateProvider.svelte";
+  import ClientStateProvider from "@sila/client/comps/ClientStateProvider.svelte";
   import { ClientState } from "@sila/client";
   import { onMount } from "svelte";
   import { buildSpaceFromConfig } from "$lib/demo/buildSpaceFromConfig";

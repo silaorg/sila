@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "@sila/client/comps/markdown/chatMarkdownOptions";
-  import ClientStateProvider from "@sila/client/state/ClientStateProvider.svelte";
+  import ClientStateProvider from "@sila/client/comps/ClientStateProvider.svelte";
 
   const markdownSource = String.raw`# Markdown Showcase
 
