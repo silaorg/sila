@@ -41,7 +41,8 @@
   });
 
   function retry() {
-    // Intentionally empty for now; wiring will be added later
+    if (!vertex) return;
+    data.retryMessage(vertex.id);
   }
 
   type ParsedError = {

@@ -448,7 +448,51 @@ export class ChatAppData {
   }
 
   retryMessage(messageId: string): void {
-    throw new Error("Not implemented");
+    const errorVertex = this.appTree.tree.getVertex(messageId);
+    if (!errorVertex) {
+      throw new Error(`Message ${messageId} not found`);
+    }
+
+    // Find the closest user message on the path to root. That's the "last active" message
+    // we want to retry from.
+    let cursor: Vertex | undefined = errorVertex;
+    let userVertex: Vertex | undefined = undefined;
+    while (cursor && cursor !== this.messagesVertex) {
+      const role = cursor.getProperty("role");
+      if (role === "user") {
+        userVertex = cursor;
+        break;
+      }
+      cursor = cursor.parent as Vertex | undefined;
+    }
+
+    if (!userVertex) {
+      // Nothing reasonable to retry from. Keep the thread untouched.
+      return;
+    }
+
+    // Delete everything after the user message on the current main branch so that the user
+    // message becomes the last leaf again.
+    const toDelete: Vertex[] = [];
+    let current: Vertex = userVertex;
+    while (current.children.length > 0) {
+      const children: Vertex[] = current.children;
+      const next =
+        children.length === 1
+          ? children[0]!
+          : children.find((c: Vertex) => c.getProperty("main") === true) ?? children[0]!;
+      toDelete.push(next);
+      current = next;
+    }
+
+    // Delete from leaf to root to avoid parent/child ordering issues.
+    for (let i = toDelete.length - 1; i >= 0; i--) {
+      this.appTree.tree.deleteVertex(toDelete[i]!.id);
+    }
+
+    // Notify UI subscribers and trigger the agent to re-check the latest message.
+    this.updateCallbacks.forEach((cb) => cb(this.messageVertices));
+    this.triggerEvent("retry-message", { userMessageId: userVertex.id, errorMessageId: messageId });
   }
 
   stopMessage(messageId: string): void {

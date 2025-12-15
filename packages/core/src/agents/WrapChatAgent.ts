@@ -46,6 +46,7 @@ export class WrapChatAgent
     >
   >();
   private stopEventUnsubscribe?: () => void;
+  private retryEventUnsubscribe?: () => void;
   private fileResolver: FileResolver;
   private currentRun:
     | {
@@ -73,6 +74,13 @@ export class WrapChatAgent
     if (!this.stopEventUnsubscribe) {
       this.stopEventUnsubscribe = this.appTree.onEvent("stop-message", () => {
         this.abortCurrentRun();
+      });
+    }
+
+    // Listen for retry requests triggered by the UI
+    if (!this.retryEventUnsubscribe) {
+      this.retryEventUnsubscribe = this.appTree.onEvent("retry-message", () => {
+        void this.maybeReplyToLatest();
       });
     }
 
