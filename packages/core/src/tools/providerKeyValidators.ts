@@ -196,7 +196,7 @@ async function validateKey_falai(
   apiKey: string,
   signal?: AbortSignal,
 ): Promise<boolean> {
-  // Fal.ai API keys are typically in format: "uuid:secret" 
+  // Fal.ai API keys are typically in format: "uuid:secret"
   // Since Fal.ai doesn't have a simple validation endpoint, we validate by format
   // The actual validation will happen when the tool tries to use the key
   

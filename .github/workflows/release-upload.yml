@@ -22,10 +22,15 @@ on:
 permissions:
   contents: write
 
+env:
+  VITE_POSTHOG_API_KEY: ${{ vars.VITE_POSTHOG_API_KEY }}
+  VITE_POSTHOG_API_HOST: ${{ vars.VITE_POSTHOG_API_HOST }}
+
 jobs:
   linux:
     if: ${{ inputs.linux }}
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout at tag
         uses: actions/checkout@v4
@@ -45,6 +50,7 @@ jobs:
   windows:
     if: ${{ inputs.windows }}
     runs-on: windows-latest
+    environment: production
     steps:
       - name: Checkout at tag
         uses: actions/checkout@v4
@@ -64,6 +70,7 @@ jobs:
   macos:
     if: ${{ inputs.macos }}
     runs-on: macos-latest
+    environment: production
     steps:
       - name: Checkout at tag
         uses: actions/checkout@v4
