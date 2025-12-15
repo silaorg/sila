@@ -52,11 +52,11 @@
       "timeout": 30000
     },
     {
-      "name": "Gallery: Vite dev (SSR, Node)",
+      "name": "Workbench: Vite dev (SSR, Node)",
       "type": "node",
       "request": "launch",
-      "cwd": "${workspaceFolder}/packages/gallery",
-      "program": "${workspaceFolder}/packages/gallery/node_modules/vite/bin/vite.js",
+      "cwd": "${workspaceFolder}/packages/workbench",
+      "program": "${workspaceFolder}/packages/workbench/node_modules/vite/bin/vite.js",
       "args": [
         "dev"
       ],
@@ -68,7 +68,7 @@
       ]
     },
     {
-      "name": "Gallery: Attach Chrome (client)",
+      "name": "Workbench: Attach Chrome (client)",
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173",
@@ -89,10 +89,10 @@
       }
     },
     {
-      "name": "🖼️ Debug Gallery",
+      "name": "🧪 Debug Workbench",
       "configurations": [
-        "Gallery: Vite dev (SSR, Node)",
-        "Gallery: Attach Chrome (client)"
+        "Workbench: Vite dev (SSR, Node)",
+        "Workbench: Attach Chrome (client)"
       ]
     }
   ]

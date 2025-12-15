@@ -9,7 +9,7 @@ This document explains how to use the `packages/workbench` SvelteKit site (Workb
 - Open: `http://localhost:5173/`
 - Links:
   - Home: basic links and examples
-  - `/components/chat-sandbox`: Chat app demo in isolation
+  - `/components/chat`: Chat app demo in isolation
   - `/app`: runs the full app with a demo space (CityBean)
 
 ## Project layout
@@ -27,10 +27,10 @@ The workbench `/app` route uses a helper component that loads a demo space and r
 
 ```svelte
 <script lang="ts">
-  import GallerySilaApp from '$lib/GallerySilaApp.svelte';
+  import WorkbenchSilaApp from '$lib/WorkbenchSilaApp.svelte';
 </script>
 
-<GallerySilaApp />
+<WorkbenchSilaApp />
 ```
 
 - Fetches `CityBean` JSON from `/api/demo-space`
@@ -72,25 +72,25 @@ export const prerender = false;
 
 ```svelte
 <script lang="ts">
-  import GallerySilaApp from '$lib/GallerySilaApp.svelte';
+  import WorkbenchSilaApp from '$lib/WorkbenchSilaApp.svelte';
 </script>
 
-<GallerySilaApp />
+<WorkbenchSilaApp />
 ```
 
 This pattern establishes the minimum viable app context without persistence.
 
 ### Workbench helpers (recommended)
 
-- Use `GallerySilaApp` to run the full app against a demo space.
+- Use `WorkbenchSilaApp` to run the full app against a demo space.
 - To render Chat in isolation, use the built-in demo component:
 
 ```svelte
 <script lang="ts">
-  import ChatAppInGallery from '$lib/comps/ChatAppInGallery.svelte';
+  import ChatAppInWorkbench from '$lib/comps/ChatAppInWorkbench.svelte';
 </script>
 
-<ChatAppInGallery />
+<ChatAppInWorkbench />
 ```
 
 ## Feeding data to demos
@@ -103,17 +103,15 @@ This pattern establishes the minimum viable app context without persistence.
 
 ## Working with app state in workbench
 
-- `galleryState`: small helper that loads an in-memory demo `Space` once per URL and exposes readiness and the current `Space`.
-  - `await galleryState.loadSpace('/api/demo-space')`
-  - `galleryState.currentSpace` → the active space
-  - Used by both `GallerySilaApp` and `ChatAppInGallery`
+- `loadDemoSpace`: helper that loads an in-memory demo `Space` into a `ClientState`.
+  - Used by `WorkbenchSilaApp` and chat demos.
 
 - Files: file store provider is not set in memory-only mode. If your component needs file previews/uploads, consider adding a small mock API or extend the builder to attach a mock provider.
 
 ## Isolating a specific app component (e.g., ChatApp)
 
 Options:
-- Recommended: run the full app `/app` and navigate to Chat; or use `ChatAppInGallery`.
+- Recommended: run the full app `/app` and navigate to Chat; or use `ChatAppInWorkbench`.
 - For deep isolation: render the component and supply its props and required stores manually. This can be brittle; prefer the helpers above.
 
 ## Testing
