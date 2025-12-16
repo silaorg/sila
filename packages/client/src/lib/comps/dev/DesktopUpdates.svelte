@@ -1,36 +1,22 @@
 <script lang="ts">
   import { onMount } from "svelte";
-
-  type DesktopBuild = {
-    version: string;
-    downloadUrl: string;
-    publishedAt: string;
-    releaseTag?: string;
-    size?: number;
-  };
-
-  // Coordinator removed
-  type UpdateCoordinatorState = null;
-
-  type LatestRelease = {
-    version: string;
-    downloadUrl: string;
-    publishedAt: string;
-    size?: number;
-  } | null;
+  import { useClientState } from "@sila/client/state/clientStateContext";
 
   const isElectron = typeof window !== "undefined" && Boolean((window as any).electronFileSystem);
+  const clientState = useClientState();
 
-  let currentVersion = $state("");
   let isChecking = $state(false);
-  let updateCoordinatorState: UpdateCoordinatorState = $state(null);
+  const shellVersion = $derived(clientState.appVersions?.shell?.version ?? "");
 
   async function checkForLatestRelease() {
     if (!isElectron) return;
 
     isChecking = true;
     try {
-      currentVersion = await (window as any).electronFileSystem.getCurrentBuildVersion();
+      // Refresh central state (used for display) before checking updates
+      if ((window as any).electronFileSystem?.getAppVersions) {
+        clientState.appVersions = await (window as any).electronFileSystem.getAppVersions();
+      }
       await (window as any).electronFileSystem.checkForUpdates();
     } catch (error) {
       console.error("Error checking for latest release:", error);
@@ -56,7 +42,7 @@
           <h2 class="text-base font-medium text-surface-900-100-token">Desktop Updates</h2>
           <p class="text-xs text-surface-600-300-token">
             Current version:
-            <span class="font-mono text-surface-900-100-token">{currentVersion || "—"}</span>
+            <span class="font-mono text-surface-900-100-token">{shellVersion || "—"}</span>
           </p>
         </div>
         <div class="flex items-center gap-2">

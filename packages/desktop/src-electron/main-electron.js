@@ -8,10 +8,15 @@ import { createWindow } from './electronWindow.js';
 import { setUpdater, checkForUpdates } from './updates/updater.js';
 import { setupGitHubReleaseIPC } from './updates/githubReleaseManager.js';
 import { setupSilaProtocol } from './silaProtocol.js';
+import { getSelectedClientBuildInfo } from './silaProtocol.js';
 import { spaceManager } from './spaceManager.js';
 
 // Development mode check
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
+function getViteAppVersion() {
+  return process.env.VITE_APP_VERSION || 'dev';
+}
 
 /**
  * Setup IPC handlers for space management
@@ -35,6 +40,35 @@ function setupSpaceManagementIPC() {
   });
 }
 
+/**
+ * Setup IPC handlers for app version info (shell + currently selected client build)
+ */
+function setupAppVersionIPC() {
+  ipcMain.handle('sila:get-app-versions', async () => {
+    const shellVersion = app.getVersion();
+    if (isDev) {
+      return {
+        shell: { version: shellVersion },
+        client: { version: getViteAppVersion(), source: 'dev server' }
+      };
+    }
+
+    try {
+      const selected = await getSelectedClientBuildInfo();
+      return {
+        shell: { version: shellVersion },
+        client: { version: selected.version, source: selected.source, buildName: selected.buildName }
+      };
+    } catch (e) {
+      // Fallback: assume embedded
+      return {
+        shell: { version: shellVersion },
+        client: { version: shellVersion, source: 'embedded' }
+      };
+    }
+  });
+}
+
 // Keep a global reference of the window object
 /** @type {BrowserWindow | null} */
 let mainWindow;
@@ -51,6 +85,9 @@ app.whenReady().then(async () => {
 
   // Setup IPC handlers for space management
   setupSpaceManagementIPC();
+
+  // Setup IPC for app versions
+  setupAppVersionIPC();
 
   // Setup IPC for desktop build management (GitHub releases)
   setupGitHubReleaseIPC();

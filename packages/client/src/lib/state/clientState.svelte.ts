@@ -38,9 +38,15 @@ export type ClientStateConfig = {
   fs?: AppFileSystem;
   dialog?: AppDialogs;
   telemetryConfig?: AnalyticsConfig;
+  appVersions?: AppVersions;
 };
 
 type SpaceStatus = "disconnected" | "loading" | "ready" | "error";
+
+export type AppVersions = {
+  shell: { version: string } | null;
+  client: { version: string; source?: string; buildName?: string } | null;
+};
 
 /**
  * Central hub for client-side state management.
@@ -60,6 +66,10 @@ export class ClientState {
 
   currentSpaceState: SpaceState | null = $state(null); // @TODO: consider making it a derived state
   currentSpace: Space | null = $derived(this.currentSpaceState?.space || null);
+
+  appVersions: AppVersions | null = $state(null);
+  appVersion: string | null = $derived(this.appVersions?.client?.version ?? null);
+  appVersionSource: string | null = $derived(this.appVersions?.client?.source ?? null);
 
   // @TODO: can we get rid of them and instead rely on _spaceStates?
   pointers: SpacePointer[] = $state([]);
@@ -151,6 +161,7 @@ export class ClientState {
 
     this._fs = initState?.fs || null;
     this._dialog = initState?.dialog || null;
+    this.appVersions = initState?.appVersions ?? null;
     this.appTelemetry.init(initState?.telemetryConfig ?? null);
 
     await this.loadFromLocalDb();

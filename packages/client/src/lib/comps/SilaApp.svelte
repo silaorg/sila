@@ -19,7 +19,7 @@
 
   let {
     config,
-    state,
+    state: initialState,
     children,
   }: {
     config: ClientStateConfig | null;
@@ -27,7 +27,7 @@
     children?: Snippet;
   } = $props();
 
-  const providedState = $derived(state || new ClientState());
+  const providedState = $derived(initialState || new ClientState());
 
   const defaultTelemetryConfig = $derived.by(
     (): ClientStateConfig["telemetryConfig"] => {
@@ -58,9 +58,53 @@
     };
   });
 
+  function getViteAppVersion(): string {
+    return (
+      (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_APP_VERSION) ||
+      (typeof process !== "undefined" && (process as any).env?.VITE_APP_VERSION) ||
+      "dev"
+    );
+  }
+
+  async function resolveAppVersions(cfg: ClientStateConfig): Promise<ClientStateConfig["appVersions"]> {
+    if (cfg.appVersions) return cfg.appVersions;
+
+    const efs = typeof window !== "undefined" ? (window as any).electronFileSystem : null;
+    if (efs?.getAppVersions) {
+      try {
+        return await efs.getAppVersions();
+      } catch (e) {
+        console.error("Failed to load app versions from Electron", e);
+      }
+    }
+
+    return {
+      shell: null,
+      client: { version: getViteAppVersion(), source: "client" },
+    };
+  }
+
+  let resolvedConfigWithVersions = $state<ClientStateConfig | null>(null);
+  let resolveToken = $state(0);
+
   $effect(() => {
-    if (resolvedConfig) {
-      providedState.init(resolvedConfig);
+    // If config changes, resolve versions again and then init.
+    if (!resolvedConfig) {
+      resolvedConfigWithVersions = null;
+      return;
+    }
+
+    const token = ++resolveToken;
+    (async () => {
+      const appVersions = await resolveAppVersions(resolvedConfig);
+      if (token !== resolveToken) return;
+      resolvedConfigWithVersions = { ...resolvedConfig, appVersions };
+    })();
+  });
+
+  $effect(() => {
+    if (resolvedConfigWithVersions) {
+      providedState.init(resolvedConfigWithVersions);
     }
   });
 
@@ -80,7 +124,7 @@
   );
 </script>
 
-{#if resolvedConfig}
+{#if resolvedConfigWithVersions}
   <ClientStateProvider instance={providedState}>
     <!-- Global key handlers -->
     <GlobalKeyHandlers />

@@ -7,6 +7,14 @@ import { contextBridge, ipcRenderer } from 'electron';
 export function setupFileSystemAPI() {
   contextBridge.exposeInMainWorld('electronFileSystem', {
     /**
+     * Get app versions (desktop shell + currently selected client build)
+     * @returns {Promise<{ shell: { version: string }, client: { version: string, source: string, buildName?: string } }>}
+     */
+    getAppVersions: () => {
+      return ipcRenderer.invoke('sila:get-app-versions');
+    },
+
+    /**
      * Get a file URL for the custom protocol
      * @param {string} spaceId - The space ID
      * @param {string} hash - The file hash
@@ -91,14 +99,6 @@ export function setupFileSystemAPI() {
      */
     getAllAvailableDesktopBuilds: () => {
       return ipcRenderer.invoke('get-all-available-desktop-builds');
-    },
-
-    /**
-     * Get current build version
-     * @returns {Promise<string>} Current build version
-     */
-    getCurrentBuildVersion: () => {
-      return ipcRenderer.invoke('get-current-build-version');
     },
 
     /**

@@ -7,7 +7,8 @@
   let hoverTriggerTimeout: ReturnType<typeof setTimeout> | null = null;
   let closeSidebarTimeout: ReturnType<typeof setTimeout> | null = null;
   let recentlyClosed = $state(false);
-  let sidebarElement: HTMLElement;
+  // `bind:this` updates the variable; in Svelte 5 it should be `$state` to avoid non-reactive update warnings.
+  let sidebarElement: HTMLElement | null = $state(null);
 
   const clientState = useClientState();
   let sidebarIsOpen = $derived(
