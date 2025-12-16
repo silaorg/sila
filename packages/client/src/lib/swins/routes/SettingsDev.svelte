@@ -13,37 +13,31 @@
 
 <div class="flex gap-4 w-full">
   <SettingsSidebar />
-  
+
   <div class="flex-1">
     <div class="space-y-4">
-      <label class="label">
-        <span>{$txtStore.settingsPage.developers.toggleDevMode}</span>
-        <input
-          type="checkbox"
-          class="checkbox"
-          bind:checked={$isDevMode}
-        />
-      </label>
-
-      <div class="rounded border border-surface-200-700-token bg-surface-50-800-token p-3">
-        <div class="text-xs text-surface-600-300-token">Version</div>
-        <div class="mt-2 grid gap-2 text-xs">
+      <section class="space-y-2">
+        <div class="text-sm font-medium">Version</div>
+        <div class="grid gap-2 text-sm">
           <div class="flex items-center justify-between gap-3">
-            <div class="text-surface-600-300-token">Shell</div>
-            <div class="font-mono text-surface-900-100-token">{shellVersion || "—"}</div>
+            <div>Shell</div>
+            <div class="font-mono">{shellVersion || "—"}</div>
           </div>
           <div class="flex items-center justify-between gap-3">
-            <div class="text-surface-600-300-token">Client</div>
+            <div>Client</div>
             <div class="flex items-center gap-2">
-              <div class="font-mono text-surface-900-100-token">{clientVersion || "—"}</div>
+              <div class="font-mono">{clientVersion || "—"}</div>
               {#if clientVersionSource}
-                <div class="text-[10px] text-surface-600-300-token">({clientVersionSource})</div>
+                <div class="text-xs">({clientVersionSource})</div>
               {/if}
             </div>
           </div>
         </div>
-      </div>
+      </section>
+      <label class="label">
+        <span>{$txtStore.settingsPage.developers.toggleDevMode}</span>
+        <input type="checkbox" class="checkbox" bind:checked={$isDevMode} />
+      </label>
     </div>
   </div>
 </div>
-
