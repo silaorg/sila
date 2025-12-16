@@ -47,29 +47,36 @@
         host,
         debug: isDevMode(),
       };
-    },
+    }
   );
 
   const resolvedConfig = $derived.by(() => {
     if (!config) return null;
     return {
       ...config,
-      telemetryConfig: config.telemetryConfig ? config.telemetryConfig : defaultTelemetryConfig,
+      telemetryConfig: config.telemetryConfig
+        ? config.telemetryConfig
+        : defaultTelemetryConfig,
     };
   });
 
   function getViteAppVersion(): string {
     return (
-      (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_APP_VERSION) ||
-      (typeof process !== "undefined" && (process as any).env?.VITE_APP_VERSION) ||
+      (typeof import.meta !== "undefined" &&
+        (import.meta as any).env?.VITE_APP_VERSION) ||
+      (typeof process !== "undefined" &&
+        (process as any).env?.VITE_APP_VERSION) ||
       "dev"
     );
   }
 
-  async function resolveAppVersions(cfg: ClientStateConfig): Promise<ClientStateConfig["appVersions"]> {
+  async function resolveAppVersions(
+    cfg: ClientStateConfig
+  ): Promise<ClientStateConfig["appVersions"]> {
     if (cfg.appVersions) return cfg.appVersions;
 
-    const efs = typeof window !== "undefined" ? (window as any).electronFileSystem : null;
+    const efs =
+      typeof window !== "undefined" ? (window as any).electronFileSystem : null;
     if (efs?.getAppVersions) {
       try {
         return await efs.getAppVersions();
@@ -84,27 +91,33 @@
     };
   }
 
-  let resolvedConfigWithVersions = $state<ClientStateConfig | null>(null);
-  let resolveToken = $state(0);
+  // Keep startup non-blocking: init immediately, then populate version info in the background.
+  // Use plain flags (not `$state`) to guarantee we don't accidentally start multiple concurrent inits.
+  let didInit = false;
+  let didResolveVersions = false;
 
   $effect(() => {
-    // If config changes, resolve versions again and then init.
-    if (!resolvedConfig) {
-      resolvedConfigWithVersions = null;
-      return;
+    if (!resolvedConfig) return;
+
+    if (!didInit) {
+      didInit = true;
+      providedState.init(resolvedConfig);
+
+      console.log(
+        "👋 Report bugs here: https://github.com/silaorg/sila/issues"
+      );
+      console.log(
+        "Reach out to the author of the project with any questions - Dmitry at d@dkury.com"
+      );
     }
 
-    const token = ++resolveToken;
-    (async () => {
-      const appVersions = await resolveAppVersions(resolvedConfig);
-      if (token !== resolveToken) return;
-      resolvedConfigWithVersions = { ...resolvedConfig, appVersions };
-    })();
-  });
+    if (!didResolveVersions) {
+      didResolveVersions = true;
+      resolveAppVersions(resolvedConfig).then((appVersions) => {
+        providedState.appVersions = appVersions ?? null;
 
-  $effect(() => {
-    if (resolvedConfigWithVersions) {
-      providedState.init(resolvedConfigWithVersions);
+        console.log("App versions\n", JSON.stringify(appVersions, null, 2));
+      });
     }
   });
 
@@ -115,16 +128,9 @@
   onDestroy(() => {
     providedState.cleanup();
   });
-
-  console.log(
-    "👋 Report bugs here: https://github.com/silaorg/sila/issues",
-  );
-  console.log(
-    "Reach out to the author of the project with any questions - Dmitry at d@dkury.com",
-  );
 </script>
 
-{#if resolvedConfigWithVersions}
+{#if resolvedConfig}
   <ClientStateProvider instance={providedState}>
     <!-- Global key handlers -->
     <GlobalKeyHandlers />
