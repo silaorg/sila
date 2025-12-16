@@ -271,14 +271,6 @@ export class GitHubReleaseManager {
   }
 
   /**
-   * Get the current build version being used
-   * @returns {string} Current build version
-   */
-  getCurrentBuildVersion() {
-    return this.currentVersion;
-  }
-
-  /**
    * Make HTTP request to GitHub API
    * @param {string} url - URL to request
    * @returns {Promise<string>} Response body
@@ -444,11 +436,6 @@ export function setupGitHubReleaseIPC() {
   // Get all available desktop builds from recent releases
   ipcMain.handle('get-all-available-desktop-builds', async (event) => {
     return await githubReleaseManager.getAllAvailableDesktopBuilds();
-  });
-
-  // Get current build version
-  ipcMain.handle('get-current-build-version', async (event) => {
-    return githubReleaseManager.getCurrentBuildVersion();
   });
 
   // Reload to latest build

@@ -21,7 +21,8 @@
 </IconButton>
 
 <style>
-  .ttabs-tab-close {
+  /* Class is applied via a component prop, so use :global to avoid false-positive "unused selector" warnings. */
+  :global(.ttabs-tab-close) {
     width: var(--ttabs-tab-close-size);
     height: var(--ttabs-tab-close-size);
     border-radius: var(--ttabs-tab-close-border-radius);

@@ -35,6 +35,25 @@ export function setupSilaProtocol() {
   protocol.handle('sila', handleSilaRequest);
 }
 
+/**
+ * Return the same client build selection that `sila://client/*` will use.
+ * This allows the renderer (and other main-process code) to display the
+ * currently selected client build version without duplicating logic.
+ *
+ * @returns {Promise<{ buildName: string, version: string, source: 'embedded'|'downloaded' }>}
+ */
+export async function getSelectedClientBuildInfo() {
+  const buildsRoot = path.join(app.getPath('userData'), 'builds');
+  const embeddedName = `desktop-v${app.getVersion()}`;
+  const names = await listBuildNames(buildsRoot, embeddedName);
+  const buildName = await selectDesktopBuildName(names, embeddedName);
+  return {
+    buildName,
+    version: buildName.replace(/^desktop-v/, ''),
+    source: buildName === embeddedName ? 'embedded' : 'downloaded'
+  };
+}
+
 async function listBuildNames(buildsRoot, embeddedName) {
   try {
     const dirents = await fs.readdir(buildsRoot, { withFileTypes: true });

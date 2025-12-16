@@ -19,7 +19,7 @@
 
   let {
     config,
-    state,
+    state: initialState,
     children,
   }: {
     config: ClientStateConfig | null;
@@ -27,7 +27,7 @@
     children?: Snippet;
   } = $props();
 
-  const providedState = $derived(state || new ClientState());
+  const providedState = $derived(initialState || new ClientState());
 
   const defaultTelemetryConfig = $derived.by(
     (): ClientStateConfig["telemetryConfig"] => {
@@ -47,20 +47,77 @@
         host,
         debug: isDevMode(),
       };
-    },
+    }
   );
 
   const resolvedConfig = $derived.by(() => {
     if (!config) return null;
     return {
       ...config,
-      telemetryConfig: config.telemetryConfig ? config.telemetryConfig : defaultTelemetryConfig,
+      telemetryConfig: config.telemetryConfig
+        ? config.telemetryConfig
+        : defaultTelemetryConfig,
     };
   });
 
+  function getViteAppVersion(): string {
+    return (
+      (typeof import.meta !== "undefined" &&
+        (import.meta as any).env?.VITE_APP_VERSION) ||
+      (typeof process !== "undefined" &&
+        (process as any).env?.VITE_APP_VERSION) ||
+      "dev"
+    );
+  }
+
+  async function resolveAppVersions(
+    cfg: ClientStateConfig
+  ): Promise<ClientStateConfig["appVersions"]> {
+    if (cfg.appVersions) return cfg.appVersions;
+
+    const efs =
+      typeof window !== "undefined" ? (window as any).electronFileSystem : null;
+    if (efs?.getAppVersions) {
+      try {
+        return await efs.getAppVersions();
+      } catch (e) {
+        console.error("Failed to load app versions from Electron", e);
+      }
+    }
+
+    return {
+      shell: null,
+      client: { version: getViteAppVersion(), source: "client" },
+    };
+  }
+
+  // Keep startup non-blocking: init immediately, then populate version info in the background.
+  // Use plain flags (not `$state`) to guarantee we don't accidentally start multiple concurrent inits.
+  let didInit = false;
+  let didResolveVersions = false;
+
   $effect(() => {
-    if (resolvedConfig) {
+    if (!resolvedConfig) return;
+
+    if (!didInit) {
+      didInit = true;
       providedState.init(resolvedConfig);
+
+      console.log(
+        "👋 Report bugs here: https://github.com/silaorg/sila/issues"
+      );
+      console.log(
+        "Reach out to the author of the project with any questions - Dmitry at d@dkury.com"
+      );
+    }
+
+    if (!didResolveVersions) {
+      didResolveVersions = true;
+      resolveAppVersions(resolvedConfig).then((appVersions) => {
+        providedState.appVersions = appVersions ?? null;
+
+        console.log("App versions\n", JSON.stringify(appVersions, null, 2));
+      });
     }
   });
 
@@ -71,13 +128,6 @@
   onDestroy(() => {
     providedState.cleanup();
   });
-
-  console.log(
-    "👋 Report bugs here: https://github.com/silaorg/sila/issues",
-  );
-  console.log(
-    "Reach out to the author of the project with any questions - Dmitry at d@dkury.com",
-  );
 </script>
 
 {#if resolvedConfig}
