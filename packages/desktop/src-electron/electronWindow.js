@@ -1,8 +1,9 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { getWindowOptionsWithState, saveWindowState, loadWindowState } from './windowState.js';
+import { setupElectronContextMenu } from "./electronContextMenu.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -19,12 +20,16 @@ export function createWindow(isDev) {
       nodeIntegration: true,
       contextIsolation: true,
       webSecurity: !isDev,
+      spellcheck: true,
       /*partition: 'persist:sila',*/ // NOTE: If we use partition, make sure our sila:// protocol is using that partition
       preload: path.join(__dirname, 'preload.js')
     }
   });
   
   const mainWindow = new BrowserWindow(windowOptions);
+
+  // Enable native context menus for editable fields (spellcheck suggestions, etc.)
+  setupElectronContextMenu(mainWindow);
 
   // Explicitly hide menubar on Windows/Linux in case a desktop env forces it
   if (process.platform !== 'darwin') {

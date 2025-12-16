@@ -10,16 +10,23 @@
   });
 
   function handleContextMenu(event: MouseEvent) {
-    if (import.meta.env.DEV) return;
+    // Some build contexts don't type `import.meta.env` (Vite). Keep it safe.
+    if ((import.meta as any)?.env?.DEV) return;
     if (window === null) return;
 
     // Check if there's selected text
     const selectedText = window.getSelection()?.toString();
 
     // Check if the target is a form element that would benefit from context menu
-    const isFormElement = (event.target as HTMLElement).matches(
-      'input, textarea, select, [contenteditable="true"]',
-    );
+    const target = event.target;
+    const isFormElement =
+      target instanceof Element
+        ? Boolean(
+            target.closest(
+              'input, textarea, select, [contenteditable], [role="textbox"]',
+            ),
+          )
+        : false;
 
     // Allow context menu for text selections or form elements
     if (selectedText || isFormElement) {
