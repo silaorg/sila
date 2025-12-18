@@ -289,7 +289,8 @@
         </div>
       {:else}
         <div
-          class="relative rounded-lg chat-message group"
+          class="relative rounded-lg chat-message group selectable-text"
+          data-allow-os-context-menu
           role="region"
           onpointerenter={beginHover}
           onpointerleave={endHover}

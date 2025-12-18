@@ -113,7 +113,9 @@
   <div class="min-w-0 max-w-[85%]">
     <div class="flex items-center justify-between gap-2 mt-2">
       <div class="flex items-center gap-2">
-        <p class="font-bold">{parsed.mainMessage}</p>
+        <p class="font-bold selectable-text" data-allow-os-context-menu>
+          {parsed.mainMessage}
+        </p>
       </div>
     </div>
     {#if hasDetails}

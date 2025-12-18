@@ -177,7 +177,8 @@
         </div>
       {:else}
         <div
-          class="relative p-3 rounded-lg bg-surface-100-900/50"
+          class="relative p-3 rounded-lg bg-surface-100-900/50 selectable-text"
+          data-allow-os-context-menu
           role="region"
           onpointerenter={beginHover}
           onpointerleave={endHover}

@@ -28,8 +28,14 @@
           )
         : false;
 
-    // Allow context menu for text selections or form elements
-    if (selectedText || isFormElement) {
+    // Allow OS context menu in explicitly opted-in areas (e.g., chat messages)
+    const allowOsContextMenu =
+      target instanceof Element
+        ? Boolean(target.closest("[data-allow-os-context-menu]"))
+        : false;
+
+    // Allow context menu for text selections, form elements, or opted-in regions
+    if (selectedText || isFormElement || allowOsContextMenu) {
       // Let the default context menu appear
       return;
     }
