@@ -28,7 +28,6 @@
   );
   let isEditing = $state(false);
   let editText = $state("");
-  let renderedText = $state("");
 
   let hoverDepth = $state(0);
   let showEditAndCopyControls = $state(false);
@@ -102,35 +101,30 @@
     }
   });
 
-  // Display-time transform: fref -> file: paths for markdown rendering.
-  $effect(() => {
-    const raw = message?.text || "";
-    renderedText = raw;
-    const space = clientState.currentSpace;
-    if (!space || !raw.includes("fref:")) return;
-
-    let cancelled = false;
-    (async () => {
-      try {
-        const { markdown } = await transformFileReferencesToPaths(raw, {
-          space,
-          fileResolver: space.fileResolver,
-          candidateTreeIds: [data.threadId, space.getId()],
-        });
-        if (!cancelled) renderedText = markdown;
-      } catch {
-        // ignore
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  });
-
   $effect(() => {
     if (!isEditing) {
-      editText = message?.text || "";
+      const raw = message?.text || "";
+      editText = raw;
+      const space = clientState.currentSpace;
+      if (!space || !raw.includes("fref:")) return;
+
+      let cancelled = false;
+      (async () => {
+        try {
+          const { markdown } = await transformFileReferencesToPaths(raw, {
+            space,
+            fileResolver: space.fileResolver,
+            candidateTreeIds: [data.threadId, space.getId()],
+          });
+          if (!cancelled) editText = markdown;
+        } catch {
+          // ignore
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
     }
   });
 
@@ -228,7 +222,7 @@
               {/each}
             </div>
           {/if}
-          <Markdown source={renderedText} options={chatMarkdownOptions} />
+          <Markdown source={message?.text || ""} options={chatMarkdownOptions} />
         </div>
 
         <div
