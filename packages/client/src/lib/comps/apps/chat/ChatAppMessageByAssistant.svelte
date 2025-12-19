@@ -280,6 +280,27 @@
 
     return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
   }
+
+  async function beginEdit() {
+    if (isEditing) return;
+    const raw = message?.text || "";
+    let initialValue = raw;
+    const space = clientState.currentSpace;
+    if (space && raw.includes("fref:")) {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        initialValue = markdown;
+      } catch {
+        // ignore
+      }
+    }
+    editText = initialValue;
+    isEditing = true;
+  }
 </script>
 
 <div class="flex gap-3 px-4 py-2">
@@ -429,7 +450,7 @@
               <ChatAppMessageControls
                 {showEditAndCopyControls}
                 onCopyMessage={() => copyMessage()}
-                onEditMessage={() => (isEditing = true)}
+                onEditMessage={beginEdit}
                 onRerun={rerunInNewBranch}
                 {prevBranch}
                 {nextBranch}
