@@ -254,9 +254,9 @@ export class WrapChatAgent
               msg.inProgress = false;
             }
 
-            // Save-time transform: store stable fref links in persisted markdown.
+            // Store stable fref links in persisted markdown.
             try {
-              const raw = typeof (msg as any).text === "string" ? (msg as any).text : "";
+              const raw = typeof msg.text === "string" ? msg.text : "";
               if (raw && raw.includes("file:")) {
                 const chatFilesRoot = this.data.getFilesRoot(true);
                 const transformed = await transformPathsToFileReferences(raw, {
@@ -265,7 +265,7 @@ export class WrapChatAgent
                   relativeRootVertex: chatFilesRoot,
                   relativeTreeId: this.appTree.getId(),
                 });
-                (msg as any).text = transformed;
+                msg.text = transformed;
               }
             } catch {
               // ignore
