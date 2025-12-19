@@ -51,9 +51,9 @@ describe("markdown file references (fref:)", () => {
       candidateTreeIds: [chatData.threadId, space.getId()],
     });
 
-    expect(displayed).toContain(`(file:///assets/doc-renamed.md "title")`);
+    expect(displayed).toContain(`(<file:///assets/doc-renamed.md> "title")`);
     // Chat paths currently include the assets folder prefix (file:assets/...)
-    expect(displayed).toContain(`(file:assets/pic-renamed.png)`);
+    expect(displayed).toContain(`(<file:assets/pic-renamed.png>)`);
     // Still untouched in code block.
     expect(displayed).toContain(`[do-not-touch](file:///assets/doc.md)`);
   });

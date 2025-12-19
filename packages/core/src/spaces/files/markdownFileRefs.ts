@@ -207,6 +207,16 @@ const rewriteInlineLinkTargets = async (
   markdown: string,
   tokenHrefs: string[],
   replacer: (href: string) => Promise<string | null>,
+  opts?: {
+    /**
+     * If true, when the original markdown link destination is "bare" (not already enclosed in `<...>`),
+     * we will wrap the replacement in angle brackets.
+     *
+     * This is useful for `file:` URIs that may contain spaces or other characters that require `<...>`
+     * to parse correctly in Markdown.
+     */
+    wrapBareReplacementInAngleBrackets?: boolean;
+  },
 ): Promise<{ markdown: string; changed: boolean }> => {
   if (!markdown) return { markdown, changed: false };
   if (tokenHrefs.length === 0) return { markdown, changed: false };
@@ -297,8 +307,14 @@ const rewriteInlineLinkTargets = async (
             const href = s.slice(parsed.destStart, parsed.destEnd);
             const replacement = await replacer(href);
             if (replacement && replacement !== href) {
+              const wasAngleBracketed =
+                parsed.destStart > 0 &&
+                s[parsed.destStart - 1] === "<" &&
+                s[parsed.destEnd] === ">";
+              const shouldWrap =
+                !!opts?.wrapBareReplacementInAngleBrackets && !wasAngleBracketed;
               out.push(s.slice(lastCopy, parsed.destStart));
-              out.push(replacement);
+              out.push(shouldWrap ? `<${replacement}>` : replacement);
               lastCopy = parsed.destEnd;
               changed = true;
             }
@@ -426,6 +442,8 @@ export async function transformFileReferencesToPaths(
         return null;
       }
     },
+    // Always emit file: URIs in `<...>` so Markdown parsers can handle spaces safely.
+    { wrapBareReplacementInAngleBrackets: true },
   );
 
   return { markdown: rewritten, didHealRefs };
