@@ -361,6 +361,22 @@ export async function transformFileReferencesToPaths(
     ? ctx.candidateTreeIds
     : [spaceId];
 
+  const isUnderWorkspaceAssets = (vertex: Vertex | null): boolean => {
+    if (!vertex) return false;
+    try {
+      const assetsRoot = ctx.space.getVertexByPath("assets");
+      if (!assetsRoot) return false;
+      let cur: Vertex | undefined | null = vertex;
+      while (cur) {
+        if (cur.id === assetsRoot.id) return true;
+        cur = cur.parent as Vertex | undefined | null;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const { markdown: rewritten } = await rewriteInlineLinkTargets(
     markdown,
     tokenTargets,
@@ -373,7 +389,10 @@ export async function transformFileReferencesToPaths(
 
       const tryResolveInTree = async (tid: string): Promise<Vertex | null> => {
         if (tid === spaceId) {
-          return ctx.space.getVertex(vertexId) ?? null;
+          const vertex = ctx.space.getVertex(vertexId) ?? null;
+          // Only accept workspace references that live under /assets.
+          // This keeps the fallback deterministic and avoids resolving to non-file vertices elsewhere.
+          return isUnderWorkspaceAssets(vertex) ? vertex : null;
         }
         const appTree = await ctx.space.loadAppTree(tid);
         if (!appTree) return null;
@@ -383,11 +402,21 @@ export async function transformFileReferencesToPaths(
       let vertex: Vertex | null = null;
       if (treeId) {
         vertex = await tryResolveInTree(treeId);
+        // If the ref points to a tree that no longer has the vertex, fall back to workspace assets.
+        if (!vertex) {
+          vertex = await tryResolveInTree(spaceId);
+          // @TODO: if not found in workspace assets, later we can also search in a trashbin.
+        }
       } else {
         didHealRefs = true;
         for (const tid of candidates) {
           vertex = await tryResolveInTree(tid);
           if (vertex) break;
+        }
+        // If tree id is missing (or candidates didn't find it), fall back to workspace assets.
+        if (!vertex) {
+          vertex = await tryResolveInTree(spaceId);
+          // @TODO: if not found in workspace assets, later we can also search in a trashbin.
         }
       }
 
