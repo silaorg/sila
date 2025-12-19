@@ -128,12 +128,6 @@
     };
   });
 
-  $effect(() => {
-    if (!isEditing) {
-      editText = renderedText;
-    }
-  });
-
   onMount(() => {
     if (!vertex) return;
     const unobserve = data.observeMessage(vertex.id, (msg) => {
@@ -144,13 +138,6 @@
       unobserve();
     };
   });
-
-  function replaceNewlinesWithHtmlBrs(text: string): string {
-    // Trim newlines at the start and end
-    text = text.replace(/^\n+|\n+$/g, "");
-    // Replace remaining newlines with <br />
-    return text.replace(/\n/g, "<br />");
-  }
 
   // Branch switching: use vertex.children and data.switchMain
   function prevBranch() {

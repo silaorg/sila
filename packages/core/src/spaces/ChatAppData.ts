@@ -258,10 +258,8 @@ export class ChatAppData {
       try {
         const chatFilesRoot = this.getFilesRoot(true);
         text = await transformPathsToFileReferences(text, {
-          spaceId: this.space.getId(),
           fileResolver: this.space.fileResolver,
           relativeRootVertex: chatFilesRoot,
-          relativeTreeId: this.threadId,
         });
       } catch {
         // Non-fatal: persist original text if transform fails
@@ -529,10 +527,8 @@ export class ChatAppData {
     try {
       const chatFilesRoot = this.getFilesRoot(true);
       text = await transformPathsToFileReferences(newText, {
-        spaceId: this.space.getId(),
         fileResolver: this.space.fileResolver,
         relativeRootVertex: chatFilesRoot,
-        relativeTreeId: this.threadId,
       });
     } catch {
       // ignore

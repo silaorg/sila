@@ -4,21 +4,10 @@ import type { FileResolver } from "./FileResolver";
 import { marked } from "marked";
 import { formatFrefUri, parseFrefUri } from "./fref";
 
-type LinkKind = "link" | "image";
-
-interface TokenTarget {
-  kind: LinkKind;
-  href: string;
-}
-
 export interface TransformPathsToFileReferencesCtx {
-  /** Space id (space tree root id). Used when rewriting workspace `file:///...` links. */
-  spaceId: string;
   fileResolver: FileResolver;
   /** For chat-scoped `file:...` links, pass the chat's assets root vertex. */
   relativeRootVertex?: Vertex;
-  /** For chat-scoped `file:...` links, pass the chat app tree id. */
-  relativeTreeId?: string;
 }
 
 export interface TransformFileReferencesToPathsCtx {
@@ -28,18 +17,18 @@ export interface TransformFileReferencesToPathsCtx {
   candidateTreeIds?: string[];
 }
 
-const extractTokenTargets = (markdown: string): TokenTarget[] => {
-  const targets: TokenTarget[] = [];
+const extractTokenHrefs = (markdown: string): string[] => {
+  const hrefs: string[] = [];
   const tokens = marked.lexer(markdown);
   marked.walkTokens(tokens as any, (t: any) => {
     if (!t) return;
     if (t.type === "link" && typeof t.href === "string") {
-      targets.push({ kind: "link", href: t.href });
+      hrefs.push(t.href);
     } else if (t.type === "image" && typeof t.href === "string") {
-      targets.push({ kind: "image", href: t.href });
+      hrefs.push(t.href);
     }
   });
-  return targets;
+  return hrefs;
 };
 
 const isWhitespace = (ch: string): boolean => ch === " " || ch === "\t" || ch === "\n" || ch === "\r";
@@ -207,11 +196,11 @@ const parseInlineLinkDestination = (
 
 const rewriteInlineLinkTargets = async (
   markdown: string,
-  tokenTargets: TokenTarget[],
-  replacer: (href: string, kind: LinkKind, tokenHref: string) => Promise<string | null>,
+  tokenHrefs: string[],
+  replacer: (href: string) => Promise<string | null>,
 ): Promise<{ markdown: string; changed: boolean }> => {
   if (!markdown) return { markdown, changed: false };
-  if (tokenTargets.length === 0) return { markdown, changed: false };
+  if (tokenHrefs.length === 0) return { markdown, changed: false };
 
   const s = markdown;
   const out: string[] = [];
@@ -276,17 +265,14 @@ const rewriteInlineLinkTargets = async (
     }
 
     // Inline links/images: [text](dest ...) or ![alt](dest ...)
-    let kind: LinkKind | null = null;
     let bracketOpen = -1;
     if (ch === "!" && s[i + 1] === "[") {
-      kind = "image";
       bracketOpen = i + 1;
     } else if (ch === "[") {
-      kind = "link";
       bracketOpen = i;
     }
 
-    if (kind && bracketOpen >= 0) {
+    if (bracketOpen >= 0) {
       const bracketClose = readBracketed(s, bracketOpen);
       if (bracketClose !== null) {
         // Skip whitespace between ']' and '('
@@ -294,12 +280,13 @@ const rewriteInlineLinkTargets = async (
         while (k < s.length && (s[k] === " " || s[k] === "\t")) k++;
         if (s[k] === "(") {
           const parsed = parseInlineLinkDestination(s, k);
-          if (parsed && tokenIdx < tokenTargets.length) {
-            const tokenHref = tokenTargets[tokenIdx]!.href;
+          if (parsed && tokenIdx < tokenHrefs.length) {
+            // Keep token stream alignment (Marked's lexer output).
+            void tokenHrefs[tokenIdx];
             tokenIdx++;
 
             const href = s.slice(parsed.destStart, parsed.destEnd);
-            const replacement = await replacer(href, kind, tokenHref);
+            const replacement = await replacer(href);
             if (replacement && replacement !== href) {
               out.push(s.slice(lastCopy, parsed.destStart));
               out.push(replacement);
@@ -327,19 +314,19 @@ export async function transformPathsToFileReferences(
   markdown: string,
   ctx: TransformPathsToFileReferencesCtx,
 ): Promise<string> {
-  const tokenTargets = extractTokenTargets(markdown);
+  const tokenHrefs = extractTokenHrefs(markdown);
   const { markdown: rewritten } = await rewriteInlineLinkTargets(
     markdown,
-    tokenTargets,
+    tokenHrefs,
     async (href) => {
       if (!href.startsWith("file:")) return null;
-      const isWorkspace = href.startsWith("file:///");
-      const treeId = isWorkspace ? ctx.spaceId : (ctx.relativeTreeId ?? ctx.spaceId);
       try {
         const vertex = ctx.fileResolver.pathToVertex(
           href,
-          isWorkspace ? undefined : ctx.relativeRootVertex,
+          href.startsWith("file:///") ? undefined : ctx.relativeRootVertex,
         );
+        const treeId = vertex.tree.root?.id;
+        if (!treeId) return null;
         return formatFrefUri(vertex.id, treeId);
       } catch {
         return null;
@@ -353,7 +340,7 @@ export async function transformFileReferencesToPaths(
   markdown: string,
   ctx: TransformFileReferencesToPathsCtx,
 ): Promise<{ markdown: string; didHealRefs: boolean }> {
-  const tokenTargets = extractTokenTargets(markdown);
+  const tokenHrefs = extractTokenHrefs(markdown);
   let didHealRefs = false;
 
   const spaceId = ctx.space.getId();
@@ -379,7 +366,7 @@ export async function transformFileReferencesToPaths(
 
   const { markdown: rewritten } = await rewriteInlineLinkTargets(
     markdown,
-    tokenTargets,
+    tokenHrefs,
     async (href) => {
       if (!href.startsWith("fref:")) return null;
       const parsed = parseFrefUri(href);

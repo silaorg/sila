@@ -260,10 +260,8 @@ export class WrapChatAgent
               if (raw && raw.includes("file:")) {
                 const chatFilesRoot = this.data.getFilesRoot(true);
                 const transformed = await transformPathsToFileReferences(raw, {
-                  spaceId: this.agentServices.space.getId(),
                   fileResolver: this.agentServices.space.fileResolver,
                   relativeRootVertex: chatFilesRoot,
-                  relativeTreeId: this.appTree.getId(),
                 });
                 msg.text = transformed;
               }

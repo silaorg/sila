@@ -233,12 +233,6 @@
     }
   });
 
-  $effect(() => {
-    if (!isEditing) {
-      editText = renderedText;
-    }
-  });
-
   onMount(() => {
     if (!vertex) return;
     const unobserve = data.observeMessage(vertex.id, (msg) => {

@@ -32,10 +32,8 @@ describe("markdown file references (fref:)", () => {
     ].join("\n");
 
     const saved = await transformPathsToFileReferences(input, {
-      spaceId: space.getId(),
       fileResolver: space.fileResolver,
       relativeRootVertex: chatAssetsRoot,
-      relativeTreeId: chatData.threadId,
     });
 
     expect(saved).toContain(`(fref:${wsDoc.id}@${space.getId()} "title")`);
