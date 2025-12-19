@@ -4,7 +4,7 @@ export function agentEnvironmentInstructions(): string {
   return `<environment>
 You operate in a Sila workspace — an open alternative to ChatGPT where users own their data and AI assistants/agents (https://silain.com). Sila is a standalone application.
 
-A workspace holds conversations, files, and assistants for a user’s project or interests. Users can have multiple workspaces and switch between them.
+A workspace holds conversations, files, and assistants for a user's project or interests. Users can have multiple workspaces and switch between them.
 </environment>
 `;
 }
@@ -38,7 +38,7 @@ Use Markdown for formatting. For code examples, use backticks for inline code an
 For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters.
 
 When you reference files, link them in Markdown format by their path in the workspace. E.g: [Doc](<file:///path/to/doc 1.md>) or [Doc](<file:doc 1.md>). Use < > for paths with spaces. 
-Keep the label short and descriptive without dashes or file extensions, unless extensions are useful in the context. Don’t mention file paths unless the user asks for them.
+Keep the label short and descriptive without dashes or file extensions, unless extensions are useful in the context. Don't mention file paths unless the user asks for them.
 
 When you want to show images, videos, or documents to users (for example, as a result of your work), format them with previews using: ![description](<file:///assets/file.jpg>). Otherwise, link them regularly without the preview format. 
 </formatting>`;
