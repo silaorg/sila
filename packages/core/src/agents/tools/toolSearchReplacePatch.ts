@@ -19,7 +19,7 @@ interface FilePatch {
   blocks: SearchReplaceBlock[];
 }
 
-export const searchReplacePatchInstruciton = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then the block:
+export const searchReplacePatchInstruction = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then the block:
 
 file:///assets/example.txt
 <<<<<<< SEARCH
@@ -38,7 +38,7 @@ export const toolSearchReplacePatch: AgentTool = {
   name: "apply_search_replace_patch",
   description:
     "Apply SEARCH/REPLACE patches across one or more files using path-prefixed blocks.",
-  instructions: searchReplacePatchInstruciton,
+  instructions: searchReplacePatchInstruction,
   parameters: {
     type: "object",
     properties: {

@@ -1,12 +1,10 @@
-import { LangTool } from "aiwrapper";
-import { searchReplacePatchInstruciton } from "../tools/toolSearchReplacePatch";
 import { AgentTool } from "../tools/AgentTool";
 
 export function agentEnvironmentInstructions(): string {
   return `<environment>
-You operate in a workspace of Sila app - an open alternative to ChatGPT where users own their data and AI assistants/agents (https://silain.com). Sila works as a standlone application.
+You operate in a Sila workspace — an open alternative to ChatGPT where users own their data and AI assistants/agents (https://silain.com). Sila is a standalone application.
 
-Workspace holds conversations, files, and assistants for a project or interest of users. Users can have multiple workspaces and switch between them.
+A workspace holds conversations, files, and assistants for a user’s project or interests. Users can have multiple workspaces and switch between them.
 </environment>
 `;
 }
@@ -16,18 +14,18 @@ export function agentToolUsageInstructions(tools: AgentTool[]): string {
   for (const tool of tools) {
     if (tool.instructions) {
       toolSpecificInstructions.push(
-        `<${tool.name}>${searchReplacePatchInstruciton}</${tool.name}>`,
+        `<${tool.name}>${tool.instructions}</${tool.name}>`,
       );
     }
   }
 
   // @TODO: accept tools list and extract additional (optional) instructions from them and put in the instructions section
   return `<tool-usage>
-Feel free to explore files in the workspace, create new directories and files or edit existing ones.
+Feel free to explore files in the workspace, create new directories and files, or edit existing ones.
 
-You can find the workspace files in "file:///assets/" dir and files from the current chat in "file:assets/" dir (no slashes).
+You can find workspace files under file:///assets/ and files from the current chat under file:assets/ (no leading slashes).
 
-After you use tools - always give a brief summary of what you did.
+When you use tools, don't mention the technical details of how you did it unless the user asks. Avoid report-like explanations. Assume the user prefers to see the results of your work and straightforward answers; they don't need under-the-hood details.
 
 ${toolSpecificInstructions.join("\n")}
 </tool-usage>`;
@@ -35,13 +33,14 @@ ${toolSpecificInstructions.join("\n")}
 
 export function agentFormattingInstructions(): string {
   return `<formatting>
-Use markdown for formatting. If you write code examples: use tick marks for inline code and triple tick marks for code blocks.
+Use Markdown for formatting. For code examples, use backticks for inline code and triple backticks for code blocks.
 
 For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters.
 
-When you reference files, link them in Markdown format by their path in the workspace. E.g: [Doc](<file:///path/to/doc 1.md>) or [Doc](<file:doc 1.md>). Use < > for paths with spaces.
+When you reference files, link them in Markdown format by their path in the workspace. E.g: [Doc](<file:///path/to/doc 1.md>) or [Doc](<file:doc 1.md>). Use < > for paths with spaces. 
+Keep the label short and descriptive without dashes or file extensions, unless extensions are useful in the context. Don’t mention file paths unless the user asks for them.
 
-When you want to show images, videos, or documents to users (for example, as a result of your work), format them with previews using: ![description](<file:///assets/file.jpg>). Otherwise, link them regularly without the preview format.
+When you want to show images, videos, or documents to users (for example, as a result of your work), format them with previews using: ![description](<file:///assets/file.jpg>). Otherwise, link them regularly without the preview format. 
 </formatting>`;
 }
 
@@ -59,11 +58,10 @@ export function agentMetaInfo(params: {
   return `<meta>
 Current local date and time: ${params.localDateTime}
 Current UTC time (ISO): ${params.utcIso}
-${
-    params.resolvedModel
+${params.resolvedModel
       ? `\nModel: ${params.resolvedModel.provider}/${params.resolvedModel.model}`
       : ""
-  }
+    }
 Current assistant (your) name: ${params.config.name}
 </meta>
 `;
