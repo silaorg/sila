@@ -50,6 +50,8 @@
   );
   let isEditing = $state(false);
   let editText = $state("");
+  let renderedText = $state("");
+  let renderedThinking = $state("");
 
   let hoverDepth = $state(0);
   let showEditAndCopyControls = $state(false);
@@ -161,6 +163,55 @@
     }
   });
 
+  // Render-time transform: fref -> file: paths for markdown renderer.
+  $effect(() => {
+    const raw = message?.text || "";
+    renderedText = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedText = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  $effect(() => {
+    const raw = message?.thinking || "";
+    renderedThinking = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedThinking = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
   // Effect to update config name if config still exists
   $effect(() => {
     if (!vertex) {
@@ -184,28 +235,7 @@
 
   $effect(() => {
     if (!isEditing) {
-      const raw = message?.text || "";
-      editText = raw;
-      const space = clientState.currentSpace;
-      if (!space || !raw.includes("fref:")) return;
-
-      let cancelled = false;
-      (async () => {
-        try {
-          const { markdown } = await transformFileReferencesToPaths(raw, {
-            space,
-            fileResolver: space.fileResolver,
-            candidateTreeIds: [data.threadId, space.getId()],
-          });
-          if (!cancelled) editText = markdown;
-        } catch {
-          // ignore
-        }
-      })();
-
-      return () => {
-        cancelled = true;
-      };
+      editText = renderedText;
     }
   });
 
@@ -325,7 +355,7 @@
             >
               {#if message?.thinking}
                 <Markdown
-                  source={message.thinking}
+                  source={renderedThinking}
                   options={chatMarkdownOptions}
                 />
               {/if}
@@ -337,7 +367,7 @@
             </div>
           {/if}
           <Markdown
-            source={message?.text || ""}
+            source={renderedText}
             options={chatMarkdownOptions}
           />
           {#if fileRefs && fileRefs.length > 0}

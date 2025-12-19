@@ -2,7 +2,7 @@
   import type { Tokens } from "@markpage/svelte";
   import { useChatAppDataOptional } from "../../apps/chat/chatAppContext";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { parseFrefUri, type ResolvedFileInfo, Vertex } from "@sila/core";
+  import type { ResolvedFileInfo, Vertex } from "@sila/core";
   import MarkdownTextDocument from "./MarkdownTextDocument.svelte";
 
   let { token }: { token: Tokens.Image } = $props();
@@ -11,68 +11,32 @@
   const clientState = useClientState();
   const filesVertex = $derived(chatAppData?.getFilesRoot(false));
   const fileResolver = $derived(clientState.currentSpaceState?.fileResolver);
-  const isFile = $derived((token.href?.startsWith("file:") || token.href?.startsWith("fref:")) ?? false);
+  const isFile = $derived(token.href?.startsWith("file:") ?? false);
 
-  let resolvedFile = $state<ResolvedFileInfo | null>(null);
-  let fileVertex = $state<Vertex | null>(null);
+  const resolvedFile: ResolvedFileInfo | null = $derived.by(() => {
+    if (!isFile || !fileResolver || !token.href) {
+      return null;
+    }
 
-  $effect(() => {
-    resolvedFile = null;
-    fileVertex = null;
+    try {
+      const vertex = fileResolver.pathToVertex(token.href, filesVertex ?? undefined);
+      return fileResolver.resolveVertexToFileReference(vertex);
+    } catch (error) {
+      console.error("Failed to resolve file URL for image:", token.href, error);
+      return null;
+    }
+  });
 
-    if (!isFile || !fileResolver || !token.href) return;
+  const fileVertex: Vertex | null = $derived.by(() => {
+    if (!isFile || !fileResolver || !token.href) {
+      return null;
+    }
 
-    let cancelled = false;
-    const href = token.href;
-    const space = clientState.currentSpace;
-
-    (async () => {
-      try {
-        let vertex: Vertex | null = null;
-        if (href.startsWith("file:")) {
-          vertex = fileResolver.pathToVertex(href, filesVertex ?? undefined) as Vertex;
-        } else if (href.startsWith("fref:")) {
-          if (!space) return;
-          const parsed = parseFrefUri(href);
-          if (!parsed) return;
-          if (parsed.treeId) {
-            if (parsed.treeId === space.getId()) {
-              vertex = (space.getVertex(parsed.vertexId) as Vertex | undefined) ?? null;
-            } else {
-              const appTree = await space.loadAppTree(parsed.treeId);
-              vertex = (appTree?.tree.getVertex(parsed.vertexId) as Vertex | undefined) ?? null;
-            }
-          } else {
-            // Best-effort: try workspace first, then loaded app trees.
-            vertex = (space.getVertex(parsed.vertexId) as Vertex | undefined) ?? null;
-            if (!vertex) {
-              for (const tid of space.getAppTreeIds()) {
-                const appTree = await space.loadAppTree(tid);
-                const v = (appTree?.tree.getVertex(parsed.vertexId) as Vertex | undefined) ?? null;
-                if (v) {
-                  vertex = v;
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        if (!vertex) return;
-        const info = fileResolver.resolveVertexToFileReference(vertex);
-        if (cancelled) return;
-        fileVertex = vertex;
-        resolvedFile = info;
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to resolve image file reference:", token.href, error);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
+    try {
+      return fileResolver.pathToVertex(token.href, filesVertex ?? undefined);
+    } catch (error) {
+      return null;
+    }
   });
 
   const isVideo = $derived(

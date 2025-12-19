@@ -16,13 +16,11 @@
       ? token.href.slice(1, -1)
       : token.href
   );
-  const isFile = $derived(
-    href.startsWith("file:") || href.startsWith("fref:")
-  );
+  const isFile = $derived(token.href.startsWith("<file:") || href.startsWith("file:"));
 </script>
 
 {#if isFile}
-  <FileMentionInAMessage path={href} title={token.title} relativeRootVertex={filesVertex}>{@render children()}</FileMentionInAMessage>
+  <FileMentionInAMessage path={token.href} title={token.title} relativeRootVertex={filesVertex}>{@render children()}</FileMentionInAMessage>
 {:else}   
   <a class="anchor" target="_blank" href={href} title={token.title}
     >{@render children()}</a
