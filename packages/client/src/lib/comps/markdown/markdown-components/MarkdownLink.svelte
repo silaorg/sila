@@ -11,13 +11,18 @@
 
   const chatAppData = useChatAppDataOptional();
   const filesVertex = $derived(chatAppData?.getFilesRoot(false));
-  const isFile = $derived(token.href.startsWith("<file:") || token.href.startsWith("file:"));
+  const href = $derived(
+    token.href?.startsWith("<") && token.href.endsWith(">")
+      ? token.href.slice(1, -1)
+      : token.href
+  );
+  const isFile = $derived(token.href.startsWith("<file:") || href.startsWith("file:"));
 </script>
 
 {#if isFile}
   <FileMentionInAMessage path={token.href} title={token.title} relativeRootVertex={filesVertex}>{@render children()}</FileMentionInAMessage>
 {:else}   
-  <a class="anchor" target="_blank" href={token.href} title={token.title}
+  <a class="anchor" target="_blank" href={href} title={token.title}
     >{@render children()}</a
   >
 {/if}

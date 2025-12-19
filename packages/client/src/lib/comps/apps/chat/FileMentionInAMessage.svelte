@@ -11,10 +11,17 @@
       return;
     }
 
-    const vertex = clientState.currentSpaceState?.fileResolver.pathToVertex(path, relativeRootVertex);
-    if (!vertex) {
+    let vertex: Vertex | undefined;
+    try {
+      vertex = clientState.currentSpaceState?.fileResolver.pathToVertex(
+        path,
+        relativeRootVertex,
+      );
+    } catch {
       return;
     }
+
+    if (!vertex) return;
 
     clientState.currentSpaceState?.vertexViewer.openVertex(vertex);
   }

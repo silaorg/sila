@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
+  import { transformFileReferencesToPaths } from "@sila/core";
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
@@ -27,6 +28,7 @@
   );
   let isEditing = $state(false);
   let editText = $state("");
+  let renderedText = $state("");
 
   let hoverDepth = $state(0);
   let showEditAndCopyControls = $state(false);
@@ -100,10 +102,31 @@
     }
   });
 
+  // Render-time: our markdown components only understand file: URIs, so we convert stored fref: to file:
+  // for display. This does not persist anything.
   $effect(() => {
-    if (!isEditing) {
-      editText = message?.text || "";
-    }
+    const raw = message?.text || "";
+    renderedText = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedText = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   });
 
   onMount(() => {
@@ -116,13 +139,6 @@
       unobserve();
     };
   });
-
-  function replaceNewlinesWithHtmlBrs(text: string): string {
-    // Trim newlines at the start and end
-    text = text.replace(/^\n+|\n+$/g, "");
-    // Replace remaining newlines with <br />
-    return text.replace(/\n/g, "<br />");
-  }
 
   // Branch switching: use vertex.children and data.switchMain
   function prevBranch() {
@@ -151,13 +167,39 @@
     return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
   }
 
-  function handleEditSave(text: string) {
+  async function beginEdit() {
+    if (isEditing) return;
+    const raw = message?.text || "";
+    let initialValue = raw;
+    const space = clientState.currentSpace;
+    if (space && raw.includes("fref:")) {
+      try {
+        // Edit-time: show the user file: links instead of storage-only fref: links.
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        initialValue = markdown;
+      } catch {
+        // ignore
+      }
+    }
+    editText = initialValue;
+    isEditing = true;
+  }
+
+  async function handleEditSave(text: string) {
     if (vertex) {
-      data.editMessage(vertex.id, text);
-      clientState.currentSpaceState?.spaceTelemetry.chatEdited({
-        chat_id: data.threadId,
-        message_length: text.length,
-      });
+      try {
+        await data.editMessage(vertex.id, text);
+        clientState.currentSpaceState?.spaceTelemetry.chatEdited({
+          chat_id: data.threadId,
+          message_length: text.length,
+        });
+      } finally {
+        // no-op
+      }
     }
     isEditing = false;
   }
@@ -196,7 +238,7 @@
               {/each}
             </div>
           {/if}
-          <Markdown source={message?.text || ""} options={chatMarkdownOptions} />
+          <Markdown source={renderedText} options={chatMarkdownOptions} />
         </div>
 
         <div
@@ -212,7 +254,7 @@
             <ChatAppMessageControls
               {showEditAndCopyControls}
               onCopyMessage={() => copyMessage()}
-              onEditMessage={() => (isEditing = true)}
+              onEditMessage={beginEdit}
               {prevBranch}
               {nextBranch}
               {branchIndex}

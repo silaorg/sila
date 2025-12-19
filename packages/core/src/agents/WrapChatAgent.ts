@@ -13,6 +13,7 @@ import type { AttachmentPreview } from "../spaces/files";
 import { FilesTreeData } from "../spaces/files";
 import type { FileReference } from "../spaces/files/FileResolver";
 import type { AppTree } from "../spaces/AppTree";
+import { transformPathsToFileReferences } from "../spaces/files";
 import {
   agentEnvironmentInstructions,
   agentFormattingInstructions,
@@ -251,6 +252,22 @@ export class WrapChatAgent
           for (const msg of targetMessages) {
             if (msg.inProgress) {
               msg.inProgress = false;
+            }
+
+            // Store stable fref links in persisted markdown.
+            try {
+              const raw = typeof msg.text === "string" ? msg.text : "";
+              if (raw && raw.includes("file:")) {
+                const chatFilesRoot = this.data.getFilesRoot(true);
+                // Save-time: assistant output may include file: links; normalize to fref: on commit.
+                const transformed = await transformPathsToFileReferences(raw, {
+                  fileResolver: this.agentServices.space.fileResolver,
+                  relativeRootVertex: chatFilesRoot,
+                });
+                msg.text = transformed;
+              }
+            } catch {
+              // ignore
             }
 
             if (msg.role === "assistant") {
