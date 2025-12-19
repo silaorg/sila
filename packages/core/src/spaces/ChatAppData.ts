@@ -1,5 +1,5 @@
 import { type Vertex } from "reptree";
-import type {Space } from "./Space";
+import type { Space } from "./Space";
 import type { BindedVertex, VertexPropertyType } from "reptree";
 import { ThreadMessage } from "../models";
 import type { AppConfig, ThreadMessageWithResolvedFiles } from "../models";
@@ -7,6 +7,7 @@ import { AppTree } from "./AppTree";
 import { FilesTreeData } from "./files";
 import type { AttachmentPreview } from "./files";
 import type { FileReference } from "./files/FileResolver";
+import { transformPathsToFileReferences } from "./files";
 import { LangMessage, ToolRequest, ToolResult } from "aiwrapper";
 
 export class ChatAppData {
@@ -43,6 +44,10 @@ export class ChatAppData {
 
     this.root = root;
     this.referenceInSpace = space.getVertexReferencingAppTree(root.id)!;
+  }
+
+  getSpace(): Space {
+    return this.space;
   }
 
   get messagesVertex(): Vertex | undefined {
@@ -249,7 +254,19 @@ export class ChatAppData {
     };
 
     if (message.text) {
-      properties.text = message.text;
+      let text = message.text;
+      try {
+        const chatFilesRoot = this.getFilesRoot(true);
+        text = await transformPathsToFileReferences(text, {
+          spaceId: this.space.getId(),
+          fileResolver: this.space.fileResolver,
+          relativeRootVertex: chatFilesRoot,
+          relativeTreeId: this.threadId,
+        });
+      } catch {
+        // Non-fatal: persist original text if transform fails
+      }
+      properties.text = text;
     }
 
     if (message.toolRequests) {
@@ -499,16 +516,31 @@ export class ChatAppData {
     this.triggerEvent("stop-message", { messageId });
   }
 
-  editMessage(messageVertexId: string, newText: string) {
+  async editMessage(messageVertexId: string, newText: string): Promise<void> {
     const vertex = this.appTree.tree.getVertex(messageVertexId);
     if (!vertex) throw new Error("Message " + messageVertexId + " not found");
     const parent = vertex.parent;
     if (!parent) throw new Error("Cannot edit root message");
     const props = vertex.getProperties();
 
+    // Save-time transform for markdown file links -> stable frefs.
+    // Best-effort: fall back to original text if anything fails.
+    let text = newText;
+    try {
+      const chatFilesRoot = this.getFilesRoot(true);
+      text = await transformPathsToFileReferences(newText, {
+        spaceId: this.space.getId(),
+        fileResolver: this.space.fileResolver,
+        relativeRootVertex: chatFilesRoot,
+        relativeTreeId: this.threadId,
+      });
+    } catch {
+      // ignore
+    }
+
     const newProps: Record<string, any> = {
       _n: "message",
-      text: newText,
+      text,
       role: props.role,
       main: true,
     };

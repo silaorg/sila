@@ -6,6 +6,7 @@ import {
   FileResolver,
   type ResolvedFileInfo,
 } from "../spaces/files/FileResolver";
+import { transformFileReferencesToPaths } from "../spaces/files";
 
 const MAX_TEXT_CHARACTERS = 10_000;
 
@@ -182,10 +183,26 @@ export const convertToLangMessage = async ({
     .resolveMessageFiles(message);
   const resolvedFiles = resolved.files ?? [];
 
+  // AI-time transform: convert storage `fref:` back to path-based `file:` links for model context.
+  let messageText = message.text || "";
+  try {
+    if (messageText.includes("fref:")) {
+      const space = data.getSpace();
+      const { markdown } = await transformFileReferencesToPaths(messageText, {
+        space,
+        fileResolver,
+        candidateTreeIds: [data.threadId, space.getId()],
+      });
+      messageText = markdown;
+    }
+  } catch {
+    // ignore
+  }
+
   if (resolvedFiles.length === 0) {
     return new LangMessage(
       normalizedRole,
-      message.text || "",
+      messageText,
       message.meta ?? {},
     );
   }
@@ -206,7 +223,7 @@ export const convertToLangMessage = async ({
   const attachements = "<attachments>\n" +
     [attachmentsSummary, ...textBlocks].join("\n\n") + "\n</attachments>";
     
-  const combinedText = [message.text || "", attachements].join("\n\n");
+  const combinedText = [messageText, attachements].join("\n\n");
 
   if (supportsVision && images.length > 0) {
     const items: Array<

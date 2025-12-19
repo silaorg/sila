@@ -5,3 +5,5 @@ export type { FileReference, ResolvedFileInfo, ResolvedFileInfoWithKind } from '
 export type { AttachmentPreview, AttachmentKind } from './AttachmentPreview';
 export type { FileInfo } from './FileInfo';
 export type { MessageAttachmentRef, MessageAttachmentEntry } from './MessageAttachment';
+export * from "./fref";
+export * from "./markdownFileRefs";

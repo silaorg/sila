@@ -11,6 +11,7 @@
   } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
+  import { transformFileReferencesToPaths } from "@sila/core";
   import { onMount } from "svelte";
   import { Markdown } from "@markpage/svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -49,6 +50,8 @@
   );
   let isEditing = $state(false);
   let editText = $state("");
+  let renderedText = $state("");
+  let renderedThinking = $state("");
 
   let hoverDepth = $state(0);
   let showEditAndCopyControls = $state(false);
@@ -158,6 +161,55 @@
     } else {
       message = undefined;
     }
+  });
+
+  // Display-time transform: fref -> file: paths for markdown rendering.
+  $effect(() => {
+    const raw = message?.text || "";
+    renderedText = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedText = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  $effect(() => {
+    const raw = message?.thinking || "";
+    renderedThinking = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedThinking = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   });
 
   // Effect to update config name if config still exists
@@ -280,8 +332,10 @@
           <ChatAppMessageEditForm
             initialValue={editText}
             onSave={(text) => {
-              if (vertex) data.editMessage(vertex.id, text);
-              isEditing = false;
+              (async () => {
+                if (vertex) await data.editMessage(vertex.id, text);
+                isEditing = false;
+              })();
             }}
             onCancel={() => (isEditing = false)}
             getFileMentions={searchFileMentions}
@@ -301,7 +355,7 @@
             >
               {#if message?.thinking}
                 <Markdown
-                  source={message.thinking}
+                  source={renderedThinking}
                   options={chatMarkdownOptions}
                 />
               {/if}
@@ -313,7 +367,7 @@
             </div>
           {/if}
           <Markdown
-            source={message?.text || ""}
+            source={renderedText}
             options={chatMarkdownOptions}
           />
           {#if fileRefs && fileRefs.length > 0}

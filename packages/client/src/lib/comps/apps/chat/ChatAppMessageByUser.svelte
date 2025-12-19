@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
+  import { transformFileReferencesToPaths } from "@sila/core";
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
@@ -27,6 +28,7 @@
   );
   let isEditing = $state(false);
   let editText = $state("");
+  let renderedText = $state("");
 
   let hoverDepth = $state(0);
   let showEditAndCopyControls = $state(false);
@@ -100,6 +102,32 @@
     }
   });
 
+  // Display-time transform: fref -> file: paths for markdown rendering.
+  $effect(() => {
+    const raw = message?.text || "";
+    renderedText = raw;
+    const space = clientState.currentSpace;
+    if (!space || !raw.includes("fref:")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { markdown } = await transformFileReferencesToPaths(raw, {
+          space,
+          fileResolver: space.fileResolver,
+          candidateTreeIds: [data.threadId, space.getId()],
+        });
+        if (!cancelled) renderedText = markdown;
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  });
+
   $effect(() => {
     if (!isEditing) {
       editText = message?.text || "";
@@ -151,13 +179,17 @@
     return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
   }
 
-  function handleEditSave(text: string) {
+  async function handleEditSave(text: string) {
     if (vertex) {
-      data.editMessage(vertex.id, text);
-      clientState.currentSpaceState?.spaceTelemetry.chatEdited({
-        chat_id: data.threadId,
-        message_length: text.length,
-      });
+      try {
+        await data.editMessage(vertex.id, text);
+        clientState.currentSpaceState?.spaceTelemetry.chatEdited({
+          chat_id: data.threadId,
+          message_length: text.length,
+        });
+      } finally {
+        // no-op
+      }
     }
     isEditing = false;
   }
@@ -196,7 +228,7 @@
               {/each}
             </div>
           {/if}
-          <Markdown source={message?.text || ""} options={chatMarkdownOptions} />
+          <Markdown source={renderedText} options={chatMarkdownOptions} />
         </div>
 
         <div
