@@ -183,7 +183,8 @@ export const convertToLangMessage = async ({
     .resolveMessageFiles(message);
   const resolvedFiles = resolved.files ?? [];
 
-  // AI-time transform: convert storage `fref:` back to path-based `file:` links for model context.
+  // AI-time: models should see familiar file: URIs, not storage-only fref: URIs.
+  // This is a view transform only (we do not persist the rewritten text).
   let messageText = message.text || "";
   try {
     if (messageText.includes("fref:")) {

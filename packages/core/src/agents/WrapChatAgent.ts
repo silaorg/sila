@@ -259,6 +259,7 @@ export class WrapChatAgent
               const raw = typeof msg.text === "string" ? msg.text : "";
               if (raw && raw.includes("file:")) {
                 const chatFilesRoot = this.data.getFilesRoot(true);
+                // Save-time: assistant output may include file: links; normalize to fref: on commit.
                 const transformed = await transformPathsToFileReferences(raw, {
                   fileResolver: this.agentServices.space.fileResolver,
                   relativeRootVertex: chatFilesRoot,

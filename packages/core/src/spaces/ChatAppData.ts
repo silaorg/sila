@@ -257,6 +257,7 @@ export class ChatAppData {
       let text = message.text;
       try {
         const chatFilesRoot = this.getFilesRoot(true);
+        // Save-time: store stable refs in persisted markdown (file: -> fref:).
         text = await transformPathsToFileReferences(text, {
           fileResolver: this.space.fileResolver,
           relativeRootVertex: chatFilesRoot,
@@ -526,6 +527,7 @@ export class ChatAppData {
     let text = newText;
     try {
       const chatFilesRoot = this.getFilesRoot(true);
+      // Save-time: user edits contain file: paths; convert them back to fref: before persisting.
       text = await transformPathsToFileReferences(newText, {
         fileResolver: this.space.fileResolver,
         relativeRootVertex: chatFilesRoot,

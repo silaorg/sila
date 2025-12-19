@@ -17,6 +17,15 @@ export interface TransformFileReferencesToPathsCtx {
   candidateTreeIds?: string[];
 }
 
+/**
+ * Extract link/image targets using Marked (tokenizer), but rewrite the ORIGINAL markdown string.
+ *
+ * Why: we want to avoid regex-rewriting code blocks/inline code, and we also want to preserve the
+ * user’s original formatting as much as possible (we only rewrite the link destination spans).
+ *
+ * V1 limitation: we only rewrite inline link/image syntax `[text](target "title")` / `![alt](target)`.
+ * We intentionally ignore reference-style links in v1.
+ */
 const extractTokenHrefs = (markdown: string): string[] => {
   const hrefs: string[] = [];
   const tokens = marked.lexer(markdown);
@@ -225,7 +234,7 @@ const rewriteInlineLinkTargets = async (
       continue;
     }
 
-    // Fenced code blocks.
+    // Fenced code blocks: never rewrite anything inside.
     if (atLineStart) {
       const fence = isFenceStart(s, i);
       if (fence) {
@@ -246,7 +255,7 @@ const rewriteInlineLinkTargets = async (
       continue;
     }
 
-    // Inline code spans.
+    // Inline code spans: never rewrite anything inside.
     if (ch === "`") {
       let j = i;
       while (j < s.length && s[j] === "`") j++;
@@ -314,6 +323,7 @@ export async function transformPathsToFileReferences(
   markdown: string,
   ctx: TransformPathsToFileReferencesCtx,
 ): Promise<string> {
+  // Save-time transform: store stable fref URIs instead of path-based file: links.
   const tokenHrefs = extractTokenHrefs(markdown);
   const { markdown: rewritten } = await rewriteInlineLinkTargets(
     markdown,
@@ -321,6 +331,7 @@ export async function transformPathsToFileReferences(
     async (href) => {
       if (!href.startsWith("file:")) return null;
       try {
+        // Resolve file: link to a vertex, then store as `fref:{vertexId}@{treeId}`.
         const vertex = ctx.fileResolver.pathToVertex(
           href,
           href.startsWith("file:///") ? undefined : ctx.relativeRootVertex,
@@ -340,6 +351,7 @@ export async function transformFileReferencesToPaths(
   markdown: string,
   ctx: TransformFileReferencesToPathsCtx,
 ): Promise<{ markdown: string; didHealRefs: boolean }> {
+  // Render/AI-time transform: convert stable frefs back into the current file: path.
   const tokenHrefs = extractTokenHrefs(markdown);
   let didHealRefs = false;
 

@@ -102,7 +102,8 @@
     }
   });
 
-  // Render-time transform: fref -> file: paths for markdown renderer.
+  // Render-time: our markdown components only understand file: URIs, so we convert stored fref: to file:
+  // for display. This does not persist anything.
   $effect(() => {
     const raw = message?.text || "";
     renderedText = raw;
@@ -173,6 +174,7 @@
     const space = clientState.currentSpace;
     if (space && raw.includes("fref:")) {
       try {
+        // Edit-time: show the user file: links instead of storage-only fref: links.
         const { markdown } = await transformFileReferencesToPaths(raw, {
           space,
           fileResolver: space.fileResolver,
