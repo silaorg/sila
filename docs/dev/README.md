@@ -38,7 +38,7 @@ Neither the core nor client gets their own dist/build. Rather than building - we
 
 ## Core Features
 
-### [Spaces](./spaces.md)
+### [Spaces](./spaces/spaces.md)
 Spaces are the primary unit of user data in Sila. Learn about:
 - RepTree CRDT system
 - Space and App trees
@@ -46,7 +46,7 @@ Spaces are the primary unit of user data in Sila. Learn about:
 - Secrets management
 - Best practices for developers
 
-### [Files in Spaces](./files-in-spaces.md)
+### [Files in Spaces](./files/files-in-spaces.md)
 How Sila handles binary file storage and management:
 - Content-addressed storage (CAS)
 - Files AppTree for logical organization
@@ -54,7 +54,7 @@ How Sila handles binary file storage and management:
 - Chat attachments integration
 - On-disk layout and metadata
 
-### [Electron Custom File Protocol](./electron-file-protocol.md)
+### [Electron Custom File Protocol](./files/electron-file-protocol.md)
 How Sila serves files directly from CAS using a custom protocol:
 - `sila://` protocol implementation
 - Space-aware file serving
@@ -66,7 +66,7 @@ How we test and how to run tests:
 - Core tests (unit/integration) with Vitest in `packages/core/tests`
 - UI integration tests with Playwright in the workbench (`packages/workbench`)
 
-### [Space Management](./space-management.md)
+### [Space Management](./spaces/space-management.md)
 Managing workspaces and data:
 - Creating and organizing spaces
 - Data persistence and sync
