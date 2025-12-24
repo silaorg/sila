@@ -6,7 +6,7 @@ import {
   LangMessages,
 } from "aiwrapper";
 import { AgentServices } from "./AgentServices";
-import { BindedVertex, ChatAppData } from "@sila/core";
+import { BindedVertex, ChatAppData, Vertex } from "@sila/core";
 import type { ThreadMessage } from "../models";
 import type { AppConfig } from "../models";
 import type { AttachmentPreview } from "../spaces/files";
@@ -94,6 +94,21 @@ export class WrapChatAgent
     });
   }
 
+  getPeerIdCreatedVertex(vertexId: string): string | undefined {
+    // The first MoveVertex op mentioning this vertex is its creation
+    for (const op of this.appTree.tree.getMoveOps()) {
+      if (op.targetId === vertexId) {
+        return op.id.peerId;
+      }
+    }
+  
+    return undefined;
+  }
+
+  getMinutesSinceVertexCreated(vertex: Vertex): number {
+    return Math.floor((new Date().getTime() - vertex.createdAt.getTime()) / (1000 * 60));
+  }
+
   private async maybeReplyToLatest(): Promise<void> {
     if (this.isRunning) return;
     const vertices = this.data.messageVertices;
@@ -103,6 +118,16 @@ export class WrapChatAgent
     const role = this.data.getMessageRole(last.id);
     if (role !== "user") return;
     if (!this.data.isLastMessage(last.id)) return;
+
+    const peerIdCreatedLast = this.getPeerIdCreatedVertex(last.id);
+    const ourPeerId = this.appTree.tree.peerId;
+    const minutesSinceLast = this.getMinutesSinceVertexCreated(last);
+
+    // If the last message was created by someone else in the last 3 minutes, we don't reply.
+    // But if it's older than 3 minutes, we do reply assuming that the peer that supposed to reply exited before replying.
+    if (peerIdCreatedLast !== ourPeerId && minutesSinceLast < 3) {
+      return;
+    }
 
     this.isRunning = true;
     try {
