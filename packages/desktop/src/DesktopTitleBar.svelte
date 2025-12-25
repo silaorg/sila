@@ -14,6 +14,24 @@
   let titleBarEl: HTMLDivElement | null = $state(null);
   let isFullScreen: boolean = $state(false);
 
+  function updateWindowControlsOverlayInsets() {
+    // Windows/Linux: keep title visually centered in the *available* titlebar area,
+    // excluding the native window-controls region.
+    if (typeof navigator === "undefined") return;
+    const wco = (navigator as any).windowControlsOverlay;
+    if (!wco?.getTitlebarAreaRect) return;
+    if (!wco.visible) return;
+
+    const r = wco.getTitlebarAreaRect(); // DOMRect-like
+    const rightInset = window.innerWidth - (r.x + r.width);
+
+    document.documentElement.style.setProperty("--wco-left", `${r.x}px`);
+    document.documentElement.style.setProperty(
+      "--wco-right",
+      `${Math.max(0, rightInset)}px`,
+    );
+  }
+
   function updateOverlayColors() {
     const api = (globalThis as any)?.desktopTitlebar;
     if (!api?.setOverlay) return;
@@ -47,10 +65,19 @@
         isFullScreen = !!payload?.isFullScreen;
       }) ?? null;
 
+    // Windows/Linux titlebar safe-area padding
+    const wco = (navigator as any)?.windowControlsOverlay;
+    const onGeometry = () => updateWindowControlsOverlayInsets();
+    updateWindowControlsOverlayInsets();
+    wco?.addEventListener?.("geometrychange", onGeometry);
+    window.addEventListener("resize", onGeometry);
+
     updateOverlayColors();
 
     return () => {
       off?.();
+      wco?.removeEventListener?.("geometrychange", onGeometry);
+      window.removeEventListener("resize", onGeometry);
     };
   });
 
@@ -68,7 +95,7 @@
   <div
     bind:this={titleBarEl}
     class="w-full flex items-center justify-center bg-surface-50-950 text-surface-900-50"
-    style={`height: ${TITLEBAR_HEIGHT}px; -webkit-app-region: drag;`}
+    style={`height: ${TITLEBAR_HEIGHT}px; -webkit-app-region: drag; padding-left: var(--wco-left, 0px); padding-right: var(--wco-right, 0px);`}
   >
     <div class="truncate max-w-[70vw] text-xs font-medium opacity-80">
       Sila / {workspaceTitle}
