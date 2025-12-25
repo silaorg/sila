@@ -13,9 +13,30 @@ const __dirname = path.dirname(__filename);
  * @returns {BrowserWindow}
  */
 export function createWindow(isDev) {
+  // Match platform conventions: macOS titlebars are shorter than Win/Linux.
+  const TITLEBAR_HEIGHT = process.platform === 'darwin' ? 32 : 36;
+  const TRAFFIC_LIGHT_SIZE = 14; // approximate native button cluster height
+  const TRAFFIC_LIGHT_Y = Math.max(0, Math.round((TITLEBAR_HEIGHT - TRAFFIC_LIGHT_SIZE) / 2));
   // Create the browser window with saved state
   const windowOptions = getWindowOptionsWithState({
     autoHideMenuBar: process.platform !== 'darwin',
+    // Custom titlebar (renderer-drawn) while keeping native window controls available.
+    // See: https://www.electronjs.org/docs/latest/tutorial/custom-title-bar
+    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin'
+      ? {
+          // Align traffic lights vertically within our renderer-drawn title bar.
+          // See: https://www.electronjs.org/docs/latest/tutorial/custom-title-bar
+          trafficLightPosition: { x: 12, y: TRAFFIC_LIGHT_Y },
+        }
+      : {}),
+    ...(process.platform !== 'darwin'
+      ? {
+          // Expose native window controls on Windows/Linux.
+          // Colors are updated dynamically from the renderer via IPC.
+          titleBarOverlay: { height: TITLEBAR_HEIGHT },
+        }
+      : {}),
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,

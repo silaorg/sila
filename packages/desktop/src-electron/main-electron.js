@@ -99,6 +99,38 @@ app.whenReady().then(async () => {
   mainWindow = createWindow(isDev);
   setupElectronMenu(mainWindow);
   setupDialogsInMain();
+
+  // IPC: window fullscreen state
+  ipcMain.handle('sila:window:isFullScreen', async () => {
+    return !!mainWindow?.isFullScreen();
+  });
+
+  function emitFullscreenState() {
+    try {
+      mainWindow?.webContents?.send('sila:window:fullscreen', {
+        isFullScreen: !!mainWindow?.isFullScreen(),
+      });
+    } catch (e) {
+      console.error('Failed to emit fullscreen state', e);
+    }
+  }
+
+  mainWindow.on('enter-full-screen', emitFullscreenState);
+  mainWindow.on('leave-full-screen', emitFullscreenState);
+
+  // IPC: allow renderer to update the titlebar overlay colors (Windows/Linux)
+  ipcMain.handle('sila:titlebar:setOverlay', async (_event, overlay) => {
+    if (!mainWindow) return false;
+    if (process.platform === 'darwin') return false;
+    try {
+      // Electron validates shape at runtime; keep it permissive here.
+      mainWindow.setTitleBarOverlay(overlay);
+      return true;
+    } catch (e) {
+      console.error('Failed to setTitleBarOverlay', e);
+      return false;
+    }
+  });
   
   // IPC: cors-less fetch for renderer
   ipcMain.handle('sila:proxyFetch', async (event, url, init) => {

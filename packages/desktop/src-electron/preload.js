@@ -59,3 +59,30 @@ contextBridge.exposeInMainWorld('desktopMenu', {
     return () => ipcRenderer.removeListener('sila:menu-action', listener);
   }
 });
+
+// Expose window state APIs to the renderer
+contextBridge.exposeInMainWorld('desktopWindow', {
+  /**
+   * @param {(payload: { isFullScreen: boolean }) => void} callback
+   * @returns {() => void} unsubscribe
+   */
+  onFullScreenChanged: (callback) => {
+    /** @param {any} _event @param {{ isFullScreen: boolean }} payload */
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('sila:window:fullscreen', listener);
+    return () => ipcRenderer.removeListener('sila:window:fullscreen', listener);
+  },
+  isFullScreen: async () => {
+    return await ipcRenderer.invoke('sila:window:isFullScreen');
+  },
+});
+
+// Expose titlebar customization APIs to the renderer (Windows/Linux overlay colors)
+contextBridge.exposeInMainWorld('desktopTitlebar', {
+  /**
+   * @param {{ color?: string, symbolColor?: string, height?: number }} overlay
+   */
+  setOverlay: async (overlay) => {
+    return await ipcRenderer.invoke('sila:titlebar:setOverlay', overlay);
+  },
+});

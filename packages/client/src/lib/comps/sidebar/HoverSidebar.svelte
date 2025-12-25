@@ -195,7 +195,8 @@
 <!-- Hover trigger area - only present when sidebar is closed and not recently (500ms or so) closed -->
 {#if !sidebarIsOpen && !recentlyClosed}
   <div
-    class="fixed z-10 w-5 h-[calc(100vh-2.5rem)] top-[2.5rem] left-0 opacity-0 cursor-auto"
+    class="fixed z-10 w-5 left-0 opacity-0 cursor-auto"
+    style="top: calc(2.5rem + var(--sila-chrome-top, 0px)); height: calc(100vh - 2.5rem - var(--sila-chrome-top, 0px));"
     onmouseenter={handleHoverEnter}
     onmouseleave={handleHoverLeave}
     tabindex="0"
@@ -207,7 +208,8 @@
 {#if !sidebarIsOpen}
   <div
     bind:this={sidebarElement}
-    class="hover-sidebar fixed top-0 h-full p-1 w-[300px] z-10 cursor-default"
+    class="hover-sidebar fixed p-1 w-[300px] z-10 cursor-default"
+    style="top: var(--sila-chrome-top, 0px); height: calc(100vh - var(--sila-chrome-top, 0px));"
     class:show-sidebar={showHoverSidebar}
     onmouseenter={handleHoverEnter}
     onmouseleave={handleSidebarLeave}

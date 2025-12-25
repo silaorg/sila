@@ -1,12 +1,5 @@
 import type { AppDialogs, OpenDialogOptions, SaveDialogOptions, MessageDialogOptions, MessageDialogResult } from '@sila/client/appDialogs';
 
-// Extend the Window interface to include our exposed dialog APIs
-declare global {
-  interface Window {
-    electronDialog: AppDialogs;
-  }
-}
-
 export class ElectronDialogsWrapper implements AppDialogs {
   private get api() {
     if (!window.electronDialog) {

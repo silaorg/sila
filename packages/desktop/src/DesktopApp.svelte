@@ -4,6 +4,7 @@
   import { electronFsWrapper } from "./electronFsWrapper";
   import { electronDialogsWrapper } from "./electronDialogsWrapper";
   import DesktopUpdateHandler from "./DesktopUpdateHandler.svelte";
+  import DesktopTitleBar from "./DesktopTitleBar.svelte";
 
   let config: ClientStateConfig | null = $state({
     initState: new ClientState(),
@@ -29,6 +30,10 @@
   <title>Sila</title>
 </svelte:head>
 
-<SilaApp {config}>
+{#snippet chromeTop()}
+  <DesktopTitleBar />
+{/snippet}
+
+<SilaApp {config} {chromeTop}>
   <DesktopUpdateHandler />
 </SilaApp>

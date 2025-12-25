@@ -1,12 +1,5 @@
 import type { AppFileSystem, FileEntry, FileHandle, WatchEvent, UnwatchFn } from '@sila/client/appFs';
 
-// Extend the Window interface to include the electronFs API
-declare global {
-  interface Window {
-    electronFs: AppFileSystem;
-  }
-}
-
 /**
  * Wrapper class that implements AppFileSystem interface
  * by delegating to the exposed electronFs API from the preload script

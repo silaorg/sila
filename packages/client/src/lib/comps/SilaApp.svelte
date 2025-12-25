@@ -20,14 +20,40 @@
   let {
     config,
     state: initialState,
+    chromeTop,
     children,
   }: {
     config: ClientStateConfig | null;
     state?: ClientState;
+    chromeTop?: Snippet;
     children?: Snippet;
   } = $props();
 
   const providedState = $derived(initialState || new ClientState());
+
+  // Height (in px) of optional wrapper chrome rendered above the app content.
+  // Used to offset fixed-position UI (e.g., hover sidebar) in a platform-agnostic way.
+  let chromeTopEl: HTMLDivElement | null = $state(null);
+  let chromeTopHeightPx: number = $state(0);
+
+  $effect(() => {
+    if (!chromeTop || !chromeTopEl) {
+      chromeTopHeightPx = 0;
+      return;
+    }
+
+    const el = chromeTopEl;
+    const update = () => {
+      chromeTopHeightPx = Math.round(el.getBoundingClientRect().height);
+    };
+
+    update();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
 
   const defaultTelemetryConfig = $derived.by(
     (): ClientStateConfig["telemetryConfig"] => {
@@ -138,23 +164,32 @@
     <!-- Set a current theme and a color scheme -->
     <ThemeManager />
 
-    <!-- Where our spaces are rendered -->
-    <SpaceEntry />
+    <div style={`--sila-chrome-top: ${chromeTopHeightPx}px;`}>
+      <!-- Optional wrapper chrome (desktop/mobile/web shells) -->
+      {#if chromeTop}
+        <div bind:this={chromeTopEl}>
+          {@render chromeTop?.()}
+        </div>
+      {/if}
 
-    <!-- Setup stacking windows (popover windows with navigation) we use for new conversations, settings, etc -->
-    <SwinsContainer />
+      <!-- Where our spaces are rendered -->
+      <SpaceEntry />
 
-    <!-- Handle native and custom context menus -->
-    <ContextMenuHandler />
+      <!-- Setup stacking windows (popover windows with navigation) we use for new conversations, settings, etc -->
+      <SwinsContainer />
 
-    <!-- Setup toasts for notifications -->
-    <Toasts />
+      <!-- Handle native and custom context menus -->
+      <ContextMenuHandler />
 
-    <!-- A modal for viewing vertices that reference files, such as images, videos, PDFs, etc -->
-    <VertexViewerModal />
+      <!-- Setup toasts for notifications -->
+      <Toasts />
 
-    <!-- Render whatever components passed from the wrappers of SilaApp (e.g Desktop, Mobile, etc)-->
-    {@render children?.()}
+      <!-- A modal for viewing vertices that reference files, such as images, videos, PDFs, etc -->
+      <VertexViewerModal />
+
+      <!-- Render whatever components passed from the wrappers of SilaApp (e.g Desktop, Mobile, etc)-->
+      {@render children?.()}
+    </div>
   </ClientStateProvider>
 {:else}
   Loading...
