@@ -30,20 +30,27 @@
   <title>Sila</title>
 </svelte:head>
 
-<DesktopTitleBar />
-
 <SilaApp {config}>
   <DesktopUpdateHandler />
+  <DesktopTitleBar />
 </SilaApp>
 
 <style global>
   /*
     Desktop-only: fixed custom titlebar overlays the web contents.
-    Offset the hover sidebar panel (fixed positioned) so it doesn't cover the titlebar.
+    Offset a few fixed/viewport-rooted surfaces so they don't sit under the titlebar.
   */
+  /* Main app root (Space) */
+  /* svelte-ignore css_unused_selector */
+  :global([data-testid="space-root"]) {
+    padding-top: var(--sila-titlebar-height, 0px);
+    box-sizing: border-box;
+  }
+
   /* svelte-ignore css_unused_selector */
   :global(.hover-sidebar) {
-    top: var(--sila-titlebar-height, 0px);
-    height: calc(100vh - var(--sila-titlebar-height, 0px));
+    /* Override Tailwind's `top-0`/`h-full` reliably (ordering can vary across bundles). */
+    top: var(--sila-titlebar-height, 0px) !important;
+    height: calc(100vh - var(--sila-titlebar-height, 0px)) !important;
   }
 </style>

@@ -102,7 +102,7 @@
 {#if !isFullScreen}
   <div
     bind:this={titleBarEl}
-    class="fixed top-0 left-0 right-0 z-50 w-full flex items-center justify-center bg-surface-50-950 text-surface-900-50"
+    class="fixed top-0 left-0 right-0 z-50 w-full flex items-center justify-center border-b border-surface-300-700 bg-surface-50-950 text-surface-900-50"
     style={`height: ${TITLEBAR_HEIGHT}px; -webkit-app-region: drag; padding-left: var(--wco-left, 0px); padding-right: var(--wco-right, 0px);`}
   >
     <div class="truncate max-w-[70vw] text-xs font-medium opacity-80">
