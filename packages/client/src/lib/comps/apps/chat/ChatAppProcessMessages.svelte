@@ -6,48 +6,18 @@
 
   let { vertices }: { vertices: Vertex[] } = $props();
 
-  const messages: (ToolUsageMessagePair | LangMessage)[] = $derived.by(() => {
-    const msgs: (ToolUsageMessagePair | LangMessage)[] = [];
+  // Here we're going to merge tool requests an tool results in pairs so we can render them from a dedicated component.
+  const messages: ToolUsageMessagePair[] = $derived.by(() => {
+    const msgs: ToolUsageMessagePair[] = [];
 
     for (let i = 0; i < vertices.length; i++) {
       const vertex = vertices[i];
-      const role = vertex.getProperty("role");
 
-      // Legacy support: dedicated tool messages
-      if (role === "tool") {
-        const toolRequests = (vertex.getProperty("toolRequests") as unknown as ToolRequest[]) ?? [];
-        const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => ({
-          id: request.callId,
-          role: "tool",
-          toolPair: {
-            name: request.name,
-            request,
-            result: null,
-          },
-        }));
-
-        if (
-          vertices.length > i + 1 &&
-          vertices[i + 1].getProperty("role") === "tool-results"
-        ) {
-          const resultsVertex = vertices[i + 1];
-          const toolResults = (resultsVertex.getProperty("toolResults") as unknown as ToolResult[]) ?? [];
-
-          for (const result of toolResults) {
-            const pair = pairs.find((p) => p.id === (result.toolId ?? (result as any).callId));
-            if (pair) {
-              pair.toolPair.result = result;
-            }
-          }
-        }
-
-        msgs.push(...pairs);
-        continue;
-      }
-
-      const toolRequests = (vertex.getProperty("toolRequests") as unknown as ToolRequest[]) ?? [];
+      const toolRequests =
+        (vertex.getProperty("toolRequests") as unknown as ToolRequest[]) ?? [];
       if (toolRequests.length > 0) {
-        const currentResults = (vertex.getProperty("toolResults") as unknown as ToolResult[]) ?? [];
+        const currentResults =
+          (vertex.getProperty("toolResults") as unknown as ToolResult[]) ?? [];
         let nextResults: ToolResult[] = [];
 
         if (
@@ -55,13 +25,20 @@
           vertices.length > i + 1 &&
           vertices[i + 1].getProperty("role") === "tool-results"
         ) {
-          nextResults = (vertices[i + 1].getProperty("toolResults") as unknown as ToolResult[]) ?? [];
+          nextResults =
+            (vertices[i + 1].getProperty(
+              "toolResults"
+            ) as unknown as ToolResult[]) ?? [];
         }
 
         const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => {
           const match =
-            currentResults.find((r) => (r.toolId ?? (r as any).callId) === request.callId) ??
-            nextResults.find((r) => (r.toolId ?? (r as any).callId) === request.callId) ??
+            currentResults.find(
+              (r) => (r.toolId ?? (r as any).callId) === request.callId
+            ) ??
+            nextResults.find(
+              (r) => (r.toolId ?? (r as any).callId) === request.callId
+            ) ??
             null;
 
           return {
@@ -78,8 +55,6 @@
         msgs.push(...pairs);
         continue;
       }
-
-      msgs.push(vertex.getAsTypedObject<LangMessage>());
     }
 
     return msgs;
@@ -87,9 +62,7 @@
 </script>
 
 {#each messages as message}
-  {#if message.role === "tool"}
-    <div class="border border-surface-100-900 p-2 rounded-md">
-      <ChatAppToolMessagePair message={message as ToolUsageMessagePair} />
-    </div>
-  {/if}
+  <div class="border border-surface-100-900 p-2 rounded-md">
+    <ChatAppToolMessagePair {message} />
+  </div>
 {/each}

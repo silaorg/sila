@@ -86,12 +86,8 @@
         visibleMessage.progressVertices[
           visibleMessage.progressVertices.length - 1
         ];
-      const toolRequests =
-        (lastProgressVertex.getProperty(
-          "toolRequests"
-        ) as unknown as ToolRequest[]) ?? [];
 
-      if (toolRequests.length > 0) {
+      if (lastProgressVertex.getProperty("role") === "tool") {
         return true;
       }
     }
