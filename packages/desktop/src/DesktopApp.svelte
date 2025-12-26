@@ -30,10 +30,20 @@
   <title>Sila</title>
 </svelte:head>
 
-{#snippet chromeTop()}
-  <DesktopTitleBar />
-{/snippet}
+<DesktopTitleBar />
 
-<SilaApp {config} {chromeTop}>
+<SilaApp {config}>
   <DesktopUpdateHandler />
 </SilaApp>
+
+<style global>
+  /*
+    Desktop-only: fixed custom titlebar overlays the web contents.
+    Offset the hover sidebar panel (fixed positioned) so it doesn't cover the titlebar.
+  */
+  /* svelte-ignore css_unused_selector */
+  :global(.hover-sidebar) {
+    top: var(--sila-titlebar-height, 0px);
+    height: calc(100vh - var(--sila-titlebar-height, 0px));
+  }
+</style>

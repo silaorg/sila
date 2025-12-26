@@ -32,6 +32,11 @@
     );
   }
 
+  function updateTitlebarHeightVar() {
+    const h = isFullScreen ? 0 : TITLEBAR_HEIGHT;
+    document.documentElement.style.setProperty("--sila-titlebar-height", `${h}px`);
+  }
+
   function updateOverlayColors() {
     const api = (globalThis as any)?.desktopTitlebar;
     if (!api?.setOverlay) return;
@@ -63,6 +68,7 @@
     const off =
       winApi?.onFullScreenChanged?.((payload: { isFullScreen: boolean }) => {
         isFullScreen = !!payload?.isFullScreen;
+        updateTitlebarHeightVar();
       }) ?? null;
 
     // Windows/Linux titlebar safe-area padding
@@ -73,11 +79,13 @@
     window.addEventListener("resize", onGeometry);
 
     updateOverlayColors();
+    updateTitlebarHeightVar();
 
     return () => {
       off?.();
       wco?.removeEventListener?.("geometrychange", onGeometry);
       window.removeEventListener("resize", onGeometry);
+      document.documentElement.style.removeProperty("--sila-titlebar-height");
     };
   });
 
@@ -94,7 +102,7 @@
 {#if !isFullScreen}
   <div
     bind:this={titleBarEl}
-    class="w-full flex items-center justify-center bg-surface-50-950 text-surface-900-50"
+    class="fixed top-0 left-0 right-0 z-50 w-full flex items-center justify-center bg-surface-50-950 text-surface-900-50"
     style={`height: ${TITLEBAR_HEIGHT}px; -webkit-app-region: drag; padding-left: var(--wco-left, 0px); padding-right: var(--wco-right, 0px);`}
   >
     <div class="truncate max-w-[70vw] text-xs font-medium opacity-80">
