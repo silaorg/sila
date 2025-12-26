@@ -40,7 +40,7 @@
   <SpaceSetupWizard />
 {:else}
   <div
-    class="grid h-screen grid-rows-[1fr_auto] border-t border-surface-200-800"
+    class="grid h-screen grid-rows-[1fr_auto]"
     data-testid="space-root"
   >
     <div class="flex overflow-hidden">
