@@ -1,5 +1,6 @@
 <script module lang="ts">
   import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
+  import type { ToolRequest } from "aiwrapper";
 </script>
 
 <script lang="ts">
@@ -7,7 +8,6 @@
     Sparkles,
     ChevronDown,
     ChevronRight,
-    LoaderCircle,
   } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
@@ -22,7 +22,7 @@
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
-  import type { VisibleMessage } from "./chatTypes";
+  import type { ToolPair, VisibleMessage } from "./chatTypes";
   import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
   import type { FileMention } from "./chatMentionPlugin";
 
@@ -32,9 +32,9 @@
     isLastMessage = false,
     lastProcessMessagesExpanded = false,
     onLastProcessMessagesExpandedChange,
-  }: { 
-    visibleMessage: VisibleMessage; 
-    data: ChatAppData; 
+  }: {
+    visibleMessage: VisibleMessage;
+    data: ChatAppData;
     isLastMessage?: boolean;
     lastProcessMessagesExpanded?: boolean;
     onLastProcessMessagesExpandedChange?: (expanded: boolean) => void;
@@ -72,8 +72,35 @@
       localProcessMessagesExpanded = !localProcessMessagesExpanded;
     }
   }
-  const expandLabel = $derived.by(() => {
+
+  const inProgress = $derived.by(() => {
+    // We would indicate that something is in progress if the message itself has "inProgress" set to true OR the last process message
+    // is a tool request but without a result. In that case we assume that the AI executed the tool and is waiting for the result.
+
     if (message?.inProgress) {
+      return true;
+    }
+
+    if (visibleMessage.progressVertices.length > 0) {
+      const lastProgressVertex =
+        visibleMessage.progressVertices[
+          visibleMessage.progressVertices.length - 1
+        ];
+      const toolRequests =
+        (lastProgressVertex.getProperty(
+          "toolRequests"
+        ) as unknown as ToolRequest[]) ?? [];
+
+      if (toolRequests.length > 0) {
+        return true;
+      }
+    }
+
+    return false;
+  });
+
+  const expandLabel = $derived.by(() => {
+    if (inProgress) {
       if (message?.thinking) {
         return "Thinking";
       }
@@ -274,7 +301,10 @@
       return [];
     }
 
-    return clientState.currentSpaceState?.fileResolver.searchFileMentions(query, chatFilesRoot);
+    return clientState.currentSpaceState?.fileResolver.searchFileMentions(
+      query,
+      chatFilesRoot
+    );
   }
 
   async function beginEdit() {
@@ -313,7 +343,7 @@
           <span class="font-bold cursor-default hover:opacity-90"
             >{configName || "AI"}
           </span>
-          {#if !canExpandMessage && message?.inProgress}
+          {#if !canExpandMessage && inProgress}
             <span class="opacity-70">•</span>
             <div class="flex items-center gap-1 group">
               <span class="text-shimmer">Thinking</span>
@@ -326,7 +356,7 @@
             >
               <span
                 class="opacity-70 group-hover:opacity-100"
-                class:text-shimmer={message?.inProgress}>{expandLabel}</span
+                class:text-shimmer={inProgress}>{expandLabel}</span
               >
               {#if isProcessMessagesExpanded}
                 <ChevronDown
@@ -384,10 +414,7 @@
               {/if}
             </div>
           {/if}
-          <Markdown
-            source={renderedText}
-            options={chatMarkdownOptions}
-          />
+          <Markdown source={renderedText} options={chatMarkdownOptions} />
           {#if fileRefs && fileRefs.length > 0}
             <div class="mt-2 flex flex-wrap gap-2">
               {#each fileRefs as att}

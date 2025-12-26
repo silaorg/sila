@@ -15,7 +15,7 @@
 
       // Legacy support: dedicated tool messages
       if (role === "tool") {
-        const toolRequests = (vertex.getProperty("toolRequests") as ToolRequest[]) ?? [];
+        const toolRequests = (vertex.getProperty("toolRequests") as unknown as ToolRequest[]) ?? [];
         const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => ({
           id: request.callId,
           role: "tool",
@@ -31,7 +31,7 @@
           vertices[i + 1].getProperty("role") === "tool-results"
         ) {
           const resultsVertex = vertices[i + 1];
-          const toolResults = (resultsVertex.getProperty("toolResults") as ToolResult[]) ?? [];
+          const toolResults = (resultsVertex.getProperty("toolResults") as unknown as ToolResult[]) ?? [];
 
           for (const result of toolResults) {
             const pair = pairs.find((p) => p.id === (result.toolId ?? (result as any).callId));
@@ -45,9 +45,9 @@
         continue;
       }
 
-      const toolRequests = (vertex.getProperty("toolRequests") as ToolRequest[]) ?? [];
+      const toolRequests = (vertex.getProperty("toolRequests") as unknown as ToolRequest[]) ?? [];
       if (toolRequests.length > 0) {
-        const currentResults = (vertex.getProperty("toolResults") as ToolResult[]) ?? [];
+        const currentResults = (vertex.getProperty("toolResults") as unknown as ToolResult[]) ?? [];
         let nextResults: ToolResult[] = [];
 
         if (
@@ -55,7 +55,7 @@
           vertices.length > i + 1 &&
           vertices[i + 1].getProperty("role") === "tool-results"
         ) {
-          nextResults = (vertices[i + 1].getProperty("toolResults") as ToolResult[]) ?? [];
+          nextResults = (vertices[i + 1].getProperty("toolResults") as unknown as ToolResult[]) ?? [];
         }
 
         const pairs: ToolUsageMessagePair[] = toolRequests.map((request) => {

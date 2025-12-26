@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Sparkles, LoaderCircle } from "lucide-svelte";
+  import { Sparkles } from "lucide-svelte";
   import type { ChatAppData } from "@sila/core";
 
   let { data }: { data: ChatAppData } = $props();
