@@ -53,28 +53,36 @@ export class ElectronUpdater {
   }
 
   async downloadUpdate() {
-    if (this.#isDownloading) {
-      return;
-    }
+    if (this.#isDownloading) return false;
+
     this.#isDownloading = true;
-    console.log('ElectronUpdater / Downloading update...');
-    const downloadedFiles = await this.autoUpdater.downloadUpdate();
-    console.log('ElectronUpdater / Update downloaded, files:', downloadedFiles);
-    this.#isDownloading = false;
-
-    // Notify renderer that the update has been downloaded
     try {
-      const mainWindow = BrowserWindow.getAllWindows()[0];
-      if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('sila:update:downloaded', {
-          version: this.availableVersion
-        });
-      }
-    } catch (err) {
-      console.error('ElectronUpdater / Failed to notify renderer about downloaded update:', err);
-    }
+      console.log('ElectronUpdater / Downloading update...', { version: this.availableVersion });
+      const downloadedFiles = await this.autoUpdater.downloadUpdate();
+      console.log('ElectronUpdater / Update downloaded', {
+        version: this.availableVersion,
+        filesCount: Array.isArray(downloadedFiles) ? downloadedFiles.length : undefined
+      });
 
-    //this.autoUpdater.quitAndInstall();
+      // Notify renderer that the update has been downloaded
+      try {
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('sila:update:downloaded', {
+            version: this.availableVersion
+          });
+        }
+      } catch (err) {
+        console.error('ElectronUpdater / Failed to notify renderer about downloaded update:', err);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('ElectronUpdater / downloadUpdate error:', err);
+      return false;
+    } finally {
+      this.#isDownloading = false;
+    }
   }
 
   showInstallDialog(/** @type {any} */ info) {

@@ -34,3 +34,14 @@ Use `gh` cli tool to inspect workflows if needed
 - All platforms are built on CI. macOS artifacts are code-signed and notarized automatically.
 - We produce a single universal macOS DMG (Intel + Apple Silicon).
 - The latest public release is available on the download page: [silain.com/download](https://www.silain.com/download).
+
+## Updates in the app (auto-update)
+
+We ship updates via **GitHub Releases** in two forms:
+
+- **Electron app update** (the executable): handled by `electron-updater` (GitHub provider via `packages/desktop/package.json` → `build.publish`).
+- **Desktop build update** (web assets): a `desktop-v{version}.zip` asset that the app can download + extract at runtime.
+
+Update strategy (see `packages/desktop/src-electron/updates/updater.js`):
+- If the available update is a **patch** bump and a matching `desktop-v{version}.zip` exists, prefer the desktop build update.
+- Otherwise (minor/major, or no matching zip), download the full Electron app update.

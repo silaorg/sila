@@ -11,17 +11,31 @@ const CHECK_FOR_UPDATES_INTERVAL = 1000 * 60 * 5;
 let isCheckingOrUpdating = false;
 
 /**
- * Set up the updater
+ * Orchestrates updates for two independent things:
+ * - Electron auto-update (the executable) via `electron-updater`
+ * - "Desktop build" update (a `.zip` with web assets) via our `GitHubReleaseManager`
+ *
+ * Both are GitHub Releases-backed, but via different mechanisms:
+ * - Electron updates: handled by `electron-updater` using its GitHub provider (configured by `build.publish` in
+ *   `packages/desktop/package.json`).
+ * - Desktop build updates: fetched by us via the GitHub Releases REST API (`api.github.com/.../releases`) and then
+ *   downloaded/extracted.
+ *
+ * Update strategy:
+ * - Check both sources.
+ * - If Electron has an update and it's a **patch** bump, prefer the matching desktop build (same version) when available.
+ * - Otherwise (minor/major, or no matching build), download the full Electron update.
+ * - If Electron has no update, we may still fetch the latest desktop build.
+ *
+ * This file is the coordinator; the actual download/apply logic lives in `ElectronUpdater`
+ * and `DesktopBuildUpdater`.
+ */
+
+/**
+ * Set up the updater (IPC handlers + periodic checks).
  * @param {boolean} isDev
  */
 export async function setUpdater(isDev) {
-
-  /*
-  @TODO:
-  - Check for updates - electron package and desktop build
-  - Decide whether to update the electron package or the desktop build.
-  - If it's only the patch change - we will download the desktop build, otherwise we will download the electron package.
-  */
 
   handleInstallElectronUpdate();
 
@@ -60,6 +74,8 @@ export async function checkForUpdates() {
   isCheckingOrUpdating = true;
 
   try {
+    console.log('Updater / Checking for updates...', { currentVersion: app.getVersion() });
+
     // Fetch Electron update info and desktop builds concurrently
     const [electronAvailableUpdateVersion, desktopBuilds] = await Promise.all([
       electronUpdater.checkForUpdates(),
@@ -77,22 +93,39 @@ export async function checkForUpdates() {
           // Prefer desktop build whose version matches Electron update version
           const matchingBuild = desktopBuilds.find(b => b.version === electronAvailableUpdateVersion);
           if (matchingBuild) {
+            console.log('Updater / Downloading desktop build update (patch)', {
+              version: matchingBuild.version
+            });
             // Ensure DesktopBuildUpdater is primed with the matching build using its public method
             await desktopBuildUpdater.checkForUpdates(matchingBuild.version);
-            await desktopBuildUpdater.downloadUpdate();
+            const ok = await desktopBuildUpdater.downloadUpdate();
+            console.log('Updater / Desktop build download finished (patch)', { version: matchingBuild.version, ok });
             return;
           }
           // Fallback to Electron if no matching desktop build found
-          await electronUpdater.downloadUpdate();
+          console.log('Updater / Downloading Electron update (patch fallback)', {
+            version: electronAvailableUpdateVersion
+          });
+          const ok = await electronUpdater.downloadUpdate();
+          console.log('Updater / Electron download finished (patch fallback)', { version: electronAvailableUpdateVersion, ok });
           return;
         }
 
         // For minor/major diffs, download full Electron package
-        await electronUpdater.downloadUpdate();
+        console.log('Updater / Downloading Electron update', {
+          version: electronAvailableUpdateVersion,
+          diff: diff ?? 'unknown'
+        });
+        const ok = await electronUpdater.downloadUpdate();
+        console.log('Updater / Electron download finished', { version: electronAvailableUpdateVersion, ok });
         return;
       } catch (e) {
         console.error('Updater / semver decision error, falling back to Electron update:', e);
-        await electronUpdater.downloadUpdate();
+        console.log('Updater / Downloading Electron update (semver fallback)', {
+          version: electronAvailableUpdateVersion
+        });
+        const ok = await electronUpdater.downloadUpdate();
+        console.log('Updater / Electron download finished (semver fallback)', { version: electronAvailableUpdateVersion, ok });
         return;
       }
     }
@@ -100,8 +133,12 @@ export async function checkForUpdates() {
     // If no Electron update, still allow latest desktop build to be fetched (optional)
     if (desktopBuilds && desktopBuilds.length > 0) {
       // Prime and download the latest
+      console.log('Updater / Downloading latest desktop build (no Electron update)', {
+        version: desktopBuilds[0].version
+      });
       await desktopBuildUpdater.checkForUpdates(desktopBuilds[0].version);
-      await desktopBuildUpdater.downloadUpdate();
+      const ok = await desktopBuildUpdater.downloadUpdate();
+      console.log('Updater / Desktop build download finished (no Electron update)', { version: desktopBuilds[0].version, ok });
     }
   } finally {
     isCheckingOrUpdating = false;
