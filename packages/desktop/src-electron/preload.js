@@ -71,3 +71,17 @@ contextBridge.exposeInMainWorld('desktopMenu', {
     return () => ipcRenderer.removeListener('sila:menu-action', listener);
   }
 });
+
+// Expose main-process logs (forwarded via IPC in dev)
+contextBridge.exposeInMainWorld('desktopLogs', {
+  /**
+   * @param {(payload: { level: 'log'|'info'|'warn'|'error', ts: number, message: string }) => void} callback
+   * @returns {() => void} unsubscribe
+   */
+  onMainLog: (callback) => {
+    /** @param {any} _event @param {any} payload */
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('sila:main:log', listener);
+    return () => ipcRenderer.removeListener('sila:main:log', listener);
+  }
+});

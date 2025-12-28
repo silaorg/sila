@@ -12,6 +12,14 @@
   });
 
   onMount(() => {
+    // Forward main-process logs into the renderer console (dev convenience).
+    const unsubMainLogs = (window as any).desktopLogs?.onMainLog?.((payload: any) => {
+      const level = payload?.level;
+      const msg = payload?.message ?? payload;
+      const fn = (console as any)[level] ?? console.log;
+      fn("[electron]", msg);
+    });
+
     // Log Electron environment info
     if (typeof process !== "undefined" && process.versions) {
       const info = {
@@ -22,6 +30,10 @@
 
       console.log("⚛️ Electron info:", info);
     }
+
+    return () => {
+      if (typeof unsubMainLogs === "function") unsubMainLogs();
+    };
   });
 </script>
 

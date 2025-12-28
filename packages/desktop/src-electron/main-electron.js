@@ -10,9 +10,14 @@ import { setupGitHubReleaseIPC } from './updates/githubReleaseManager.js';
 import { setupSilaProtocol } from './silaProtocol.js';
 import { getSelectedClientBuildInfo } from './silaProtocol.js';
 import { spaceManager } from './spaceManager.js';
+import { flushMainLogsToRenderer, patchMainConsole } from './mainLogBridge.js';
 
 // Development mode check
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
+// Forward main-process logs to the renderer so they show up in DevTools.
+// Can be disabled by setting `SILA_FORWARD_MAIN_LOGS=0`.
+patchMainConsole({ enabled: process.env.SILA_FORWARD_MAIN_LOGS !== '0' });
 
 function getViteAppVersion() {
   return process.env.VITE_APP_VERSION || 'dev';
@@ -97,6 +102,7 @@ app.whenReady().then(async () => {
   
   // Setup main window with menu and dialogs
   mainWindow = createWindow(isDev);
+  mainWindow.webContents.once('did-finish-load', () => flushMainLogsToRenderer());
   setupElectronMenu(mainWindow);
   setupDialogsInMain();
   

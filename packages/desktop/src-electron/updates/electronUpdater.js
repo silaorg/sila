@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 import pkg from 'electron-updater';
+import { diff as semverDiff, coerce as semverCoerce } from 'semver';
 const { autoUpdater } = pkg;
 
 /**
@@ -65,7 +66,13 @@ export class ElectronUpdater {
     
     const version = result?.updateInfo.version;
     console.log('ElectronUpdater / CheckForUpdates version:', version);
-    this.availableVersion = version ?? null;
+    const current = semverCoerce(this.autoUpdater.currentVersion?.version);
+    const target = semverCoerce(version);
+    const diff = current && target ? semverDiff(current, target) : null;
+
+    // electron-updater may still return updateInfo with a version even when no update is available.
+    // Treat "no semver diff" as "no update".
+    this.availableVersion = diff ? (version ?? null) : null;
 
     return this.availableVersion;
   }

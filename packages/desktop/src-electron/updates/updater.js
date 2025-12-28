@@ -104,7 +104,14 @@ export async function checkForUpdates() {
         const targetVersion = semverCoerce(electronAvailableUpdateVersion);
         const diff = currentVersion && targetVersion ? semverDiff(currentVersion, targetVersion) : null;
 
-        if (diff === 'patch') {
+        // If there is no semver diff, treat it as "no Electron update".
+        // (electron-updater can surface updateInfo even when you're already on that version.)
+        if (!diff) {
+          console.log('Updater / Electron update check returned no newer version; skipping Electron download', {
+            version: electronAvailableUpdateVersion
+          });
+          // Continue to optional desktop build flow below.
+        } else if (diff === 'patch') {
           // Prefer desktop build whose version matches Electron update version
           const matchingBuild = desktopBuilds.find(b => b.version === electronAvailableUpdateVersion);
           if (matchingBuild) {
@@ -128,18 +135,18 @@ export async function checkForUpdates() {
           console.log('Updater / Electron download finished (patch fallback)', { version: electronAvailableUpdateVersion, ok });
           emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
           return;
+        } else {
+          // For minor/major diffs (or prereleases), download full Electron package
+          console.log('Updater / Downloading Electron update', {
+            version: electronAvailableUpdateVersion,
+            diff
+          });
+          emitUpdateProgress({ kind: 'electron', stage: 'downloading', percent: 0, version: electronAvailableUpdateVersion });
+          const ok = await electronUpdater.downloadUpdate();
+          console.log('Updater / Electron download finished', { version: electronAvailableUpdateVersion, ok });
+          emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
+          return;
         }
-
-        // For minor/major diffs, download full Electron package
-        console.log('Updater / Downloading Electron update', {
-          version: electronAvailableUpdateVersion,
-          diff: diff ?? 'unknown'
-        });
-        emitUpdateProgress({ kind: 'electron', stage: 'downloading', percent: 0, version: electronAvailableUpdateVersion });
-        const ok = await electronUpdater.downloadUpdate();
-        console.log('Updater / Electron download finished', { version: electronAvailableUpdateVersion, ok });
-        emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
-        return;
       } catch (e) {
         console.error('Updater / semver decision error, falling back to Electron update:', e);
         console.log('Updater / Downloading Electron update (semver fallback)', {
