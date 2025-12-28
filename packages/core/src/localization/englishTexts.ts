@@ -88,7 +88,7 @@ export const englishTexts: Texts = {
     description: "A workspace is where your AI apps and other data is stored. You can have multiple workspaces and switch between them. For example, one can be for work and another personal.",
     opener: {
       createTitle: "Create a new workspace",
-      createDescription: "Choose a folder for your new workspace. It could be local folder or a folder synced with iCloud, Dropbox, Google Drive, etc. Make sure the folder is empty.",
+      createDescription: "Choose a folder for your new workspace. It could be local folder or a folder synced with iCloud, Dropbox, Google Drive, etc.",
       createButton: "Create",
       openTitle: "Open a workspace",
       openDescription: "Open a folder that contains your workspace.",
