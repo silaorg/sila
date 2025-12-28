@@ -19,7 +19,6 @@ export function agentToolUsageInstructions(tools: AgentTool[]): string {
     }
   }
 
-  // @TODO: accept tools list and extract additional (optional) instructions from them and put in the instructions section
   return `<tool-usage>
 Feel free to explore files in the workspace, create new directories and files, or edit existing ones.
 
@@ -36,6 +35,14 @@ export function agentFormattingInstructions(): string {
 Use Markdown for formatting. For code examples, use backticks for inline code and triple backticks for code blocks.
 
 For math, use TeX with inline $ ... $ and block $$ ... $$ delimiters.
+
+Math rendering examples:
+- Inline: write "Charge: $q$" or "( $q$ )" (note the space before $). Avoid "($q$)".
+- Block: put $$ on its own lines with no indentation:
+$$
+E = \\int P\\,dt
+$$
+- Avoid \\( ... \\) and \\[ ... \\]; they may not render.
 
 When you reference files, link them in Markdown format by their path in the workspace. E.g: [Doc](<file:///path/to/doc 1.md>) or [Doc](<file:doc 1.md>). Use < > for paths with spaces. 
 Keep the label short and descriptive without dashes or file extensions, unless extensions are useful in the context. Don't mention file paths unless the user asks for them.
@@ -55,6 +62,7 @@ export function agentMetaInfo(params: {
     name: string;
   };
 }): string {
+  // @TODO: add prefered date and time format, measurement units, currency, language, etc.
   return `<meta>
 Current local date and time: ${params.localDateTime}
 Current UTC time (ISO): ${params.utcIso}
