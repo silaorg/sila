@@ -1,5 +1,6 @@
 // Responsible for downloading the desktop build (.zip with the web assets)
 // This is used to update the desktop build if it's not the same as the electron package
+import { BrowserWindow } from 'electron';
 import { githubReleaseManager } from './githubReleaseManager.js';
 
 export class DesktopBuildUpdater {
@@ -58,7 +59,25 @@ export class DesktopBuildUpdater {
     if (!this.availableVersion || !this.#downloadUrl) return false;
     this.#isDownloading = true;
     try {
-      const ok = await githubReleaseManager.downloadAndExtractBuild(this.#downloadUrl, this.availableVersion);
+      const ok = await githubReleaseManager.downloadAndExtractBuild(
+        this.#downloadUrl,
+        this.availableVersion,
+        (progress) => {
+          try {
+            const mainWindow = BrowserWindow.getAllWindows()[0];
+            if (mainWindow && mainWindow.webContents) {
+              mainWindow.webContents.send('sila:update:progress', {
+                kind: 'desktop-build',
+                stage: 'downloading',
+                version: this.availableVersion,
+                percent: progress
+              });
+            }
+          } catch {
+            // ignore
+          }
+        }
+      );
       console.log('DesktopBuildUpdater / Download result:', ok);
       return ok;
     } catch (e) {

@@ -11,6 +11,20 @@ const CHECK_FOR_UPDATES_INTERVAL = 1000 * 60 * 5;
 let isCheckingOrUpdating = false;
 
 /**
+ * @param {any} payload
+ */
+function emitUpdateProgress(payload) {
+  try {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow && mainWindow.webContents) {
+      mainWindow.webContents.send('sila:update:progress', payload);
+    }
+  } catch (e) {
+    // Avoid breaking updater flow if window is unavailable
+  }
+}
+
+/**
  * Orchestrates updates for two independent things:
  * - Electron auto-update (the executable) via `electron-updater`
  * - "Desktop build" update (a `.zip` with web assets) via our `GitHubReleaseManager`
@@ -75,6 +89,7 @@ export async function checkForUpdates() {
 
   try {
     console.log('Updater / Checking for updates...', { currentVersion: app.getVersion() });
+    emitUpdateProgress({ stage: 'checking', percent: null, version: app.getVersion() });
 
     // Fetch Electron update info and desktop builds concurrently
     const [electronAvailableUpdateVersion, desktopBuilds] = await Promise.all([
@@ -96,18 +111,22 @@ export async function checkForUpdates() {
             console.log('Updater / Downloading desktop build update (patch)', {
               version: matchingBuild.version
             });
+            emitUpdateProgress({ kind: 'desktop-build', stage: 'downloading', percent: 0, version: matchingBuild.version });
             // Ensure DesktopBuildUpdater is primed with the matching build using its public method
             await desktopBuildUpdater.checkForUpdates(matchingBuild.version);
             const ok = await desktopBuildUpdater.downloadUpdate();
             console.log('Updater / Desktop build download finished (patch)', { version: matchingBuild.version, ok });
+            emitUpdateProgress({ kind: 'desktop-build', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: matchingBuild.version });
             return;
           }
           // Fallback to Electron if no matching desktop build found
           console.log('Updater / Downloading Electron update (patch fallback)', {
             version: electronAvailableUpdateVersion
           });
+          emitUpdateProgress({ kind: 'electron', stage: 'downloading', percent: 0, version: electronAvailableUpdateVersion });
           const ok = await electronUpdater.downloadUpdate();
           console.log('Updater / Electron download finished (patch fallback)', { version: electronAvailableUpdateVersion, ok });
+          emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
           return;
         }
 
@@ -116,16 +135,20 @@ export async function checkForUpdates() {
           version: electronAvailableUpdateVersion,
           diff: diff ?? 'unknown'
         });
+        emitUpdateProgress({ kind: 'electron', stage: 'downloading', percent: 0, version: electronAvailableUpdateVersion });
         const ok = await electronUpdater.downloadUpdate();
         console.log('Updater / Electron download finished', { version: electronAvailableUpdateVersion, ok });
+        emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
         return;
       } catch (e) {
         console.error('Updater / semver decision error, falling back to Electron update:', e);
         console.log('Updater / Downloading Electron update (semver fallback)', {
           version: electronAvailableUpdateVersion
         });
+        emitUpdateProgress({ kind: 'electron', stage: 'downloading', percent: 0, version: electronAvailableUpdateVersion });
         const ok = await electronUpdater.downloadUpdate();
         console.log('Updater / Electron download finished (semver fallback)', { version: electronAvailableUpdateVersion, ok });
+        emitUpdateProgress({ kind: 'electron', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: electronAvailableUpdateVersion });
         return;
       }
     }
@@ -136,10 +159,16 @@ export async function checkForUpdates() {
       console.log('Updater / Downloading latest desktop build (no Electron update)', {
         version: desktopBuilds[0].version
       });
+      emitUpdateProgress({ kind: 'desktop-build', stage: 'downloading', percent: 0, version: desktopBuilds[0].version });
       await desktopBuildUpdater.checkForUpdates(desktopBuilds[0].version);
       const ok = await desktopBuildUpdater.downloadUpdate();
       console.log('Updater / Desktop build download finished (no Electron update)', { version: desktopBuilds[0].version, ok });
+      emitUpdateProgress({ kind: 'desktop-build', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: desktopBuilds[0].version });
+      return;
     }
+
+    // Nothing to do
+    emitUpdateProgress({ stage: 'idle', percent: null });
   } finally {
     isCheckingOrUpdating = false;
   }

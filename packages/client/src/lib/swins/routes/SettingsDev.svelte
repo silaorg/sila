@@ -3,6 +3,7 @@
   import { txtStore } from "@sila/client/state/txtStore";
   import SettingsSidebar from "./SettingsSidebar.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import AppUpdates from "./AppUpdates.svelte";
 
   const clientState = useClientState();
   const versions = $derived(clientState.appVersions);
@@ -34,6 +35,9 @@
           </div>
         </div>
       </section>
+
+      <AppUpdates />
+
       <label class="label">
         <span>{$txtStore.settingsPage.developers.toggleDevMode}</span>
         <input type="checkbox" class="checkbox" bind:checked={$isDevMode} />

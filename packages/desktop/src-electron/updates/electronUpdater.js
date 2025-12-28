@@ -30,6 +30,24 @@ export class ElectronUpdater {
     this.autoUpdater.on('update-downloaded', (event) => {
       console.log('ElectronUpdater / update-downloaded:', event?.version);
     });
+    this.autoUpdater.on('download-progress', (progress) => {
+      try {
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('sila:update:progress', {
+            kind: 'electron',
+            stage: 'downloading',
+            version: this.availableVersion,
+            percent: typeof progress?.percent === 'number' ? Math.round(progress.percent) : null,
+            transferred: progress?.transferred,
+            total: progress?.total,
+            bytesPerSecond: progress?.bytesPerSecond
+          });
+        }
+      } catch {
+        // ignore
+      }
+    });
     this.autoUpdater.on('error', (err) => {
       console.error('ElectronUpdater / error:', err);
     });

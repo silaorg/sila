@@ -115,9 +115,10 @@ export class GitHubReleaseManager {
    * Download and extract a build from GitHub release
    * @param {string} downloadUrl - URL to download the zip file
    * @param {string} version - Version string for the build
+   * @param {(progress: number) => void} [onProgress] - Optional progress callback (0-100)
    * @returns {Promise<boolean>} Success status
    */
-  async downloadAndExtractBuild(downloadUrl, version) {
+  async downloadAndExtractBuild(downloadUrl, version, onProgress) {
     let tempZipPath = null;
     try {
       const buildName = `desktop-v${version}`;
@@ -137,7 +138,9 @@ export class GitHubReleaseManager {
       
       // Download the zip file
       console.log(`Downloading build from: ${downloadUrl}`);
-      await this.downloadFile(downloadUrl, tempZipPath);
+      onProgress?.(0);
+      await this.downloadFile(downloadUrl, tempZipPath, (p) => onProgress?.(p));
+      onProgress?.(100);
       
       // Verify zip file was downloaded and has content
       const zipStats = await fs.stat(tempZipPath);
@@ -318,16 +321,19 @@ export class GitHubReleaseManager {
    * Download file from URL
    * @param {string} url - URL to download from
    * @param {string} filePath - Local file path to save to
+   * @param {(progress: number) => void} [onProgress] - Optional progress callback (0-100)
    */
   /**
    * @param {string} url
    * @param {string} filePath
+   * @param {(progress: number) => void} [onProgress]
    * @returns {Promise<void>}
    */
-  async downloadFile(url, filePath) {
+  async downloadFile(url, filePath, onProgress) {
     return new Promise((resolve, reject) => {
       const file = createWriteStream(filePath);
       let downloadedBytes = 0;
+      let lastProgress = -1;
 
       /**
        * @param {string} targetUrl
@@ -365,8 +371,10 @@ export class GitHubReleaseManager {
             downloadedBytes += chunk.length;
             if (totalBytes > 0) {
               const progress = Math.round((downloadedBytes / totalBytes) * 100);
-              //console.log(`Download progress: ${progress}%`);
-              // @TODO: send progress to renderer
+              if (progress !== lastProgress) {
+                lastProgress = progress;
+                onProgress?.(progress);
+              }
             }
           });
 

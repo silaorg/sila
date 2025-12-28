@@ -32,6 +32,17 @@ contextBridge.exposeInMainWorld('desktopUpdater', {
     ipcRenderer.on('sila:build:update:ready', listener);
     return () => ipcRenderer.removeListener('sila:build:update:ready', listener);
   },
+  /**
+   * Update progress/status stream from the main process.
+   * @param {(payload: { kind?: 'electron'|'desktop-build', stage?: string, percent?: number|null, version?: string|null, message?: string }) => void} callback
+   * @returns {() => void} unsubscribe
+   */
+  onUpdateProgress: (callback) => {
+    /** @param {any} event @param {any} payload */
+    const listener = (event, payload) => callback(payload);
+    ipcRenderer.on('sila:update:progress', listener);
+    return () => ipcRenderer.removeListener('sila:update:progress', listener);
+  },
   installUpdate: () => ipcRenderer.invoke('sila:update:install')
 });
 
@@ -54,6 +65,7 @@ contextBridge.exposeInMainWorld('desktopMenu', {
    * @returns {() => void} unsubscribe
    */
   onAction: (callback) => {
+    /** @param {any} _event @param {string} actionId */
     const listener = (_event, actionId) => callback(actionId);
     ipcRenderer.on('sila:menu-action', listener);
     return () => ipcRenderer.removeListener('sila:menu-action', listener);
