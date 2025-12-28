@@ -93,7 +93,7 @@ export class AgentServices {
     { provider: string; model: string } | null
   > {
     const providerConfigs = this.space.getModelProviderConfigs();
-    const providerOrder = ["openrouter", "openai", "anthropic", "google", "xai", "deepseek", "groq", "mistral", "ollama"];
+    const providerOrder = ["openai", "anthropic", "google", "xai", "openrouter", "deepseek", "groq", "mistral", "ollama"];
 
     // Sort configured providers by priority
     const sortedProviders = providerConfigs
