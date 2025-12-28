@@ -62,7 +62,7 @@ export class ElectronUpdater {
     console.log('ElectronUpdater / Current version:', this.autoUpdater.currentVersion);
 
     const result = await this.autoUpdater.checkForUpdates();
-    console.log('ElectronUpdater / CheckForUpdates result:', result);
+    //console.log('ElectronUpdater / CheckForUpdates result:', result);
     
     const version = result?.updateInfo.version;
     console.log('ElectronUpdater / CheckForUpdates version:', version);
