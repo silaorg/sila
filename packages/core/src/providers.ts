@@ -7,7 +7,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openrouter.ai/",
     logoUrl: "/providers/openrouter.png",
-    defaultModel: "openai/gpt-5.1"
+    defaultModel: "openai/gpt-5.2"
   },
   {
     id: "openai",
@@ -15,7 +15,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openai.com/",
     logoUrl: "/providers/openai.png",
-    defaultModel: "gpt-5.1"
+    defaultModel: "gpt-5.2"
   },
   {
     id: "anthropic",
@@ -23,8 +23,9 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://anthropic.com/",
     logoUrl: "/providers/anthropic.png",
-    defaultModel: "claude-3-5-sonnet-20240620"
+    defaultModel: "claude-sonnet-4-5-20250929"
   },
+  /*
   {
     id: "deepseek",
     name: "DeepSeek",
@@ -33,6 +34,7 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/deepseek.png",
     defaultModel: "deepseek-chat"
   },
+  */
   {
     id: "google",
     name: "Google Gemini",
@@ -41,6 +43,7 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/google.png",
     defaultModel: "gemini-2.0-flash"
   },
+  /*
   {
     id: "groq",
     name: "Groq",
@@ -49,14 +52,16 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/groq.png",
     defaultModel: "llama-3.3-70b-versatile"
   },
+  */
   {
     id: "xai",
     name: "xAI",
     access: "cloud",
     url: "https://x.ai/",
     logoUrl: "/providers/xai.png",
-    defaultModel: "grok-2"
+    defaultModel: "grok-4-1-fast"
   },
+  /*
   {
     id: "cohere",
     name: "Cohere",
@@ -65,6 +70,8 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/cohere.png",
     defaultModel: "command-r-plus"
   },
+  */
+  /*
   {
     id: "mistral",
     name: "Mistral",
@@ -73,6 +80,7 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/mistral.png",
     defaultModel: "mistral-large-latest"
   },
+  */
   {
     id: "ollama",
     name: "Ollama",
