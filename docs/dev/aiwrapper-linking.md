@@ -23,9 +23,26 @@ repos/
   └── aiwrapper/
 ```
 
+### Platform Support
+
+The linking scripts are bash scripts that work on:
+- **Linux** - Full support
+- **macOS** - Full support
+- **Windows** - Requires Git Bash, WSL, or similar Unix-like environment
+
+On Windows, you can also use the npm commands directly:
+```bash
+# In Git Bash or WSL
+cd ../aiwrapper && npm link
+cd ../sila && npm link aiwrapper
+```
+
 ## Usage
 
 ```bash
+# Check current status (linked or published)
+npm run aiwrapper:status
+
 # Link to local aiwrapper package
 npm run aiwrapper:link
 
@@ -53,3 +70,4 @@ npm run aiwrapper:unlink
 The scripts are located in `scripts/`:
 - `scripts/link-aiwrapper-local.sh` - Creates the link
 - `scripts/unlink-aiwrapper-local.sh` - Removes the link and reinstalls from npm
+- `scripts/check-aiwrapper-link.sh` - Checks if currently linked to local version
