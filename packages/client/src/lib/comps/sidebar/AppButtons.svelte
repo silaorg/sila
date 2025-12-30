@@ -38,13 +38,14 @@
           title="New conversation"
           props={{ appConfig: config }}
           className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"
+          dataRole="sidebar-assistant-button"
         >
           <span class="flex-shrink-0 w-6 h-6">
             <span class="relative flex h-full items-center justify-center">
               <SquarePen size={18} />
             </span>
           </span>
-          <span class="flex-grow text-left">{config.name}</span>
+          <span class="flex-grow text-left ph-no-capture">{config.name}</span>
         </SwinsNavButton>
       </li>
     {/if}

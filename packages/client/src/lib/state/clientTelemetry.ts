@@ -25,6 +25,16 @@ export class AppTelemetry {
       posthog.init(apiKey, {
         api_host: host,
         debug: config.debug,
+        mask_all_text: true,
+        autocapture: {
+          element_attribute_ignorelist: [
+            "title",
+            "aria-label",
+            "aria-labelledby",
+            "aria-describedby",
+            "data-attr-pii",
+          ],
+        },
       });
     } catch (err) {
       console.error("Failed to init analytics", err);

@@ -59,8 +59,9 @@
   {#snippet trigger()}
     <button
       class="flex items-center gap-2 px-2 py-1 rounded-container border border-surface-300-700"
+      data-role="assistant-dropdown-trigger"
     >
-      <span class="text-left truncate min-w-0">
+      <span class="text-left truncate min-w-0 ph-no-capture">
         {#if visibleAppConfigs.length > 0 && currentConfig}
           {#if configId}
             {#each visibleAppConfigs as config}
@@ -83,8 +84,9 @@
       <div class="flex flex-col gap-1 mb-4">
         {#each visibleAppConfigs as config (config.id)}
           <button
-            class="btn btn-sm w-full text-left justify-start"
+            class="btn btn-sm w-full text-left justify-start ph-no-capture"
             class:preset-filled-secondary-500={config.id === configId}
+            data-role="select-assistant"
             onclick={() => selectConfig(config.id)}
           >
             <span
@@ -98,10 +100,11 @@
     <div class="flex flex-col gap-1">
       {#if currentConfig}
         <SwinsNavButton
-          className="btn btn-sm w-full text-left justify-start"
+          className="btn btn-sm w-full text-left justify-start ph-no-capture"
           component="appConfig"
           title="Edit Config"
           props={{ configId }}
+          dataRole="edit-assistant"
           onclick={() => {
             openState = false;
           }}><Pencil size={16} />Edit "{currentConfig?.name}" assistant</SwinsNavButton

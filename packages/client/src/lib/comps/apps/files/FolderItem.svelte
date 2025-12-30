@@ -37,11 +37,12 @@
 </script>
 
 <button
-  class="flex flex-col items-center p-3 hover:bg-surface-100-900 rounded-lg w-32 select-none"
+  class="flex flex-col items-center p-3 hover:bg-surface-100-900 rounded-lg w-32 select-none ph-no-capture"
   class:bg-surface-100-900={selected}
   class:outline={dropTarget}
   class:outline-2={dropTarget}
   class:outline-primary-500={dropTarget}
+  data-role="open-folder"
   ondblclick={() => onEnter(vertex)}
   type="button"
   tabindex="-1"

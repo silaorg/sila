@@ -69,7 +69,8 @@
           onkeydown={(e) => e.key === "Enter" && selectSpace(space.id)}
           role="button"
           tabindex="0"
-          class="flex-grow cursor-pointer hover:bg-surface-300-600-token rounded px-2 py-1 -mx-2 -my-1"
+          class="flex-grow cursor-pointer hover:bg-surface-300-600-token rounded px-2 py-1 -mx-2 -my-1 ph-no-capture"
+          data-role="select-space"
         >
           <div class="font-semibold">{space.name || "New Space"}</div>
           {#if space.uri.startsWith("browser")}

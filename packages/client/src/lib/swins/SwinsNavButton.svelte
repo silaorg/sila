@@ -13,6 +13,7 @@
     pop,
     popTo,
     onclick,
+    dataRole,
   }: {
     children: Snippet;
     component: SwinsKey;
@@ -22,6 +23,7 @@
     pop?: 'current' | 'all';
     popTo?: SwinsKey;
     onclick?: () => void;
+    dataRole?: string;
   } = $props();
 
   function handleClick() {
@@ -41,6 +43,6 @@
   }
 </script>
 
-<button class={className} onclick={handleClick}>
+<button class={className} onclick={handleClick} data-role={dataRole}>
   {@render children?.()}
 </button>

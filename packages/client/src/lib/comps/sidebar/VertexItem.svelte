@@ -127,7 +127,7 @@
       ${isActive ? "bg-surface-100-900" : ""} 
       ${!isOpen ? "hover:bg-surface-100-900/50" : ""}`}
   >
-    <button class="flex-grow py-1 px-2 truncate text-left" onclick={openApp}>
+    <button class="flex-grow py-1 px-2 truncate text-left ph-no-capture" data-role="open-conversation" onclick={openApp}>
       <span>{name ?? "New chat"}</span>
     </button>
     {#if isActive}

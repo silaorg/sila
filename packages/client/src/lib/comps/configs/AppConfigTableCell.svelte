@@ -51,6 +51,7 @@
           class="inline-flex items-center justify-center p-1 mt-0.5 rounded"
           title="Start Chat"
           aria-label="Start Chat"
+          data-role="start-chat-assistant"
           onclick={() => {
             clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
           }}
@@ -64,8 +65,9 @@
     </Tooltip>
     <div class="min-w-0">
       <button
-        class="block text-left min-w-0"
+        class="block text-left min-w-0 ph-no-capture"
         title={config.name}
+        data-role="open-assistant"
         onclick={() => {
           clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
         }}
