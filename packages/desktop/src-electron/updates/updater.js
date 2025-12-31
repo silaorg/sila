@@ -1,6 +1,7 @@
 import { dialog, BrowserWindow, autoUpdater, ipcMain, app } from 'electron';
 import { ElectronUpdater } from './electronUpdater.js';
 import { DesktopBuildUpdater } from './desktopBuildUpdater.js';
+import { githubReleaseManager } from './githubReleaseManager.js';
 import { diff as semverDiff, coerce as semverCoerce } from 'semver';
 
 let electronUpdater = new ElectronUpdater();
@@ -126,7 +127,20 @@ export async function checkForUpdates() {
             emitUpdateProgress({ kind: 'desktop-build', stage: ok ? 'ready' : 'error', percent: ok ? 100 : null, version: matchingBuild.version });
             return;
           }
-          // Fallback to Electron if no matching desktop build found
+          
+          // Check if desktop build exists locally before falling back to Electron update
+          const localBuildExists = await githubReleaseManager.hasBuild(electronAvailableUpdateVersion);
+          
+          if (localBuildExists) {
+            console.log('Updater / Desktop build exists locally, no update needed (patch)', {
+              version: electronAvailableUpdateVersion
+            });
+            // Build already exists locally and protocol handler will use it automatically
+            // No need to download, notify, or emit progress - just return silently
+            return;
+          }
+          
+          // Fallback to Electron if no matching desktop build found locally or on GitHub
           console.log('Updater / Downloading Electron update (patch fallback)', {
             version: electronAvailableUpdateVersion
           });

@@ -220,6 +220,17 @@ export class GitHubReleaseManager {
   }
 
   /**
+   * Check if a specific build version exists locally
+   * @param {string} version - Version string (e.g., "1.4.4")
+   * @returns {Promise<boolean>} True if the build exists locally
+   */
+  async hasBuild(version) {
+    const buildName = `desktop-v${version}`;
+    const builds = await this.getAvailableBuilds();
+    return builds.includes(buildName);
+  }
+
+  /**
    * Get all available desktop builds from recent GitHub releases
    * @returns {Promise<Array<{version: string, downloadUrl: string, publishedAt: string, releaseTag: string}>>}
    */
