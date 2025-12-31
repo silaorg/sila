@@ -11,6 +11,7 @@
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import type { ChatAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
+  import type { AppConfig } from "@sila/core";
   import {
     processFileForUpload,
     optimizeImageSize,
@@ -67,7 +68,8 @@
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
-  let attachments = $state<(AttachmentPreview & { isLoading?: boolean })[]>([]);
+  type AttachmentWithLoading = AttachmentPreview & { isLoading?: boolean };
+  let attachments = $state<AttachmentWithLoading[]>([]);
   function persistDraftContent(text: string) {
     if (!draftId) return;
     const trimmed = text.trim();
@@ -100,6 +102,7 @@
   );
 
   let configId = $state("");
+  let visibleAppConfigs = $state<AppConfig[]>([]);
 
   function handleConfigChange(id: string) {
     if (data) {
@@ -108,6 +111,8 @@
     // Notify parent component about config change
     onConfigChange?.(id);
   }
+
+  let hasMultipleAssistants = $derived(visibleAppConfigs.length > 1);
 
   onMount(() => {
     if (data && data.configId) {
@@ -123,8 +128,14 @@
       }
     });
 
+    // Observe app configs to determine if dropdown should be shown
+    const unobserveAppConfigs = clientState.currentSpace?.appConfigs.observe((configs) => {
+      visibleAppConfigs = configs.filter((config) => config.visible);
+    });
+
     return () => {
       observeData?.();
+      unobserveAppConfigs?.();
     };
   });
 
@@ -193,7 +204,7 @@
           const metadata = extractTextFileMetadata(optimizedFile, content);
 
           // Replace processing indicator with completed attachment
-          attachments = attachments.map((att) =>
+          attachments = attachments.map((att: AttachmentWithLoading) =>
             att.id === processingId
               ? {
                   id: processingId,
@@ -218,7 +229,7 @@
           // Only images for now
           if (!optimizedFile.type.startsWith("image/")) {
             // Remove processing indicator for unsupported files
-            attachments = attachments.filter((a) => a.id !== processingId);
+            attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
             continue;
           }
 
@@ -226,7 +237,7 @@
           const dims = await getImageDimensions(dataUrl);
 
           // Replace processing indicator with completed attachment
-          attachments = attachments.map((att) =>
+          attachments = attachments.map((att: AttachmentWithLoading) =>
             att.id === processingId
               ? {
                   id: processingId,
@@ -245,7 +256,7 @@
       } catch (error) {
         console.error(`Failed to process ${file.name}:`, error);
         // Remove processing indicator on error
-        attachments = attachments.filter((a) => a.id !== processingId);
+        attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
       }
     }
 
@@ -255,7 +266,7 @@
   }
 
   function removeAttachment(id: string) {
-    attachments = attachments.filter((a) => a.id !== id);
+    attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== id);
   }
 
   function openFilePicker() {
@@ -269,7 +280,7 @@
 
     onSend(
       query,
-      attachments.filter((att) => !att.isLoading)
+      attachments.filter((att: AttachmentWithLoading) => !att.isLoading)
     );
     isSending = true;
     // ensure any open mention UI is closed
@@ -370,7 +381,7 @@
             const metadata = extractTextFileMetadata(optimizedFile, content);
 
             // Replace processing indicator with completed attachment
-            attachments = attachments.map((att) =>
+            attachments = attachments.map((att: AttachmentWithLoading) =>
               att.id === processingId
                 ? {
                     id: processingId,
@@ -395,7 +406,7 @@
             // Only images for now
             if (!optimizedFile.type.startsWith("image/")) {
               // Remove processing indicator for unsupported files
-              attachments = attachments.filter((a) => a.id !== processingId);
+              attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
               continue;
             }
 
@@ -403,7 +414,7 @@
             const dims = await getImageDimensions(dataUrl);
 
             // Replace processing indicator with completed attachment
-            attachments = attachments.map((att) =>
+            attachments = attachments.map((att: AttachmentWithLoading) =>
               att.id === processingId
                 ? {
                     id: processingId,
@@ -422,7 +433,7 @@
         } catch (error) {
           console.error(`Failed to process pasted file ${file.name}:`, error);
           // Remove processing indicator on error
-          attachments = attachments.filter((a) => a.id !== processingId);
+          attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
         }
       }
     }
@@ -478,7 +489,7 @@
           const dims = await getImageDimensions(optimizedDataUrl);
 
           // Replace processing indicator with completed attachment
-          attachments = attachments.map((att) =>
+          attachments = attachments.map((att: AttachmentWithLoading) =>
             att.id === processingId
               ? {
                   id: processingId,
@@ -498,7 +509,7 @@
         console.error(`Failed to process pasted image ${imageType}:`, error);
         // Remove processing indicator on error
         if (processingId) {
-          attachments = attachments.filter((a) => a.id !== processingId);
+          attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
         }
       }
     }
@@ -531,7 +542,7 @@
         <!-- Attachments previews (in-memory) -->
         {#if attachments.length > 0}
           <div class="flex flex-wrap gap-2 p-4">
-            {#each attachments as att (att.id)}
+            {#each attachments as att: AttachmentWithLoading (att.id)}
               <AttachmentPreviewItem
                 attachment={att}
                 onRemove={removeAttachment}
@@ -567,7 +578,7 @@
         <!-- Bottom toolbar -->
         <div class="flex items-center justify-between p-2 pt-0 text-sm">
           <div class="flex items-center gap-2">
-            {#if showConfigSelector}
+            {#if showConfigSelector && hasMultipleAssistants}
               <AppConfigDropdown
                 {configId}
                 onChange={handleConfigChange}
