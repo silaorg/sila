@@ -227,7 +227,7 @@
               onHow(provider);
             }}
           >
-            How?
+            {i18n.texts.actions.how}
           </button>
         {/if}
       </div>
