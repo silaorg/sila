@@ -5,6 +5,7 @@
   import type { ChatAppData } from "@sila/core";
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
@@ -53,7 +54,7 @@
 
   function parseErrorPayload(text: string | undefined | null): ParsedError {
     const fallback: ParsedError = {
-      mainMessage: text?.trim() || "Unknown error",
+      mainMessage: text?.trim() || i18n.texts.chat.unknownError,
       info: null,
       raw: null,
     };
@@ -140,7 +141,9 @@
       </div>
     {/if}
     <div class="mt-2 flex gap-2">
-      <button class="btn preset-filled-surface-500" onclick={retry}>Retry</button>
+      <button class="btn preset-filled-surface-500" onclick={retry}>
+        {i18n.texts.actions.retry}
+      </button>
     </div>
   </div>
 </div>

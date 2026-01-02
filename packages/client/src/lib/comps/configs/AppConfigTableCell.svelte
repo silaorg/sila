@@ -29,7 +29,11 @@
   }
 
   function openEdit() {
-    clientState.layout.swins.open(swinsLayout.appConfig.key, { configId: config.id }, "Edit Assistant");
+    clientState.layout.swins.open(
+      swinsLayout.appConfig.key,
+      { configId: config.id },
+      i18n.texts.appConfigPage.editAssistantTitle
+    );
   }
 </script>
 
@@ -122,7 +126,7 @@
           <GripVertical class="w-4 h-4 text-surface-200-800" />
         {/snippet}
         {#snippet content()}
-          Drag to reorder (not yet implemented)
+          {i18n.texts.appConfigPage.dragToReorder}
         {/snippet}
       </Tooltip>
     </div>
@@ -134,18 +138,22 @@
         {#snippet trigger()}
           <button
             class="inline-flex items-center justify-center p-1 mt-0.5 rounded"
-            title="Start Chat"
-            aria-label="Start Chat"
+            title={i18n.texts.appConfigPage.startChatTitle}
+            aria-label={i18n.texts.appConfigPage.startChatTitle}
             data-role="start-chat-assistant"
             onclick={() => {
-              clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
+              clientState.layout.swins.open(
+                swinsLayout.newThread.key,
+                { appConfig: config },
+                i18n.texts.sidebar.newConversationTitle
+              );
             }}
           >
             <MessageCircle class="w-4 h-4 group-hover:text-primary-600" />
           </button>
         {/snippet}
         {#snippet content()}
-          Start a chat with this assistant
+          {i18n.texts.appConfigPage.startChatDescription}
         {/snippet}
       </Tooltip>
       <div class="min-w-0">
@@ -154,7 +162,11 @@
           title={config.name}
           data-role="open-assistant"
           onclick={() => {
-            clientState.layout.swins.open(swinsLayout.newThread.key, { appConfig: config }, "New conversation");
+            clientState.layout.swins.open(
+              swinsLayout.newThread.key,
+              { appConfig: config },
+              i18n.texts.sidebar.newConversationTitle
+            );
           }}
         >
           <strong class="truncate block">{config.name}</strong>
@@ -169,7 +181,7 @@
         {#snippet trigger()}
           <SwinsNavButton
             component="appConfig"
-            title="Edit Assistant"
+            title={i18n.texts.appConfigPage.editAssistantTitle}
             props={{ configId: config.id }}
             className="inline-flex items-center justify-center p-1"
           >
@@ -177,7 +189,7 @@
           </SwinsNavButton>
         {/snippet}
         {#snippet content()}
-          Edit Assistant
+          {i18n.texts.appConfigPage.editAssistantButton}
         {/snippet}
       </Tooltip>
     </div>

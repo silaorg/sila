@@ -29,8 +29,7 @@
 
   <div class="flex-1 space-y-4">
     <p class="text-sm">
-      You can create and edit your chat assistants here. You will see the
-      assistant buttons in the right top of the sidebar.
+      {i18n.texts.appPage.description}
     </p>
     <div class="flex flex-col gap-2">
       {#each appConfigs as config (config.id)}
@@ -40,7 +39,7 @@
     <div class="flex justify-end">
       <SwinsNavButton
         component="appConfig"
-        title="New Assistant"
+        title={i18n.texts.appPage.buttonNewConfig}
         className="btn preset-filled-primary-500"
       >
         <Plus size={16} />

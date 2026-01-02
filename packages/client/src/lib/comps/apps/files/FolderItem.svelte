@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Vertex } from "@sila/core";
   import { Folder } from "lucide-svelte";
+  import { i18n } from "@sila/client";
 
   let {
     vertex,
@@ -20,7 +21,7 @@
     dropTarget?: boolean;
   } = $props();
 
-  const name = $derived(vertex.name ?? "Untitled");
+  const name = $derived(vertex.name ?? i18n.texts.filesApp.untitledLabel);
   let editName = $state("");
   let inputEl: HTMLInputElement | null = $state(null);
 
@@ -73,4 +74,3 @@
     <span class="text-xs text-center truncate w-full">{name}</span>
   {/if}
 </button>
-

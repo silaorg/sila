@@ -15,6 +15,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { provideChatAppData } from "./chatAppContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -250,7 +251,11 @@
       return;
     }
 
-    clientState.layout.swins.open(swinsLayout.files.key, { filesRoot }, "Chat files");
+    clientState.layout.swins.open(
+      swinsLayout.files.key,
+      { filesRoot },
+      i18n.texts.chat.chatFilesTitle
+    );
   }
 
   export async function scrollToMessage(messageId: string) {
@@ -280,7 +285,7 @@
     <button
       class="btn-icon btn-sm preset-outline absolute top-3 right-3 z-10 flex items-center gap-2"
       type="button"
-      aria-label="View chat files"
+      aria-label={i18n.texts.chat.viewFilesAria}
       onclick={openChatFiles}
     >
       <Images size={16} />
@@ -311,7 +316,7 @@
   {#if showScrollDown}
     <button
       class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
-      aria-label="Scroll to bottom"
+      aria-label={i18n.texts.chat.scrollToBottomAria}
       onclick={() => scrollToBottom(true, true)}
     >
       <ArrowDown size={18} />

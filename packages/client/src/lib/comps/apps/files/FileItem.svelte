@@ -2,6 +2,7 @@
   import type { Vertex } from "@sila/core";
   import { File as FileIcon } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
 
   let {
     vertex,
@@ -24,7 +25,7 @@
   const clientState = useClientState();
 
   const size = $derived(formatSize(vertex.getProperty("size") as number));
-  const name = $derived(vertex.name ?? "Untitled");
+  const name = $derived(vertex.name ?? i18n.texts.filesApp.untitledLabel);
   const fileUrl = $derived(getFileUrl(vertex));
   const isImage = $derived(isImageFile(vertex));
   let editName = $state("");

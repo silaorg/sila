@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Check } from "lucide-svelte";
   import type { Snippet } from "svelte";
+  import { i18n } from "@sila/client";
 
   let {
     children,
@@ -95,7 +96,7 @@
         class="btn btn-lg preset-outlined"
         onclick={onCancel}
       >
-        Cancel
+        {i18n.texts.actions.cancel}
       </button>
     {:else}
       <button
@@ -103,12 +104,12 @@
         onclick={prevStep}
       >
         <ChevronLeft size={16} />
-        Back
+        {i18n.texts.actions.back}
       </button>
     {/if}
 
     <button class="btn btn-lg preset-filled" onclick={nextStep} disabled={!canAdvance}>
-      {currentStep < totalSteps - 1 ? "Next" : "Finish"}
+      {currentStep < totalSteps - 1 ? i18n.texts.actions.next : i18n.texts.actions.finish}
       {#if currentStep < totalSteps - 1}
         <ChevronRight size={16} />
       {/if}

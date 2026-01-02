@@ -2,6 +2,7 @@
   import ChatApp from "./ChatApp.svelte";
   import { ChatAppData } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
 
   let { treeId }: { treeId: string } = $props();
 
@@ -25,5 +26,5 @@
 {:then data}
   <ChatApp {data} />
 {:catch}
-  <div>Error loading app tree</div>
+  <div>{i18n.texts.chat.errorLoadingAppTree}</div>
 {/await}

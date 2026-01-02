@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Modal } from "@skeletonlabs/skeleton-svelte";
+  import { i18n } from "@sila/client";
 
   let {
     open = $bindable(),
@@ -42,11 +43,11 @@
   {#snippet content()}
     <div class="space-y-4">
       <label class="label">
-        <span class="label-text">New name</span>
+        <span class="label-text">{i18n.texts.renamingPopup.newNameLabel}</span>
         <input
           class="input"
           type="text"
-          placeholder="Enter new name"
+          placeholder={i18n.texts.renamingPopup.newNamePlaceholder}
           bind:value={newName}
           bind:this={inputElement}
           onkeydown={handleKeydown}
@@ -55,14 +56,14 @@
 
       <div class="flex justify-end gap-2">
         <button class="btn variant-ghost" onclick={handleCancel}>
-          Cancel
+          {i18n.texts.actions.cancel}
         </button>
         <button
           class="btn preset-filled-surface-500"
           onclick={handleRename}
           disabled={newName.trim() === ""}
         >
-          Done
+          {i18n.texts.actions.done}
         </button>
       </div>
     </div>

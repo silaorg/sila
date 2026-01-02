@@ -5,6 +5,7 @@
   import Space from "./apps/Space.svelte";
   import Spaces from "../swins/routes/Spaces.svelte";
   import CenteredPage from "./basic/CenteredPage.svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 </script>
 
@@ -22,7 +23,7 @@
   {/if}
 {:else if clientState.initializationError}
   <div class="p-4 text-red-500">
-    <h2>Initialization Error</h2>
+    <h2>{i18n.texts.spaceEntry.initializationError}</h2>
     <p>{clientState.initializationError}</p>
   </div>
 {/if}

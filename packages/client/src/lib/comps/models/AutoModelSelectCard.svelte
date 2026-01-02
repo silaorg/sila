@@ -1,5 +1,6 @@
 <script lang="ts">
   import Sparkles from "lucide-svelte/icons/sparkles";
+  import { i18n } from "@sila/client";
 
   export let selected = false;
   export let onSelect: (providerId: string, model: string) => void;
@@ -27,7 +28,7 @@
     </div>
     <div class="flex flex-col space-y-4">
       <div>
-        <span class="font-semibold"> Auto </span>
+        <span class="font-semibold"> {i18n.texts.models.auto} </span>
         {#if selected}
           <span class="font-semibold"></span>
         {/if}

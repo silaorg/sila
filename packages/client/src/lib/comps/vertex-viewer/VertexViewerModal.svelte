@@ -5,6 +5,7 @@
   import { X, Download, File } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import FileView from "./FileView.svelte";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
   const vertexViewer = $derived(clientState.currentSpaceState?.vertexViewer);
@@ -90,7 +91,7 @@
     }}
     tabindex="0"
     role="button"
-    aria-label="Close"
+    aria-label={i18n.texts.actions.close}
   >
     <!-- Close button -->
     <button

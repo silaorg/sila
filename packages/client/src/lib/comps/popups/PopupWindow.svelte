@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Modal } from "@skeletonlabs/skeleton-svelte";
   import type { Snippet } from "svelte";
+  import { i18n } from "@sila/client";
 
   let {
     children,
@@ -28,7 +29,11 @@
     {#if title}
       <div class="flex items-center justify-between">
         <h3 class="text-base font-semibold">{title}</h3>
-        <button class="opacity-70 hover:opacity-100" onclick={() => { isOpen = false; onClose?.(); }} aria-label="Close">
+        <button
+          class="opacity-70 hover:opacity-100"
+          onclick={() => { isOpen = false; onClose?.(); }}
+          aria-label={i18n.texts.actions.close}
+        >
           ✕
         </button>
       </div>

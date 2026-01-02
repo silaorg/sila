@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MoreVertical } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
+  import { i18n } from "@sila/client";
 
   let { 
     onRename = () => {},
@@ -43,9 +44,16 @@
 
     {#snippet content()}
       <div class="flex flex-col gap-1">
-        <button class="btn btn-sm text-left" onclick={handleRename}>Rename</button>
+        <button class="btn btn-sm text-left" onclick={handleRename}>
+          {i18n.texts.actions.rename}
+        </button>
         <div class="border-t border-surface-200-800 my-2"></div>
-        <button class="btn btn-sm preset-filled-error-500 text-left" onclick={handleRemove}>Remove from the list</button>
+        <button
+          class="btn btn-sm preset-filled-error-500 text-left"
+          onclick={handleRemove}
+        >
+          {i18n.texts.actions.removeFromList}
+        </button>
       </div>
     {/snippet}
   </ContextMenu>

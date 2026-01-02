@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { Moon, Sun } from "lucide-svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let { tiny = false } = $props();
@@ -29,8 +30,8 @@
     class="cursor-pointer"
     onclick={handleSwitch}
     title={currentColorScheme === "dark"
-      ? "Switch to Light mode"
-      : "Switch to Dark mode"}
+      ? i18n.texts.settingsPage.appearance.switchToLightMode
+      : i18n.texts.settingsPage.appearance.switchToDarkMode}
   >
     {#if currentColorScheme === "dark"}
       <Sun size={18} />
@@ -44,8 +45,8 @@
     bind:value={currentColorScheme}
     onchange={changeColorScheme}
   >
-    <option value="system">System</option>
-    <option value="dark">Dark</option>
-    <option value="light">Light</option>
+    <option value="system">{i18n.texts.settingsPage.appearance.system}</option>
+    <option value="dark">{i18n.texts.settingsPage.appearance.dark}</option>
+    <option value="light">{i18n.texts.settingsPage.appearance.light}</option>
   </select>
 {/if}

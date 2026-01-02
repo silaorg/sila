@@ -1,6 +1,7 @@
 <script lang="ts">
   import SpaceInspector from "./SpaceInspector.svelte";
   import { onMount } from "svelte";
+  import { i18n } from "@sila/client";
 
   let isDragging = false;
   let isResizing = false;
@@ -72,16 +73,16 @@
 <div 
   bind:this={windowElement}
   role="dialog"
-  aria-label="Space Inspector Window"
+  aria-label={i18n.texts.spaceInspector.windowAriaLabel}
   class="fixed z-10 top-20 right-4 bg-surface-50-950 shadow-xl rounded-lg border border-surface-200-800 min-w-[300px] min-h-[200px] flex flex-col"
   style="width: 300px; height: 400px;"
 >
   <button 
     class="w-full h-8 cursor-move bg-surface-200-800 rounded-t-lg flex items-center px-4 shrink-0"
-    aria-label="Drag window"
+    aria-label={i18n.texts.spaceInspector.dragWindowAria}
     on:mousedown={handleDragStart}
   >
-    Space Inspector
+    {i18n.texts.spaceInspector.windowTitle}
   </button>
   <div class="p-4 flex-grow overflow-auto">
     <SpaceInspector />
@@ -90,7 +91,7 @@
     class="resize-handle absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
     on:mousedown={handleResizeStart}
     role="button"
-    aria-label="Resize window"
+    aria-label={i18n.texts.spaceInspector.resizeWindowAria}
     tabindex="0"
   ></div>
 </div>

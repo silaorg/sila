@@ -8,6 +8,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { untrack } from "svelte";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
 
@@ -88,7 +89,7 @@
     <button
       class="flex gap-1 items-center text-xs opacity-70 hover:opacity-100"
       onclick={copyCode}
-      aria-label="Copy"
+      aria-label={i18n.texts.actions.copy}
     >
       {#if isCopied}
         <Check size={14} />
