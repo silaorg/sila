@@ -19,6 +19,7 @@ import SpaceOpenerPage from "../comps/spaces/SpaceOpenerPage.svelte";
 import DesktopUpdates from "@sila/client/comps/dev/DesktopUpdates.svelte";
 import CreateWorkspace from "../swins/routes/CreateWorkspace.svelte";
 import FilesAppLoader from "../comps/apps/files/FilesAppLoader.svelte";
+import FilePickerSwin from "../swins/routes/FilePickerSwin.svelte";
 import { type Component } from "svelte";
 
 interface SwinsComponent {
@@ -106,6 +107,10 @@ export const swinsLayout = {
   files: {
     key: 'files',
     target: FilesAppLoader,
+  },
+  filePicker: {
+    key: 'file-picker',
+    target: FilePickerSwin,
   },
 } satisfies Record<string, SwinsComponent>;
 
