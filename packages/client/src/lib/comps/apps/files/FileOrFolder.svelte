@@ -11,6 +11,7 @@
     onRename,
     onCancelRename,
     dropTarget = false,
+    onFileOpen,
   }: {
     vertex: Vertex;
     onEnter: (folder: Vertex) => void;
@@ -19,6 +20,7 @@
     onRename?: (newName: string) => void;
     onCancelRename?: () => void;
     dropTarget?: boolean;
+    onFileOpen?: (file: Vertex) => void;
   } = $props();
 
   function isFolder(v: Vertex): boolean {
@@ -29,6 +31,13 @@
 {#if isFolder(vertex)}
   <FolderItem {vertex} {onEnter} selected={selected} renaming={renaming} onRename={onRename} onCancelRename={onCancelRename} dropTarget={dropTarget} />
 {:else}
-  <FileItem {vertex} selected={selected} renaming={renaming} onRename={onRename} onCancelRename={onCancelRename} dropTarget={dropTarget} />
+  <FileItem
+    {vertex}
+    selected={selected}
+    renaming={renaming}
+    onRename={onRename}
+    onCancelRename={onCancelRename}
+    dropTarget={dropTarget}
+    onOpen={onFileOpen}
+  />
 {/if}
-

@@ -4,7 +4,8 @@
   import type { Vertex } from "@sila/core";
   const clientState = useClientState();
 
-  let { filesRoot }: { filesRoot?: Vertex } = $props();
+  let { filesRoot, onFilePick }: { filesRoot?: Vertex; onFilePick?: (file: Vertex) => void } =
+    $props();
 
   let targetFilesRoot = $derived.by(() => {
     // If the file root wasn't set - use the workspaces's files root
@@ -21,7 +22,7 @@
 </script>
 
 {#if targetFilesRoot}
-  <FilesApp filesRoot={targetFilesRoot} />
+  <FilesApp filesRoot={targetFilesRoot} {onFilePick} />
 {:else}
   <div>Error loading files root</div>
 {/if}

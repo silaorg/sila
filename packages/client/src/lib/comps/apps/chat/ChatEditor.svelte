@@ -115,6 +115,22 @@
     requestAnimationFrame(() => view?.focus());
   }
 
+  export function insertFileMentionAtCursor(file: FileMention) {
+    if (!view) return;
+    const { state } = view;
+    const mentionNode = state.schema.nodes.mention?.create({
+      path: file.path,
+      label: file.name,
+    });
+
+    if (!mentionNode) return;
+
+    let tr = state.tr.replaceSelectionWith(mentionNode);
+    tr = tr.insert(tr.selection.from, state.schema.text(" "));
+    tr = tr.scrollIntoView();
+    view.dispatch(tr);
+    requestAnimationFrame(() => view?.focus());
+  }
 
   function syncFromExternalValue(newValue: string) {
     if (!view) return;
@@ -375,5 +391,3 @@
     margin: 0;
   }
 </style>
-
-

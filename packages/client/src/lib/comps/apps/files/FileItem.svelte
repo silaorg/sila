@@ -10,6 +10,7 @@
     onRename,
     onCancelRename,
     dropTarget = false,
+    onOpen,
   }: {
     vertex: Vertex;
     selected?: boolean;
@@ -17,6 +18,7 @@
     onRename?: (newName: string) => void;
     onCancelRename?: () => void;
     dropTarget?: boolean;
+    onOpen?: (file: Vertex) => void;
   } = $props();
 
   const clientState = useClientState();
@@ -89,7 +91,7 @@
   class:outline={dropTarget}
   class:outline-2={dropTarget}
   class:outline-primary-500={dropTarget}
-  ondblclick={openFile}
+  ondblclick={() => (onOpen ? onOpen(vertex) : openFile())}
   role="button"
   tabindex="-1"
 >

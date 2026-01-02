@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Send, StopCircle, Plus, Image as ImageIcon } from "lucide-svelte";
+  import {
+    Send,
+    StopCircle,
+    Plus,
+    Image as ImageIcon,
+    FolderOpen,
+  } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import AppConfigDropdown from "@sila/client/comps/apps/AppConfigDropdown.svelte";
   import AttachmentPreviewItem from "./AttachmentPreviewItem.svelte";
@@ -12,6 +18,7 @@
   import type { ChatAppData } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { AppConfig } from "@sila/core";
+  import type { Vertex } from "@sila/core";
   import {
     processFileForUpload,
     optimizeImageSize,
@@ -68,6 +75,8 @@
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
+  type ChatEditorInstance = InstanceType<typeof ChatEditor>;
+  let editorRef: ChatEditorInstance | null = $state(null);
   type AttachmentWithLoading = AttachmentPreview & { isLoading?: boolean };
   let attachments = $state<AttachmentWithLoading[]>([]);
   function persistDraftContent(text: string) {
@@ -271,6 +280,33 @@
 
   function openFilePicker() {
     fileInputEl?.click();
+  }
+
+  function handleWorkspaceFilePick(file: Vertex) {
+    const resolver = clientState.currentSpaceState?.fileResolver;
+    if (!resolver) return;
+
+    let path: string;
+    try {
+      path = resolver.vertexToPath(file);
+    } catch (error) {
+      console.error("Failed to resolve workspace file path", error);
+      return;
+    }
+
+    const name =
+      file.name ?? (file.getProperty("name") as string) ?? "Untitled";
+    const fileMention: FileMention = { path, name };
+    editorRef?.insertFileMentionAtCursor(fileMention);
+  }
+
+  function openWorkspaceFilePicker() {
+    attachmentsMenuOpen = false;
+    clientState.layout.swins.open(
+      swinsLayout.filePicker.key,
+      { onPick: handleWorkspaceFilePick },
+      "Workspace files"
+    );
   }
 
   async function sendMsg() {
@@ -556,6 +592,7 @@
             value={query}
             {placeholder}
             autofocus={isFocused}
+            bind:this={editorRef}
             onFocusChange={(focused: boolean) => {
               isEditorFocused = focused;
             }}
@@ -611,6 +648,13 @@
                     >
                       <ImageIcon size={18} />
                       <span>Upload photos & files</span>
+                    </button>
+                    <button
+                      class="flex items-center gap-2 w-full text-left hover:bg-surface-300-700/30 rounded px-2 py-1"
+                      onclick={openWorkspaceFilePicker}
+                    >
+                      <FolderOpen size={18} />
+                      <span>Browse workspace files</span>
                     </button>
                     <!--
                     <div
