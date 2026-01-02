@@ -14,15 +14,12 @@
 
   let selectedFiles = $state<Vertex[]>([]);
 
-  function isFile(vertex: Vertex) {
-    return vertex.getProperty("mimeType") !== undefined;
-  }
-
-  let attachableFiles = $derived.by(() => selectedFiles.filter(isFile));
+  // Allow both files and folders to be attached
+  let attachableItems = $derived(selectedFiles);
 
   function handleAttach() {
-    if (attachableFiles.length === 0) return;
-    onPick?.(attachableFiles);
+    if (attachableItems.length === 0) return;
+    onPick?.(attachableItems);
     clientState.layout.swins.pop();
   }
 </script>
@@ -47,7 +44,7 @@
       class="btn btn-lg preset-filled-primary-500"
       type="button"
       onclick={handleAttach}
-      disabled={attachableFiles.length === 0}
+      disabled={attachableItems.length === 0}
     >
       Attach
     </button>
