@@ -51,6 +51,10 @@ export function getProviderModels(
     return Promise.resolve([]);
   }
   
+  if (provider === "exa") {
+    return Promise.resolve([]);
+  }
+  
   // Legacy implementation as fallback
   switch (provider) {
     case "openai":

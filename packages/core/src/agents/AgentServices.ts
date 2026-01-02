@@ -15,6 +15,7 @@ import { toolSearchReplacePatch } from "./tools/toolSearchReplacePatch";
 import { toolGenerateImage } from "./tools/toolGenerateImage";
 import { toolGenerateVideo } from "./tools/toolGenerateVideo";
 import { toolLook } from "./tools/toolLook";
+import { toolWebSearch } from "./tools/toolWebSearch";
 import type { AgentTool } from "./tools/AgentTool";
 
 export class AgentServices {
@@ -185,15 +186,12 @@ export class AgentServices {
     }
     let useApplyPatch = false;
 
-    if (model && model.provider === "openai") {
-      tools.push({ name: "web_search" });
-
-      if (model.model.includes("gpt-5.1")) {
-        useApplyPatch = true;
-      }
+    if (model && model.provider === "openai" && model.model.includes("gpt-5.1")) {
+      useApplyPatch = true;
     }
 
     const toolDefs: AgentTool[] = [
+      toolWebSearch,
       toolRead,
       toolLook,
       toolLs,
