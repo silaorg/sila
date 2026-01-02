@@ -43,7 +43,7 @@
   <div class="space-y-2">
     {#each clientState.pointers as space (space.id)}
       <div
-        class="p-4 rounded-lg bg-surface-200-800-token border-2 {space.id ===
+        class="p-2 rounded bg-surface-200-800-token border {space.id ===
         clientState.currentSpaceId
           ? 'border-primary-500'
           : 'border-surface-100-900'} flex items-center gap-3"

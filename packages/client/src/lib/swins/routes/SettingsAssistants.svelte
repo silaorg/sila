@@ -34,9 +34,7 @@
     </p>
     <div class="flex flex-col gap-2">
       {#each appConfigs as config (config.id)}
-        <div class="card border border-surface-200-800">
-          <AppConfigTableCell {config} />
-        </div>
+        <AppConfigTableCell {config} inSettings={true} />
       {/each}
     </div>
     <div class="flex justify-end">
