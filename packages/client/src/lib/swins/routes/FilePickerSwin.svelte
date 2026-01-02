@@ -40,11 +40,11 @@
   {/if}
 
   <div class="flex items-center justify-end gap-2">
-    <button class="btn btn-sm" type="button" onclick={() => clientState.layout.swins.pop()}>
+    <button class="btn btn-lg" type="button" onclick={() => clientState.layout.swins.pop()}>
       Cancel
     </button>
     <button
-      class="btn btn-sm preset-filled-primary-500"
+      class="btn btn-lg preset-filled-primary-500"
       type="button"
       onclick={handleAttach}
       disabled={attachableFiles.length === 0}
