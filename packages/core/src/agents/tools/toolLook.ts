@@ -104,7 +104,8 @@ async function runLookAgent(
 export const toolLook: AgentTool = {
   name: "look",
   description:
-    "Inspect an image from a web URL or file: path and return a concise visual description. Use this to answer questions about attached or remote images.",
+    "Inspect an image from a web URL or file: path and return a concise visual description. Use this to answer questions about the images that are not visible to you yet.",
+  instructions: "If you already see an image in question - don't use this tool, unless there are details that you haven't spotted yet.",
   parameters: {
     type: "object",
     properties: {

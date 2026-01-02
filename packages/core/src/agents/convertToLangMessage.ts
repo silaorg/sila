@@ -24,7 +24,7 @@ const parseDataUrl = (
     if (match && match[2]) {
       return { mimeType: match[1], base64: match[2] };
     }
-  } catch {}
+  } catch { }
   return { base64: dataUrl };
 };
 
@@ -48,9 +48,8 @@ const toFileDescription = (
   infoMap: Map<string, ResolvedFileInfo>,
 ): FileDescription => {
   const info = infoMap.get(file.id);
-  const label = `${file.name ?? info?.name ?? "file"}${
-    file.kind ? ` (${file.kind})` : ""
-  }`;
+  const label = `${file.name ?? info?.name ?? "file"}${file.kind ? ` (${file.kind})` : ""
+    }`;
   const pathLabel = file.path ?? info?.url ?? "path unavailable";
   return {
     label,
@@ -65,9 +64,8 @@ const buildAttachmentsSummary = (
 ): string => {
   if (!files.length) return "";
 
-  const howManyFiles = `The user attached ${files.length} file${
-    files.length > 1 ? "s" : ""
-  }:`;
+  const howManyFiles = `The user attached ${files.length} file${files.length > 1 ? "s" : ""
+    }:`;
   const lines: string[] = [howManyFiles];
   for (const file of files) {
     const { label, pathLabel } = toFileDescription(file, infoMap);
@@ -174,16 +172,21 @@ export const convertToLangMessage = async ({
 }: ConvertToLangMessageParams): Promise<LangMessage> => {
   const normalizedRole =
     (message.role === "assistant" ? "assistant" : "user") as
-      | "assistant"
-      | "user";
+    | "assistant"
+    | "user";
   const fileRefs = Array.isArray(message.files)
     ? (message.files as FileReference[])
     : [];
+
   const resolved: ThreadMessageWithResolvedFiles = await data
     .resolveMessageFiles(message);
   const resolvedFiles = resolved.files ?? [];
 
-  // AI-time: models should see familiar file: URIs, not storage-only fref: URIs.
+  if (fileRefs.length > 0 && resolvedFiles.length === 0) {
+    console.warn(`A message has ${fileRefs.length} file reference(s) but none resolved to files. This may indicate a file resolution issue.`);
+  }
+
+  // Models should see file URIs, not storage-only freferences (ids). So they can operate on URIs (such as file paths) with tools.
   // This is a view transform only (we do not persist the rewritten text).
   let messageText = message.text || "";
   try {
@@ -196,8 +199,8 @@ export const convertToLangMessage = async ({
       });
       messageText = markdown;
     }
-  } catch {
-    // ignore
+  } catch(error) {
+    console.error(`Failed to transform file references in a message, error:`, error);
   }
 
   if (resolvedFiles.length === 0) {
@@ -223,7 +226,7 @@ export const convertToLangMessage = async ({
 
   const attachements = "<attachments>\n" +
     [attachmentsSummary, ...textBlocks].join("\n\n") + "\n</attachments>";
-    
+
   const combinedText = [messageText, attachements].join("\n\n");
 
   if (supportsVision && images.length > 0) {
@@ -244,7 +247,20 @@ export const convertToLangMessage = async ({
     }
 
     for (const img of images) {
+      // Only include images with valid dataUrl
+      if (!img.dataUrl || typeof img.dataUrl !== 'string' || img.dataUrl.trim().length === 0) {
+        console.warn('Skipping image without valid dataUrl:', img.id, img.name);
+        continue;
+      }
+
       const { base64, mimeType } = parseDataUrl(img.dataUrl);
+
+      // Ensure base64 data is valid
+      if (!base64 || base64.trim().length === 0) {
+        console.warn('Skipping image with invalid base64 data:', img.id, img.name);
+        continue;
+      }
+
       const metadata: Record<string, any> = {};
       const { label, pathLabel } = toFileDescription(img, infoMap);
       metadata.label = label;
@@ -260,7 +276,11 @@ export const convertToLangMessage = async ({
       });
     }
 
-    return new LangMessage(normalizedRole, items, message.meta ?? {});
+    // If we have valid images, return the multi-part message
+    // Otherwise fall through to text-only message
+    if (items.some(item => item.type === "image")) {
+      return new LangMessage(normalizedRole, items, message.meta ?? {});
+    }
   }
 
   let content = combinedText;
