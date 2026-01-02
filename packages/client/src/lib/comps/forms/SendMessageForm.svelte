@@ -12,7 +12,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import { focusTrap } from "@sila/client/utils/focusTrap";
   import { type MessageFormStatus } from "./messageFormStatus";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import type { ChatAppData } from "@sila/core";
@@ -55,7 +55,7 @@
     onSend,
     onStop = () => {},
     isFocused = true,
-    placeholder = $txtStore.messageForm.placeholder,
+    placeholder = i18n.texts.messageForm.placeholder,
     status = "can-send-message",
     disabled = false,
     draftId,
@@ -683,7 +683,7 @@
               <button
                 onclick={stopMsg}
                 class="flex items-center justify-center h-9 w-9 transition-colors"
-                aria-label={$txtStore.messageForm.stop}
+                aria-label={i18n.texts.messageForm.stop}
               >
                 <StopCircle size={20} />
               </button>
@@ -693,7 +693,7 @@
                 class="flex items-center justify-center h-9 w-9 transition-colors"
                 class:opacity-50={!canSendMessage}
                 disabled={!canSendMessage}
-                aria-label={$txtStore.messageForm.send}
+                aria-label={i18n.texts.messageForm.send}
               >
                 <Send size={20} />
               </button>

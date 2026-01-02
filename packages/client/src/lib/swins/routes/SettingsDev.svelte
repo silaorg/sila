@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isDevMode } from "@sila/client/state/devMode";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import SettingsSidebar from "./SettingsSidebar.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import AppUpdates from "./AppUpdates.svelte";
@@ -39,7 +39,7 @@
       <AppUpdates />
 
       <label class="label">
-        <span>{$txtStore.settingsPage.developers.toggleDevMode}</span>
+        <span>{i18n.texts.settingsPage.developers.toggleDevMode}</span>
         <input type="checkbox" class="checkbox" bind:checked={$isDevMode} />
       </label>
     </div>

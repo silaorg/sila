@@ -1,6 +1,6 @@
 <script lang="ts">
   import AppConfigTableCell from "@sila/client/comps/configs/AppConfigTableCell.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { AppConfig } from "@sila/core";
   const clientState = useClientState();
@@ -32,7 +32,7 @@
       className="btn preset-filled-primary-500"
     >
       <Plus size={16} />
-      {$txtStore.appPage.buttonNewConfig}
+      {i18n.texts.appPage.buttonNewConfig}
     </SwinsNavButton>
   </div>
   <p>

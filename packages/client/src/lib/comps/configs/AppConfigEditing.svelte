@@ -1,6 +1,6 @@
 <script lang="ts">
   import InputModel from "../models/InputModel.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { type AppConfig, uuid } from "@sila/core";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -95,64 +95,64 @@
 
 <h3 class="h3 pb-6">
   {#if isNewApp}
-    {$txtStore.appConfigPage.newConfigTitle}
+    {i18n.texts.appConfigPage.newConfigTitle}
   {:else if !isDefault}
-    {$txtStore.appConfigPage.editConfigTitle}
+    {i18n.texts.appConfigPage.editConfigTitle}
   {:else}
-    {$txtStore.appConfigPage.defaultConfigTitle}
+    {i18n.texts.appConfigPage.defaultConfigTitle}
   {/if}
 </h3>
 <form class="space-y-4" bind:this={formElement} onsubmit={handleSubmit}>
   {#if isDefault}
     <p>
-      {$txtStore.appConfigPage.defaultConfigMessage}
+      {i18n.texts.appConfigPage.defaultConfigMessage}
         <SwinsNavButton
         component="appConfig"
         className="anchor"
-        title={$txtStore.appConfigPage.defaultConfigGotoNew}
+        title={i18n.texts.appConfigPage.defaultConfigGotoNew}
       >
-        {$txtStore.appConfigPage.defaultConfigGotoNew}
+        {i18n.texts.appConfigPage.defaultConfigGotoNew}
       </SwinsNavButton>
     </p>
   {/if}
   <label class="label">
-    <span>{$txtStore.basics.name}</span>
+    <span>{i18n.texts.basics.name}</span>
     <input
       name="name"
       class="input"
       type="text"
-      placeholder={$txtStore.appConfigPage.namePlaceholder}
+      placeholder={i18n.texts.appConfigPage.namePlaceholder}
       required
       bind:value={name}
       disabled={isDefault}
     />
   </label>
   <label class="label">
-    <span>{$txtStore.basics.description}</span>
+    <span>{i18n.texts.basics.description}</span>
     <input
       name="description"
       class="input"
       type="text"
-      placeholder={$txtStore.appConfigPage.descriptionPlaceholder}
+      placeholder={i18n.texts.appConfigPage.descriptionPlaceholder}
       required
       bind:value={description}
       disabled={isDefault}
     />
   </label>
   <label class="label">
-    <span>{$txtStore.basics.instructions}</span>
+    <span>{i18n.texts.basics.instructions}</span>
     <textarea
       name="instructions"
       class="textarea"
       rows="7"
-      placeholder={$txtStore.appConfigPage.instructionsPlaceholder}
+      placeholder={i18n.texts.appConfigPage.instructionsPlaceholder}
       required
       bind:value={instructions}
       disabled={isDefault}
     ></textarea>
   </label>
   <div class="label">
-    <span>{$txtStore.basics.model}</span>
+    <span>{i18n.texts.basics.model}</span>
     <InputModel bind:value={targetLLM} required />
   </div>
   <div class="flex justify-end">
@@ -161,9 +161,9 @@
       class="btn preset-filled-primary-500 mb-2"
     >
       {#if isNewApp}
-        {$txtStore.appConfigPage.buttonCreate}
+        {i18n.texts.appConfigPage.buttonCreate}
       {:else}
-        {$txtStore.appConfigPage.buttonSave}
+        {i18n.texts.appConfigPage.buttonSave}
       {/if}
     </button>
   </div>

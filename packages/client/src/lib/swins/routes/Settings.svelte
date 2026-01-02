@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import SettingsSidebar from "./SettingsSidebar.svelte";
   import Lightswitch from "@sila/client/comps/basic/Lightswitch.svelte";
   import ThemeSwitcher from "@sila/client/comps/themes/ThemeSwitcher.svelte";

@@ -5,3 +5,4 @@ export type { AppDialogs, OpenDialogOptions, SaveDialogOptions } from './appDial
 export { ClientState } from './state/clientState.svelte';
 export { provideClientState } from './state/clientStateContext';
 export { default as ClientStateProvider } from './comps/ClientStateProvider.svelte';
+export { i18n } from './state/i18n.svelte';

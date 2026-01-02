@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { AppConfig } from "@sila/core";
-  import { txtStore } from "@sila/client/state/txtStore.ts";
+  import { i18n } from "@sila/client";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { ChevronDown, Pencil, Plus } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
@@ -73,7 +73,7 @@
             {visibleAppConfigs[0].name}
           {/if}
         {:else}
-          {$txtStore.appConfigDropdown.placeholder}
+          {i18n.texts.appConfigDropdown.placeholder}
         {/if}
       </span>
       <ChevronDown size={18} class="text-surface-300-700" />

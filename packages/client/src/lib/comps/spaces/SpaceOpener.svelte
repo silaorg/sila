@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
 import { swinsLayout } from "@sila/client/state/swinsLayout";
 import {
@@ -61,7 +61,7 @@ import {
       console.error(e);
       await clientState.dialog.showError({
         title: "Failed to Open Folder",
-        message: $txtStore.spacesPage.opener.errorCreate,
+        message: i18n.texts.spacesPage.opener.errorCreate,
         detail:
           e instanceof Error
             ? e.message
@@ -102,7 +102,7 @@ import {
     status = "opening";
     try {
       const selection = await clientState.dialog.openDialog({
-        title: $txtStore.spacesPage.opener.dialogOpenTitle,
+        title: i18n.texts.spacesPage.opener.dialogOpenTitle,
         directory: true,
       });
 
@@ -119,7 +119,7 @@ import {
 
       await clientState.dialog.showError({
         title: "Failed to Open Space",
-        message: $txtStore.spacesPage.opener.errorOpen,
+        message: i18n.texts.spacesPage.opener.errorOpen,
         detail:
           e instanceof Error
             ? e.message
@@ -136,10 +136,10 @@ import {
   <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
-        {$txtStore.spacesPage.opener.createTitle}
+        {i18n.texts.spacesPage.opener.createTitle}
       </h3>
       <p class="text-sm">
-        {$txtStore.spacesPage.opener.createDescription}
+        {i18n.texts.spacesPage.opener.createDescription}
       </p>
     </div>
     <button
@@ -147,23 +147,23 @@ import {
       onclick={startCreateFlow}
       disabled={status !== "idle"}
     >
-      {$txtStore.spacesPage.opener.createButton}
+      {i18n.texts.spacesPage.opener.createButton}
     </button>
   </div>
 
   <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
-        {$txtStore.spacesPage.opener.openTitle}
+        {i18n.texts.spacesPage.opener.openTitle}
       </h3>
-      <p class="text-sm">{$txtStore.spacesPage.opener.openDescription}</p>
+      <p class="text-sm">{i18n.texts.spacesPage.opener.openDescription}</p>
     </div>
     <button
       class="btn preset-outlined-primary-500"
       onclick={openSpaceDialog}
       disabled={status !== "idle"}
     >
-      {$txtStore.spacesPage.opener.openButton}
+      {i18n.texts.spacesPage.opener.openButton}
     </button>
   </div>
 </div>

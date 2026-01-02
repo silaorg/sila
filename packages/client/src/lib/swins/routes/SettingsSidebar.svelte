@@ -1,7 +1,7 @@
 <script lang="ts">
   import SwinsNavButton from "../SwinsNavButton.svelte";
   import { Cpu, Bot, FolderOpen, Code, Settings } from "lucide-svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { isDevMode } from "@sila/client/state/devMode";
   
@@ -33,7 +33,7 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'settings' ? 'preset-tonal' : ''}"
   >
     <Settings size={18} />
-    <span>{$txtStore.settingsPage.title}</span>
+    <span>{i18n.texts.settingsPage.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -43,7 +43,7 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'providers' ? 'preset-tonal' : ''}"
   >
     <Cpu size={18} />
-    <span>{$txtStore.settingsPage.providers.title}</span>
+    <span>{i18n.texts.settingsPage.providers.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -63,7 +63,7 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'workspaces' ? 'preset-tonal' : ''}"
   >
     <FolderOpen size={18} />
-    <span>{$txtStore.settingsPage.spaces.title}</span>
+    <span>{i18n.texts.settingsPage.spaces.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -73,7 +73,7 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'dev' ? 'preset-tonal' : ''}"
   >
     <Code size={18} />
-    <span>{$txtStore.settingsPage.developers.title}</span>
+    <span>{i18n.texts.settingsPage.developers.title}</span>
   </SwinsNavButton>
 
 </nav>

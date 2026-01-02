@@ -1,6 +1,6 @@
 <script lang="ts">
   import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import SettingsSidebar from "./SettingsSidebar.svelte";
 </script>
 
@@ -8,7 +8,7 @@
   <SettingsSidebar />
   <div class="flex-1 space-y-4">
     <p class="text-sm">
-      {$txtStore.settingsPage.providers.description}
+      {i18n.texts.settingsPage.providers.description}
     </p>
     <ModelProviders />
   </div>

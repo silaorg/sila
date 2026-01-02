@@ -4,7 +4,7 @@
   import type { AppConfig } from "@sila/core";
   import { Images, SquarePen } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
-  import { txtStore } from "@sila/client/state/txtStore.ts";
+  import { i18n } from "@sila/client";
   import { untrack } from "svelte";
 
   let appConfigs = $state<AppConfig[]>([]);

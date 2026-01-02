@@ -2,7 +2,6 @@ import { AuthStore, type User } from "./auth.svelte";
 import { ThemeStore } from "./theme.svelte";
 import { SpaceState } from "./spaceState.svelte";
 import { isDevMode, spaceInspectorOpen } from "./devMode";
-import { txtStore } from "./txtStore";
 import { setupSwins, swinsLayout } from "./swinsLayout";
 import type { SpacePointer } from "../spaces/SpacePointer";
 import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
@@ -130,7 +129,7 @@ export class ClientState {
     isDevMode,
     spaceInspectorOpen,
   };
-  texts = txtStore;
+
   // Generic LIFO event stacks (e.g., "close") that components can subscribe to
   events = new EventStacks();
 

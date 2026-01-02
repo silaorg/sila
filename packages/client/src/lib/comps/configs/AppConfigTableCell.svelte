@@ -7,7 +7,7 @@
     MessageCircle,
   } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
@@ -61,7 +61,7 @@
             />
           {/snippet}
           {#snippet content()}
-            {$txtStore.appConfigPage.tableCell.visibilityLabel}
+            {i18n.texts.appConfigPage.tableCell.visibilityLabel}
           {/snippet}
         </Tooltip>
       </div>
@@ -84,7 +84,7 @@
                   <TrashIcon class="w-4" />
                 {/snippet}
                 {#snippet content()}
-                  {$txtStore.appConfigPage.tableCell.deleteLabel}
+                  {i18n.texts.appConfigPage.tableCell.deleteLabel}
                 {/snippet}
               </Tooltip>
             {/snippet}
@@ -94,7 +94,7 @@
                 <button
                   class="btn preset-filled-surface-500"
                   onclick={deleteAppConfig}
-                  >{$txtStore.appConfigPage.tableCell.deleteButton}</button
+                  >{i18n.texts.appConfigPage.tableCell.deleteButton}</button
                 >
               </div>
             {/snippet}
@@ -105,7 +105,7 @@
               <div><TrashIcon class="w-4 opacity-30" /></div>
             {/snippet}
             {#snippet content()}
-              {$txtStore.appConfigPage.tableCell.deleteLabel}
+              {i18n.texts.appConfigPage.tableCell.deleteLabel}
             {/snippet}
           </Tooltip>
         {/if}
@@ -193,7 +193,7 @@
           />
         {/snippet}
         {#snippet content()}
-          {$txtStore.appConfigPage.tableCell.visibilityLabel}
+          {i18n.texts.appConfigPage.tableCell.visibilityLabel}
         {/snippet}
       </Tooltip>
     </div>
@@ -216,7 +216,7 @@
                 <TrashIcon class="w-4" />
               {/snippet}
               {#snippet content()}
-                {$txtStore.appConfigPage.tableCell.deleteLabel}
+                {i18n.texts.appConfigPage.tableCell.deleteLabel}
               {/snippet}
             </Tooltip>
           {/snippet}
@@ -226,7 +226,7 @@
               <button
                 class="btn preset-filled-surface-500"
                 onclick={deleteAppConfig}
-                >{$txtStore.appConfigPage.tableCell.deleteButton}</button
+                >{i18n.texts.appConfigPage.tableCell.deleteButton}</button
               >
             </div>
           {/snippet}
@@ -237,7 +237,7 @@
             <div><TrashIcon class="w-4 opacity-30" /></div>
           {/snippet}
           {#snippet content()}
-            {$txtStore.appConfigPage.tableCell.deleteLabel}
+            {i18n.texts.appConfigPage.tableCell.deleteLabel}
           {/snippet}
         </Tooltip>
       {/if}
