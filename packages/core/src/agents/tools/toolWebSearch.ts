@@ -19,6 +19,9 @@ export const toolWebSearch: AgentTool = {
   name: "web_search",
   description:
     "Search the web for up-to-date information and return a list of relevant results with titles, URLs, and snippets.",
+  canUseTool(services) {
+    return Boolean(services.space.getServiceApiKey("exa"));
+  },
   parameters: {
     type: "object",
     properties: {
