@@ -2,14 +2,23 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import { User } from "lucide-svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   const handleSignIn = () => {
-    clientState.layout.swins.open(swinsLayout.signIn.key, {}, 'Sign In');
+    clientState.layout.swins.open(
+      swinsLayout.signIn.key,
+      {},
+      i18n.texts.auth.signInTitle
+    );
   };
 
   const handleUserProfile = () => {
-    clientState.layout.swins.open(swinsLayout.userProfile.key, {}, 'Profile');
+    clientState.layout.swins.open(
+      swinsLayout.userProfile.key,
+      {},
+      i18n.texts.auth.profileTitle
+    );
   };
 </script>
 
@@ -24,7 +33,7 @@
         {#if clientState.auth.user?.avatarUrl}
           <img 
             src={clientState.auth.user.avatarUrl} 
-            alt="User avatar" 
+            alt={i18n.texts.auth.userAvatarAlt}
             class="w-8 h-8 rounded-full object-cover"
           />
         {:else}
@@ -33,7 +42,9 @@
       </div>
       <div class="flex-1 min-w-0">
         <p class="text-sm font-medium truncate">
-          {clientState.auth.user?.name || clientState.auth.user?.email || 'User'}
+          {clientState.auth.user?.name ||
+            clientState.auth.user?.email ||
+            i18n.texts.auth.userFallbackName}
         </p>
       </div>
     </div>
@@ -46,7 +57,7 @@
       onclick={handleSignIn}
     >
       <User size={16} />
-      Sign In
+      {i18n.texts.auth.signInAction}
     </button>
   </div>
 {/if} 

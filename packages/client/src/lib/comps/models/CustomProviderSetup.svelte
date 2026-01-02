@@ -3,6 +3,7 @@
   import type { CustomProviderConfig } from "@sila/core";
   const clientState = useClientState();
   import { XCircle } from "lucide-svelte";
+  import { i18n } from "@sila/client";
 
   let name = $state("");
   let baseApiUrl = $state("");
@@ -73,7 +74,7 @@
           );
         } catch (e) {
           validationError =
-            "Invalid custom headers format. Use 'key: value' format, one per line.";
+            i18n.texts.customProviderSetup.invalidHeadersFormat;
           return;
         }
       }
@@ -91,7 +92,7 @@
       clientState.currentSpace.saveModelProviderConfig(config);
       onSave(id);
     } catch (e) {
-      validationError = "Failed to save provider configuration";
+      validationError = i18n.texts.customProviderSetup.saveError;
       console.error(e);
     } finally {
       isSubmitting = false;
@@ -100,68 +101,82 @@
 </script>
 
 <div class="h-full overflow-y-auto p-4 space-y-4">
-  <h4 class="h5 mb-4">{providerId ? "Edit" : "Add"} Custom Provider</h4>
+  <h4 class="h5 mb-4">
+    {providerId
+      ? i18n.texts.customProviderSetup.titleEdit
+      : i18n.texts.customProviderSetup.titleAdd}
+  </h4>
 
   <form onsubmit={handleSubmit} class="space-y-4">
     <div class="space-y-2">
-      <label for="name" class="label">Provider Name</label>
+      <label for="name" class="label">
+        {i18n.texts.customProviderSetup.labelProviderName}
+      </label>
       <input
         type="text"
         id="name"
         bind:value={name}
         class="input"
-        placeholder="My Custom Provider"
+        placeholder={i18n.texts.customProviderSetup.placeholderName}
         required
       />
     </div>
 
     <div class="space-y-2">
-      <label for="baseApiUrl" class="label">Base API URL</label>
+      <label for="baseApiUrl" class="label">
+        {i18n.texts.customProviderSetup.labelBaseApiUrl}
+      </label>
       <input
         type="url"
         id="baseApiUrl"
         bind:value={baseApiUrl}
         class="input"
-        placeholder="https://api.example.com/v1"
+        placeholder={i18n.texts.customProviderSetup.placeholderBaseApiUrl}
         required
       />
     </div>
 
     <div class="space-y-2">
-      <label for="apiKey" class="label">API Key</label>
+      <label for="apiKey" class="label">
+        {i18n.texts.customProviderSetup.labelApiKey}
+      </label>
       <input
         type="password"
         id="apiKey"
         bind:value={apiKey}
         class="input"
-        placeholder="sk-..."
+        placeholder={i18n.texts.customProviderSetup.placeholderApiKey}
         required
       />
     </div>
 
     <div class="space-y-2">
-      <label for="modelId" class="label">Model ID</label>
+      <label for="modelId" class="label">
+        {i18n.texts.customProviderSetup.labelModelId}
+      </label>
       <input
         type="text"
         id="modelId"
         bind:value={modelId}
         class="input"
-        placeholder="gpt-3.5-turbo"
+        placeholder={i18n.texts.customProviderSetup.placeholderModelId}
         required
       />
     </div>
 
     <div class="space-y-2">
-      <label for="customHeaders" class="label">Custom Headers (Optional)</label>
+      <label for="customHeaders" class="label">
+        {i18n.texts.customProviderSetup.labelCustomHeaders}
+      </label>
       <textarea
         id="customHeaders"
         bind:value={customHeaders}
         class="input"
-        placeholder="Authorization: Bearer token&#10;X-Custom-Header: value"
+        placeholder={i18n.texts.customProviderSetup.placeholderHeaders}
         rows="3"
       ></textarea>
       <p class="text-sm text-surface-500">
-        One header per line in 'key: value' format
+        {i18n.texts.customProviderSetup.headersHint}
       </p>
     </div>
 
@@ -178,14 +193,14 @@
         class="btn preset-outlined-primary-500 w-full"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Saving..." : "Save"}
+        {isSubmitting ? i18n.texts.actions.saving : i18n.texts.actions.save}
       </button>
       <button
         type="button"
         class="btn preset-outlined-surface-500 w-full"
         onclick={() => clientState.layout.swins.pop()}
       >
-        Cancel
+        {i18n.texts.actions.cancel}
       </button>
     </div>
   </form>

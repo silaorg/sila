@@ -1,6 +1,7 @@
 <script lang="ts">
   import ChatEditor from "./ChatEditor.svelte";
   import type { FileMention } from "./chatMentionPlugin";
+  import { i18n } from "@sila/client";
 
   let {
     initialValue = "",
@@ -54,7 +55,7 @@
       class="btn btn-sm preset-outline"
       onclick={onCancel}
     >
-      Cancel
+      {i18n.texts.actions.cancel}
     </button>
     <button
       type="button"
@@ -62,7 +63,7 @@
       onclick={handleSave}
       disabled={isSaveDisabled}
     >
-      Save
+      {i18n.texts.actions.save}
     </button>
   </div>
 </div>

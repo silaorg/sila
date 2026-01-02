@@ -1,6 +1,7 @@
 <script lang="ts">
   import { X } from "lucide-svelte";
   import IconButton from "@sila/client/comps/ui/IconButton.svelte";
+  import { i18n } from "@sila/client";
 
   let {
     onClose
@@ -10,8 +11,8 @@
 </script>
 
 <IconButton
-  ariaLabel="Close tab"
-  title="Close tab"
+  ariaLabel={i18n.texts.tabs.closeTab}
+  title={i18n.texts.tabs.closeTab}
   onclick={onClose}
   className="ttabs-tab-close"
 >

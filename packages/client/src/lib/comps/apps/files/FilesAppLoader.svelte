@@ -2,6 +2,7 @@
   import FilesApp from "./FilesApp.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { Vertex } from "@sila/core";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let {
@@ -31,5 +32,5 @@
 {#if targetFilesRoot}
   <FilesApp filesRoot={targetFilesRoot} {onFileOpen} {onSelectionChange} />
 {:else}
-  <div>Error loading files root</div>
+  <div>{i18n.texts.filesApp.errorLoadingFilesRoot}</div>
 {/if}

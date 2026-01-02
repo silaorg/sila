@@ -18,14 +18,14 @@
   <div class="flex-1">
     <div class="space-y-4">
       <section class="space-y-2">
-        <div class="text-sm font-medium">Version</div>
+        <div class="text-sm font-medium">{i18n.texts.devPanel.versionLabel}</div>
         <div class="grid gap-2 text-sm">
           <div class="flex items-center justify-between gap-3">
-            <div>Shell</div>
+            <div>{i18n.texts.devPanel.shellLabel}</div>
             <div class="font-mono">{shellVersion || "—"}</div>
           </div>
           <div class="flex items-center justify-between gap-3">
-            <div>Client</div>
+            <div>{i18n.texts.devPanel.clientLabel}</div>
             <div class="flex items-center gap-2">
               <div class="font-mono">{clientVersion || "—"}</div>
               {#if clientVersionSource}

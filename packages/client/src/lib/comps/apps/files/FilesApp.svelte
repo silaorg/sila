@@ -16,6 +16,7 @@
   } from "@sila/client/utils/fileProcessing";
   import FolderView from "./FolderView.svelte";
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   const {
@@ -275,7 +276,9 @@
       />
 
       {#if !filesRoot}
-        <p class="text-muted-foreground">Files root not found.</p>
+        <p class="text-muted-foreground">
+          {i18n.texts.filesApp.filesRootNotFound}
+        </p>
       {:else}
         <!-- Breadcrumbs and buttons row -->
         <div class="flex items-center justify-between mb-4">
@@ -298,10 +301,10 @@
                   <div
                     class="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"
                   ></div>
-                  Uploading...
+                  {i18n.texts.filesApp.uploading}
                 {:else}
                   <Upload size={16} />
-                  Upload Files
+                  {i18n.texts.filesApp.uploadFiles}
                 {/if}
               </button>
               <button
@@ -310,7 +313,7 @@
                 type="button"
               >
                 <FolderPlus size={16} />
-                New Folder
+                {i18n.texts.filesApp.newFolder}
               </button>
             </div>
           {/if}
@@ -328,11 +331,13 @@
         />
         {#if items.length === 0}
           <p class="text-muted-foreground">
-            You can <button
-              class="anchor cursor-pointer"
-              onclick={openFilePicker}>upload</button
-            >
-            or <span class="href">move</span> files in this folder.
+            {i18n.texts.filesApp.emptyFolderPrefix}
+            <button class="anchor cursor-pointer" onclick={openFilePicker}>
+              {i18n.texts.filesApp.emptyFolderUpload}
+            </button>
+            {i18n.texts.filesApp.emptyFolderOr}
+            <span class="href">{i18n.texts.filesApp.emptyFolderMove}</span>
+            {i18n.texts.filesApp.emptyFolderSuffix}
           </p>
         {/if}
       {/if}

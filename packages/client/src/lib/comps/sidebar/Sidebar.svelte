@@ -5,6 +5,7 @@
   import SpaceSelectorPopup from "../popups/SpaceSelectorPopup.svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
   import SidebarToggle from "./SidebarToggle.svelte";
+  import { i18n } from "@sila/client";
 </script>
 
 <div class="flex flex-col h-full bg-surface-100-900/50" data-testid="sidebar">
@@ -14,7 +15,11 @@
         <SpaceSelectorPopup />
       </div>
       <div class="flex items-center">
-        <SwinsNavButton component="settings" title="Settings" className="p-2 rounded hover:preset-tonal">
+        <SwinsNavButton
+          component="settings"
+          title={i18n.texts.settingsPage.title}
+          className="p-2 rounded hover:preset-tonal"
+        >
           <Settings size={18} />
         </SwinsNavButton>
         <SidebarToggle />

@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
   const isMac = typeof window !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
@@ -26,7 +27,11 @@
   const runAction = (action: ShortcutId) => {
     switch (action) {
       case "newConversation":
-        clientState.layout.swins.replace(swinsLayout.newThread.key, {}, "New conversation");
+        clientState.layout.swins.replace(
+          swinsLayout.newThread.key,
+          {},
+          i18n.texts.sidebar.newConversationTitle
+        );
         break;
       case "toggleSidebar":
         clientState.currentSpaceState?.layout.sidebar.toggle();

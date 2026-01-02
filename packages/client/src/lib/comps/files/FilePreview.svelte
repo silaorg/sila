@@ -4,6 +4,7 @@
   import ImageFilePreview from "./ImageFilePreview.svelte";
   import RegularFilePreview from "./RegularFilePreview.svelte";
   import type { FileReference, ResolvedFileInfo } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   import { useClientState } from "@sila/client/state/clientStateContext";
 
@@ -40,7 +41,7 @@
       // Validate fileRef before attempting to resolve
       if (!fileRef || !fileRef.tree || !fileRef.vertex) {
         hasError = true;
-        errorMessage = "Invalid file reference";
+        errorMessage = i18n.texts.files.invalidReference;
         console.warn("FilePreview: Invalid fileRef:", fileRef);
         return;
       }
@@ -50,11 +51,11 @@
         resolvedFile = fileInfo;
       } else {
         hasError = true;
-        errorMessage = "Failed to load file";
+        errorMessage = i18n.texts.files.failedToLoad;
       }
     } catch (error) {
       hasError = true;
-      errorMessage = error instanceof Error ? error.message : "Unknown error";
+      errorMessage = error instanceof Error ? error.message : i18n.texts.files.unknownError;
     } finally {
       isLoading = false;
     }
@@ -90,13 +91,15 @@
     <div
       class="flex items-center justify-center h-48 bg-surface-100-900 rounded animate-pulse"
     >
-      <span class="text-surface-500-500-token">Loading...</span>
+      <span class="text-surface-500-500-token">
+        {i18n.texts.files.loadingFile}
+      </span>
     </div>
   {:else if hasError}
     <div
       class="flex items-center justify-center h-48 bg-surface-100-900 rounded text-red-500"
     >
-      <span>Failed to load file: {errorMessage}</span>
+      <span>{i18n.texts.files.failedToLoadWithMessage(errorMessage)}</span>
     </div>
   {:else if resolvedFile}
     {#if previewConfig.previewType === "image"}
@@ -108,7 +111,9 @@
     <div
       class="flex items-center justify-center h-48 bg-surface-100-900 rounded"
     >
-      <span class="text-surface-500-500-token">No file data</span>
+      <span class="text-surface-500-500-token">
+        {i18n.texts.files.noFileData}
+      </span>
     </div>
   {/if}
 </div>

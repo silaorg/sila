@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
 import {
   checkIfCanCreateSpaceAndReturnPath,
   ensurePathIsNotInsideExistingSpace,
@@ -23,7 +24,7 @@ import {
     onCancel?: (folderPath?: string) => void;
   } = $props();
 
-  const defaultPresetNames = ["Personal", "Work", "Studies", "School"];
+  const defaultPresetNames = i18n.texts.workspaceCreate.presetNames;
 
   let presets = $state<string[]>([...defaultPresetNames]);
   let workspaceName = $state(defaultPresetNames[0]);
@@ -47,7 +48,9 @@ import {
 
   function folderNameCandidate(name: string): string {
     const sanitized = sanitizeFolderName(name);
-    return sanitized ? sanitized.toLowerCase() : "new workspace";
+    return sanitized
+      ? sanitized.toLowerCase()
+      : i18n.texts.workspaceCreate.defaultFolderName;
   }
 
   let existingFolderNames = $state<Set<string>>(new Set());
@@ -109,7 +112,7 @@ import {
   async function chooseLocation() {
     try {
       const selection = await clientState.dialog.openDialog({
-        title: "Choose where to create your workspace",
+        title: i18n.texts.workspaceCreate.chooseLocationTitle,
         directory: true,
         defaultPath: currentParentPath ?? undefined,
       });
@@ -123,13 +126,13 @@ import {
         await ensurePathIsNotInsideExistingSpace(clientState, path);
       } catch (validationError) {
         await clientState.dialog.showError({
-          title: "Folder Already Used",
-          message: "Pick a folder outside of existing workspaces.",
+          title: i18n.texts.workspaceCreate.folderAlreadyUsedTitle,
+          message: i18n.texts.workspaceCreate.folderAlreadyUsedMessage,
           detail:
             validationError instanceof Error
               ? validationError.message
               : String(validationError),
-          buttons: ["OK"],
+          buttons: [i18n.texts.actions.ok],
         });
         return;
       }
@@ -140,13 +143,13 @@ import {
     } catch (e) {
       console.error(e);
       await clientState.dialog.showError({
-        title: "Failed to Access Folder",
-        message: "We couldn't access the selected folder.",
+        title: i18n.texts.workspaceCreate.failedAccessFolderTitle,
+        message: i18n.texts.workspaceCreate.failedAccessFolderMessage,
         detail:
           e instanceof Error
             ? e.message
-            : "An unknown error occurred while choosing the folder.",
-        buttons: ["OK"],
+            : i18n.texts.workspaceCreate.failedAccessFolderUnknown,
+        buttons: [i18n.texts.actions.ok],
       });
     }
   }
@@ -193,24 +196,23 @@ import {
 
     const trimmedName = workspaceName.trim();
     if (!trimmedName) {
-      workspaceNameError = "Workspace name cannot be empty.";
+      workspaceNameError = i18n.texts.workspaceCreate.nameEmptyError;
       return;
     }
 
     const folderName = sanitizeFolderName(trimmedName);
     if (!folderName) {
-      workspaceNameError = "Workspace name contains unsupported characters.";
+      workspaceNameError = i18n.texts.workspaceCreate.nameUnsupportedError;
       return;
     }
 
     if (isNameTaken(trimmedName)) {
-      workspaceNameError =
-        "A folder with this name already exists in the selected location.";
+      workspaceNameError = i18n.texts.workspaceCreate.nameAlreadyExistsError;
       return;
     }
 
     if (!currentParentPath) {
-      workspaceNameError = "Choose a folder to store the workspace.";
+      workspaceNameError = i18n.texts.workspaceCreate.chooseFolderError;
       return;
     }
 
@@ -224,10 +226,10 @@ import {
           ? validationError.message
           : String(validationError);
       await clientState.dialog.showError({
-        title: "Cannot Use This Folder",
-        message: "Choose a different location for your workspace.",
+        title: i18n.texts.workspaceCreate.cannotUseFolderTitle,
+        message: i18n.texts.workspaceCreate.cannotUseFolderMessage,
         detail: workspaceNameError,
-        buttons: ["OK"],
+        buttons: [i18n.texts.actions.ok],
       });
       return;
     }
@@ -246,12 +248,14 @@ import {
     } catch (e) {
       console.error(e);
       workspaceNameError =
-        e instanceof Error ? e.message : "Failed to create the workspace.";
+        e instanceof Error
+          ? e.message
+          : i18n.texts.workspaceCreate.failedCreateWorkspaceFallback;
       await clientState.dialog.showError({
-        title: "Failed to Create Workspace",
-        message: "We couldn't create the workspace.",
+        title: i18n.texts.workspaceCreate.failedCreateWorkspaceTitle,
+        message: i18n.texts.workspaceCreate.failedCreateWorkspaceMessage,
         detail: workspaceNameError,
-        buttons: ["OK"],
+        buttons: [i18n.texts.actions.ok],
       });
     } finally {
       status = "idle";
@@ -265,19 +269,19 @@ import {
 </script>
 
 <div class="space-y-4">
-  <h3 class="text-lg font-semibold">Name your workspace</h3>
+  <h3 class="text-lg font-semibold">{i18n.texts.workspaceCreate.title}</h3>
 
   <form class="space-y-4" onsubmit={handleSubmit}>
     <div class="form-control">
       <label class="label" for="workspaceName">
-        <span class="label-text">Workspace name</span>
+        <span class="label-text">{i18n.texts.workspaceCreate.nameLabel}</span>
       </label>
       <input
         id="workspaceName"
         type="text"
         class="input {workspaceNameError ? 'input-error' : ''}"
         bind:value={workspaceName}
-        placeholder="My Workspace"
+        placeholder={i18n.texts.workspaceCreate.namePlaceholder}
         autocomplete="off"
         disabled={status === "creating"}
         onfocus={suggestNameOnFocus}
@@ -288,14 +292,13 @@ import {
       {/if}
       {#if nameAlreadyExists && !workspaceNameError}
         <p class="text-warning-500 text-sm mt-2">
-          A workspace with this name already exists in the selected folder.
+          {i18n.texts.workspaceCreate.nameAlreadyExistsInline}
         </p>
       {/if}
     </div>
 
     <div>
-      <p class="mb-2">You can give a simple name that describes the purpose of the
-        workspace:</p>
+      <p class="mb-2">{i18n.texts.workspaceCreate.nameDescription}</p>
       <div class="flex flex-wrap gap-2">
         {#each presets as name}
           <button
@@ -315,9 +318,9 @@ import {
     <div
       class=""
     >
-      <p>Your new workspace will be created in:</p>
+      <p>{i18n.texts.workspaceCreate.newWorkspaceLocationLabel}</p>
       <span class="font-mono text-sm break-words">
-        {workspaceFolderPreview ?? "Select a location"}
+        {workspaceFolderPreview ?? i18n.texts.workspaceCreate.selectLocationPlaceholder}
       </span>
     </div>
 
@@ -328,25 +331,27 @@ import {
         onclick={closeWindow}
         disabled={status === "creating"}
       >
-        Cancel
+        {i18n.texts.actions.cancel}
       </button>
 
       <div class="flex items-center gap-3">
         <button
           type="button"
           class="btn preset-outlined"
-          onclick={chooseLocation}
-          disabled={status === "creating"}
-        >
-          Change location
-        </button>
-        <button
-          type="submit"
-          class="btn preset-filled-primary-500"
-          disabled={status === "creating" || nameAlreadyExists}
-        >
-          {status === "creating" ? "Creating..." : "Create workspace"}
-        </button>
+        onclick={chooseLocation}
+        disabled={status === "creating"}
+      >
+        {i18n.texts.workspaceCreate.changeLocation}
+      </button>
+      <button
+        type="submit"
+        class="btn preset-filled-primary-500"
+        disabled={status === "creating" || nameAlreadyExists}
+      >
+        {status === "creating"
+          ? i18n.texts.workspaceCreate.creating
+          : i18n.texts.workspaceCreate.createWorkspace}
+      </button>
       </div>
     </div>
   </form>

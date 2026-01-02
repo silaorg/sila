@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { LogOut, User } from "lucide-svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   const handleSignOut = async () => {
@@ -16,7 +17,7 @@
       {#if clientState.auth.user?.avatarUrl}
         <img 
           src={clientState.auth.user.avatarUrl} 
-          alt="User avatar" 
+          alt={i18n.texts.auth.userAvatarAlt}
           class="w-8 h-8 rounded-full object-cover"
         />
       {:else}
@@ -25,7 +26,9 @@
     </div>
     <div class="flex-1 min-w-0">
       <p class="text-sm font-medium truncate">
-        {clientState.auth.user?.name || clientState.auth.user?.email || 'User'}
+        {clientState.auth.user?.name ||
+          clientState.auth.user?.email ||
+          i18n.texts.auth.userFallbackName}
       </p>
       {#if clientState.auth.user?.email && clientState.auth.user?.name}
         <p class="text-xs text-surface-500 truncate">
@@ -41,6 +44,6 @@
     onclick={handleSignOut}
   >
     <LogOut size={14} />
-    Sign Out
+    {i18n.texts.auth.signOut}
   </button>
 </div> 

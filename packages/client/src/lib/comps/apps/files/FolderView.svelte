@@ -4,6 +4,7 @@
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import FileOrFolder from "./FileOrFolder.svelte";
   import DragOverlay from "./DragOverlay.svelte";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
 
@@ -428,7 +429,7 @@
   bind:this={containerEl}
   tabindex="0"
   role="grid"
-  aria-label="Files and folders"
+  aria-label={i18n.texts.filesApp.filesAndFoldersLabel}
   onkeydown={handleKeydown}
   onclick={onEmptyAreaClick}
   onmousedown={(e) => {
@@ -500,16 +501,16 @@
             <button
               class="btn btn-sm text-left"
               onclick={openSelected}
-              disabled={selectedIds.size !== 1}>Open</button
+              disabled={selectedIds.size !== 1}>{i18n.texts.actions.open}</button
             >
             <button
               class="btn btn-sm text-left"
               onclick={renameSelected}
-              disabled={selectedIds.size !== 1}>Rename</button
+              disabled={selectedIds.size !== 1}>{i18n.texts.actions.rename}</button
             >
             <button
               class="btn btn-sm preset-filled-error-500 text-left"
-              onclick={deleteSelected}>Delete</button
+              onclick={deleteSelected}>{i18n.texts.actions.delete}</button
             >
           </div>
         {/snippet}

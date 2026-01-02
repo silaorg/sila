@@ -13,12 +13,12 @@
 
       <div class="space-y-4">
         <label class="label">
-          <span>Color scheme</span>
+          <span>{i18n.texts.settingsPage.appearance.colorScheme}</span>
           <Lightswitch />
         </label>
 
         <label class="label">
-          <span>Theme</span>
+          <span>{i18n.texts.settingsPage.appearance.theme}</span>
           <ThemeSwitcher />
         </label>
       </div>

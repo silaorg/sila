@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ResolvedFileInfo } from '../../utils/fileResolver';
+  import { i18n } from "@sila/client";
   
   let {
     fileInfo,
@@ -25,11 +26,13 @@
 <div class="pdf-preview relative group">
   {#if isLoading}
     <div class="flex items-center justify-center h-48 bg-surface-100-900 rounded animate-pulse">
-      <span class="text-surface-500-500-token">Loading PDF...</span>
+      <span class="text-surface-500-500-token">
+        {i18n.texts.files.loadingPdf}
+      </span>
     </div>
   {:else if hasError}
     <div class="flex items-center justify-center h-48 bg-surface-100-900 rounded text-red-500">
-      <span>Failed to load PDF</span>
+      <span>{i18n.texts.files.pdfLoadFailed}</span>
     </div>
   {:else}
     <div class="relative">

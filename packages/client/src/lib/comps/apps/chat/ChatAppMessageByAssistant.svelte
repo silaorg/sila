@@ -15,6 +15,7 @@
   import { onMount } from "svelte";
   import { Markdown } from "@markpage/svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import FloatingPopover from "@sila/client/comps/ui/FloatingPopover.svelte";
   import ChatAppMessageInfo from "./ChatAppMessageInfo.svelte";
@@ -98,23 +99,23 @@
   const expandLabel = $derived.by(() => {
     if (inProgress) {
       if (message?.thinking) {
-        return "Thinking";
+        return i18n.texts.chat.thinking;
       }
 
       if (visibleMessage.progressVertices.length > 0) {
-        return "Acting";
+        return i18n.texts.chat.acting;
       }
     }
 
     if (visibleMessage.progressVertices.length > 0 && message?.thinking) {
-      return "Thought, acted";
+      return i18n.texts.chat.thoughtActed;
     }
 
     if (visibleMessage.progressVertices.length > 0) {
-      return "Acted";
+      return i18n.texts.chat.acted;
     }
 
-    return "Thought";
+    return i18n.texts.chat.thought;
   });
 
   function getModelDisplayForMessage(): {
@@ -342,7 +343,7 @@
           {#if !canExpandMessage && inProgress}
             <span class="opacity-70">•</span>
             <div class="flex items-center gap-1 group">
-              <span class="text-shimmer">Thinking</span>
+              <span class="text-shimmer">{i18n.texts.chat.thinking}</span>
             </div>
           {:else if canExpandMessage}
             <span class="opacity-70">•</span>
@@ -446,7 +447,7 @@
                 {#snippet trigger()}
                   <button
                     class="inline-flex items-center justify-center p-1 transition opacity-70 hover:opacity-100"
-                    aria-label="Message info"
+                    aria-label={i18n.texts.chat.messageInfoAria}
                   >
                     <Info size={14} />
                   </button>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Vertex } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   let {
     folder,
@@ -29,8 +30,8 @@
   });
 
   const currentFolderName = $derived.by(() => {
-    if (folder.id === root?.id) return "Workspace";
-    return folder.name ?? "Unnamed";
+    if (folder.id === root?.id) return i18n.texts.filesApp.workspaceLabel;
+    return folder.name ?? i18n.texts.filesApp.unnamedLabel;
   });
 
   function goToCrumb(index: number) {
@@ -50,9 +51,9 @@
       type="button"
     >
       {#if i === 0}
-        Assets
+        {i18n.texts.sidebar.assetsLabel}
       {:else}
-        {crumb.name ?? "Unnamed"}
+        {crumb.name ?? i18n.texts.filesApp.unnamedLabel}
       {/if}
     </button>
   {/each}

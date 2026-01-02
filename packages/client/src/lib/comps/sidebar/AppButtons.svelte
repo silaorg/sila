@@ -35,7 +35,7 @@
       <li>
         <SwinsNavButton
           component="newThread"
-          title="New conversation"
+          title={i18n.texts.sidebar.newConversationTitle}
           props={{ appConfig: config }}
           className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"
           dataRole="sidebar-assistant-button"
@@ -53,7 +53,7 @@
   <li>
     <SwinsNavButton
     component="files"
-    title="Workspace Assets"
+    title={i18n.texts.sidebar.workspaceAssetsTitle}
     className="w-full flex gap-2 flex-grow py-1 px-1 truncate flex rounded hover:preset-tonal"
   >
     <span class="w-6 h-6 flex-shrink-0">
@@ -61,7 +61,7 @@
         <Images size={18} />
       </span>
     </span>
-    <span class="flex-grow text-left">Assets</span>
+    <span class="flex-grow text-left">{i18n.texts.sidebar.assetsLabel}</span>
   </SwinsNavButton>
   </li>
 </ul>
