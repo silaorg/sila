@@ -4,6 +4,7 @@
   import X from "lucide-svelte/icons/x";
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
   const swins = $derived(clientState.layout.swins);
@@ -61,7 +62,7 @@
                   <button
                     class="btn-icon hover:preset-tonal"
                     onclick={() => swins.pop()}
-                    aria-label="Go back"
+                    aria-label={i18n.texts.actions.goBack}
                   >
                     <ChevronLeft size={18} />
                   </button>
@@ -97,7 +98,7 @@
                 <button
                   class="btn-icon hover:preset-tonal"
                   onclick={closeAll}
-                  aria-label="Close all"
+                  aria-label={i18n.texts.actions.closeAll}
                 >
                   <X size={18} />
                 </button>

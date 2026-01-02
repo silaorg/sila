@@ -2,6 +2,7 @@
   import { EllipsisVertical } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let { appTreeId }: { appTreeId: string } = $props();
@@ -46,20 +47,20 @@
     {#snippet content()}
       <div class="flex flex-col gap-1">
         <button class="btn btn-sm text-left" onclick={openInNewTab}
-          >Open in a new tab</button
+          >{i18n.texts.appTreeMenu.openInNewTab}</button
         >
         <button class="btn btn-sm text-left" onclick={startRenamingThread}
-          >Rename</button
+          >{i18n.texts.actions.rename}</button
         >
 
         <div class="border-t border-surface-200-800 my-2"></div>
 
         <button class="btn btn-sm text-left" onclick={duplicateThread}
-          >Duplicate</button
+          >{i18n.texts.actions.duplicate}</button
         >
         <button
           class="btn btn-sm preset-filled-error-500 text-left"
-          onclick={deleteThread}>Delete</button
+          onclick={deleteThread}>{i18n.texts.actions.delete}</button
         >
       </div>
     {/snippet}

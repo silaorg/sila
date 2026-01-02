@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import SpaceOpener from "./SpaceOpener.svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   function handleOpen(spaceId?: string) {
@@ -13,8 +14,8 @@
 </script>
 
 <div class="flex justify-between items-center pb-4">
-  <h3 class="h3">Create or open your workspace</h3>
+  <h3 class="h3">{i18n.texts.spacesPage.openerPageTitle}</h3>
 </div>
-<p class="mb-6">You can create a new workspace or open an existing one.</p>
+<p class="mb-6">{i18n.texts.spacesPage.openerPageDescription}</p>
 
 <SpaceOpener onSpaceSetup={handleOpen} />

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { i18n } from "@sila/client";
 
   const isElectron =
     typeof window !== "undefined" && Boolean((window as any).electronFileSystem);
@@ -14,19 +15,18 @@
   const isBusy = $derived(updateStage === "checking" || updateStage === "downloading");
 
   const updateLabel = $derived.by(() => {
-    if (updateStage === "checking") return "Checking for updates…";
+    if (updateStage === "checking") return i18n.texts.updates.checkingLabel;
     if (updateStage === "downloading") {
       const what =
         updateKind === "desktop-build"
-          ? "client build"
+          ? i18n.texts.updates.downloadKindClientBuild
           : updateKind === "electron"
-            ? "electron"
-            : "update";
-      const suffix = updateVersion ? ` (${updateVersion})` : "";
-      return `Downloading ${what}${suffix}…`;
+            ? i18n.texts.updates.downloadKindElectron
+            : i18n.texts.updates.downloadKindUpdate;
+      return i18n.texts.updates.downloadingLabel(what, updateVersion);
     }
-    if (updateStage === "ready") return "Update downloaded.";
-    if (updateStage === "error") return updateMessage || "Update failed.";
+    if (updateStage === "ready") return i18n.texts.updates.downloadedLabel;
+    if (updateStage === "error") return updateMessage || i18n.texts.updates.failedLabel;
     return "";
   });
 
@@ -71,11 +71,13 @@
 
 {#if isElectron}
   <section class="space-y-2">
-    <div class="text-sm font-medium">Updates</div>
+    <div class="text-sm font-medium">{i18n.texts.updates.updatesTitle}</div>
 
     {#if !isBusy}
       <button class="btn btn-sm preset-filled" onclick={checkForUpdates} disabled={isCheckingUpdates}>
-        {isCheckingUpdates ? "Checking..." : "Check for updates"}
+        {isCheckingUpdates
+          ? i18n.texts.updates.checkingForUpdates
+          : i18n.texts.updates.checkForUpdates}
       </button>
     {/if}
 
@@ -96,5 +98,3 @@
     {/if}
   </section>
 {/if}
-
-

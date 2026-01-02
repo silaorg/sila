@@ -3,14 +3,15 @@
   import type { VertexPropertyType } from "@sila/core";
   import { TrashIcon, Plus } from "lucide-svelte";
   import NewPropertyForm from "./NewPropertyForm.svelte";
+  import { i18n } from "@sila/client";
   
   let { vertex, onTreeOpen }: { vertex: Vertex, onTreeOpen: (treeId: string) => void } = $props();
   let properties = $state<Record<string, any>>({});
   let isAddingProperty = $state(false);
 
   function formatPropertyKey(key: string): string {
-    if (key === '_c') return 'created at';
-    if (key === 'tid') return 'app tree';
+    if (key === '_c') return i18n.texts.spaceInspector.createdAtLabel;
+    if (key === 'tid') return i18n.texts.spaceInspector.appTreePropertyLabel;
     return key;
   }
 
@@ -172,7 +173,7 @@
       onclick={() => isAddingProperty = true}
     >
       <Plus size={14} />
-      <span>Add property</span>
+      <span>{i18n.texts.spaceInspector.addPropertyLabel}</span>
     </button>
   {/if}
 </div> 

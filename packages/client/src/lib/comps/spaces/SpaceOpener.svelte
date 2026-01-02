@@ -18,7 +18,7 @@ import {
 
   async function promptForLocation(): Promise<string | null> {
     const selection = await clientState.dialog.openDialog({
-      title: "Choose where to create your workspace",
+      title: i18n.texts.workspaceCreate.chooseLocationTitle,
       directory: true,
       defaultPath: selectedParentPath ?? undefined,
     });
@@ -42,13 +42,13 @@ import {
         await ensurePathIsNotInsideExistingSpace(clientState, path);
       } catch (validationError) {
         await clientState.dialog.showError({
-          title: "Folder Already Used",
-          message: "Pick a folder outside of existing workspaces.",
+          title: i18n.texts.workspaceCreate.folderAlreadyUsedTitle,
+          message: i18n.texts.workspaceCreate.folderAlreadyUsedMessage,
           detail:
             validationError instanceof Error
               ? validationError.message
               : String(validationError),
-          buttons: ["OK"],
+          buttons: [i18n.texts.actions.ok],
         });
         status = "idle";
         return;
@@ -60,13 +60,13 @@ import {
     } catch (e) {
       console.error(e);
       await clientState.dialog.showError({
-        title: "Failed to Open Folder",
+        title: i18n.texts.workspaceCreate.failedAccessFolderTitle,
         message: i18n.texts.spacesPage.opener.errorCreate,
         detail:
           e instanceof Error
             ? e.message
-            : "An unknown error occurred while choosing the folder.",
-        buttons: ["OK"],
+            : i18n.texts.workspaceCreate.failedAccessFolderUnknown,
+        buttons: [i18n.texts.actions.ok],
       });
       status = "idle";
     }
@@ -92,7 +92,7 @@ import {
         onParentPathChange: handleParentPathChange,
         onCancel: handleParentPathChange,
       },
-      "Create workspace"
+      i18n.texts.workspaceCreate.createWorkspace
     );
   }
 
@@ -118,13 +118,13 @@ import {
       console.error(e);
 
       await clientState.dialog.showError({
-        title: "Failed to Open Space",
+        title: i18n.texts.spacesPage.opener.errorOpenTitle,
         message: i18n.texts.spacesPage.opener.errorOpen,
         detail:
           e instanceof Error
             ? e.message
-            : "An unknown error occurred while opening the space.",
-        buttons: ["OK"],
+            : i18n.texts.spacesPage.opener.errorOpenUnknown,
+        buttons: [i18n.texts.actions.ok],
       });
     } finally {
       status = "idle";

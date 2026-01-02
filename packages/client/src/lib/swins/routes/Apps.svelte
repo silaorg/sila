@@ -25,10 +25,10 @@
 
 <div class="card space-y-4">
   <div class="flex justify-between items-center">
-    <h3 class="h3">Your Assistants</h3>
+    <h3 class="h3">{i18n.texts.appPage.chatsTitle}</h3>
     <SwinsNavButton
       component="appConfig"
-      title="New Assistant"
+      title={i18n.texts.appPage.buttonNewConfig}
       className="btn preset-filled-primary-500"
     >
       <Plus size={16} />
@@ -36,8 +36,7 @@
     </SwinsNavButton>
   </div>
   <p>
-    You can create and edit your chat assistants here. You will see the
-    assistant buttons in the right top of the sidebar.
+    {i18n.texts.appPage.description}
   </p>
   <div class="flex flex-col">
     {#each appConfigs as config (config.id)}

@@ -12,6 +12,7 @@
   import type { ResolvedFileInfo } from "@sila/core";
   import { getFilePreviewConfig } from "@sila/client/utils/filePreview";
   import RegularFilePreview from "@sila/client/comps/files/RegularFilePreview.svelte";
+  import { i18n } from "@sila/client";
 
   interface FileMentionMenuProps {
     files: FileMention[];
@@ -78,7 +79,7 @@
           filesVertex ?? undefined
         );
         if (!vertex) {
-          previewError = "File not found";
+          previewError = i18n.texts.fileMention.previewNotFound;
           selectedFile = null;
           return;
         }
@@ -87,12 +88,15 @@
         if (resolved) {
           selectedFile = resolved;
         } else {
-          previewError = "Failed to resolve file";
+          previewError = i18n.texts.fileMention.previewResolveFailed;
           selectedFile = null;
         }
       } catch (error) {
         console.error("Failed to resolve file for preview:", error);
-        previewError = error instanceof Error ? error.message : "Unknown error";
+        previewError =
+          error instanceof Error
+            ? error.message
+            : i18n.texts.fileMention.previewUnknownError;
         selectedFile = null;
       } finally {
         isLoadingPreview = false;
@@ -198,7 +202,9 @@
         </button>
       {/each}
       {#if files.length === 0}
-        <div class="px-2 py-1 text-xs opacity-60">No files found</div>
+        <div class="px-2 py-1 text-xs opacity-60">
+          {i18n.texts.fileMention.noFilesFound}
+        </div>
       {/if}
     </div>
   </div>
@@ -210,7 +216,9 @@
         <div
           class="flex items-center justify-center h-32 bg-surface-100-900 rounded animate-pulse"
         >
-          <span class="text-xs text-surface-500-500-token">Loading...</span>
+          <span class="text-xs text-surface-500-500-token">
+            {i18n.texts.fileMention.loading}
+          </span>
         </div>
       {:else if previewError}
         <div
@@ -243,4 +251,3 @@
     </div>
   {/if}
 </div>
-

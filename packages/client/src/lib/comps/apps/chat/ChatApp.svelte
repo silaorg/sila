@@ -15,6 +15,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { provideChatAppData } from "./chatAppContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -31,6 +32,8 @@
   let scrollHeight = $state(0);
   let clientHeight = $state(0);
   let hasFiles = $state(false);
+  let sendFormEl = $state<HTMLElement | null>(null);
+  let sendFormHeight = $state(0);
 
   let lastMessageTxt: string | null = null;
   let lastProcessMessagesExpanded = $state(false);
@@ -85,6 +88,25 @@
   );
 
   let showScrollDown = $derived(distFromBottom > SCROLL_BUTTON_THRESHOLD_PX);
+  let scrollButtonOffset = $derived(Math.max(sendFormHeight + 16, 48));
+
+  $effect(() => {
+    if (!sendFormEl || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    sendFormHeight = sendFormEl.getBoundingClientRect().height;
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      sendFormHeight = entry.contentRect.height;
+    });
+    resizeObserver.observe(sendFormEl);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  });
 
   function updateScrollMetrics() {
     if (!scrollableElement) return;
@@ -250,7 +272,11 @@
       return;
     }
 
-    clientState.layout.swins.open(swinsLayout.files.key, { filesRoot }, "Chat files");
+    clientState.layout.swins.open(
+      swinsLayout.files.key,
+      { filesRoot },
+      i18n.texts.chat.chatFilesTitle
+    );
   }
 
   export async function scrollToMessage(messageId: string) {
@@ -280,7 +306,7 @@
     <button
       class="btn-icon btn-sm preset-outline absolute top-3 right-3 z-10 flex items-center gap-2"
       type="button"
-      aria-label="View chat files"
+      aria-label={i18n.texts.chat.viewFilesAria}
       onclick={openChatFiles}
     >
       <Images size={16} />
@@ -310,14 +336,15 @@
   </div>
   {#if showScrollDown}
     <button
-      class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
-      aria-label="Scroll to bottom"
+      class="absolute left-1/2 -translate-x-1/2 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
+      style={`bottom: ${scrollButtonOffset}px`}
+      aria-label={i18n.texts.chat.scrollToBottomAria}
       onclick={() => scrollToBottom(true, true)}
     >
       <ArrowDown size={18} />
     </button>
   {/if}
-  <div class="min-h-min">
+  <div class="min-h-min" bind:this={sendFormEl}>
     <section class="max-w-4xl mx-auto py-2 px-2">
       <SendMessageForm
         onSend={sendMsg}

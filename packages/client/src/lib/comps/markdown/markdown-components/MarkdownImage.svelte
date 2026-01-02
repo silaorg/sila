@@ -4,6 +4,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ResolvedFileInfo, Vertex } from "@sila/core";
   import MarkdownTextDocument from "./MarkdownTextDocument.svelte";
+  import { i18n } from "@sila/client";
 
   let { token }: { token: Tokens.Image } = $props();
 
@@ -85,7 +86,9 @@
         class="markdown-image-button cursor-pointer border-none bg-transparent p-0 inline-block"
         onclick={openFile}
         type="button"
-        aria-label={`Open image: ${token.text || resolvedFile.name || ""}`}
+        aria-label={i18n.texts.markdownImage.openImageAria(
+          token.text || resolvedFile.name || ""
+        )}
       >
         <img
           src={resolvedFile.url}
@@ -98,7 +101,7 @@
   {:else}
     <!-- Failed to resolve file -->
     <div class="markdown-image text-sm text-gray-500 italic">
-      Failed to load file: {token.href}
+      {i18n.texts.markdownImage.failedToLoad(token.href)}
     </div>
   {/if}
 {:else}
