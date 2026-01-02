@@ -25,22 +25,30 @@ Support search for any model without relying on OpenAI-only API features.
 
 ## Output shape
 
-Return a compact JSON payload.
+Return a brief report so the main agent can format it.
+Keep it compact and source-first.
 
 Example:
 
 ```json
 {
   "query": "Sila workspace search",
-  "sources": ["docs", "web"],
-  "items": [
+  "summary": "Found one relevant doc in workspace proposals.",
+  "findings": [
     {
       "title": "Search in workspaces",
-      "url": "sila://docs/dev/proposals/search-in-workspaces.md",
-      "snippet": "Hybrid search proposal.",
-      "score": 0.82
+      "detail": "Hybrid search proposal with BM25 + embeddings.",
+      "citations": [
+        {
+          "title": "Search in workspaces",
+          "url": "sila://docs/dev/proposals/search-in-workspaces.md",
+          "snippet": "Hybrid search proposal."
+        }
+      ]
     }
-  ]
+  ],
+  "sourcesChecked": ["workspace-docs"],
+  "nextSteps": ["Ask if web search is allowed for more sources."]
 }
 ```
 
