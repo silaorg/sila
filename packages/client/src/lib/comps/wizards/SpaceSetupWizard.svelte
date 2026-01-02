@@ -160,7 +160,7 @@
       <h2 class="h3 mb-4">Setup brains for your workspace</h2>
       <p class="mb-4">
         Connect at least one AI model provider to start using Sila. We recommend
-        setting up OpenAI, Anthropic or DeepSeek first.
+        setting up OpenAI, Anthropic or Google first.
       </p>
 
       <div class="overflow-y-auto pr-2">

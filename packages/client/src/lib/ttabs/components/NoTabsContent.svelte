@@ -43,7 +43,7 @@
       <h2 class="h3 mb-4 mt-4">Setup brains for Sila</h2>
       <p class="mb-4">
         Let's setup at least one AI model provider to start using Sila. We
-        recommend setting up OpenAI, Anthropic or DeepSeek first. They have the
+        recommend setting up OpenAI, Anthropic or Google first. They have the
         most powerful models.
       </p>
       {#if allowToStartNewConversationFromProviderSetup}

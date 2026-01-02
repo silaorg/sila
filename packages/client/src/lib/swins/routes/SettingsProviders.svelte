@@ -6,10 +6,11 @@
 
 <div class="flex gap-4 w-full">
   <SettingsSidebar />
-  <div class="flex-1">
-    <div class="">
-      <ModelProviders />
-    </div>
+  <div class="flex-1 space-y-4">
+    <p class="text-sm">
+      {$txtStore.settingsPage.providers.description}
+    </p>
+    <ModelProviders />
   </div>
 </div>
 

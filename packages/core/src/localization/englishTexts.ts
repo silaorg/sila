@@ -70,7 +70,8 @@ export const englishTexts: Texts = {
       language: "Language"
     },
     providers: {
-      title: "Model Providers"
+      title: "Model Providers",
+      description: "Connect AI model providers to power your assistants. These are the brains that make your assistants work. We recommend setting up OpenAI, Anthropic, or Google first."
     },
     spaces: {
       title: "Workspaces",

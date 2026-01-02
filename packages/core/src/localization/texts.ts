@@ -68,6 +68,7 @@ export interface Texts {
     };
     providers: {
       title: string;
+      description: string;
     };
     spaces: {
       title: string;
