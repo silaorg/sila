@@ -239,6 +239,11 @@ export class FileResolver {
     const resolved: ResolvedFileWithData[] = [];
     const fileStore = this.space.fileStore;
 
+    if (!fileStore) {
+      console.error("FileStore not available for resolving file references");
+      return [];
+    }
+
     for (const file of fileRefs) {
       // If has file reference, resolve it
       if (file?.tree && file?.vertex) {
@@ -248,15 +253,28 @@ export class FileResolver {
             fileStore,
           );
           if (resolvedAttachment) {
+            // Validate that resolved attachment has required dataUrl
+            if (!resolvedAttachment.dataUrl || typeof resolvedAttachment.dataUrl !== 'string') {
+              console.error(`Resolved file ${file.vertex} is missing dataUrl:`, resolvedAttachment);
+              continue;
+            }
             resolved.push(resolvedAttachment);
+          } else {
+            console.warn(`Failed to resolve file reference ${file.tree}:${file.vertex} - resolvedAttachment is null`);
           }
         } catch (error) {
-          console.error("Failed to resolve file reference:", error);
+          console.error(`Failed to resolve file reference ${file.tree}:${file.vertex}:`, error);
           // Skip attachments that failed to resolve instead of including empty dataUrl
           // This prevents AI from receiving invalid base64 data
         }
         continue;
+      } else {
+        console.warn("Invalid file reference missing tree or vertex:", file);
       }
+    }
+
+    if (fileRefs.length > resolved.length) {
+      console.warn(`Only resolved ${resolved.length} out of ${fileRefs.length} file reference(s)`);
     }
 
     return resolved;
