@@ -5,54 +5,64 @@ export const chineseTexts: Partial<Texts> = {
     name: "名称",
     button: "按钮",
     description: "描述",
-    instructions: "指令",
+    instructions: "说明",
     optional: "可选",
     loading: "加载中...",
     thinking: "思考中...",
     model: "模型",
-    apps: "应用",
+    apps: "助手",
   },
 
   messageForm: {
-    placeholder: "输入消息...",
+    placeholder: "想问什么都可以",
     attachFile: "附加文件",
     send: "发送消息",
     stop: "停止生成"
   },
 
   appPage: {
-    title: "应用",
-    buttonNewConfig: "新建聊天配置",
-    chatsTitle: "聊天",
-    contactMessage: "创建其他类型应用的功能即将推出。如果您有应用的想法或建议，请发送邮件至 <a class=\"anchor\" href=\"mailto:d@dkury.com\">d@dkury.com</a>"
+    title: "助手",
+    buttonNewConfig: "新建助手",
+    chatsTitle: "你的助手",
+    description: "你可以在这里创建和编辑聊天助手。助手按钮会显示在侧边栏右上角。",
+    contactMessage: "稍后会支持创建其他类型的应用。如果你有想法或建议，请邮件联系 <a class=\"anchor\" href=\"mailto:d@dkury.com\">d@dkury.com</a>"
   },
 
   appConfigPage: {
-    newConfigTitle: "新建聊天配置",
-    editConfigTitle: "编辑聊天配置",
-    defaultConfigTitle: "默认聊天配置",
-    newConfigButton: "新建主题按钮（可选）",
+    newConfigTitle: "新建助手",
+    editConfigTitle: "编辑助手",
+    defaultConfigTitle: "默认助手",
+    editAssistantTitle: "编辑助手",
+    editAssistantButton: "编辑助手",
+    startChatTitle: "开始聊天",
+    startChatDescription: "与该助手开始聊天",
+    dragToReorder: "拖拽排序（暂未实现）",
+    newConfigButton: "新对话按钮（可选）",
     buttonCreate: "创建",
     buttonSave: "保存更改",
-    namePlaceholder: "为您的应用命名",
-    descriptionPlaceholder: "简短描述此应用的功能",
-    instructionsPlaceholder: "以'你是一个...'开头。像指导新员工一样指导AI",
-    buttonPlaceholder: "按钮的简短操作文本",
-    gotoNewConfig: "如果要创建新的聊天配置，请点击这里",
-    errorValidationRequired: "此字段为必填项",
-    errorAppConfigLoadFailure: "加载应用配置失败",
+    namePlaceholder: "给助手起个名字",
+    descriptionPlaceholder: "一句话描述这个助手做什么",
+    instructionsPlaceholder:
+      "以“你是...”开头。像写给新同事的指令一样写给 AI",
+    buttonPlaceholder: "按钮上的简短动作文字",
+    gotoNewConfig: "如果要创建新的助手，请点这里",
+    errorValidationRequired: "此项必填",
+    errorAppConfigLoadFailure: "加载助手配置失败",
     tableCell: {
       deleteButton: "删除",
-      visibilityLabel: "切换应用可见性",
-      deleteLabel: "删除应用配置"
+      visibilityLabel: "在侧边栏显示/隐藏该助手",
+      deleteLabel: "删除助手配置"
     },
-    defaultConfigMessage: "这是默认聊天应用的配置。您只能更改它使用的模型。<br /><a href=\"/apps/new-config\" class=\"anchor\">{defaultConfigGotoNew}</a> 如果您想创建新的聊天配置。",
-    defaultConfigGotoNew: "点击这里",
-    description: "您可以基于默认聊天应用创建自己的系统提示（指令）。在Sila的未来版本中，将可以使用工具和外部API创建其他类型的应用。"
+    defaultConfigMessage: "这是默认聊天助手的配置。你可以更改它使用的模型，或创建新的助手。",
+    defaultConfigGotoNew: "新建助手",
+    description: "你可以基于默认聊天助手创建自己的系统提示（指令）。未来版本的 Sila 将支持带工具和外部 API 的其他类型应用。",
   },
 
   appConfigDropdown: {
-    placeholder: "选择配置..."
+    placeholder: "选择助手...",
+    newAssistant: "新建助手",
+    editConfigTitle: "编辑配置",
+    editAssistantLabel: (assistantName: string) => `编辑 "${assistantName}" 助手`
   },
 
   modelSelection: {
@@ -66,36 +76,507 @@ export const chineseTexts: Partial<Texts> = {
     appearance: {
       title: "外观",
       theme: "主题",
-      language: "语言"
+      language: "语言",
+      colorScheme: "配色",
+      system: "跟随系统",
+      dark: "深色",
+      light: "浅色",
+      switchToLightMode: "切换到浅色模式",
+      switchToDarkMode: "切换到深色模式"
     },
     providers: {
-      title: "模型提供商"
+      title: "模型提供商",
+      description: "连接 AI 模型提供商来驱动你的助手。它们是助手的“大脑”。建议先配置 OpenAI、Anthropic 或 Google。"
     },
     spaces: {
-      title: "空间",
-      spaceCount: (count: number) => `您有${count}个空间`,
+      title: "工作区",
+      spaceCount: (count: number) => `你有${count === 1 ? "1 个工作区" : `${count} 个工作区`}`,
       manageButton: "管理"
     },
     developers: {
-      title: "开发者选项",
+      title: "开发者",
       toggleDevMode: "切换开发者模式"
     }
   },
 
   spacesPage: {
-    title: "您的空间",
-    description: "空间是存储您的AI应用和其他数据的地方。您可以拥有多个空间并在它们之间切换。例如，一个用于工作，另一个用于个人用途。",
+    title: "你的工作区",
+    description: "工作区是存储你的 AI 应用和其他数据的地方。你可以有多个工作区并在其间切换。例如，一个用于工作，另一个用于个人。",
     opener: {
-      createTitle: "创建新空间",
-      createDescription: "为新空间选择一个文件夹。可以是本地文件夹或与iCloud、Dropbox、Google Drive等同步的文件夹。请确保文件夹为空。",
+      createTitle: "创建新工作区",
+      createDescription: "为新工作区选择一个文件夹。可以是本地文件夹或与 iCloud、Dropbox、Google Drive 等同步的文件夹。",
       createButton: "创建",
-      openTitle: "打开空间",
-      openDescription: "打开包含您空间的文件夹。",
+      openTitle: "打开工作区",
+      openDescription: "打开包含工作区的文件夹。",
       openButton: "打开",
-      errorCreate: "创建空间失败",
-      errorOpen: "打开空间失败",
-      dialogCreateTitle: "选择新空间的文件夹",
-      dialogOpenTitle: "选择包含空间的文件夹"
-    }
+      errorCreate: "创建工作区失败",
+      errorOpen: "打开工作区失败",
+      errorOpenTitle: "打开工作区失败",
+      errorOpenUnknown: "打开工作区时发生未知错误。",
+      dialogCreateTitle: "选择新工作区的文件夹",
+      dialogOpenTitle: "选择包含工作区的文件夹"
+    },
+    openerPageTitle: "创建或打开工作区",
+    openerPageDescription: "你可以创建新工作区或打开已有工作区。",
+    addWorkspaceButton: "添加工作区",
+    defaultWorkspaceName: "工作区",
+    manageWorkspacesButton: "管理工作区"
+  },
+
+  actions: {
+    open: "打开",
+    edit: "编辑",
+    delete: "删除",
+    done: "完成",
+    cancel: "取消",
+    confirm: "确认",
+    close: "关闭",
+    copy: "复制",
+    add: "添加",
+    update: "更新",
+    save: "保存",
+    saving: "保存中...",
+    change: "更改",
+    choose: "选择",
+    retry: "重试",
+    rename: "重命名",
+    removeFromList: "从列表移除",
+    openInNewTab: "在新标签页中打开",
+    duplicate: "复制",
+    connect: "连接",
+    disconnect: "断开连接",
+    configure: "配置",
+    how: "如何？",
+    attach: "附加",
+    ok: "好",
+    goBack: "返回",
+    closeAll: "关闭全部",
+    back: "返回",
+    next: "下一步",
+    finish: "完成"
+  },
+
+  markdownTextDocument: {
+    openButton: "打开",
+    loading: "正在加载文档...",
+    loadError: "无法加载文件内容。",
+    openAriaLabel: (fileName: string) => `打开文档：${fileName}`
+  },
+
+  markdownImage: {
+    openImageAria: (fileName: string) => `打开图片：${fileName}`,
+    failedToLoad: (fileUrl: string) => `无法加载文件：${fileUrl}`
+  },
+
+  models: {
+    auto: "自动",
+    selectModelTitle: "选择模型",
+    chooseModelRequired: "请选择模型",
+    invalidModelFormat: (value: string) => `模型格式无效：${value}`,
+    unknownProvider: (providerId: string) => `未知提供商：${providerId}`,
+    enterModel: "输入模型",
+    chooseModel: "选择模型",
+    modelNameLabel: "模型名称",
+    openRouterPlaceholder: "例如 openai/gpt-4o, anthropic/claude-3-5-sonnet",
+    openRouterHelp: "输入 OpenRouter 上可用的任意模型（例如 openai/gpt-4o, anthropic/claude-3-5-sonnet, meta-llama/llama-3.2-90b-vision-instruct）",
+    defaultOption: (label: string) => `${label}（默认）`
+  },
+
+  providers: {
+    connected: "已连接",
+    validationFailed: "验证失败。请检查 API 密钥或连接。",
+    apiKeyValidationFailed: "API 密钥验证失败。密钥可能无效或已过期。",
+    unknownError: "发生未知错误",
+    connectionFailed: "连接失败。请检查网络。",
+    editTitle: "编辑提供商",
+    deleteTitle: "删除提供商",
+    deletePrompt: "确定删除？",
+    visitWebsiteTitle: "访问提供商网站"
+  },
+
+  customProviderSetup: {
+    titleAdd: "添加自定义提供商",
+    titleEdit: "编辑自定义提供商",
+    labelProviderName: "提供商名称",
+    labelBaseApiUrl: "基础 API URL",
+    labelApiKey: "API 密钥",
+    labelModelId: "模型 ID",
+    labelCustomHeaders: "自定义请求头（可选）",
+    placeholderName: "我的自定义提供商",
+    placeholderBaseApiUrl: "https://api.example.com/v1",
+    placeholderApiKey: "sk-...",
+    placeholderModelId: "gpt-3.5-turbo",
+    placeholderHeaders: "Authorization: Bearer token\nX-Custom-Header: value",
+    headersHint: "每行一个请求头，格式为 'key: value'",
+    invalidHeadersFormat: "自定义请求头格式无效。请使用 'key: value'，每行一个。",
+    saveError: "保存提供商配置失败",
+    addModalTitle: "添加自定义 OpenAI 类提供商",
+    addButton: "添加自定义提供商"
+  },
+
+  customProviderForm: {
+    titleAdd: "添加自定义 OpenAI 兼容提供商",
+    titleEdit: "编辑自定义 OpenAI 兼容提供商",
+    labelProviderName: "提供商名称*",
+    labelApiUrl: "API URL*",
+    labelApiKey: "API 密钥*",
+    labelModelId: "模型 ID*",
+    labelCustomHeaders: "自定义请求头（可选）",
+    placeholderName: "我的自定义提供商",
+    placeholderApiUrl: "https://api.example.com/v1",
+    placeholderApiKey: "sk-...",
+    placeholderModelId: "gpt-3.5-turbo",
+    placeholderHeaders: "Authorization: Bearer token\nContent-Type: application/json",
+    hintBaseUrl: "API 调用的基础 URL，应与 OpenAI API 兼容",
+    hintModelId: "指定该提供商需要的模型 ID",
+    hintHeaders: "每行一个请求头，格式为“Key: Value”",
+    validationNameRequired: "必须填写提供商名称",
+    validationApiUrlRequired: "必须填写 API URL",
+    validationApiUrlInvalid: "API URL 格式无效",
+    validationApiKeyRequired: "必须填写 API 密钥",
+    validationModelIdRequired: "必须填写模型 ID",
+    saveFailed: (message: string) => `保存失败：${message}`,
+    buttonUpdate: "更新提供商",
+    buttonAddProvider: "添加提供商"
+  },
+
+  modelProviderSetup: {
+    title: (providerName: string) => `如何设置 ${providerName}`,
+    openai: {
+      intro: "需要输入密钥才能使用 OpenAI 模型。",
+      steps: {
+        signup: "注册或登录 OpenAI：",
+        addCredits: "在此为账户充值",
+        createKey: "在这里创建新的密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    anthropic: {
+      intro: "需要输入密钥才能使用 Anthropic 模型。",
+      steps: {
+        signup: "注册或登录 Anthropic：",
+        createKey: "在这里创建新密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    groq: {
+      intro: "需要输入密钥才能使用 Groq 模型。",
+      steps: {
+        signup: "注册或登录 Groq：",
+        createKey: "在这里创建 API 密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    deepseek: {
+      intro: "需要输入密钥才能使用 DeepSeek 模型。",
+      steps: {
+        signup: "注册或登录 DeepSeek：",
+        createKey: "在这里创建 API 密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    google: {
+      intro: "需要输入密钥才能使用 Google Gemini 模型。",
+      steps: {
+        signup: "注册或登录 Google AI Studio：",
+        createKey: "在这里创建 API 密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    xai: {
+      intro: "需要输入密钥才能使用 xAI 模型。",
+      steps: {
+        signup: "注册或登录 xAI：",
+        createTeam: "创建团队并进入 API keys 页面。",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    cohere: {
+      intro: "需要输入密钥才能使用 Cohere 模型。",
+      steps: {
+        signup: "注册或登录 Cohere：",
+        createKey: "在这里创建 API 密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    mistral: {
+      intro: "需要输入密钥才能使用 Mistral 模型。",
+      steps: {
+        signup: "注册或登录 Mistral AI：",
+        createKey: "在这里创建 API 密钥",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    ollama: {
+      intro: "需要安装并运行 Ollama 才能使用其模型。可在本地运行，Sila 会连接到它。",
+      steps: {
+        download: "从这里下载 Ollama",
+        install: "安装 Ollama 并配置想用的模型。",
+        returnAfterStart: "启动后回到这里。"
+      }
+    },
+    openrouter: {
+      intro: "需要输入密钥才能使用 OpenRouter 的统一 API 来访问数百种模型。",
+      steps: {
+        signup: "注册或登录 OpenRouter：",
+        createKey: "在账号设置中进入 API keys 并创建新的 API 密钥。",
+        pasteKey: "粘贴密钥并等待验证。"
+      }
+    },
+    noInstructions: "暂无该提供商的设置说明。",
+    okButton: "好的"
+  },
+
+  sidebar: {
+    newConversationTitle: "新对话",
+    workspaceAssetsTitle: "工作区资源",
+    assetsLabel: "资源"
+  },
+
+  renamingPopup: {
+    newNameLabel: "新名称",
+    newNamePlaceholder: "输入新名称"
+  },
+
+  wizards: {
+    freshStartTitle: "欢迎使用 Sila",
+    freshStartSubtitle: "创建或打开工作区",
+    freshStartDescription: "Sila 像 ChatGPT 一样工作，但在 Sila 中你拥有自己的助手、聊天和所有生成的数据。随着你使用 AI 越多，它更了解你，你的数据也更有价值，所以最好由你自己掌控。",
+    workspaceTitle: "创建或打开工作区",
+    workspaceDescription: "工作区用于存放你的对话、文件和助手。你可以有多个工作区并快速切换。",
+    spaceSetupNameTitle: "为工作区命名",
+    spaceSetupNameLabel: "工作区名称",
+    spaceSetupNameDescription: "给工作区起个名字方便识别，或直接跳过使用默认名称。以后也可以修改。",
+    spaceSetupNamePlaceholder: "我的工作区",
+    spaceSetupNameHint: "可以用一个简单的名称来说明用途：",
+    spaceSetupBrainsTitle: "为工作区设置大脑",
+    spaceSetupBrainsDescription: "至少连接一个 AI 模型提供商才能开始使用 Sila。建议先配置 OpenAI、Anthropic 或 Google。",
+    spaceSetupBrainsStepTitle: "大脑",
+    spaceSetupThemeStepTitle: "主题",
+    spaceSetupLookTitle: "选择工作区外观",
+    colorSchemeLabel: "配色方案",
+    themeLabel: "主题"
+  },
+
+  noTabs: {
+    setupBrainsTitle: "为 Sila 设置大脑",
+    setupBrainsDescription: "先连接至少一个 AI 模型提供商即可开始使用 Sila。建议先配置 OpenAI、Anthropic 或 Google，它们的模型最强。",
+    readyToStartMessage: "至少已配置一个提供商，可以开始新对话了",
+    newConversationTitle: "新对话",
+    startConversationButton: "开始对话",
+    chatTitle: "聊天",
+    todoNewThread: "@TODO: 在此添加新线程"
+  },
+
+  devPanel: {
+    desktopUpdatesTitle: "桌面更新",
+    currentVersionLabel: "当前版本：",
+    desktopUpdatesOnly: "桌面更新仅在桌面应用中可用。",
+    exitDevMode: "退出开发者模式",
+    devModeStatus: (version: string) => `🚧 Sila ${version} 处于开发者模式`,
+    openSpaceInspector: "打开空间检查器",
+    closeSpaceInspector: "关闭空间检查器",
+    versionLabel: "版本",
+    shellLabel: "Shell",
+    clientLabel: "客户端",
+    updatesLabel: "更新",
+    checkingUpdates: "检查中...",
+    checkForUpdates: "检查更新"
+  },
+
+  fileViewer: {
+    loading: "加载中...",
+    noContent: "没有可显示的内容。"
+  },
+
+  chat: {
+    assistantConfigIdLabel: "助手配置 ID：",
+    unknown: "未知",
+    unknownError: "未知错误",
+    aiLabel: "AI",
+    processing: "处理中",
+    messageInfoAssistant: "助手：",
+    messageInfoModel: "模型：",
+    messageInfoCreated: "创建时间：",
+    messageInfoUpdated: "更新时间：",
+    messageInfoAria: "消息信息",
+    thinking: "思考中",
+    acting: "行动中",
+    thoughtActed: "思考并行动",
+    acted: "已行动",
+    thought: "思考",
+    errorLoadingAppTree: "加载应用树出错",
+    viewFilesAria: "查看聊天文件",
+    scrollToBottomAria: "滚动到底部",
+    chatFilesTitle: "聊天文件"
+  },
+
+  chatControls: {
+    copyMessage: "复制消息",
+    editMessage: "编辑消息",
+    rerunInNewBranch: "在新分支重新运行"
+  },
+
+  fileMention: {
+    noFilesFound: "未找到文件",
+    loading: "加载中...",
+    previewNotFound: "未找到文件",
+    previewResolveFailed: "解析文件失败",
+    previewUnknownError: "未知错误"
+  },
+
+  filesApp: {
+    filesRootNotFound: "未找到文件根目录。",
+    uploadFiles: "上传文件",
+    uploading: "上传中...",
+    newFolder: "新建文件夹",
+    emptyFolderPrefix: "你可以",
+    emptyFolderUpload: "上传",
+    emptyFolderOr: "或",
+    emptyFolderMove: "移动",
+    emptyFolderSuffix: "文件到此文件夹。",
+    errorLoadingFilesRoot: "加载文件根目录出错",
+    filesAndFoldersLabel: "文件和文件夹",
+    workspaceLabel: "工作区",
+    unnamedLabel: "未命名",
+    untitledLabel: "未命名",
+    moreItems: (count: number) => `+ 还有 ${count} 项…`
+  },
+
+  attachments: {
+    addAttachmentsAria: "添加附件（或粘贴文件）",
+    uploadPhotosFiles: "上传照片和文件",
+    browseWorkspaceFiles: "浏览工作区文件",
+    setupProviderMessage: "设置模型提供商以与 AI 对话。",
+    setupBrainsButton: "设置大脑",
+    processingImage: "正在处理图片...",
+    processingTextFile: "正在处理文本文件...",
+    linesLabel: "行",
+    wordsLabel: "词",
+    removeAttachmentAria: "移除附件"
+  },
+
+  files: {
+    loadingFile: "加载中...",
+    noFileData: "没有文件数据",
+    loadingPdf: "正在加载 PDF...",
+    pdfLoadFailed: "加载 PDF 失败",
+    invalidReference: "无效的文件引用",
+    failedToLoad: "加载文件失败",
+    failedToLoadWithMessage: (message: string) => `加载文件失败：${message}`,
+    unknownError: "未知错误"
+  },
+
+  spaceInspector: {
+    spaceLabel: "空间",
+    openCurrentAppTree: "打开当前应用树",
+    appTreeLabel: "应用树",
+    toggleExpandAria: "展开/折叠",
+    childrenLabel: "子项：",
+    addVertexAria: "添加新节点",
+    deleteVertexAria: "删除节点",
+    addPropertyLabel: "添加属性",
+    propertyKeyPlaceholder: "属性键",
+    valuePlaceholder: "值",
+    typeString: "字符串",
+    typeNumber: "数字",
+    typeBoolean: "布尔值",
+    createProperty: "创建",
+    createdAtLabel: "创建于",
+    appTreePropertyLabel: "应用树",
+    windowAriaLabel: "空间检查器窗口",
+    windowTitle: "空间检查器",
+    dragWindowAria: "拖动窗口",
+    resizeWindowAria: "调整窗口大小"
+  },
+
+  spacesList: {
+    newSpaceLabel: "新建空间",
+    localSpaceLabel: "本地空间",
+    noSpacesFound: "未找到空间"
+  },
+
+  auth: {
+    serversOfflineTitle: "服务器目前离线",
+    serversOfflineMessage: "如果要测试，可使用本地模式",
+    continueWithGoogle: "继续使用 Google",
+    continueWithGithub: "继续使用 GitHub",
+    continueWithGithubComingSoon: "继续使用 GitHub（即将推出）",
+    continueWithX: "继续使用 X",
+    continueWithXComingSoon: "继续使用 X（即将推出）",
+    signInTitle: "登录",
+    signInAction: "登录",
+    profileTitle: "个人资料",
+    signOut: "退出登录",
+    userAvatarAlt: "用户头像",
+    userFallbackName: "用户",
+    googleAlt: "Google",
+    githubAlt: "GitHub",
+    xAlt: "X"
+  },
+
+  updates: {
+    updatesTitle: "更新",
+    checkForUpdates: "检查更新",
+    checkingForUpdates: "正在检查...",
+    checkingLabel: "正在检查更新…",
+    downloadKindClientBuild: "客户端构建",
+    downloadKindElectron: "electron",
+    downloadKindUpdate: "更新",
+    downloadingLabel: (kind: string, version: string | null) => {
+      const suffix = version ? ` (${version})` : "";
+      return `正在下载 ${kind}${suffix}…`;
+    },
+    downloadedLabel: "更新已下载。",
+    failedLabel: "更新失败。"
+  },
+
+  workspaceCreate: {
+    title: "为工作区命名",
+    nameLabel: "工作区名称",
+    namePlaceholder: "我的工作区",
+    nameEmptyError: "工作区名称不能为空。",
+    nameUnsupportedError: "工作区名称包含不支持的字符。",
+    nameAlreadyExistsError: "所选位置已存在同名文件夹。",
+    nameAlreadyExistsInline: "所选文件夹中已存在同名工作区。",
+    nameDescription: "可以给出一个简单的名称来说明用途：",
+    newWorkspaceLocationLabel: "新工作区将创建在：",
+    selectLocationPlaceholder: "选择位置",
+    changeLocation: "更改位置",
+    creating: "创建中...",
+    createWorkspace: "创建工作区",
+    chooseLocationTitle: "选择创建工作区的位置",
+    folderAlreadyUsedTitle: "文件夹已被使用",
+    folderAlreadyUsedMessage: "请选择已有工作区之外的文件夹。",
+    failedAccessFolderTitle: "无法访问文件夹",
+    failedAccessFolderMessage: "无法访问所选文件夹。",
+    failedAccessFolderUnknown: "选择文件夹时发生未知错误。",
+    chooseFolderError: "请选择一个文件夹来存放工作区。",
+    cannotUseFolderTitle: "无法使用此文件夹",
+    cannotUseFolderMessage: "请选择其他位置作为工作区。",
+    failedCreateWorkspaceTitle: "创建工作区失败",
+    failedCreateWorkspaceMessage: "我们无法创建该工作区。",
+    failedCreateWorkspaceFallback: "创建工作区失败。",
+    defaultFolderName: "新建工作区",
+    presetNames: ["个人", "工作", "学习", "学校"]
+  },
+
+  filePicker: {
+    workspaceFilesUnavailable: "无法访问工作区文件。",
+    workspaceFilesTitle: "工作区文件"
+  },
+
+  appTreeMenu: {
+    openInNewTab: "在新标签页中打开"
+  },
+
+  spaceEntry: {
+    initializationError: "初始化错误"
+  },
+
+  tabs: {
+    closeTab: "关闭标签页",
+    startNewConversation: "开始新对话",
+    newConversationShortcut: "新对话（Cmd/Ctrl + N）"
   }
-}; 
+};
