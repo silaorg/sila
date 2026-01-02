@@ -6,6 +6,7 @@
   import { getActiveProviders } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import {
     splitModelString,
@@ -27,7 +28,7 @@
           value = model;
         },
       },
-      "Select Model",
+      i18n.texts.models.selectModelTitle,
     );
   }
 
@@ -50,8 +51,8 @@
 
   function validate() {
     if (required && !value) {
-      error = "Choose a model";
-      inputElement.setCustomValidity("Choose a model");
+      error = i18n.texts.models.chooseModelRequired;
+      inputElement.setCustomValidity(i18n.texts.models.chooseModelRequired);
       return;
     }
 
@@ -64,16 +65,17 @@
 
     // Check if it's a valid format
     if (!isValidModelString(value)) {
-      error = "Invalid model format: " + value;
-      inputElement.setCustomValidity("Invalid model format: " + value);
+      error = i18n.texts.models.invalidModelFormat(value);
+      inputElement.setCustomValidity(i18n.texts.models.invalidModelFormat(value));
       return;
     }
 
     // Get provider ID and check if it exists
     const provId = getProviderId(value);
     if (!provId || !allProviders.some((p) => p.id === provId)) {
-      error = "Unknown provider: " + provId;
-      inputElement.setCustomValidity("Unknown provider: " + provId);
+      const providerLabel = provId || "";
+      error = i18n.texts.models.unknownProvider(providerLabel);
+      inputElement.setCustomValidity(i18n.texts.models.unknownProvider(providerLabel));
       return;
     }
 
@@ -134,7 +136,7 @@
         <Sparkles size={18} />
       </div>
       <div class="">
-        <span class="font-semibold">Auto</span>
+        <span class="font-semibold">{i18n.texts.models.auto}</span>
       </div>
     </button>
   </div>

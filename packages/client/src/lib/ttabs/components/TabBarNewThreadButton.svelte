@@ -3,6 +3,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import IconButton from "@sila/client/comps/ui/IconButton.svelte";
+  import { i18n } from "@sila/client";
 
   const clientState = useClientState();
 
@@ -18,14 +19,14 @@
     clientState.layout.swins.open(
       swinsLayout.newThread.key,
       { targetPanelId: panelId },
-      "New conversation"
+      i18n.texts.sidebar.newConversationTitle
     );
   }
 </script>
 
 <IconButton
-  ariaLabel="Start a new conversation"
-  title="New conversation (Cmd/Ctrl + N)"
+  ariaLabel={i18n.texts.tabs.startNewConversation}
+  title={i18n.texts.tabs.newConversationShortcut}
   disabled={!hasAppConfig}
   onclick={openNewThread}
   className="ml-4"

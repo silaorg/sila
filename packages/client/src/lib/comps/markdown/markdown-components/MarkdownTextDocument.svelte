@@ -3,6 +3,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { ResolvedFileInfo, Vertex } from "@sila/core";
   import { chatMarkdownOptions } from "../chatMarkdownOptions";
+  import { i18n } from "@sila/client";
 
   let { resolvedFile, fileVertex, fileName } = $props<{
     resolvedFile: ResolvedFileInfo;
@@ -49,7 +50,7 @@
       })
       .catch((err) => {
         console.error("Failed to load text file", err);
-        textError = "Unable to load file content.";
+        textError = i18n.texts.markdownTextDocument.loadError;
       })
       .finally(() => {
         isTextLoading = false;
@@ -78,7 +79,7 @@
   onkeydown={handleKeyDown}
   role="button"
   tabindex="0"
-  aria-label={`Open document: ${fileName}`}
+  aria-label={i18n.texts.markdownTextDocument.openAriaLabel(fileName)}
 >
   <button
     class="markdown-text-button"
@@ -87,13 +88,15 @@
       openFile();
     }}
     type="button"
-    aria-label={`Open document: ${fileName}`}
+    aria-label={i18n.texts.markdownTextDocument.openAriaLabel(fileName)}
   >
-    Open
+    {i18n.texts.markdownTextDocument.openButton}
   </button>
   <div class="markdown-text-content-wrapper">
     {#if isTextLoading}
-      <div class="text-sm text-gray-500 italic">Loading document...</div>
+      <div class="text-sm text-gray-500 italic">
+        {i18n.texts.markdownTextDocument.loading}
+      </div>
     {:else if textError}
       <div class="text-sm text-gray-500 italic">{textError}</div>
     {:else if textContent}
@@ -167,4 +170,3 @@
     padding: 0;
   }
 </style>
-

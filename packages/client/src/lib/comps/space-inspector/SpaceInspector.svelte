@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import VertexView from "./VertexView.svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import type { Vertex } from "@sila/core";
 
@@ -41,7 +42,7 @@
       onclick={showSpace}
       disabled={!showingAppTree}
     >
-      Space
+      {i18n.texts.spaceInspector.spaceLabel}
     </button>
   </li>
   {#if currentTreeId && !showingAppTree}
@@ -51,13 +52,13 @@
         class="text-blue-500 hover:underline font-medium"
         onclick={() => onTreeOpen(currentTreeId)}
       >
-        Open Current App Tree
+        {i18n.texts.spaceInspector.openCurrentAppTree}
       </button>
     </li>
   {/if}
   {#if showingAppTree}
     <li class="opacity-50" aria-hidden="true">&rsaquo;</li>
-    <li>App Tree</li>
+    <li>{i18n.texts.spaceInspector.appTreeLabel}</li>
   {/if}
 </ol>
 

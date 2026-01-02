@@ -1,7 +1,7 @@
 <script lang="ts">
   import SwinsNavButton from "../SwinsNavButton.svelte";
   import { Cpu, Bot, FolderOpen, Code, Settings } from "lucide-svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { isDevMode } from "@sila/client/state/devMode";
   
@@ -29,51 +29,51 @@
   <SwinsNavButton
     component="settings"
     pop="current"
-    title="Workspace Settings"
+    title={i18n.texts.settingsPage.title}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'settings' ? 'preset-tonal' : ''}"
   >
     <Settings size={18} />
-    <span>{$txtStore.settingsPage.title}</span>
+    <span>{i18n.texts.settingsPage.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsProviders"
     pop="current"
-    title="Model Providers"
+    title={i18n.texts.settingsPage.providers.title}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'providers' ? 'preset-tonal' : ''}"
   >
     <Cpu size={18} />
-    <span>{$txtStore.settingsPage.providers.title}</span>
+    <span>{i18n.texts.settingsPage.providers.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsAssistants"
     pop="current"
-    title="Assistants"
+    title={i18n.texts.basics.apps}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'assistants' ? 'preset-tonal' : ''}"
   >
     <Bot size={18} />
-    <span>Assistants</span>
+    <span>{i18n.texts.basics.apps}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsWorkspaces"
     pop="current"
-    title="Workspaces"
+    title={i18n.texts.settingsPage.spaces.title}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'workspaces' ? 'preset-tonal' : ''}"
   >
     <FolderOpen size={18} />
-    <span>{$txtStore.settingsPage.spaces.title}</span>
+    <span>{i18n.texts.settingsPage.spaces.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsDev"
     pop="current"
-    title="For Developers"
+    title={i18n.texts.settingsPage.developers.title}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeCategory === 'dev' ? 'preset-tonal' : ''}"
   >
     <Code size={18} />
-    <span>{$txtStore.settingsPage.developers.title}</span>
+    <span>{i18n.texts.settingsPage.developers.title}</span>
   </SwinsNavButton>
 
 </nav>

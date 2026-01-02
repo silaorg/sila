@@ -9,6 +9,7 @@
   import { RefreshCw } from "lucide-svelte";
 
   import { timeout } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   let { showEditAndCopyControls, onCopyMessage, onEditMessage, prevBranch, nextBranch, branchIndex, branchesNumber, onRerun }: {
     showEditAndCopyControls: boolean;
@@ -39,7 +40,7 @@
   {#if showEditAndCopyControls}
   <button
     class="rounded-full p-1 transition"
-    title="Copy message"
+    title={i18n.texts.chatControls.copyMessage}
     onclick={copyMessage}
   >
     {#if isCopied}
@@ -50,7 +51,7 @@
   </button>
   <button
     class="p-1 transition"
-    title="Edit message"
+    title={i18n.texts.chatControls.editMessage}
     onclick={() => onEditMessage(true)}
   >
     <Edit size={14} />
@@ -58,7 +59,7 @@
   {#if onRerun}
   <button
     class="p-1 transition"
-    title="Re-run in new branch"
+    title={i18n.texts.chatControls.rerunInNewBranch}
     onclick={() => onRerun()}
   >
     <RefreshCw size={14} />

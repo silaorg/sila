@@ -1,7 +1,7 @@
 <script lang="ts">
   import ModelProviderSelector from "../models/ModelProviderSelector.svelte";
   import ModelProviders from "../models/ModelProviders.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   const clientState = useClientState();
 
@@ -27,16 +27,16 @@
     <div class="grid gap-4 mt-4">
       <button
         class="btn preset-outlined-surface-500"
-        onclick={() => (status = "managing")}>{$txtStore.modelSelection.manageProviders}</button
+        onclick={() => (status = "managing")}>{i18n.texts.modelSelection.manageProviders}</button
       >
-      <button class="btn preset-filled-primary-500" onclick={onRequestClose}>{$txtStore.modelSelection.done}</button>
+      <button class="btn preset-filled-primary-500" onclick={onRequestClose}>{i18n.texts.modelSelection.done}</button>
     </div>
   {:else}
     <ModelProviders />
     <div class="grid">
       <button
         class="btn preset-outlined-surface-500"
-        onclick={() => (status = "selecting")}>{$txtStore.modelSelection.backToSelection}</button
+        onclick={() => (status = "selecting")}>{i18n.texts.modelSelection.backToSelection}</button
       >
     </div>
   {/if}

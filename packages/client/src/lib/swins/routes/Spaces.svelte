@@ -1,6 +1,6 @@
 <script lang="ts">
   import SpaceList from "@sila/client/comps/spaces/SpaceList.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { Plus } from "lucide-svelte";
   const clientState = useClientState();
@@ -15,17 +15,17 @@
 </script>
 
 <div class="flex justify-between items-center pb-4">
-  <h3 class="h3">{$txtStore.spacesPage.title}</h3>
+  <h3 class="h3">{i18n.texts.spacesPage.title}</h3>
   <SwinsNavButton
     className="btn preset-filled-primary-500"
     component="openSpace"
-    title="Add a workspace"
+    title={i18n.texts.spacesPage.addWorkspaceButton}
   >
     <Plus size={16} />
-    Add a workspace
+    {i18n.texts.spacesPage.addWorkspaceButton}
   </SwinsNavButton>
 </div>
 <p class="mb-6">
-  {$txtStore.spacesPage.description}
+  {i18n.texts.spacesPage.description}
 </p>
 <SpaceList />

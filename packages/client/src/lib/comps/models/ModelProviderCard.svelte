@@ -4,6 +4,7 @@
   import ModelProviderOllamaAddressForm from "./ModelProviderOllamaAddressForm.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { onMount } from "svelte";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import { checkOllamaStatus } from "./ollama";
   import { Tooltip } from "@skeletonlabs/skeleton-svelte";
@@ -107,12 +108,11 @@
         onConnect(provider);
       } else if (providerStatus === "invalid") {
         status = "invalid-key";
-        validationError =
-          "API key validation failed. The key might be invalid or expired.";
+        validationError = i18n.texts.providers.apiKeyValidationFailed;
         onDisconnect(provider);
       } else {
         status = "disconnected";
-        validationError = "Connection failed. Please check your network.";
+        validationError = i18n.texts.providers.connectionFailed;
         onDisconnect(provider);
       }
     } catch (error) {
@@ -149,7 +149,7 @@
         href={provider.url}
         target="_blank"
         class="text-surface-500 hover:text-surface-700 transition-colors"
-        title="Visit provider website"
+        title={i18n.texts.providers.visitWebsiteTitle}
       >
         <ExternalLink size={14} />
       </a>
@@ -160,7 +160,7 @@
               ? 'preset-filled-warning-500'
               : 'preset-filled-success-500'} {isChecking
               ? 'animate-pulse'
-              : ''}">Connected</span
+              : ''}">{i18n.texts.providers.connected}</span
           >
           {#if showValidationWarning}
             <Tooltip
@@ -172,15 +172,15 @@
               {#snippet trigger()}
                 <CircleAlert size={14} class="text-warning-500" />
               {/snippet}
-              {#snippet content()}
-                <div class="text-sm max-w-[200px]">
-                  {validationError ||
-                    "Validation failed. Check your API key or connection."}
-                </div>
-              {/snippet}
-            </Tooltip>
-          {/if}
-        </div>
+                {#snippet content()}
+                  <div class="text-sm max-w-[200px]">
+                    {validationError ||
+                      i18n.texts.providers.validationFailed}
+                  </div>
+                {/snippet}
+              </Tooltip>
+            {/if}
+          </div>
       {/if}
     </div>
 
@@ -192,7 +192,7 @@
               class="btn btn-sm preset-outlined-surface-500"
               onclick={disconnect}
             >
-              Disconnect
+              {i18n.texts.actions.disconnect}
             </button>
           {/if}
         {:else if provider.access === "local"}
@@ -200,7 +200,7 @@
             class="btn btn-sm preset-outlined-surface-500"
             onclick={() => (isEditing = true)}
           >
-            Configure
+            {i18n.texts.actions.configure}
           </button>
           <button
             class="btn btn-sm preset-outlined-surface-500"
@@ -210,14 +210,14 @@
               onHow(provider);
             }}
           >
-            How?
+            {i18n.texts.actions.how}
           </button>
         {:else}
           <button
             class="btn btn-sm preset-filled-primary-500"
             onclick={() => (isEditing = true)}
           >
-            Connect
+            {i18n.texts.actions.connect}
           </button>
           <button
             class="btn btn-sm preset-outlined-surface-500"

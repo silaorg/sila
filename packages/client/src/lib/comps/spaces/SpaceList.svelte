@@ -5,6 +5,7 @@
   import RenamingPopup from "@sila/client/comps/popups/RenamingPopup.svelte";
   import type { SpacePointer } from "@sila/client/spaces/SpacePointer";
   import { Circle, CircleCheckBig } from "lucide-svelte";
+  import { i18n } from "@sila/client";
 
   let renamingPopupOpen = $state(false);
   let spaceToRename = $state<SpacePointer | null>(null);
@@ -43,7 +44,7 @@
   <div class="space-y-2">
     {#each clientState.pointers as space (space.id)}
       <div
-        class="p-4 rounded-lg bg-surface-200-800-token border-2 {space.id ===
+        class="p-2 rounded bg-surface-200-800-token border {space.id ===
         clientState.currentSpaceId
           ? 'border-primary-500'
           : 'border-surface-100-900'} flex items-center gap-3"
@@ -72,9 +73,13 @@
           class="flex-grow cursor-pointer hover:bg-surface-300-600-token rounded px-2 py-1 -mx-2 -my-1 ph-no-capture"
           data-role="select-space"
         >
-          <div class="font-semibold">{space.name || "New Space"}</div>
+          <div class="font-semibold">
+            {space.name || i18n.texts.spacesList.newSpaceLabel}
+          </div>
           {#if space.uri.startsWith("browser")}
-            <div class="text-sm opacity-70">Local space</div>
+            <div class="text-sm opacity-70">
+              {i18n.texts.spacesList.localSpaceLabel}
+            </div>
           {:else}
             <div class="text-sm opacity-70">{space.uri}</div>
           {/if}
@@ -91,7 +96,7 @@
     {/each}
   </div>
 {:else}
-  <p class="text-center opacity-70">No spaces found</p>
+  <p class="text-center opacity-70">{i18n.texts.spacesList.noSpacesFound}</p>
 {/if}
 
 {#if spaceToRename}

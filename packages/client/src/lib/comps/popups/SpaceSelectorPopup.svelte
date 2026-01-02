@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { ChevronsUpDown } from "lucide-svelte";
@@ -34,7 +35,11 @@
             clientState.currentSpaceId}
           onclick={() => (clientState.switchToSpace(pointer.id))}
         >
-          <span><strong>{pointer.name || "Workspace"}</strong></span>
+          <span>
+            <strong>
+              {pointer.name || i18n.texts.spacesPage.defaultWorkspaceName}
+            </strong>
+          </span>
         </button>
       {/each}
     </div>
@@ -46,7 +51,7 @@
           openState = false;
         }}
       >
-        Manage workspaces
+        {i18n.texts.spacesPage.manageWorkspacesButton}
       </button>
     </div>
   {/snippet}

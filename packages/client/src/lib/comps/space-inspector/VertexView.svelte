@@ -3,6 +3,7 @@
   import Self from "./VertexView.svelte";
   import VertexPropertiesView from "./VertexPropertiesView.svelte";
   import { TrashIcon, Plus } from "lucide-svelte";
+  import { i18n } from "@sila/client";
   
   let { vertex, onTreeOpen }: { vertex: Vertex, onTreeOpen: (treeId: string) => void } = $props();
   let children = $state<Vertex[]>([]);
@@ -43,10 +44,10 @@
       {vertex.name ?? vertex.id}
     </span>
     {#if vertex.parentId !== null}
-      <button 
+      <button
         class="btn-icon btn-icon-sm hover:variant-soft"
         onclick={deleteVertex}
-        aria-label="Delete vertex"
+        aria-label={i18n.texts.spaceInspector.deleteVertexAria}
       >
         <TrashIcon size={14} />
       </button>
@@ -62,7 +63,7 @@
         class:rotate-180={isExpanded}
         onclick={toggleExpand}
         aria-expanded={isExpanded}
-        aria-label="Toggle expand"
+        aria-label={i18n.texts.spaceInspector.toggleExpandAria}
         type="button"
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" class="w-3 h-3">
@@ -71,13 +72,15 @@
           ></path>
         </svg>
       </button>
-      <span class="property-key opacity-75">children:</span>
+      <span class="property-key opacity-75">
+        {i18n.texts.spaceInspector.childrenLabel}
+      </span>
       <span class="property-value font-mono">[{children.length}]</span>
       <div class="flex-1"></div>
       <button
         class="btn-icon btn-icon-sm hover:variant-soft"
         onclick={createNewVertex}
-        aria-label="Add new vertex"
+        aria-label={i18n.texts.spaceInspector.addVertexAria}
       >
         <Plus size={14} />
       </button>
@@ -99,5 +102,3 @@
     cursor: pointer;
   }
 </style>
-
-

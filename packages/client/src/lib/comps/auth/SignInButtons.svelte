@@ -1,5 +1,6 @@
 <script lang="ts">
   import { API_BASE_URL } from "@sila/client/utils/api";
+  import { i18n } from "@sila/client";
 
   let serverOnline = $state(true);
   let checkingServer = $state(true);
@@ -55,8 +56,8 @@
 {#if !serverOnline}
   <div class="text-center p-4 mb-4">
     <div class="bg-warning-100-900 border border-warning-300-700 rounded-lg p-4">
-      <p class="font-medium mb-2">Servers are offline at the moment</p>
-      <p class="text-sm">Go with local first if you want to test</p>
+      <p class="font-medium mb-2">{i18n.texts.auth.serversOfflineTitle}</p>
+      <p class="text-sm">{i18n.texts.auth.serversOfflineMessage}</p>
     </div>
   </div>
 {/if}
@@ -70,9 +71,13 @@
   disabled={!serverOnline}
 >
   <span class="bg-white p-1 rounded mr-2">
-    <img src="/auth-providers-icons/google.svg" alt="Google" class="w-6 h-6" />
+    <img
+      src="/auth-providers-icons/google.svg"
+      alt={i18n.texts.auth.googleAlt}
+      class="w-6 h-6"
+    />
   </span>
-  Continue with Google
+  {i18n.texts.auth.continueWithGoogle}
 </button>
 
 <button
@@ -84,9 +89,13 @@
   disabled={!serverOnline}
 >
   <span class="bg-white p-1 rounded mr-2">
-    <img src="/auth-providers-icons/github.svg" alt="Github" class="w-6 h-6" />
+    <img
+      src="/auth-providers-icons/github.svg"
+      alt={i18n.texts.auth.githubAlt}
+      class="w-6 h-6"
+    />
   </span>
-  Continue with Github (Coming Soon)
+  {i18n.texts.auth.continueWithGithubComingSoon}
 </button>
 
 <button
@@ -98,7 +107,7 @@
   disabled={!serverOnline}
 >
   <span class="bg-black p-1 rounded mr-2">
-    <img src="/auth-providers-icons/x.svg" alt="X" class="w-6 h-6" />
+    <img src="/auth-providers-icons/x.svg" alt={i18n.texts.auth.xAlt} class="w-6 h-6" />
   </span>
-  Continue with X (Coming Soon)
+  {i18n.texts.auth.continueWithXComingSoon}
 </button>

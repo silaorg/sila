@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Vertex } from "@sila/core";
   import { File, Folder } from "lucide-svelte";
+  import { i18n } from "@sila/client";
 
   let { items = [], x = 0, y = 0 }: { items: Vertex[]; x: number; y: number } = $props();
 
@@ -34,10 +35,11 @@
         </div>
       {/each}
       {#if items.length > topItems.length}
-        <div class="text-[11px] text-neutral-600 opacity-50">+ {items.length - topItems.length} more…</div>
+        <div class="text-[11px] text-neutral-600 opacity-50">
+          {i18n.texts.filesApp.moreItems(items.length - topItems.length)}
+        </div>
       {/if}
     </div>
   </div>
 </div>
-
 

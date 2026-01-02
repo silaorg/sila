@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { ModelProvider, ModelProviderConfig } from "@sila/core";
   import { getProviderModels } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   let {
     provider,
@@ -135,7 +136,7 @@
         <button
           class="btn btn-sm preset-filled-primary-500"
           onclick={() => (showModels = true)}
-          >Enter model</button
+          >{i18n.texts.models.enterModel}</button
         >
       {:else}
         {#if !showModels}
@@ -143,13 +144,13 @@
             class="btn btn-sm preset-filled-primary-500"
             onclick={() => (showModels = true)}
             >{!modelId || modelId === provider.defaultModel
-              ? "Choose model"
-              : "Change"}</button
+              ? i18n.texts.models.chooseModel
+              : i18n.texts.actions.change}</button
           >
         {:else}
           <button
             class="btn btn-sm preset-filled-primary-500"
-            onclick={() => (showModels = false)}>Done</button
+            onclick={() => (showModels = false)}>{i18n.texts.actions.done}</button
           >
         {/if}
       {/if}
@@ -162,22 +163,24 @@
           {#if isOpenRouterProvider}
             <div class="space-y-2">
               <label class="label">
-                <span class="text-sm font-medium">Model Name</span>
+                <span class="text-sm font-medium">
+                  {i18n.texts.models.modelNameLabel}
+                </span>
                 <input
                   class="input rounded-container"
                   type="text"
-                  placeholder="e.g., openai/gpt-4o, anthropic/claude-3-5-sonnet"
+                  placeholder={i18n.texts.models.openRouterPlaceholder}
                   bind:value={customModelInput}
                   oninput={onCustomModelInputChange}
                   onkeydown={onCustomModelKeydown}
                 />
               </label>
               <p class="text-xs text-surface-500">
-                Enter any model available on OpenRouter (e.g., openai/gpt-4o, anthropic/claude-3-5-sonnet, meta-llama/llama-3.2-90b-vision-instruct)
+                {i18n.texts.models.openRouterHelp}
               </p>
               <button
                 class="btn btn-sm preset-filled-primary-500"
-                onclick={() => (showModels = false)}>Done</button
+                onclick={() => (showModels = false)}>{i18n.texts.actions.done}</button
               >
             </div>
           {:else}
@@ -190,7 +193,9 @@
               onchange={(e) => onChangeModel(e.currentTarget.value)}
             >
               <option value="auto"
-                >{provider.defaultModel || "Auto"} (default)</option
+                >{i18n.texts.models.defaultOption(
+                  provider.defaultModel || i18n.texts.models.auto
+                )}</option
               >
               {#each models.filter((model) => model !== provider.defaultModel && model) as model}
                 <option value={model}>{model}</option>

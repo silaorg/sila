@@ -8,6 +8,7 @@
   import { onMount } from "svelte";
   import ThemeSwitcher from "../themes/ThemeSwitcher.svelte";
   import type { ModelProvider } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   let spaceName = $state("");
   let spaceNameError = $state(""); // Kept for potential future use, though Wizard handles its own validation display
@@ -16,13 +17,16 @@
   const spaceState = $derived(clientState.currentSpaceState);
   const space = $derived(clientState.currentSpace);
 
-  const presetNames = ["Personal", "Work", "Studies", "School"];
+  let presetNames = $derived(i18n.texts.workspaceCreate.presetNames);
 
   //const wizardSteps = ["name", "provider", "theme"];
   const wizardSteps = ["provider", "theme"];
 
   //const wizardTitles = ["Name", "Brains", "Theme"];
-  const wizardTitles = ["Brains", "Theme"];
+  let wizardTitles = $derived([
+    i18n.texts.wizards.spaceSetupBrainsStepTitle,
+    i18n.texts.wizards.spaceSetupThemeStepTitle
+  ]);
 
   let currentWizardStep = $state(0);
 
@@ -115,20 +119,19 @@
     <!-- Note: we disabled the name step for now that is why it's -1 -->
     {#if currentStep === -1}
       <!-- Step 1: Space Name -->
-      <h2 class="h3 mb-4">Name your workspace</h2>
+      <h2 class="h3 mb-4">{i18n.texts.wizards.spaceSetupNameTitle}</h2>
       <p class="mb-4">
-        Give your workspace a name to help you identify it, or skip to continue
-        with a default name. You can always change it later.
+        {i18n.texts.wizards.spaceSetupNameDescription}
       </p>
 
       <div class="form-control w-full mb-4">
         <label class="label" for="spaceName">
-          <span class="label-text">Workspace name</span>
+          <span class="label-text">{i18n.texts.wizards.spaceSetupNameLabel}</span>
         </label>
         <input
           id="spaceName"
           type="text"
-          placeholder="My Workspace"
+          placeholder={i18n.texts.wizards.spaceSetupNamePlaceholder}
           class="input {spaceNameError ? 'input-error' : ''}"
           bind:value={spaceName}
         />
@@ -139,8 +142,7 @@
 
       <div class="mb-6">
         <p class="text-sm mb-2">
-          You can give a simple name that describes the purpose of the
-          workspace:
+          {i18n.texts.wizards.spaceSetupNameHint}
         </p>
         <div class="flex flex-wrap gap-2">
           {#each presetNames as name}
@@ -157,10 +159,9 @@
       </div>
     {:else if currentStep === 0}
       <!-- Step 2: Model Provider -->
-      <h2 class="h3 mb-4">Setup brains for your workspace</h2>
+      <h2 class="h3 mb-4">{i18n.texts.wizards.spaceSetupBrainsTitle}</h2>
       <p class="mb-4">
-        Connect at least one AI model provider to start using Sila. We recommend
-        setting up OpenAI, Anthropic or DeepSeek first.
+        {i18n.texts.wizards.spaceSetupBrainsDescription}
       </p>
 
       <div class="overflow-y-auto pr-2">
@@ -168,15 +169,15 @@
       </div>
     {:else if currentStep === 1}
       <!-- Step 3: Theme -->
-      <h2 class="h3 mb-4">Choose the look of your workspace</h2>
+      <h2 class="h3 mb-4">{i18n.texts.wizards.spaceSetupLookTitle}</h2>
       <div class="mb-4 space-y-4">
         <label class="label">
-          <span>Color scheme</span>
+          <span>{i18n.texts.wizards.colorSchemeLabel}</span>
           <Lightswitch />
         </label>
 
         <label class="label">
-          <span>Theme</span>
+          <span>{i18n.texts.wizards.themeLabel}</span>
           <ThemeSwitcher />
         </label>
       </div>

@@ -3,6 +3,7 @@
   import { formatFileSize } from "@sila/client/utils/filePreview";
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
+  import { i18n } from "@sila/client";
 
   const { file }: { file: ResolvedFileInfo } = $props();
 
@@ -31,7 +32,7 @@
       })
       .catch((err) => {
         console.error("Failed to load text file", err);
-        textError = "Unable to load file content.";
+        textError = i18n.texts.markdownTextDocument.loadError;
       })
       .finally(() => {
         isTextLoading = false;
@@ -49,7 +50,7 @@
 
     <div class="p-4 overflow-y-auto flex-1">
       {#if isTextLoading}
-        <div class="text-sm">Loading…</div>
+        <div class="text-sm">{i18n.texts.fileViewer.loading}</div>
       {:else if textError}
         <div class="text-sm">{textError}</div>
       {:else if textContent}
@@ -63,9 +64,8 @@
           >{textContent}</pre>
         {/if}
       {:else}
-        <div class="text-sm">No content to display.</div>
+        <div class="text-sm">{i18n.texts.fileViewer.noContent}</div>
       {/if}
     </div>
   </div>
 </div>
-

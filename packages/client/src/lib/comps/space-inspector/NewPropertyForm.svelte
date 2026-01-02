@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { VertexPropertyType } from "reptree/treeTypes";
+  import { i18n } from "@sila/client";
 
   let { onCreate, onCancel }: { 
     onCreate: (key: string, value: VertexPropertyType) => void;
@@ -37,16 +38,16 @@
     <input
       type="text"
       class="input input-sm flex-[3] text-left text-xs h-6 px-1"
-      placeholder="Property key"
+      placeholder={i18n.texts.spaceInspector.propertyKeyPlaceholder}
       bind:value={key}
     />
     <select
       class="select text-xs h-6 px-1 flex-1 min-w-[80px]"
       bind:value={type}
     >
-      <option value="string">String</option>
-      <option value="number">Number</option>
-      <option value="boolean">Boolean</option>
+      <option value="string">{i18n.texts.spaceInspector.typeString}</option>
+      <option value="number">{i18n.texts.spaceInspector.typeNumber}</option>
+      <option value="boolean">{i18n.texts.spaceInspector.typeBoolean}</option>
     </select>
   </div>
 
@@ -55,14 +56,14 @@
       <input
         type="text"
         class="input input-sm flex-1 text-left text-xs h-6 px-1"
-        placeholder="Value"
+        placeholder={i18n.texts.spaceInspector.valuePlaceholder}
         bind:value={stringValue}
       />
     {:else if type === "number"}
       <input
         type="number"
         class="input input-sm flex-1 text-left text-xs h-6 px-1"
-        placeholder="Value"
+        placeholder={i18n.texts.spaceInspector.valuePlaceholder}
         bind:value={numberValue}
       />
     {:else if type === "boolean"}
@@ -72,7 +73,7 @@
           class="h-3 w-3"
           bind:checked={booleanValue}
         />
-        <span class="text-xs">Value</span>
+        <span class="text-xs">{i18n.texts.spaceInspector.valuePlaceholder}</span>
       </label>
     {/if}
   </div>
@@ -82,13 +83,13 @@
       class="btn btn-sm variant-soft-error"
       onclick={onCancel}
     >
-      Cancel
+      {i18n.texts.actions.cancel}
     </button>
     <button
       class="btn btn-sm variant-soft-primary"
       onclick={handleSubmit}
     >
-      Create
+      {i18n.texts.spaceInspector.createProperty}
     </button>
   </div>
 </div> 

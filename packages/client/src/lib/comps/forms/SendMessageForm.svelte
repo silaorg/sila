@@ -12,7 +12,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import { focusTrap } from "@sila/client/utils/focusTrap";
   import { type MessageFormStatus } from "./messageFormStatus";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import type { ChatAppData } from "@sila/core";
@@ -55,7 +55,7 @@
     onSend,
     onStop = () => {},
     isFocused = true,
-    placeholder = $txtStore.messageForm.placeholder,
+    placeholder = i18n.texts.messageForm.placeholder,
     status = "can-send-message",
     disabled = false,
     draftId,
@@ -67,7 +67,11 @@
   }: SendMessageFormProps = $props();
 
   function openModelProvidersSettings() {
-    clientState.layout.swins.open(swinsLayout.modelProviders.key, {}, "Model Providers");
+    clientState.layout.swins.open(
+      swinsLayout.modelProviders.key,
+      {},
+      i18n.texts.settingsPage.providers.title
+    );
   }
 
   let query = $state("");
@@ -296,7 +300,9 @@
       }
 
       const name =
-        file.name ?? (file.getProperty("name") as string) ?? "Untitled";
+        file.name ??
+        (file.getProperty("name") as string) ??
+        i18n.texts.filesApp.untitledLabel;
       const fileMention: FileMention = { path, name };
       editorRef?.insertFileMentionAtCursor(fileMention);
     }
@@ -307,7 +313,7 @@
     clientState.layout.swins.open(
       swinsLayout.filePicker.key,
       { onPick: handleWorkspaceFilePick },
-      "Workspace files"
+      i18n.texts.filePicker.workspaceFilesTitle
     );
   }
 
@@ -636,7 +642,7 @@
                 {#snippet trigger()}
                   <button
                     class="flex items-center justify-center h-9 w-9 transition-colors"
-                    aria-label="Add attachments (or paste files)"
+                    aria-label={i18n.texts.attachments.addAttachmentsAria}
                     {disabled}
                   >
                     <Plus size={20} />
@@ -649,14 +655,14 @@
                       onclick={openFilePicker}
                     >
                       <ImageIcon size={18} />
-                      <span>Upload photos & files</span>
+                      <span>{i18n.texts.attachments.uploadPhotosFiles}</span>
                     </button>
                     <button
                       class="flex items-center gap-2 w-full text-left hover:bg-surface-300-700/30 rounded px-2 py-1"
                       onclick={openWorkspaceFilePicker}
                     >
                       <FolderOpen size={18} />
-                      <span>Browse workspace files</span>
+                      <span>{i18n.texts.attachments.browseWorkspaceFiles}</span>
                     </button>
                     <!--
                     <div
@@ -683,7 +689,7 @@
               <button
                 onclick={stopMsg}
                 class="flex items-center justify-center h-9 w-9 transition-colors"
-                aria-label={$txtStore.messageForm.stop}
+                aria-label={i18n.texts.messageForm.stop}
               >
                 <StopCircle size={20} />
               </button>
@@ -693,7 +699,7 @@
                 class="flex items-center justify-center h-9 w-9 transition-colors"
                 class:opacity-50={!canSendMessage}
                 disabled={!canSendMessage}
-                aria-label={$txtStore.messageForm.send}
+                aria-label={i18n.texts.messageForm.send}
               >
                 <Send size={20} />
               </button>
@@ -707,9 +713,9 @@
   <div
     class="relative flex w-full flex-col items-center justify-center rounded-lg bg-surface-50-950 p-4 transition-colors ring ring-surface-300-700"
   >
-    <p class="mb-4 text-center">Set up a model provider to chat with AI.</p>
+    <p class="mb-4 text-center">{i18n.texts.attachments.setupProviderMessage}</p>
     <button class="btn preset-filled" onclick={openModelProvidersSettings}>
-      Setup brains
+      {i18n.texts.attachments.setupBrainsButton}
     </button>
   </div>
 {/if}

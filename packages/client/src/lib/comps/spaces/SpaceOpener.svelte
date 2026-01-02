@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
 import { swinsLayout } from "@sila/client/state/swinsLayout";
 import {
@@ -18,7 +18,7 @@ import {
 
   async function promptForLocation(): Promise<string | null> {
     const selection = await clientState.dialog.openDialog({
-      title: "Choose where to create your workspace",
+      title: i18n.texts.workspaceCreate.chooseLocationTitle,
       directory: true,
       defaultPath: selectedParentPath ?? undefined,
     });
@@ -42,13 +42,13 @@ import {
         await ensurePathIsNotInsideExistingSpace(clientState, path);
       } catch (validationError) {
         await clientState.dialog.showError({
-          title: "Folder Already Used",
-          message: "Pick a folder outside of existing workspaces.",
+          title: i18n.texts.workspaceCreate.folderAlreadyUsedTitle,
+          message: i18n.texts.workspaceCreate.folderAlreadyUsedMessage,
           detail:
             validationError instanceof Error
               ? validationError.message
               : String(validationError),
-          buttons: ["OK"],
+          buttons: [i18n.texts.actions.ok],
         });
         status = "idle";
         return;
@@ -60,13 +60,13 @@ import {
     } catch (e) {
       console.error(e);
       await clientState.dialog.showError({
-        title: "Failed to Open Folder",
-        message: $txtStore.spacesPage.opener.errorCreate,
+        title: i18n.texts.workspaceCreate.failedAccessFolderTitle,
+        message: i18n.texts.spacesPage.opener.errorCreate,
         detail:
           e instanceof Error
             ? e.message
-            : "An unknown error occurred while choosing the folder.",
-        buttons: ["OK"],
+            : i18n.texts.workspaceCreate.failedAccessFolderUnknown,
+        buttons: [i18n.texts.actions.ok],
       });
       status = "idle";
     }
@@ -92,7 +92,7 @@ import {
         onParentPathChange: handleParentPathChange,
         onCancel: handleParentPathChange,
       },
-      "Create workspace"
+      i18n.texts.workspaceCreate.createWorkspace
     );
   }
 
@@ -102,7 +102,7 @@ import {
     status = "opening";
     try {
       const selection = await clientState.dialog.openDialog({
-        title: $txtStore.spacesPage.opener.dialogOpenTitle,
+        title: i18n.texts.spacesPage.opener.dialogOpenTitle,
         directory: true,
       });
 
@@ -118,13 +118,13 @@ import {
       console.error(e);
 
       await clientState.dialog.showError({
-        title: "Failed to Open Space",
-        message: $txtStore.spacesPage.opener.errorOpen,
+        title: i18n.texts.spacesPage.opener.errorOpenTitle,
+        message: i18n.texts.spacesPage.opener.errorOpen,
         detail:
           e instanceof Error
             ? e.message
-            : "An unknown error occurred while opening the space.",
-        buttons: ["OK"],
+            : i18n.texts.spacesPage.opener.errorOpenUnknown,
+        buttons: [i18n.texts.actions.ok],
       });
     } finally {
       status = "idle";
@@ -136,10 +136,10 @@ import {
   <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
-        {$txtStore.spacesPage.opener.createTitle}
+        {i18n.texts.spacesPage.opener.createTitle}
       </h3>
       <p class="text-sm">
-        {$txtStore.spacesPage.opener.createDescription}
+        {i18n.texts.spacesPage.opener.createDescription}
       </p>
     </div>
     <button
@@ -147,23 +147,23 @@ import {
       onclick={startCreateFlow}
       disabled={status !== "idle"}
     >
-      {$txtStore.spacesPage.opener.createButton}
+      {i18n.texts.spacesPage.opener.createButton}
     </button>
   </div>
 
   <div class="flex items-center justify-between mt-4 gap-4">
     <div>
       <h3 class="text-lg font-semibold">
-        {$txtStore.spacesPage.opener.openTitle}
+        {i18n.texts.spacesPage.opener.openTitle}
       </h3>
-      <p class="text-sm">{$txtStore.spacesPage.opener.openDescription}</p>
+      <p class="text-sm">{i18n.texts.spacesPage.opener.openDescription}</p>
     </div>
     <button
       class="btn preset-outlined-primary-500"
       onclick={openSpaceDialog}
       disabled={status !== "idle"}
     >
-      {$txtStore.spacesPage.opener.openButton}
+      {i18n.texts.spacesPage.opener.openButton}
     </button>
   </div>
 </div>

@@ -2,6 +2,7 @@
   import { PlusCircle } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let {
@@ -16,7 +17,7 @@
         onProviderAdded();
         clientState.layout.swins.pop();
       }
-    }, 'Add Custom OpenAI-like Provider');
+    }, i18n.texts.customProviderSetup.addModalTitle);
   }
 </script>
 
@@ -26,6 +27,6 @@
     onclick={handleAdd}
   >
     <PlusCircle size={16} />
-    <span>Add Custom Provider</span>
+    <span>{i18n.texts.customProviderSetup.addButton}</span>
   </button>
 </div> 

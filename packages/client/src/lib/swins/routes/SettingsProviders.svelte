@@ -1,15 +1,16 @@
 <script lang="ts">
   import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import SettingsSidebar from "./SettingsSidebar.svelte";
 </script>
 
 <div class="flex gap-4 w-full">
   <SettingsSidebar />
-  <div class="flex-1">
-    <div class="">
-      <ModelProviders />
-    </div>
+  <div class="flex-1 space-y-4">
+    <p class="text-sm">
+      {i18n.texts.settingsPage.providers.description}
+    </p>
+    <ModelProviders />
   </div>
 </div>
 

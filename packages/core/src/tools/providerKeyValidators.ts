@@ -24,6 +24,8 @@ export function validateKey(
       return validateKey_openrouter(key, signal);
     case "falai":
       return validateKey_falai(key, signal);
+    case "exa":
+      return validateKey_exa(key);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -220,4 +222,12 @@ async function validateKey_falai(
   // If it doesn't match UUID format, still allow it if it has reasonable length
   // (in case Fal.ai uses different key formats)
   return firstPart.length >= 8 && parts[1].length >= 8;
+}
+
+async function validateKey_exa(apiKey: string): Promise<boolean> {
+  if (!apiKey || apiKey.trim().length === 0) {
+    return false;
+  }
+
+  return true;
 }

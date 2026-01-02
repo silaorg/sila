@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { CustomProviderConfig } from "@sila/core";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let name = $state("");
@@ -51,12 +52,12 @@
     validationError = null;
 
     if (!name.trim()) {
-      validationError = "Provider name is required";
+      validationError = i18n.texts.customProviderForm.validationNameRequired;
       return false;
     }
 
     if (!baseApiUrl.trim()) {
-      validationError = "API URL is required";
+      validationError = i18n.texts.customProviderForm.validationApiUrlRequired;
       return false;
     }
 
@@ -64,17 +65,17 @@
       // Check if URL is valid
       new URL(baseApiUrl);
     } catch (e) {
-      validationError = "Invalid API URL format";
+      validationError = i18n.texts.customProviderForm.validationApiUrlInvalid;
       return false;
     }
 
     if (!apiKey.trim()) {
-      validationError = "API key is required";
+      validationError = i18n.texts.customProviderForm.validationApiKeyRequired;
       return false;
     }
 
     if (!modelId.trim()) {
-      validationError = "Model ID is required";
+      validationError = i18n.texts.customProviderForm.validationModelIdRequired;
       return false;
     }
 
@@ -133,7 +134,9 @@
       onSave(id);
     } catch (e) {
       console.error("Failed to save custom provider", e);
-      validationError = `Failed to save: ${e instanceof Error ? e.message : String(e)}`;
+      validationError = i18n.texts.customProviderForm.saveFailed(
+        e instanceof Error ? e.message : String(e)
+      );
     } finally {
       isSubmitting = false;
     }
@@ -142,17 +145,21 @@
 
 <div class="card p-4 space-y-4">
   <h3 class="h4">
-    {providerId ? "Edit" : "Add"} Custom OpenAI-compatible Provider
+    {providerId
+      ? i18n.texts.customProviderForm.titleEdit
+      : i18n.texts.customProviderForm.titleAdd}
   </h3>
 
   <form onsubmit={handleSubmit} class="space-y-4">
     <!-- Provider Name -->
     <label class="label">
-      <span class="label-text">Provider Name*</span>
+      <span class="label-text">
+        {i18n.texts.customProviderForm.labelProviderName}
+      </span>
       <input
         class="input"
         type="text"
-        placeholder="My Custom Provider"
+        placeholder={i18n.texts.customProviderForm.placeholderName}
         bind:value={name}
         required
       />
@@ -160,26 +167,26 @@
 
     <!-- Base API URL -->
     <label class="label">
-      <span class="label-text">API URL*</span>
+      <span class="label-text">{i18n.texts.customProviderForm.labelApiUrl}</span>
       <input
         class="input"
         type="url"
-        placeholder="https://api.example.com/v1"
+        placeholder={i18n.texts.customProviderForm.placeholderApiUrl}
         bind:value={baseApiUrl}
         required
       />
       <span class="text-xs opacity-60"
-        >The base URL for API calls, should be compatible with OpenAI API</span
+        >{i18n.texts.customProviderForm.hintBaseUrl}</span
       >
     </label>
 
     <!-- API Key -->
     <label class="label">
-      <span class="label-text">API Key*</span>
+      <span class="label-text">{i18n.texts.customProviderForm.labelApiKey}</span>
       <input
         class="input"
         type="password"
-        placeholder="sk-..."
+        placeholder={i18n.texts.customProviderForm.placeholderApiKey}
         bind:value={apiKey}
         required
       />
@@ -187,31 +194,32 @@
 
     <!-- Model ID -->
     <label class="label">
-      <span class="label-text">Model ID*</span>
+      <span class="label-text">{i18n.texts.customProviderForm.labelModelId}</span>
       <input
         class="input"
         type="text"
-        placeholder="gpt-3.5-turbo"
+        placeholder={i18n.texts.customProviderForm.placeholderModelId}
         bind:value={modelId}
         required
       />
       <span class="text-xs opacity-60"
-        >Specify the model ID that this provider requires</span
+        >{i18n.texts.customProviderForm.hintModelId}</span
       >
     </label>
 
     <!-- Custom Headers -->
     <label class="label">
-      <span class="label-text">Custom Headers (optional)</span>
+      <span class="label-text">
+        {i18n.texts.customProviderForm.labelCustomHeaders}
+      </span>
       <textarea
         class="textarea rounded-container"
         rows="3"
-        placeholder="Authorization: Bearer token
-Content-Type: application/json"
+        placeholder={i18n.texts.customProviderForm.placeholderHeaders}
         bind:value={customHeaders}
       ></textarea>
       <span class="text-xs opacity-60"
-        >Enter one header per line in "Key: Value" format</span
+        >{i18n.texts.customProviderForm.hintHeaders}</span
       >
     </label>
 
@@ -225,14 +233,18 @@ Content-Type: application/json"
         class="btn preset-outlined-surface-500"
         onclick={onCancel}
       >
-        Cancel
+        {i18n.texts.actions.cancel}
       </button>
       <button
         type="submit"
         class="btn preset-filled-primary-500"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Saving..." : providerId ? "Update" : "Add"} Provider
+        {isSubmitting
+          ? i18n.texts.actions.saving
+          : providerId
+            ? i18n.texts.customProviderForm.buttonUpdate
+            : i18n.texts.customProviderForm.buttonAddProvider}
       </button>
     </div>
   </form>

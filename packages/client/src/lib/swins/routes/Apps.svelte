@@ -1,6 +1,6 @@
 <script lang="ts">
   import AppConfigTableCell from "@sila/client/comps/configs/AppConfigTableCell.svelte";
-  import { txtStore } from "@sila/client/state/txtStore";
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { AppConfig } from "@sila/core";
   const clientState = useClientState();
@@ -25,19 +25,18 @@
 
 <div class="card space-y-4">
   <div class="flex justify-between items-center">
-    <h3 class="h3">Your Assistants</h3>
+    <h3 class="h3">{i18n.texts.appPage.chatsTitle}</h3>
     <SwinsNavButton
       component="appConfig"
-      title="New Assistant"
+      title={i18n.texts.appPage.buttonNewConfig}
       className="btn preset-filled-primary-500"
     >
       <Plus size={16} />
-      {$txtStore.appPage.buttonNewConfig}
+      {i18n.texts.appPage.buttonNewConfig}
     </SwinsNavButton>
   </div>
   <p>
-    You can create and edit your chat assistants here. You will see the
-    assistant buttons in the right top of the sidebar.
+    {i18n.texts.appPage.description}
   </p>
   <div class="flex flex-col">
     {#each appConfigs as config (config.id)}

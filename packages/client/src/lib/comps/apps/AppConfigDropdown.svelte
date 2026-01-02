@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { AppConfig } from "@sila/core";
-  import { txtStore } from "@sila/client/state/txtStore.ts";
+  import { i18n } from "@sila/client";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { ChevronDown, Pencil, Plus } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
@@ -73,7 +73,7 @@
             {visibleAppConfigs[0].name}
           {/if}
         {:else}
-          {$txtStore.appConfigDropdown.placeholder}
+          {i18n.texts.appConfigDropdown.placeholder}
         {/if}
       </span>
       <ChevronDown size={18} class="text-surface-300-700" />
@@ -102,21 +102,21 @@
         <SwinsNavButton
           className="btn btn-sm w-full text-left justify-start ph-no-capture"
           component="appConfig"
-          title="Edit Config"
+          title={i18n.texts.appConfigDropdown.editConfigTitle}
           props={{ configId }}
           dataRole="edit-assistant"
           onclick={() => {
             openState = false;
-          }}><Pencil size={16} />Edit "{currentConfig?.name}" assistant</SwinsNavButton
+          }}><Pencil size={16} />{i18n.texts.appConfigDropdown.editAssistantLabel(currentConfig?.name || "")}</SwinsNavButton
         >
       {/if}
       <SwinsNavButton
         className="btn btn-sm w-full text-left justify-start"
         component="appConfig"
-        title="New Assistant"
+        title={i18n.texts.appConfigDropdown.newAssistant}
         onclick={() => {
           openState = false;
-        }}><Plus size={16} />New Assistant</SwinsNavButton
+        }}><Plus size={16} />{i18n.texts.appConfigDropdown.newAssistant}</SwinsNavButton
       >
     </div>
   {/snippet}

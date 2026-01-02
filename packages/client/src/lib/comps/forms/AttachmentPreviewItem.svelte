@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Loader2 } from "lucide-svelte";
   import type { AttachmentPreview } from "@sila/core";
+  import { i18n } from "@sila/client";
 
   interface AttachmentPreviewItemProps {
     attachment: AttachmentPreview & { isLoading?: boolean };
@@ -18,7 +19,9 @@
       <div class="text-xs opacity-70">
         <div class="font-medium">{attachment.name}</div>
         <div class="text-xs opacity-60">
-          Processing {attachment.kind === 'image' ? 'image' : 'text file'}...
+          {attachment.kind === "image"
+            ? i18n.texts.attachments.processingImage
+            : i18n.texts.attachments.processingTextFile}
         </div>
       </div>
     </div>
@@ -28,7 +31,7 @@
       <div class="text-xs opacity-70 border rounded px-2 py-1">
         <div class="font-medium">{attachment.name}</div>
         <div class="text-xs opacity-60">
-          {attachment.metadata.language} • {attachment.metadata.lineCount} lines • {attachment.metadata.wordCount} words
+          {attachment.metadata.language} • {attachment.metadata.lineCount} {i18n.texts.attachments.linesLabel} • {attachment.metadata.wordCount} {i18n.texts.attachments.wordsLabel}
         </div>
       </div>
     {:else if attachment.kind === 'image' && attachment.dataUrl}
@@ -41,7 +44,7 @@
   <button 
     class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-surface-200-800 hover:bg-surface-300-700 flex items-center justify-center"
     onclick={() => onRemove(attachment.id)} 
-    aria-label="Remove attachment"
+    aria-label={i18n.texts.attachments.removeAttachmentAria}
   >
     ×
   </button>

@@ -5,6 +5,7 @@
   import CustomProviderForm from "./CustomProviderForm.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { getActiveProviders } from "@sila/core";
+  import { i18n } from "@sila/client";
   const clientState = useClientState();
 
   let {
@@ -66,13 +67,12 @@
 
       if (status === "invalid") {
         showValidationWarning = true;
-        validationError =
-          "API key validation failed. The key might be invalid or expired.";
+        validationError = i18n.texts.providers.apiKeyValidationFailed;
       }
     } catch (error) {
       showValidationWarning = true;
       validationError =
-        error instanceof Error ? error.message : "Unknown error occurred";
+        error instanceof Error ? error.message : i18n.texts.providers.unknownError;
     } finally {
       isChecking = false;
     }
@@ -125,7 +125,7 @@
                 ? 'preset-filled-warning-500'
                 : 'preset-filled-success-500'} {isChecking
                 ? 'animate-pulse'
-                : ''}">Connected</span
+                : ''}">{i18n.texts.providers.connected}</span
             >
             {#if showValidationWarning}
               <Tooltip
@@ -140,7 +140,7 @@
                 {#snippet content()}
                   <div class="text-sm max-w-[200px]">
                     {validationError ||
-                      "Validation failed. Check your API key or connection."}
+                      i18n.texts.providers.validationFailed}
                   </div>
                 {/snippet}
               </Tooltip>
@@ -154,34 +154,36 @@
           <button
             class="btn btn-sm preset-outlined-surface-500"
             onclick={handleEdit}
-            title="Edit provider"
+            title={i18n.texts.providers.editTitle}
           >
             <Pencil size={14} />
-            <span>Edit</span>
+            <span>{i18n.texts.actions.edit}</span>
           </button>
           <button
             class="btn btn-sm preset-outlined-error-500"
             onclick={handleDelete}
-            title="Delete provider"
+            title={i18n.texts.providers.deleteTitle}
           >
             <Trash2 size={14} />
-            <span>Delete</span>
+            <span>{i18n.texts.actions.delete}</span>
           </button>
         </div>
       {:else}
         <div class="flex items-center gap-2">
-          <div class="text-sm text-error-500">Delete?</div>
+          <div class="text-sm text-error-500">
+            {i18n.texts.providers.deletePrompt}
+          </div>
           <button
             class="btn btn-sm preset-filled-error-500"
             onclick={deleteProvider}
           >
-            Confirm
+            {i18n.texts.actions.confirm}
           </button>
           <button
             class="btn btn-sm preset-outlined-surface-500"
             onclick={cancelDelete}
           >
-            Cancel
+            {i18n.texts.actions.cancel}
           </button>
         </div>
       {/if}

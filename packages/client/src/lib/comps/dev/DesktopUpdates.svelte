@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { i18n } from "@sila/client";
 
   const isElectron = typeof window !== "undefined" && Boolean((window as any).electronFileSystem);
   const clientState = useClientState();
@@ -39,9 +40,11 @@
     <section class="space-y-4">
       <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="space-y-1">
-          <h2 class="text-base font-medium text-surface-900-100-token">Desktop Updates</h2>
+          <h2 class="text-base font-medium text-surface-900-100-token">
+            {i18n.texts.devPanel.desktopUpdatesTitle}
+          </h2>
           <p class="text-xs text-surface-600-300-token">
-            Current version:
+            {i18n.texts.devPanel.currentVersionLabel}
             <span class="font-mono text-surface-900-100-token">{shellVersion || "—"}</span>
           </p>
         </div>
@@ -51,15 +54,14 @@
             onclick={checkForLatestRelease}
             disabled={isChecking}
           >
-            {isChecking ? "Checking..." : "Check for Updates"}
+            {isChecking ? i18n.texts.devPanel.checkingUpdates : i18n.texts.devPanel.checkForUpdates}
           </button>
         </div>
       </header>
     </section>
   {:else}
     <div class="rounded border border-surface-200-700-token bg-surface-50-800-token p-3 text-xs text-surface-600-300-token">
-      Desktop updates are only available in the desktop app.
+      {i18n.texts.devPanel.desktopUpdatesOnly}
     </div>
   {/if}
 </div>
-
