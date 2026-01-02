@@ -5,27 +5,51 @@
 
   const clientState = useClientState();
 
-  let { onPick }: { onPick: (file: Vertex) => void } = $props();
+  let { onPick }: { onPick: (files: Vertex[]) => void } = $props();
 
   let filesRoot = $derived.by(() => {
     if (!clientState.currentSpace) return undefined;
     return clientState.currentSpace.getVertexByPath("assets");
   });
 
-  function handlePick(file: Vertex) {
-    onPick?.(file);
+  let selectedFiles = $state<Vertex[]>([]);
+
+  function isFile(vertex: Vertex) {
+    return vertex.getProperty("mimeType") !== undefined;
+  }
+
+  let attachableFiles = $derived.by(() => selectedFiles.filter(isFile));
+
+  function handleAttach() {
+    if (attachableFiles.length === 0) return;
+    onPick?.(attachableFiles);
     clientState.layout.swins.pop();
   }
 </script>
 
 <div class="flex flex-col gap-3">
-  <p class="text-sm text-surface-600-300">
-    Double click a file to attach it to your message.
-  </p>
-
   {#if filesRoot}
-    <FilesApp filesRoot={filesRoot} onFilePick={handlePick} />
+    <FilesApp
+      filesRoot={filesRoot}
+      onSelectionChange={(files) => {
+        selectedFiles = files;
+      }}
+    />
   {:else}
     <p class="text-sm text-surface-600-300">Workspace files are not available.</p>
   {/if}
+
+  <div class="flex items-center justify-end gap-2">
+    <button class="btn btn-sm" type="button" onclick={() => clientState.layout.swins.pop()}>
+      Cancel
+    </button>
+    <button
+      class="btn btn-sm preset-filled-primary-500"
+      type="button"
+      onclick={handleAttach}
+      disabled={attachableFiles.length === 0}
+    >
+      Attach
+    </button>
+  </div>
 </div>

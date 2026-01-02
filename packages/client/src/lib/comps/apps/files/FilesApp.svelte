@@ -18,8 +18,15 @@
   import FileFolderBreadcrumbs from "./FileFolderBreadcrumbs.svelte";
   const clientState = useClientState();
 
-  const { filesRoot, onFilePick }: { filesRoot: Vertex; onFilePick?: (file: Vertex) => void } =
-    $props();
+  const {
+    filesRoot,
+    onFileOpen,
+    onSelectionChange,
+  }: {
+    filesRoot: Vertex;
+    onFileOpen?: (file: Vertex) => void;
+    onSelectionChange?: (files: Vertex[]) => void;
+  } = $props();
 
   let currentFolder = $state<Vertex | undefined>(undefined);
   let items = $state<Vertex[]>([]);
@@ -316,7 +323,8 @@
           onBack={goBack}
           selectId={selectIdForArea}
           renameId={renameIdForArea}
-          {onFilePick}
+          {onFileOpen}
+          {onSelectionChange}
         />
         {#if items.length === 0}
           <p class="text-muted-foreground">

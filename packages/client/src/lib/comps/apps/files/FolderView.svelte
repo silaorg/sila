@@ -13,14 +13,16 @@
     selectId,
     renameId,
     onBack,
-    onFilePick,
+    onFileOpen,
+    onSelectionChange,
   }: {
     items: Vertex[];
     onEnter: (folder: Vertex) => void;
     selectId?: string;
     renameId?: string;
     onBack?: () => void;
-    onFilePick?: (file: Vertex) => void;
+    onFileOpen?: (file: Vertex) => void;
+    onSelectionChange?: (files: Vertex[]) => void;
   } = $props();
 
   // Selection state
@@ -280,8 +282,8 @@
     if (!v) return;
     if (isFolder(v)) onEnter(v);
     else {
-      if (onFilePick) {
-        onFilePick(v);
+      if (onFileOpen) {
+        onFileOpen(v);
       } else {
         clientState.currentSpaceState?.vertexViewer.openVertex(v);
       }
@@ -328,6 +330,12 @@
     if (renameId) {
       renamingId = renameId;
     }
+  });
+
+  $effect(() => {
+    if (!onSelectionChange) return;
+    const selected = items.filter((item) => selectedIds.has(item.id));
+    onSelectionChange(selected);
   });
 
   // --- Keyboard navigation (simple) ---
@@ -459,7 +467,7 @@
         selected={isSelected(item)}
         renaming={renamingId === item.id}
         dropTarget={dropTargetId === item.id}
-        onFileOpen={onFilePick}
+        onFileOpen={onFileOpen}
         onRename={(newName) => {
           if (newName && newName.trim()) {
             item.name = newName.trim();

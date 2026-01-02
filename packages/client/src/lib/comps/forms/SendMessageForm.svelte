@@ -282,22 +282,24 @@
     fileInputEl?.click();
   }
 
-  function handleWorkspaceFilePick(file: Vertex) {
+  function handleWorkspaceFilePick(files: Vertex[]) {
     const resolver = clientState.currentSpaceState?.fileResolver;
     if (!resolver) return;
 
-    let path: string;
-    try {
-      path = resolver.vertexToPath(file);
-    } catch (error) {
-      console.error("Failed to resolve workspace file path", error);
-      return;
-    }
+    for (const file of files) {
+      let path: string;
+      try {
+        path = resolver.vertexToPath(file);
+      } catch (error) {
+        console.error("Failed to resolve workspace file path", error);
+        continue;
+      }
 
-    const name =
-      file.name ?? (file.getProperty("name") as string) ?? "Untitled";
-    const fileMention: FileMention = { path, name };
-    editorRef?.insertFileMentionAtCursor(fileMention);
+      const name =
+        file.name ?? (file.getProperty("name") as string) ?? "Untitled";
+      const fileMention: FileMention = { path, name };
+      editorRef?.insertFileMentionAtCursor(fileMention);
+    }
   }
 
   function openWorkspaceFilePicker() {
