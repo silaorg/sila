@@ -7,6 +7,7 @@ export interface AgentTool {
   instructions?: string;
   description?: string;
   parameters?: LangToolWithHandler["parameters"];
+  canUseTool?: (services: AgentServices, appTree: AppTree) => boolean;
   getTool(
     this: AgentTool,
     services: AgentServices,

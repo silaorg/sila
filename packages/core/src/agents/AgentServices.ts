@@ -199,17 +199,20 @@ export class AgentServices {
       toolRm,
       toolMove,
       useApplyPatch ? toolApplyPatch : toolSearchReplacePatch,
-      // @TODO: only activate them if fal.ai is setup
       toolGenerateImage,
       toolGenerateVideo,
     ];
 
-    for (const tool of toolDefs) {
+    const enabledTools = toolDefs.filter((tool) =>
+      tool.canUseTool ? tool.canUseTool(this, appTree) : true
+    );
+
+    for (const tool of enabledTools) {
       tools.push(tool.getTool(this, appTree));
     }
 
     return {
-      toolDefs,
+      toolDefs: enabledTools,
       tools
     }
   }
