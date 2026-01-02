@@ -31,6 +31,8 @@
   let scrollHeight = $state(0);
   let clientHeight = $state(0);
   let hasFiles = $state(false);
+  let sendFormEl = $state<HTMLElement | null>(null);
+  let sendFormHeight = $state(0);
 
   let lastMessageTxt: string | null = null;
   let lastProcessMessagesExpanded = $state(false);
@@ -85,6 +87,25 @@
   );
 
   let showScrollDown = $derived(distFromBottom > SCROLL_BUTTON_THRESHOLD_PX);
+  let scrollButtonOffset = $derived(Math.max(sendFormHeight + 16, 48));
+
+  $effect(() => {
+    if (!sendFormEl || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    sendFormHeight = sendFormEl.getBoundingClientRect().height;
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      sendFormHeight = entry.contentRect.height;
+    });
+    resizeObserver.observe(sendFormEl);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  });
 
   function updateScrollMetrics() {
     if (!scrollableElement) return;
@@ -310,14 +331,15 @@
   </div>
   {#if showScrollDown}
     <button
-      class="absolute left-1/2 -translate-x-1/2 bottom-30 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
+      class="absolute left-1/2 -translate-x-1/2 z-10 btn-icon bg-surface-50-950 border border-surface-100-900 rounded-full shadow"
+      style={`bottom: ${scrollButtonOffset}px`}
       aria-label="Scroll to bottom"
       onclick={() => scrollToBottom(true, true)}
     >
       <ArrowDown size={18} />
     </button>
   {/if}
-  <div class="min-h-min">
+  <div class="min-h-min" bind:this={sendFormEl}>
     <section class="max-w-4xl mx-auto py-2 px-2">
       <SendMessageForm
         onSend={sendMsg}
