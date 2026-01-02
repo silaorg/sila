@@ -73,6 +73,7 @@ export interface Texts {
     appearance: {
       title: string;
       theme: string;
+      themeDescription: string;
       language: string;
       colorScheme: string;
       system: string;

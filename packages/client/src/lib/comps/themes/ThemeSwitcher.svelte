@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { i18n } from "@sila/client";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  const clientState = useClientState();
+
   let themes = [
     { name: "catppuccin", emoji: "🐈" },
     { name: "cerberus", emoji: "🐺" },
@@ -24,9 +28,6 @@
     { name: "wintry", emoji: "🌨️" },
   ];
 
-  import { useClientState } from "@sila/client/state/clientStateContext";
-  const clientState = useClientState();
-
   async function handleThemeClick(name: string) {
     await clientState.theme.setThemeName(name);
   }
@@ -34,7 +35,7 @@
 
 <div class="mb-4">
   <div class="text-sm text-surface-600-300 mb-4">
-    Select a color theme for your workspace.
+    {i18n.texts.settingsPage.appearance.themeDescription}
   </div>
 </div>
 

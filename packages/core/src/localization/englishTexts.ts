@@ -76,6 +76,7 @@ export const englishTexts: Texts = {
     appearance: {
       title: "Appearance",
       theme: "Theme",
+      themeDescription: "Select a color theme for your workspace.",
       language: "Language",
       colorScheme: "Color scheme",
       system: "System",
