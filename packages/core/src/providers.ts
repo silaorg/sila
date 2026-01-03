@@ -41,7 +41,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://gemini.google.com/",
     logoUrl: "/providers/google.png",
-    defaultModel: "gemini-2.0-flash"
+    defaultModel: "gemini-3-pro-preview"
   },
   /*
   {
