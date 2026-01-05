@@ -257,7 +257,11 @@ export class AgentServices {
    */
   private getDefaultModelForProvider(provider: string, models: any[]): string {
     const providerConfig = providers.find(p => p.id === provider);
-    if (providerConfig?.defaultModel && models.some(m => m.id === providerConfig.defaultModel)) {
+    if (providerConfig?.defaultModel) {
+      if (!models.some(m => m.id === providerConfig.defaultModel)) {
+        console.warn(`Default model ${providerConfig.defaultModel} not found in models for provider ${provider}`);
+      }
+
       return providerConfig.defaultModel;
     }
     return models[0].id;
