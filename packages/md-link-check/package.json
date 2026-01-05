@@ -1,0 +1,15 @@
+{
+  "name": "@sila/md-link-check",
+  "version": "0.1.0",
+  "description": "Check Markdown internal links",
+  "private": true,
+  "bin": {
+    "md-link-check": "./src/cli.js"
+  },
+  "main": "./src/index.js",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
