@@ -342,6 +342,7 @@ export const hindiTexts: Partial<Texts> = {
     freshStartTitle: "Sila में आपका स्वागत है",
     freshStartSubtitle: "वर्कस्पेस बनाएँ या खोलें",
     freshStartDescription: "Sila ChatGPT की तरह काम करता है, लेकिन Sila में आप अपने सहायकों, चैट्स और सारे डेटा के मालिक हैं। जितना आप AI का उपयोग करेंगे, यह आपको उतना बेहतर समझेगा — और आपका डेटा उतना अधिक मूल्यवान होगा।",
+    getStartedButton: "शुरू करें",
     workspaceTitle: "वर्कस्पेस बनाएँ या खोलें",
     workspaceDescription: "वर्कस्पेस में आपकी बातचीत, फ़ाइलें और सहायक रहते हैं। आप कई वर्कस्पेस रख सकते हैं और जल्दी स्विच कर सकते हैं।",
     spaceSetupNameTitle: "वर्कस्पेस का नाम रखें",

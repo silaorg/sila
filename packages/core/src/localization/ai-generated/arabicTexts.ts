@@ -342,6 +342,7 @@ export const arabicTexts: Partial<Texts> = {
     freshStartTitle: "مرحبًا بك في Sila",
     freshStartSubtitle: "أنشئ أو افتح مساحة عمل",
     freshStartDescription: "Sila تعمل مثل ChatGPT، لكن في Sila أنت تملك مساعديك ومحادثاتك وكل البيانات المُولدة. كلما استخدمت الذكاء الاصطناعي أكثر، زادت قيمة بياناتك — لذلك من المنطقي أن تملكها.",
+    getStartedButton: "ابدأ",
     workspaceTitle: "أنشئ أو افتح مساحة عمل",
     workspaceDescription: "تُخزن مساحة العمل محادثاتك وملفاتك ومساعديك. يمكنك امتلاك عدة مساحات والتبديل بينها بسرعة.",
     spaceSetupNameTitle: "سمِّ مساحة عملك",

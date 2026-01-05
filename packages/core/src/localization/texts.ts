@@ -340,6 +340,7 @@ export interface Texts {
     freshStartTitle: string;
     freshStartSubtitle: string;
     freshStartDescription: string;
+    getStartedButton: string;
     workspaceTitle: string;
     workspaceDescription: string;
     spaceSetupNameTitle: string;

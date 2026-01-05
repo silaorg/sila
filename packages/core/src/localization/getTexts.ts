@@ -24,6 +24,27 @@ export const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   zh: "Chinese / 中文"
 };
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepMerge<T>(base: T, override: unknown): T {
+  if (!isPlainObject(base) || !isPlainObject(override)) {
+    return (override as T) ?? base;
+  }
+
+  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+
+  for (const [key, value] of Object.entries(override)) {
+    const existing = out[key];
+    out[key] = isPlainObject(existing) && isPlainObject(value)
+      ? deepMerge(existing, value)
+      : value;
+  }
+
+  return out as T;
+}
+
 export function createTexts(lang: SupportedLanguage = "en"): Texts {
   if (lang === "en") {
     return englishTexts;
@@ -52,6 +73,6 @@ export function createTexts(lang: SupportedLanguage = "en"): Texts {
     }
   })();
 
-  // Use English as base and override with localized texts
-  return { ...englishTexts, ...localizedTexts };
+  // Use English as base and override with localized texts (deeply, so missing nested keys fall back to English)
+  return deepMerge(englishTexts, localizedTexts);
 }

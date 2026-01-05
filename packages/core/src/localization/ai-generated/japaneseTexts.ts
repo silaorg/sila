@@ -342,6 +342,7 @@ export const japaneseTexts: Partial<Texts> = {
     freshStartTitle: "Sila へようこそ",
     freshStartSubtitle: "ワークスペースを作成または開く",
     freshStartDescription: "Sila は ChatGPT のように使えますが、Sila ではアシスタント、チャット、生成されたデータのすべてをあなたが所有します。AI を使うほどあなたを理解し、データはより価値になります。だからこそ自分で管理する価値があります。",
+    getStartedButton: "始める",
     workspaceTitle: "ワークスペースを作成または開く",
     workspaceDescription: "ワークスペースには会話、ファイル、アシスタントが保存されます。複数作成して素早く切り替えられます。",
     spaceSetupNameTitle: "ワークスペースに名前を付ける",

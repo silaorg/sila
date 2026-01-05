@@ -343,6 +343,7 @@ export const englishTexts: Texts = {
     freshStartTitle: "Welcome to Sila",
     freshStartSubtitle: "Create or open a workspace",
     freshStartDescription: "Sila works like ChatGPT, but in Sila you own your assistants, chats, and all generated data. As you use AI more, as it learns more about you and your preferences - that data becomes more valuable over time - so it makes sense to own it!",
+    getStartedButton: "Get started",
     workspaceTitle: "Create or open a workspace",
     workspaceDescription: "A workspace is where your conversations, files and assistants are stored. You can have multiple workspaces and switch between quickly.",
     spaceSetupNameTitle: "Name your workspace",

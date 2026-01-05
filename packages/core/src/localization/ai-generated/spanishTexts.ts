@@ -342,6 +342,7 @@ export const spanishTexts: Partial<Texts> = {
     freshStartTitle: "Bienvenido a Sila",
     freshStartSubtitle: "Crea o abre un espacio de trabajo",
     freshStartDescription: "Sila funciona como ChatGPT, pero en Sila tú eres dueño de tus asistentes, chats y todos los datos generados. Cuanto más uses la IA y más aprenda de ti, más valiosos son esos datos, así que tiene sentido que sean tuyos.",
+    getStartedButton: "Empezar",
     workspaceTitle: "Crea o abre un espacio de trabajo",
     workspaceDescription: "Un espacio de trabajo guarda tus conversaciones, archivos y asistentes. Puedes tener varios y cambiar entre ellos rápidamente.",
     spaceSetupNameTitle: "Ponle nombre a tu espacio",

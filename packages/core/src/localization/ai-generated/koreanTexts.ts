@@ -342,6 +342,7 @@ export const koreanTexts: Partial<Texts> = {
     freshStartTitle: "Sila에 오신 것을 환영합니다",
     freshStartSubtitle: "워크스페이스 만들기 또는 열기",
     freshStartDescription: "Sila는 ChatGPT처럼 작동하지만, Sila에서는 어시스턴트, 채팅, 생성된 모든 데이터를 직접 소유합니다. AI를 더 사용할수록 당신을 더 잘 이해하고 데이터의 가치가 높아지므로 직접 소유하는 것이 좋습니다.",
+    getStartedButton: "시작하기",
     workspaceTitle: "워크스페이스 만들기 또는 열기",
     workspaceDescription: "워크스페이스에는 대화, 파일, 어시스턴트가 저장됩니다. 여러 개를 만들고 빠르게 전환할 수 있습니다.",
     spaceSetupNameTitle: "워크스페이스 이름 지정",

@@ -342,6 +342,7 @@ export const chineseTexts: Partial<Texts> = {
     freshStartTitle: "欢迎使用 Sila",
     freshStartSubtitle: "创建或打开工作区",
     freshStartDescription: "Sila 像 ChatGPT 一样工作，但在 Sila 中你拥有自己的助手、聊天和所有生成的数据。随着你使用 AI 越多，它更了解你，你的数据也更有价值，所以最好由你自己掌控。",
+    getStartedButton: "开始使用",
     workspaceTitle: "创建或打开工作区",
     workspaceDescription: "工作区用于存放你的对话、文件和助手。你可以有多个工作区并快速切换。",
     spaceSetupNameTitle: "为工作区命名",

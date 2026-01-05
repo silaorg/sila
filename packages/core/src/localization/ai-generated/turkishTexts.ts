@@ -342,6 +342,7 @@ export const turkishTexts: Partial<Texts> = {
     freshStartTitle: "Sila’ya Hoş Geldin",
     freshStartSubtitle: "Çalışma alanı oluştur veya aç",
     freshStartDescription: "Sila, ChatGPT gibi çalışır ama Sila’da asistanların, sohbetlerin ve üretilen tüm veriler senindir. AI’ı daha çok kullandıkça seni daha iyi tanır ve verilerin daha değerli olur — bu yüzden kontrol sende olmalı.",
+    getStartedButton: "Başlayın",
     workspaceTitle: "Çalışma alanı oluştur veya aç",
     workspaceDescription: "Çalışma alanı konuşmalarını, dosyalarını ve asistanlarını saklar. Birden fazla alanın olabilir ve hızlıca geçiş yapabilirsin.",
     spaceSetupNameTitle: "Çalışma alanına isim ver",
