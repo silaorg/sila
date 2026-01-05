@@ -1,4 +1,4 @@
-import { ModelProvider } from "./models";
+import { ModelProvider, ProviderType } from "./models";
 
 export const providers: ModelProvider[] = [
   {
@@ -101,5 +101,6 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://exa.ai/",
     logoUrl: "/providers/exa.png",
+    type: ProviderType.Search,
   },
 ];

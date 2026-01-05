@@ -34,6 +34,11 @@ export interface AppConfig {
   visible?: boolean;
 }
 
+export enum ProviderType {
+  AI, 
+  Search
+}
+
 export type ModelProvider = {
   id: string;
   name: string;
@@ -43,6 +48,7 @@ export type ModelProvider = {
   defaultModel?: string;
   isCustom?: boolean;
   baseApiUrl?: string; // For custom OpenAI-compatible providers
+  type?: ProviderType;
 };
 
 export type ModelProviderAccessType = "cloud" | "local";

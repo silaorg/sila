@@ -3,7 +3,7 @@
   import ModelProviderCard from "./ModelProviderCard.svelte";
   import CustomProviderCard from "./CustomProviderCard.svelte";
   import AddCustomProviderCard from "./AddCustomProviderCard.svelte";
-  import { providers } from "@sila/core";
+  import { ProviderType, providers } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { getActiveProviders } from "@sila/core";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
@@ -14,10 +14,21 @@
   let {
     onConnect,
     onDisconnect,
+    providerType,
   }: {
     onConnect?: (provider: ModelProvider) => void;
     onDisconnect?: (provider: ModelProvider) => void;
+    providerType?: ProviderType;
   } = $props();
+
+  function getEffectiveProviderType(provider: ModelProvider): ProviderType {
+    return provider.type ?? ProviderType.AI;
+  }
+
+  function filterByType(list: ModelProvider[]): ModelProvider[] {
+    if (providerType === undefined) return list;
+    return list.filter((p) => getEffectiveProviderType(p) === providerType);
+  }
 
   function onHow(provider: ModelProvider) {
     clientState.layout.swins.open(
@@ -55,11 +66,11 @@
 
 <div class="relative">
   <div class="grid grid-cols-1 gap-2">
-    {#each providers as provider (provider.id)}
+    {#each filterByType(providers) as provider (provider.id)}
       <ModelProviderCard {provider} {onConnect} {onDisconnect} {onHow} />
     {/each}
 
-    {#each customProviders as provider (provider.id)}
+    {#each filterByType(customProviders) as provider (provider.id)}
       <CustomProviderCard
         {provider}
         {onConnect}
@@ -68,6 +79,8 @@
       />
     {/each}
 
-    <AddCustomProviderCard onProviderAdded={handleCustomProviderAdded} />
+    {#if providerType === undefined || providerType === ProviderType.AI}
+      <AddCustomProviderCard onProviderAdded={handleCustomProviderAdded} />
+    {/if}
   </div>
 </div>

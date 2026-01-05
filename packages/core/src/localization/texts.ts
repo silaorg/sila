@@ -351,6 +351,9 @@ export interface Texts {
     spaceSetupBrainsTitle: string;
     spaceSetupBrainsDescription: string;
     spaceSetupBrainsStepTitle: string;
+    spaceSetupSearchTitle: string;
+    spaceSetupSearchDescription: string;
+    spaceSetupSearchStepTitle: string;
     spaceSetupThemeStepTitle: string;
     spaceSetupLookTitle: string;
     colorSchemeLabel: string;

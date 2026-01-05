@@ -9,10 +9,12 @@
   import ThemeSwitcher from "../themes/ThemeSwitcher.svelte";
   import type { ModelProvider } from "@sila/core";
   import { i18n } from "@sila/client";
+  import { ProviderType, providers as builtInProviders } from "@sila/core";
 
   let spaceName = $state("");
   let spaceNameError = $state(""); // Kept for potential future use, though Wizard handles its own validation display
   let hasSetupProvider = $state(false);
+  let hasSetupSearchProvider = $state(false);
 
   const spaceState = $derived(clientState.currentSpaceState);
   const space = $derived(clientState.currentSpace);
@@ -20,21 +22,37 @@
   let presetNames = $derived(i18n.texts.workspaceCreate.presetNames);
 
   //const wizardSteps = ["name", "provider", "theme"];
-  const wizardSteps = ["provider", "theme"];
+  const wizardSteps = ["provider", "search", "theme"];
 
   //const wizardTitles = ["Name", "Brains", "Theme"];
   let wizardTitles = $derived([
     i18n.texts.wizards.spaceSetupBrainsStepTitle,
+    i18n.texts.wizards.spaceSetupSearchStepTitle,
     i18n.texts.wizards.spaceSetupThemeStepTitle
   ]);
 
   let currentWizardStep = $state(0);
 
+  function getEffectiveProviderType(providerId: string): ProviderType {
+    const provider = builtInProviders.find((p) => p.id === providerId);
+    // Anything unknown (e.g. custom providers) defaults to AI
+    return provider?.type ?? ProviderType.AI;
+  }
+
   $effect(() => {
     if (space) {
       const providerVertex = space.tree.getVertexByPath("providers");
       if (providerVertex) {
-        hasSetupProvider = providerVertex.children.length > 0;
+        const configuredProviderIds = providerVertex.children
+          .map((c) => c.getProperty("id"))
+          .filter((id): id is string => typeof id === "string");
+
+        hasSetupProvider = configuredProviderIds.some(
+          (id) => getEffectiveProviderType(id) === ProviderType.AI,
+        );
+        hasSetupSearchProvider = configuredProviderIds.some(
+          (id) => getEffectiveProviderType(id) === ProviderType.Search,
+        );
       }
     }
   });
@@ -66,6 +84,13 @@
 
   function handleProviderConnect(provider: ModelProvider) {
     hasSetupProvider = true;
+    spaceState?.spaceTelemetry.onboardingProviderConnected({
+      provider_id: provider.id
+    });
+  }
+
+  function handleSearchProviderConnect(provider: ModelProvider) {
+    hasSetupSearchProvider = true;
     spaceState?.spaceTelemetry.onboardingProviderConnected({
       provider_id: provider.id
     });
@@ -165,9 +190,22 @@
       </p>
 
       <div class="overflow-y-auto pr-2">
-        <ModelProviders onConnect={handleProviderConnect} />
+        <ModelProviders onConnect={handleProviderConnect} providerType={ProviderType.AI} />
       </div>
     {:else if currentStep === 1}
+      <!-- Step 3: Search Provider (optional) -->
+      <h2 class="h3 mb-4">{i18n.texts.wizards.spaceSetupSearchTitle}</h2>
+      <p class="mb-4">
+        {i18n.texts.wizards.spaceSetupSearchDescription}
+      </p>
+
+      <div class="overflow-y-auto pr-2">
+        <ModelProviders
+          onConnect={handleSearchProviderConnect}
+          providerType={ProviderType.Search}
+        />
+      </div>
+    {:else if currentStep === 2}
       <!-- Step 3: Theme -->
       <h2 class="h3 mb-4">{i18n.texts.wizards.spaceSetupLookTitle}</h2>
       <div class="mb-4 space-y-4">
