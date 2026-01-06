@@ -88,6 +88,7 @@
         <!-- Options Button -->
         <div class="flex-shrink-0">
           <SpaceOptionsPopup
+            spaceUri={space.uri}
             onRename={() => openRenamePopup(space)}
             onRemove={() => handleRemoveSpace(space)}
           />
