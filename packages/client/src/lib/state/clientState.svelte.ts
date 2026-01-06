@@ -146,7 +146,12 @@ export class ClientState {
     swins: setupSwins(),
 
     openSettings: () => {
-      this.layout.swins.open(swinsLayout.settings.key, {}, "Settings");
+      // Default settings entrypoint: Workspace → Preferences
+      this.layout.swins.open(
+        swinsLayout.settingsWorkspacePreferences.key,
+        {},
+        "Workspace · Preferences",
+      );
     },
     openSpaces: () => {
       this.layout.swins.open(swinsLayout.spaces.key, {}, "Workspaces");
