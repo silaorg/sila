@@ -42,6 +42,15 @@ export function setupFileSystemAPI() {
     },
 
     /**
+     * Reveal a path in the OS file explorer (Finder/Explorer/etc.)
+     * @param {string} targetPath
+     * @returns {Promise<string>} Empty string on success, otherwise an error message
+     */
+    revealPath: (targetPath) => {
+      return ipcRenderer.invoke('sila:reveal-path', targetPath);
+    },
+
+    /**
      * Unregister a space
      * @param {string} spaceId - The space ID to unregister
      * @returns {Promise<boolean>} True if the space was unregistered

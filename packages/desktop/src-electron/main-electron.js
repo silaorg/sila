@@ -1,4 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 app.setName('Sila');
 
@@ -116,6 +118,25 @@ app.whenReady().then(async () => {
       headers: Array.from(res.headers.entries()),
       body: text,
     };
+  });
+
+  // IPC: reveal a path in the OS file explorer (Finder/Explorer/etc.)
+  ipcMain.handle('sila:reveal-path', async (_event, targetPath) => {
+    if (typeof targetPath !== 'string' || !targetPath) {
+      return 'Invalid path';
+    }
+
+    try {
+      // Prefer selecting the item (file or folder) in its parent folder.
+      // On macOS this maps to Finder "Reveal"; on Windows to Explorer selection.
+      await fs.stat(targetPath);
+      shell.showItemInFolder(targetPath);
+      return '';
+    } catch {
+      // If path doesn't exist, open its parent folder (best-effort).
+      const parent = path.dirname(targetPath);
+      return await shell.openPath(parent);
+    }
   });
 
   // Expose manual update check for menu

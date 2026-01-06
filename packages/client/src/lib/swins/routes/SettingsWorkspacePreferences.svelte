@@ -4,6 +4,7 @@
   import SettingsSidebar from "./SettingsSidebar.svelte";
   import WorkspaceLanguageSwitcher from "@sila/client/comps/settings/WorkspaceLanguageSwitcher.svelte";
   import type { Vertex } from "@sila/core";
+  import { toast } from "svelte-sonner";
 
   const clientState = useClientState();
   const pointer = $derived(clientState.currentSpaceState?.pointer ?? null);
@@ -92,6 +93,35 @@
 
     settingsVertex.setProperty("description", next);
   }
+
+  async function revealWorkspacePath() {
+    if (!pointer) return;
+
+    // Only meaningful for file-system backed spaces (pointer.uri is a path)
+    if (
+      pointer.uri.startsWith("local://") ||
+      pointer.uri.startsWith("http://") ||
+      pointer.uri.startsWith("https://")
+    ) {
+      toast.error("This workspace is not stored on disk.");
+      return;
+    }
+
+    const efs = (window as any).electronFileSystem;
+    if (!efs?.revealPath) {
+      toast.error("Reveal is not supported in this build.");
+      return;
+    }
+
+    try {
+      const err = await efs.revealPath(pointer.uri);
+      if (typeof err === "string" && err) {
+        toast.error(err);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to reveal path");
+    }
+  }
 </script>
 
 <div class="flex gap-4 w-full">
@@ -142,7 +172,22 @@
       <div class="grid gap-2">
         {#if pointer}
           <div class="text-sm grid gap-1">
-            <div><span class="text-surface-600-300">Location:</span> <span class="font-mono">{pointer.uri}</span></div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-surface-600-300">
+                This space is stored at path:
+              </span>
+              <span class="font-mono break-all">{pointer.uri}</span>
+              <button
+                type="button"
+                class="btn btn-sm preset-outlined"
+                onclick={revealWorkspacePath}
+                disabled={pointer.uri.startsWith("local://") ||
+                  pointer.uri.startsWith("http://") ||
+                  pointer.uri.startsWith("https://")}
+              >
+                Reveal
+              </button>
+            </div>
           </div>
         {:else}
           <div class="text-sm text-surface-600-300">
