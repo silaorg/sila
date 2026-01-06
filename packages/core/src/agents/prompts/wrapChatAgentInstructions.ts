@@ -1,10 +1,25 @@
 import { AgentTool } from "../tools/AgentTool";
+import {
+  LANGUAGE_NAMES,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from "../../localization/getTexts";
 
-export function agentEnvironmentInstructions(): string {
+export function agentEnvironmentInstructions(params?: {
+  workspaceName?: string | null;
+  workspaceDescription?: string | null;
+}): string {
+  const name =
+    typeof params?.workspaceName === "string" ? params.workspaceName.trim() : "";
+  const description =
+    typeof params?.workspaceDescription === "string"
+      ? params.workspaceDescription.trim()
+      : "";
   return `<environment>
 You operate in a Sila workspace — an open alternative to ChatGPT where users own their data and AI assistants/agents (https://silain.com). Sila is a standalone application.
 
 A workspace holds conversations, files, and assistants for a user's project or interests. Users can have multiple workspaces and switch between them.
+${name ? `\nWorkspace name: ${name}` : ""}${description ? `\nDescription of the workspace: ${description}` : ""}
 </environment>
 `;
 }
@@ -61,8 +76,10 @@ export function agentMetaInfo(params: {
   config: {
     name: string;
   };
+  preferredLanguage?: string | null;
 }): string {
   // @TODO: add prefered date and time format, measurement units, currency, language, etc.
+  const preferredLanguageName = toLanguageDisplayName(params.preferredLanguage);
   return `<meta>
 Current local date and time: ${params.localDateTime}
 Current UTC time (ISO): ${params.utcIso}
@@ -70,7 +87,19 @@ ${params.resolvedModel
       ? `\nModel: ${params.resolvedModel.provider}/${params.resolvedModel.model}`
       : ""
     }
+${preferredLanguageName
+      ? `\nPreferred language to communicate in: ${preferredLanguageName}`
+      : ""
+    }
 Current assistant (your) name: ${params.config.name}
 </meta>
 `;
+}
+
+function toLanguageDisplayName(
+  idOrName: string | null | undefined,
+): string {
+  const s = typeof idOrName === "string" ? idOrName.trim() : "";
+  if (!s) return "";
+  return s in LANGUAGE_NAMES ? LANGUAGE_NAMES[s as SupportedLanguage] : s;
 }

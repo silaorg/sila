@@ -196,7 +196,12 @@ export class WrapChatAgent
         : [];
 
       // Environment instructions
-      instructions.push(agentEnvironmentInstructions());
+      instructions.push(
+        agentEnvironmentInstructions({
+          workspaceName: this.agentServices.space.name,
+          workspaceDescription: this.agentServices.space.workspaceDescription,
+        }),
+      );
 
       if (toolDefs.length > 0) {
         // Tool usage instructions
@@ -213,7 +218,13 @@ export class WrapChatAgent
       const localDateTime = now.toLocaleString();
       const utcIso = now.toISOString();
       instructions.push(
-        agentMetaInfo({ localDateTime, utcIso, resolvedModel, config }),
+        agentMetaInfo({
+          localDateTime,
+          utcIso,
+          resolvedModel,
+          config,
+          preferredLanguage: this.agentServices.space.workspaceLanguage,
+        }),
       );
 
       langMessages.instructions = instructions.join("\n\n");
