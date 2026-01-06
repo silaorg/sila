@@ -8,7 +8,6 @@
     Settings,
     Palette,
     Shield,
-    User,
   } from "lucide-svelte";
   import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -46,7 +45,7 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-appearance' ? 'preset-tonal' : ''}"
   >
     <Palette size={18} />
-    <span>Appearance</span>
+    <span>{i18n.texts.settingsPage.appearance.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -56,23 +55,23 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-providers' ? 'preset-tonal' : ''}"
   >
     <Cpu size={18} />
-    <span>Providers</span>
+    <span>{i18n.texts.settingsPage.providers.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsAssistants"
     pop="current"
-    title="Workspace · Assistants"
+    title={i18n.texts.basics.apps}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-assistants' ? 'preset-tonal' : ''}"
   >
     <Bot size={18} />
-    <span>Assistants</span>
+    <span>{i18n.texts.basics.apps}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
     component="settingsWorkspacePrivacySync"
     pop="current"
-    title="Workspace · Privacy & Sync"
+    title="Workspace Privacy & Sync"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-workspace-privacy-sync' ? 'preset-tonal' : ''}"
   >
     <Shield size={18} />
@@ -83,24 +82,26 @@
     App
   </div>
 
+  <!--
   <SwinsNavButton
     component="settingsAppPersonalization"
     pop="current"
-    title="App · Personalization"
+    title="Personalization"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-app-personalization' ? 'preset-tonal' : ''}"
   >
     <User size={18} />
     <span>Personalization</span>
   </SwinsNavButton>
+  -->
 
   <SwinsNavButton
     component="settingsWorkspaces"
     pop="current"
-    title="App · All workspaces"
+    title={i18n.texts.settingsPage.spaces.title}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-workspaces' ? 'preset-tonal' : ''}"
   >
     <FolderOpen size={18} />
-    <span>All workspaces</span>
+    <span>{i18n.texts.settingsPage.spaces.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -110,6 +111,6 @@
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-dev' ? 'preset-tonal' : ''}"
   >
     <Code size={18} />
-    <span>For developers</span>
+    <span>{i18n.texts.settingsPage.developers.title}</span>
   </SwinsNavButton>
 </nav>
