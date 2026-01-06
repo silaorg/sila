@@ -68,6 +68,7 @@
     <span>{i18n.texts.basics.apps}</span>
   </SwinsNavButton>
 
+  <!--
   <SwinsNavButton
     component="settingsWorkspacePrivacySync"
     pop="current"
@@ -77,6 +78,7 @@
     <Shield size={18} />
     <span>Privacy &amp; Sync</span>
   </SwinsNavButton>
+  -->
 
   <div class="px-3 pt-4 pb-1 text-xs font-medium text-surface-600-300 uppercase tracking-wide">
     App
