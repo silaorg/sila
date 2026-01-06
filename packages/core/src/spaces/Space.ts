@@ -76,6 +76,40 @@ export class Space {
     this.fileResolver = new FileResolver(this);
   }
 
+  getSettingsVertex(): Vertex | undefined {
+    return this.tree.getVertexByPath("settings") as Vertex | undefined;
+  }
+
+  get workspaceLanguage(): string | undefined {
+    const settings = this.getSettingsVertex();
+    if (!settings) return undefined;
+    const lang = settings.getProperty("language");
+    return typeof lang === "string" ? lang : undefined;
+  }
+
+  set workspaceLanguage(language: string | undefined) {
+    const settings = this.getSettingsVertex();
+    if (!settings) return;
+    if (!language) {
+      settings.setProperty("language", "");
+      return;
+    }
+    settings.setProperty("language", language);
+  }
+
+  get workspaceDescription(): string | undefined {
+    const settings = this.getSettingsVertex();
+    if (!settings) return undefined;
+    const description = settings.getProperty("description");
+    return typeof description === "string" ? description : undefined;
+  }
+
+  set workspaceDescription(description: string | undefined) {
+    const settings = this.getSettingsVertex();
+    if (!settings) return;
+    settings.setProperty("description", description ?? "");
+  }
+
   get fileStore(): FileStore | null {
     return this._fileStore;
   }
