@@ -31,7 +31,7 @@
   <SwinsNavButton
     component="settingsWorkspacePreferences"
     pop="current"
-    title="Workspace · Preferences"
+    title="Workspace Preferences"
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-workspace-preferences' ? 'preset-tonal' : ''}"
   >
     <Settings size={18} />

@@ -17,7 +17,7 @@
       <div class="flex items-center">
         <SwinsNavButton
           component="settingsWorkspacePreferences"
-          title="Workspace · Preferences"
+          title="Preferences"
           className="p-2 rounded hover:preset-tonal"
         >
           <Settings size={18} />
