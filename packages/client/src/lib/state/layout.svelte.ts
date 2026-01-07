@@ -22,7 +22,9 @@ type LayoutRefs = {
 }
 
 export class LayoutStore {
-  spaceId: string;
+  // Key used to persist/load UI layout (tabs/tiling). This should be a unique per-pointer
+  // identifier (typically the space pointer URI), not necessarily the underlying space id.
+  spaceUri: string;
   ttabs: TTabs;
   layoutRefs: LayoutRefs = $state({
     contentGrid: undefined,
@@ -49,8 +51,8 @@ export class LayoutStore {
     }
   });
 
-  constructor(spaceId: string) {
-    this.spaceId = spaceId;
+  constructor(spaceUri: string) {
+    this.spaceUri = spaceUri;
     this.ttabs = this._createTtabs();
     this._setupTtabs();
   }
@@ -162,7 +164,7 @@ export class LayoutStore {
   // Load layout from IndexedDB for this specific space
   async loadSpaceLayout(): Promise<void> {
     try {
-      const saved = await getTtabsLayout(this.spaceId);
+      const saved = await getTtabsLayout(this.spaceUri);
       if (saved) {
         this.ttabs.deserializeLayout(saved);
       } else {
@@ -170,7 +172,7 @@ export class LayoutStore {
       }
       this._findAndUpdateLayoutRefs();
     } catch (error) {
-      console.error(`Failed to load layout for space ${this.spaceId}:`, error);
+      console.error(`Failed to load layout for space ${this.spaceUri}:`, error);
       // Fall back to default layout
       this.ttabs.resetToDefaultLayout();
       this._findAndUpdateLayoutRefs();
@@ -181,9 +183,9 @@ export class LayoutStore {
   async saveLayout(): Promise<void> {
     try {
       const layoutJson = this.ttabs.serializeLayout();
-      await saveTtabsLayout(this.spaceId, layoutJson);
+      await saveTtabsLayout(this.spaceUri, layoutJson);
     } catch (error) {
-      console.error(`Failed to save layout for space ${this.spaceId}:`, error);
+      console.error(`Failed to save layout for space ${this.spaceUri}:`, error);
     }
   }
 

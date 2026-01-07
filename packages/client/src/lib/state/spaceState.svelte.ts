@@ -48,7 +48,7 @@ export class SpaceState {
     this.getAppFs = config.getAppFs ? config.getAppFs : () => null;
     // IMPORTANT: we key UI layout (tabs/tiling) by pointer URI so multiple pointers
     // with the same underlying space id do NOT share open tabs/layout state.
-    this.layout.spaceId = this.pointer.uri;
+    this.layout.spaceUri = this.pointer.uri;
     this.vertexViewer = new VertexViewer();
 
     const space = this.spaceManager.getSpace(this.pointer.uri);
