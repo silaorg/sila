@@ -5,8 +5,8 @@ import type { AppFileSystem } from "../../appFs";
 
 /**
  * Determines which persistence layers are needed based on the space URI
- * @param spaceId The space ID
- * @param uri The space URI (local://, file path, http://, etc.)
+ * @param spaceId The underlying space ID (core identity)
+ * @param uri The space pointer URI (UI/reference identity; local://, file path, http(s)://, etc.)
  * @returns Array of persistence layers to use
  */
 export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: AppFileSystem | null): PersistenceLayer[] {
@@ -14,15 +14,14 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: 
 
   if (uri.startsWith("local://")) {
     // Local-only spaces: IndexedDB only
-    layers.push(new IndexedDBPersistenceLayer(spaceId));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
   } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
     // Server-synced spaces: IndexedDB + Server (future)
-    layers.push(new IndexedDBPersistenceLayer(spaceId));
-    // TODO: Add server persistence layer when implemented
-    // layers.push(new ServerPersistenceLayer(spaceId, uri));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
+    // TODO: Add server persistence layer when implemented.
   } else {
     // File system path: IndexedDB + FileSystem (dual persistence)
-    layers.push(new IndexedDBPersistenceLayer(spaceId));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
     if (!fs) {
       throw new Error("App file system is not configured");
     }

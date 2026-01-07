@@ -139,11 +139,11 @@ export async function fetchSpaces(client: ClientState) {
           if (spaceResponse.success && spaceResponse.data) {
             const operations = spaceResponse.data.operations;
             if (operations && operations.length > 0) {
-              await appendTreeOps(space.id, space.id, operations);
+              await appendTreeOps(space.uri, space.id, space.id, operations);
             }
             const secrets = spaceResponse.data.secrets;
             if (secrets && Object.keys(secrets).length > 0) {
-              await saveAllSecrets(space.id, secrets);
+              await saveAllSecrets(space.uri, space.id, secrets);
             }
           }
         } catch (spaceError) {
@@ -166,7 +166,7 @@ export async function getSpaceTreeOps(client: ClientState, spaceId: string, tree
   try {
     const response = await api.get(`/spaces/${spaceId}/${treeId}`, undefined, client);
     if (response.success && response.data) {
-      await appendTreeOps(spaceId, treeId, response.data as any);
+      await appendTreeOps(`${API_BASE_URL}/spaces/${spaceId}`, spaceId, treeId, response.data as any);
       return response.data;
     }
     return [] as any[];

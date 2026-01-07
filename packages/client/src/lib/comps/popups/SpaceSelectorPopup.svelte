@@ -28,12 +28,12 @@
   {/snippet}
   {#snippet content()}
     <div class="flex flex-col gap-1">
-      {#each clientState.pointers as pointer (pointer.id)}
+      {#each clientState.pointers as pointer (pointer.uri)}
         <button
           class="btn btn-sm w-full text-left justify-start"
-          class:preset-filled-secondary-500={pointer.id ===
-            clientState.currentSpaceId}
-          onclick={() => (clientState.switchToSpace(pointer.id))}
+          class:preset-filled-secondary-500={pointer.uri ===
+            clientState.currentSpaceUri}
+          onclick={() => (clientState.switchToSpace(pointer.uri))}
         >
           <span>
             <strong>

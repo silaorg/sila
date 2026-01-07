@@ -9,19 +9,19 @@ export class ThemeStore {
   // It's like colorScheme but the "system" value is resolved to the actual system color scheme.
   actualColorScheme: 'light' | 'dark' = $state('light');
 
-  private currentSpaceId: string | null = null;
+  private currentSpaceUri: string | null = null;
 
   // Load theme and color scheme for the current space
-  async loadSpaceTheme(currentSpaceId: string | null) {
-    this.currentSpaceId = currentSpaceId;
+  async loadSpaceTheme(currentSpaceUri: string | null) {
+    this.currentSpaceUri = currentSpaceUri;
 
-    if (!currentSpaceId) {
+    if (!currentSpaceUri) {
       this.setDefaultTheme();
       return;
     }
 
     try {
-      const spaceSetup = await getSpaceSetup(currentSpaceId);
+      const spaceSetup = await getSpaceSetup(currentSpaceUri);
 
       // Load theme name
       if (spaceSetup?.theme) {
@@ -71,8 +71,8 @@ export class ThemeStore {
     this.themeName = name;
 
     // Save to the current space if available
-    if (this.currentSpaceId) {
-      await saveSpaceTheme(this.currentSpaceId, name);
+    if (this.currentSpaceUri) {
+      await saveSpaceTheme(this.currentSpaceUri, name);
     }
   }
 
@@ -81,8 +81,8 @@ export class ThemeStore {
     this.colorScheme = colorScheme;
 
     // Save to the current space if available
-    if (this.currentSpaceId) {
-      await saveSpaceColorScheme(this.currentSpaceId, colorScheme);
+    if (this.currentSpaceUri) {
+      await saveSpaceColorScheme(this.currentSpaceUri, colorScheme);
     }
   }
 

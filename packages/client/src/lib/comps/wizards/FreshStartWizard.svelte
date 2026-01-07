@@ -43,12 +43,6 @@
       {:else}
         <div class="space-y-6">
           <div class="space-y-3">
-            <img
-              src="/icons/Square310x310Logo.png"
-              alt="Sila"
-              class="w-14 h-14 mx-auto sm:hidden select-none"
-              draggable="false"
-            />
             <h3 class="h3">{i18n.texts.wizards.workspaceTitle}</h3>
             <p>
               {i18n.texts.wizards.workspaceDescription}
