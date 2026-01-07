@@ -9,7 +9,7 @@
   const clientState = useClientState();
   const pointer = $derived(clientState.currentSpaceState?.pointer ?? null);
   const space = $derived(clientState.currentSpace ?? null);
-  const settingsVertex = $derived((space?.getVertexByPath("settings") as Vertex | undefined) ?? null);
+  const rootVertex = $derived((space?.tree.root as Vertex | undefined) ?? null);
 
   let workspaceName = $state("");
   let workspaceDescription = $state("");
@@ -21,7 +21,7 @@
   function applyFromSpace() {
     workspaceName = pointer?.name ?? "";
 
-    const desc = settingsVertex?.getProperty("description");
+    const desc = rootVertex?.getProperty("description");
     workspaceDescription = typeof desc === "string" ? desc : "";
   }
 
@@ -33,18 +33,18 @@
   });
 
   $effect(() => {
-    if (!settingsVertex) return;
+    if (!rootVertex) return;
 
     const apply = () => {
       if (!isEditingDescription) {
-        const desc = settingsVertex.getProperty("description");
+        const desc = rootVertex.getProperty("description");
         workspaceDescription = typeof desc === "string" ? desc : "";
       }
     };
 
     apply();
 
-    const unobserve = settingsVertex.observe((events) => {
+    const unobserve = rootVertex.observe((events) => {
       if (events.some((e) => e.type === "property")) {
         apply();
       }
@@ -84,14 +84,14 @@
   }
 
   function commitDescription() {
-    if (!settingsVertex) return;
+    if (!rootVertex) return;
 
     const next = workspaceDescription.trim();
-    const prev = settingsVertex.getProperty("description");
+    const prev = rootVertex.getProperty("description");
     const prevStr = typeof prev === "string" ? prev : "";
     if (next === prevStr) return;
 
-    settingsVertex.setProperty("description", next);
+    rootVertex.setProperty("description", next);
   }
 
   async function revealWorkspacePath() {
@@ -198,4 +198,3 @@
     </div>
   </div>
 </div>
-

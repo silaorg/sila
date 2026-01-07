@@ -51,7 +51,6 @@ export class Space {
     appConfigs.newChild(Space.getDefaultAppConfig());
     root.newNamedChild("threads");
     root.newNamedChild("providers");
-    root.newNamedChild("settings");
     root.newNamedChild("assets");
 
     return new Space(tree);
@@ -76,38 +75,52 @@ export class Space {
     this.fileResolver = new FileResolver(this);
   }
 
-  getSettingsVertex(): Vertex | undefined {
-    return this.tree.getVertexByPath("settings") as Vertex | undefined;
-  }
-
   get workspaceLanguage(): string | undefined {
-    const settings = this.getSettingsVertex();
-    if (!settings) return undefined;
-    const lang = settings.getProperty("language");
+    const lang = this.rootVertex.getProperty("language");
     return typeof lang === "string" ? lang : undefined;
   }
 
   set workspaceLanguage(language: string | undefined) {
-    const settings = this.getSettingsVertex();
-    if (!settings) return;
     if (!language) {
-      settings.setProperty("language", "");
+      this.rootVertex.setProperty("language", "");
       return;
     }
-    settings.setProperty("language", language);
+    this.rootVertex.setProperty("language", language);
   }
 
   get workspaceDescription(): string | undefined {
-    const settings = this.getSettingsVertex();
-    if (!settings) return undefined;
-    const description = settings.getProperty("description");
+    const description = this.rootVertex.getProperty("description");
     return typeof description === "string" ? description : undefined;
   }
 
   set workspaceDescription(description: string | undefined) {
-    const settings = this.getSettingsVertex();
-    if (!settings) return;
-    settings.setProperty("description", description ?? "");
+    this.rootVertex.setProperty("description", description ?? "");
+  }
+
+  get workspaceTheme(): string | undefined {
+    const theme = this.rootVertex.getProperty("theme");
+    return typeof theme === "string" ? theme : undefined;
+  }
+
+  set workspaceTheme(theme: string | undefined) {
+    if (!theme) {
+      this.rootVertex.setProperty("theme", "");
+      return;
+    }
+    this.rootVertex.setProperty("theme", theme);
+  }
+
+  get workspaceColorScheme(): string | undefined {
+    const scheme = this.rootVertex.getProperty("colorScheme");
+    return typeof scheme === "string" ? scheme : undefined;
+  }
+
+  set workspaceColorScheme(colorScheme: string | undefined) {
+    if (!colorScheme) {
+      this.rootVertex.setProperty("colorScheme", "");
+      return;
+    }
+    this.rootVertex.setProperty("colorScheme", colorScheme);
   }
 
   get fileStore(): FileStore | null {
