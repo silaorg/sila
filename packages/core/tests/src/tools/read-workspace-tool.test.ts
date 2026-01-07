@@ -2,10 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
+import { Space, FileSystemPersistenceLayer, ChatAppData, AgentServices } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolRead } from "../../../src/agents/tools/toolRead";
-import { createWorkspaceProxyFetch } from "../../../src/agents/tools/workspaceProxyFetch";
+import { toolRead } from "../../../src/agents/tools/toolRead";
 
 describe("read tool with workspace-aware file: URIs", () => {
   let tempDir: string;
@@ -33,6 +32,7 @@ describe("read tool with workspace-aware file: URIs", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     const content = "# Hello\nThis is a workspace text file.";
 
@@ -52,13 +52,12 @@ describe("read tool with workspace-aware file: URIs", () => {
       ]
     });
 
-    const fetchForAgent = createWorkspaceProxyFetch(space, chatTree);
-    const readTool = getToolRead(fetchForAgent);
+    const readTool = toolRead.getTool(services, chatTree);
 
     const result = await readTool.handler({ uri: "file:document.md" });
 
-    expect(result).toContain("# Hello");
-    expect(result).toContain("This is a workspace text file.");
+    expect(result.content).toContain("# Hello");
+    expect(result.content).toContain("This is a workspace text file.");
   });
 });
 

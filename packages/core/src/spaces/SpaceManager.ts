@@ -31,8 +31,13 @@ export class SpaceManager {
    * @param space - The space to add
    * @param persistenceLayers - The persistence layers to use for the space
    */
-  async addNewSpace(space: Space, persistenceLayers: PersistenceLayer[]): Promise<void> {
+  async addNewSpace(
+    space: Space,
+    persistenceLayers: PersistenceLayer[],
+    spaceKey?: string,
+  ): Promise<void> {
     const spaceId = space.getId();
+    const key = spaceKey ?? spaceId;
 
     if (persistenceLayers.length > 0) {
       // Connect all layers
@@ -57,10 +62,10 @@ export class SpaceManager {
       this.setupOperationTracking(space, persistenceLayers);
       await this.setupTwoWaySync(space, persistenceLayers);
 
-      this.spaceLayers.set(spaceId, persistenceLayers);
+      this.spaceLayers.set(key, persistenceLayers);
     }
 
-    this.spaces.set(spaceId, space);
+    this.spaces.set(key, space);
   }
 
   /**
@@ -72,9 +77,10 @@ export class SpaceManager {
    */
   async loadSpace(pointer: SpacePointer, persistenceLayers: PersistenceLayer[]): Promise<Space> {
     const spaceId = pointer.id;
+    const key = pointer.uri;
 
     // Check if already loaded
-    const existingSpace = this.spaces.get(spaceId);
+    const existingSpace = this.spaces.get(key);
     if (existingSpace) {
       return existingSpace;
     }
@@ -255,8 +261,8 @@ export class SpaceManager {
     // Set up two-way sync for layers that support it
     await this.setupTwoWaySync(space, persistenceLayers);
 
-    this.spaceLayers.set(spaceId, persistenceLayers);
-    this.spaces.set(spaceId, space);
+    this.spaceLayers.set(key, persistenceLayers);
+    this.spaces.set(key, space);
 
     return space;
   }
@@ -306,7 +312,10 @@ export class SpaceManager {
         }
 
         if (missingOps.length > 0) {
-          if (this.spaces.has(treeId)) {
+          const isSpaceTree = Array.from(this.spaces.values()).some(
+            (space) => space.getId() === treeId,
+          );
+          if (isSpaceTree) {
             console.log(`Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`, missingOps);
           } else {
             console.log(`Saving missing ops for tree ${treeId} to layer: ${layer.id}`, missingOps);
@@ -323,8 +332,8 @@ export class SpaceManager {
   /**
    * Close a space and disconnect its persistence layers
    */
-  async closeSpace(spaceId: string): Promise<void> {
-    const layers = this.spaceLayers.get(spaceId);
+  async closeSpace(spaceKey: string): Promise<void> {
+    const layers = this.spaceLayers.get(spaceKey);
     if (layers) {
       // Stop listening on two-way sync layers
       await Promise.all(
@@ -336,10 +345,10 @@ export class SpaceManager {
       // Disconnect all layers
       await Promise.all(layers.map(layer => layer.disconnect()));
 
-      this.spaceLayers.delete(spaceId);
+      this.spaceLayers.delete(spaceKey);
     }
 
-    this.spaces.delete(spaceId);
+    this.spaces.delete(spaceKey);
   }
 
   /**
@@ -352,24 +361,24 @@ export class SpaceManager {
   /**
    * Get a specific space by ID
    */
-  getSpace(spaceId: string): Space | undefined {
-    return this.spaces.get(spaceId);
+  getSpace(spaceKey: string): Space | undefined {
+    return this.spaces.get(spaceKey);
   }
 
-  getPersistenceLayers(spaceId: string): PersistenceLayer[] | undefined {
-    return this.spaceLayers.get(spaceId);
+  getPersistenceLayers(spaceKey: string): PersistenceLayer[] | undefined {
+    return this.spaceLayers.get(spaceKey);
   }
 
   /**
    * Add a persistence layer to an existing space
    */
-  addPersistenceLayer(spaceId: string, layer: PersistenceLayer): void {
-    const existingLayers = this.spaceLayers.get(spaceId) || [];
-    const space = this.spaces.get(spaceId);
+  addPersistenceLayer(spaceKey: string, layer: PersistenceLayer): void {
+    const existingLayers = this.spaceLayers.get(spaceKey) || [];
+    const space = this.spaces.get(spaceKey);
 
     if (space) {
       const newLayers = [...existingLayers, layer];
-      this.spaceLayers.set(spaceId, newLayers);
+      this.spaceLayers.set(spaceKey, newLayers);
 
       // Set up tracking for the new layer
       this.setupOperationTracking(space, [layer]);
@@ -379,11 +388,11 @@ export class SpaceManager {
   /**
    * Remove a persistence layer from a space
    */
-  removePersistenceLayer(spaceId: string, layerId: string): void {
-    const layers = this.spaceLayers.get(spaceId);
+  removePersistenceLayer(spaceKey: string, layerId: string): void {
+    const layers = this.spaceLayers.get(spaceKey);
     if (layers) {
       const updatedLayers = layers.filter(layer => layer.id !== layerId);
-      this.spaceLayers.set(spaceId, updatedLayers);
+      this.spaceLayers.set(spaceKey, updatedLayers);
 
       // Disconnect the removed layer
       const removedLayer = layers.find(layer => layer.id === layerId);

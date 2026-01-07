@@ -8,10 +8,11 @@ import {
   ChatAppData,
   FilesTreeData,
   createFileStore,
+  AgentServices,
 } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolMove } from "../../../src/agents/tools/toolMove";
-import { getToolLs } from "../../../src/agents/tools/toolLs";
+import { toolMove } from "../../../src/agents/tools/toolMove";
+import { toolLs } from "../../../src/agents/tools/toolLs";
 
 describe("move tool nested workspace paths", () => {
   let tempDir: string;
@@ -40,6 +41,7 @@ describe("move tool nested workspace paths", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create a file in chat under assets/flow
     const content = "flow doc content";
@@ -59,8 +61,8 @@ describe("move tool nested workspace paths", () => {
       fileTarget: { treeId: chatTree.getId(), path: `${ChatAppData.ASSETS_ROOT_PATH}/flow` },
     });
 
-    const moveTool = getToolMove(space, chatTree);
-    const lsWorkspaceTool = getToolLs(space);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsWorkspaceTool = toolLs.getTool(services, chatTree);
 
     // Move from chat assets to nested workspace assets path
     await moveTool.handler({

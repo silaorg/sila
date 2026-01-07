@@ -8,9 +8,10 @@ import {
   ChatAppData,
   FilesTreeData,
   createFileStore,
+  AgentServices,
 } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolLs } from "../../../src/agents/tools/toolLs";
+import { toolLs } from "../../../src/agents/tools/toolLs";
 
 describe("ls tool for workspace/chat files", () => {
   let tempDir: string;
@@ -40,6 +41,7 @@ describe("ls tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     const content = "hello from ls";
     await chatData.newMessage({
@@ -57,7 +59,7 @@ describe("ls tool for workspace/chat files", () => {
       ],
     });
 
-    const lsTool = getToolLs(space, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
     const entries = await lsTool.handler({ uri: "file:" });
 
     const names = (entries as any[]).map((e) => e.name);
@@ -80,6 +82,9 @@ describe("ls tool for workspace/chat files", () => {
       throw new Error("FileStore not available");
     }
 
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const services = new AgentServices(space);
+
     // Workspace assets live under the space root 'assets' vertex
     const assetsRoot = space.getVertexByPath("assets");
     if (!assetsRoot) {
@@ -95,7 +100,7 @@ describe("ls tool for workspace/chat files", () => {
       size: bytes.byteLength,
     });
 
-    const lsTool = getToolLs(space);
+    const lsTool = toolLs.getTool(services, chatTree);
     const entries = await lsTool.handler({ uri: "file:///assets" });
     const names = (entries as any[]).map((e) => e.name);
     expect(names).toContain("brand.md");

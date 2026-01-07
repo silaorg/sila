@@ -28,9 +28,18 @@ export interface ConfigEntry {
   value: unknown;
 }
 
+// Interned space reference: store (spaceUri, spaceId) once and refer to it by numeric id
+export interface SpaceRefRecord {
+  spaceRefId?: number; // autoincremented primary key
+  spaceUri: string;
+  spaceId: string;
+  // Space-scoped UI state (small blobs; 1 record per spaceRef)
+  ttabsLayout?: string | null;
+}
+
 // Individual secret record - matches server schema
 export interface SecretRecord {
-  spaceId: string;
+  spaceRefId: number;
   key: string;
   value: string;
 }
@@ -41,7 +50,7 @@ export interface TreeOperation {
   clock: number;        // The counter/clock value
   peerId: string;       // The peer ID
   treeId: string;       // Tree identifier
-  spaceId: string;      // Space reference
+  spaceRefId: number;   // Interned (spaceUri, spaceId)
 
   // Operation data
   targetId: string;     // Target vertex ID
@@ -56,36 +65,60 @@ export interface TreeOperation {
 
 class LocalDb extends Dexie {
   spaces!: Dexie.Table<SpaceSetup, string>;
+  spaceRefs!: Dexie.Table<SpaceRefRecord, number>;
   config!: Dexie.Table<ConfigEntry, string>;
-  treeOps!: Dexie.Table<TreeOperation, string>; // Primary key is composite
-  secrets!: Dexie.Table<SecretRecord, [string, string]>; // Composite primary key [spaceId, key]
+  treeOps!: Dexie.Table<TreeOperation, [number, string, string, number]>; // [clock, peerId, treeId, spaceRefId]
+  secrets!: Dexie.Table<SecretRecord, [number, string]>; // [spaceRefId, key]
 
   constructor() {
-    super('localDb');
+    super('sila');
 
     this.version(1).stores({
-      spaces: '&id, uri, name, createdAt',
+      // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
+      spaces: '&uri, id, name, createdAt, userId',
+      // Intern mapping: (spaceUri, spaceId) -> spaceRefId (autoincrement)
+      spaceRefs: '++spaceRefId,&[spaceUri+spaceId], spaceUri, spaceId',
       config: '&key',
-      treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [spaceId+treeId+clock]',
-      secrets: '&[spaceId+key], spaceId' // Composite primary key [spaceId+key], indexed by spaceId
-    });
-
-    // Version 2: Add userId to spaces table
-    this.version(2).stores({
-      spaces: '&id, uri, name, createdAt, userId',
-      config: '&key',
-      treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [spaceId+treeId+clock]',
-      secrets: '&[spaceId+key], spaceId'
-    }).upgrade(tx => {
-      // Migration: add userId field to existing spaces (set to null for backward compatibility)
-      return tx.table('spaces').toCollection().modify(space => {
-        space.userId = null;
-      });
+      // Ops are keyed by interned spaceRefId to avoid repeating long URIs on every row.
+      treeOps: '&[clock+peerId+treeId+spaceRefId], spaceRefId, treeId, [spaceRefId+treeId]',
+      // Secrets are keyed by interned spaceRefId.
+      secrets: '&[spaceRefId+key], spaceRefId'
     });
   }
 }
 
 export const db = new LocalDb();
+
+const _spaceRefCache = new Map<string, number>();
+function _spaceRefCacheKey(spaceUri: string, spaceId: string): string {
+  // Stable cache key; not persisted.
+  return `${spaceUri}\u0000${spaceId}`;
+}
+
+async function getSpaceRefId(spaceUri: string, spaceId: string): Promise<number | null> {
+  const cacheKey = _spaceRefCacheKey(spaceUri, spaceId);
+  const cached = _spaceRefCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const existing = await db.spaceRefs
+    .where('[spaceUri+spaceId]')
+    .equals([spaceUri, spaceId])
+    .first();
+  if (!existing?.spaceRefId) return null;
+
+  _spaceRefCache.set(cacheKey, existing.spaceRefId);
+  return existing.spaceRefId;
+}
+
+async function getOrCreateSpaceRefId(spaceUri: string, spaceId: string): Promise<number> {
+  const existing = await getSpaceRefId(spaceUri, spaceId);
+  if (existing !== null) return existing;
+
+  const cacheKey = _spaceRefCacheKey(spaceUri, spaceId);
+  const newId = await db.spaceRefs.add({ spaceUri, spaceId });
+  _spaceRefCache.set(cacheKey, newId);
+  return newId;
+}
 
 // Convert to VertexOperation for RepTree
 function toVertexOperation(op: TreeOperation): VertexOperation {
@@ -108,12 +141,12 @@ function toVertexOperation(op: TreeOperation): VertexOperation {
 }
 
 // Convert from VertexOperation for storage
-function fromVertexOperation(op: VertexOperation, spaceId: string, treeId: string): TreeOperation {
+function fromVertexOperation(op: VertexOperation, spaceRefId: number, treeId: string): TreeOperation {
   const base: Partial<TreeOperation> = {
     clock: op.id.counter,
     peerId: op.id.peerId,
     treeId,
-    spaceId,
+    spaceRefId,
     targetId: op.targetId
   };
 
@@ -181,12 +214,12 @@ export async function getPointersForUser(userId: string | null): Promise<SpacePo
   }
 }
 
-export async function getCurrentSpaceId(): Promise<string | null> {
+export async function getCurrentSpaceUri(): Promise<string | null> {
   try {
-    const entry = await db.config.get('currentSpaceId');
+    const entry = await db.config.get('currentSpaceUri');
     return entry ? entry.value as string : null;
   } catch (error) {
-    console.error('Failed to get currentSpaceId from database:', error);
+    console.error('Failed to get currentSpaceUri from database:', error);
     return null;
   }
 }
@@ -228,12 +261,13 @@ export async function savePointers(pointers: SpacePointer[]): Promise<void> {
     for (const pointer of serializablePointers) {
       try {
         // Check if this space already exists
-        const existingSpace = await db.spaces.get(pointer.id);
+        const existingSpace = await db.spaces.get(pointer.uri);
 
         if (existingSpace) {
           // Update only the pointer fields, preserving other data
-          await db.spaces.update(pointer.id, {
+          await db.spaces.update(pointer.uri, {
             uri: pointer.uri,
+            id: pointer.id,
             name: pointer.name,
             createdAt: pointer.createdAt,
             userId: pointer.userId
@@ -248,7 +282,7 @@ export async function savePointers(pointers: SpacePointer[]): Promise<void> {
           });
         }
       } catch (spaceError) {
-        console.error(`Failed to save space ${pointer.id}:`, spaceError);
+        console.error(`Failed to save space ${pointer.uri}:`, spaceError);
       }
     }
   } catch (error) {
@@ -266,27 +300,27 @@ export async function saveConfig(config: Record<string, unknown>): Promise<void>
   }
 }
 
-export async function saveCurrentSpaceId(id: string | null): Promise<void> {
-  if (id === null) return;
+export async function saveCurrentSpaceUri(uri: string | null): Promise<void> {
+  if (uri === null) return;
 
   try {
-    await db.config.put({ key: 'currentSpaceId', value: id });
+    await db.config.put({ key: 'currentSpaceUri', value: uri });
   } catch (error) {
-    console.error('Failed to save currentSpaceId to database:', error);
+    console.error('Failed to save currentSpaceUri to database:', error);
   }
 }
 
 export async function initializeDatabase(): Promise<{
   pointers: SpacePointer[];
-  currentSpaceId: string | null;
+  currentSpaceUri: string | null;
   config: Record<string, unknown>;
 }> {
   try {
     const pointers = await getAllPointers();
-    const currentSpaceId = await getCurrentSpaceId();
+    const currentSpaceUri = await getCurrentSpaceUri();
     const config = await getAllConfig();
 
-    return { pointers, currentSpaceId, config };
+    return { pointers, currentSpaceUri, config };
   } catch (error) {
     console.error('Failed to initialize database:', error);
 
@@ -299,81 +333,86 @@ export async function initializeDatabase(): Promise<{
       console.error('Failed to recover database:', recoveryError);
     }
 
-    return { pointers: [], currentSpaceId: null, config: {} };
+    return { pointers: [], currentSpaceUri: null, config: {} };
   }
 }
 
 // Get the complete SpaceSetup for a space
-export async function getSpaceSetup(spaceId: string): Promise<SpaceSetup | undefined> {
+export async function getSpaceSetup(spaceUri: string): Promise<SpaceSetup | undefined> {
   try {
-    const space = await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .first();
-
-    return space;
+    return await db.spaces.get(spaceUri);
   } catch (error) {
-    console.error(`Failed to get setup for space ${spaceId}:`, error);
+    console.error(`Failed to get setup for space ${spaceUri}:`, error);
     return undefined;
   }
 }
 
-// Get just the ttabsLayout for a space
-export async function getTtabsLayout(spaceId: string): Promise<string | null | undefined> {
+// Get just the ttabsLayout for a space (keyed by space URI)
+export async function getTtabsLayout(spaceUri: string): Promise<string | null | undefined> {
   try {
-    const space = await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .first();
-    return space?.ttabsLayout;
+    const space = await db.spaces.get(spaceUri);
+    if (!space) return null;
+
+    const spaceRefId = await getSpaceRefId(spaceUri, space.id);
+    if (spaceRefId === null) return null;
+
+    const ref = await db.spaceRefs.get(spaceRefId);
+    return ref?.ttabsLayout ?? null;
   } catch (error) {
-    console.error(`Failed to get ttabsLayout for space ${spaceId}:`, error);
+    console.error(`Failed to get ttabsLayout for space ${spaceUri}:`, error);
     return undefined;
   }
 }
 
-// Save ttabsLayout for a space
-export async function saveTtabsLayout(spaceId: string, layout: string): Promise<void> {
+// Save ttabsLayout for a space (keyed by space URI)
+export async function saveTtabsLayout(spaceUri: string, layout: string): Promise<void> {
   try {
-    // Use modify to update only the specific field without loading the entire object
-    await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .modify({ ttabsLayout: layout });
+    const space = await db.spaces.get(spaceUri);
+    if (!space) return;
+
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, space.id);
+    await db.spaceRefs.update(spaceRefId, { ttabsLayout: layout });
   } catch (error) {
-    console.error(`Failed to save ttabsLayout for space ${spaceId}:`, error);
+    console.error(`Failed to save ttabsLayout for space ${spaceUri}:`, error);
   }
 }
 
 // Get operations for a specific tree
-export async function getTreeOps(spaceId: string, treeId: string): Promise<VertexOperation[]> {
+export async function getTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<VertexOperation[]> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return [];
+
     const treeOps = await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .toArray();
 
     return treeOps.map(toVertexOperation);
   } catch (error) {
-    console.error(`Failed to get ops for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to get ops for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
     return [];
   }
 }
 
-export async function appendTreeOps(spaceId: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
+export async function appendTreeOps(spaceUri: string, spaceId: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
   if (ops.length === 0) return;
 
-  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceId, treeId));
+  const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
+  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceRefId, treeId));
 
   // Use bulkPut to store operations
   await db.treeOps.bulkPut(treeOpsEntries);
 }
 
-export async function getAllSpaceTreeOps(spaceId: string): Promise<Map<string, VertexOperation[]>> {
+export async function getAllSpaceTreeOps(spaceUri: string, spaceId: string): Promise<Map<string, VertexOperation[]>> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return new Map();
+
     const treeOps = await db.treeOps
-      .where('spaceId')
-      .equals(spaceId)
+      .where('spaceRefId')
+      .equals(spaceRefId)
       .toArray();
 
     const treeOpsMap = new Map<string, VertexOperation[]>();
@@ -387,107 +426,121 @@ export async function getAllSpaceTreeOps(spaceId: string): Promise<Map<string, V
 
     return treeOpsMap;
   } catch (error) {
-    console.error(`Failed to get all tree ops for space ${spaceId}:`, error);
+    console.error(`Failed to get all tree ops for space ${spaceUri} (${spaceId}):`, error);
     return new Map();
   }
 }
 
-export async function deleteTreeOps(spaceId: string, treeId: string): Promise<void> {
+export async function deleteTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<void> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return;
+
     await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
-export async function getTreeOpCount(spaceId: string, treeId: string): Promise<number> {
+export async function getTreeOpCount(spaceUri: string, spaceId: string, treeId: string): Promise<number> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return 0;
+
     return await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .count();
   } catch (error) {
-    console.error(`Failed to get op count for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to get op count for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
     return 0;
   }
 }
 
 // Save theme for a space
-export async function saveSpaceTheme(spaceId: string, theme: string): Promise<void> {
+export async function saveSpaceTheme(spaceUri: string, theme: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify({ theme: theme });
   } catch (error) {
-    console.error(`Failed to save theme for space ${spaceId}:`, error);
+    console.error(`Failed to save theme for space ${spaceUri}:`, error);
   }
 }
 
 // Save color scheme for a space
-export async function saveSpaceColorScheme(spaceId: string, colorScheme: 'system' | 'light' | 'dark'): Promise<void> {
+export async function saveSpaceColorScheme(spaceUri: string, colorScheme: 'system' | 'light' | 'dark'): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify({ colorScheme: colorScheme });
   } catch (error) {
-    console.error(`Failed to save color scheme for space ${spaceId}:`, error);
+    console.error(`Failed to save color scheme for space ${spaceUri}:`, error);
   }
 }
 
 // Delete a space from the database
-export async function deleteSpace(spaceId: string): Promise<void> {
+export async function deleteSpace(spaceUri: string): Promise<void> {
   try {
-    await db.transaction('rw', [db.spaces, db.treeOps, db.secrets, db.config], async () => {
-      // Delete all operations for this space
-      await db.treeOps
-        .where('spaceId')
-        .equals(spaceId)
-        .delete();
+    let spaceIdsToClearCache: string[] = [];
+    await db.transaction('rw', [db.spaces, db.spaceRefs, db.treeOps, db.secrets, db.config], async () => {
+      const refs = await db.spaceRefs.where('spaceUri').equals(spaceUri).toArray();
+      spaceIdsToClearCache = refs.map(r => r.spaceId);
+      const refIds = refs
+        .map(r => r.spaceRefId)
+        .filter((v): v is number => typeof v === "number");
 
-      // Delete all secrets for this space
-      await db.secrets
-        .where('spaceId')
-        .equals(spaceId)
-        .delete();
+      if (refIds.length > 0) {
+        await db.treeOps.where('spaceRefId').anyOf(refIds).delete();
+        await db.secrets.where('spaceRefId').anyOf(refIds).delete();
+      }
+
+      // Delete interned refs for this URI
+      await db.spaceRefs.where('spaceUri').equals(spaceUri).delete();
 
       // Delete the space from the spaces table
-      await db.spaces.delete(spaceId);
+      await db.spaces.delete(spaceUri);
 
       // Check if this was the current space and clear it if so
-      const currentId = await getCurrentSpaceId();
-      if (currentId === spaceId) {
-        await db.config.delete('currentSpaceId');
+      const currentUri = await getCurrentSpaceUri();
+      if (currentUri === spaceUri) {
+        await db.config.delete('currentSpaceUri');
       }
     });
 
-    console.log(`Space ${spaceId} deleted from database`);
+    // Clear in-memory cache entries for this URI (best-effort; not persisted)
+    for (const spaceId of spaceIdsToClearCache) {
+      _spaceRefCache.delete(_spaceRefCacheKey(spaceUri, spaceId));
+    }
+
+    console.log(`Space ${spaceUri} deleted from database`);
   } catch (error) {
-    console.error(`Failed to delete space ${spaceId} from database:`, error);
+    console.error(`Failed to delete space ${spaceUri} from database:`, error);
   }
 }
 
 // Get a draft for a space and draftId
-export async function getDraft(spaceId: string, draftId: string): Promise<string | undefined> {
+export async function getDraft(spaceUri: string, draftId: string): Promise<string | undefined> {
   try {
-    const space = await db.spaces.get(spaceId);
+    const space = await db.spaces.get(spaceUri);
     return space?.drafts?.[draftId];
   } catch (error) {
-    console.error(`Failed to get draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to get draft for space ${spaceUri} and draftId ${draftId}:`, error);
     return undefined;
   }
 }
 
 // Save a draft for a space
-export async function saveDraft(spaceId: string, draftId: string, content: string): Promise<void> {
+export async function saveDraft(spaceUri: string, draftId: string, content: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify((space) => {
         if (!space.drafts) {
           space.drafts = {};
@@ -495,32 +548,35 @@ export async function saveDraft(spaceId: string, draftId: string, content: strin
         space.drafts[draftId] = content;
       });
   } catch (error) {
-    console.error(`Failed to save draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to save draft for space ${spaceUri} and draftId ${draftId}:`, error);
   }
 }
 
 // Delete a draft for a space
-export async function deleteDraft(spaceId: string, draftId: string): Promise<void> {
+export async function deleteDraft(spaceUri: string, draftId: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify((space) => {
         if (space.drafts && space.drafts[draftId]) {
           delete space.drafts[draftId];
         }
       });
   } catch (error) {
-    console.error(`Failed to delete draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to delete draft for space ${spaceUri} and draftId ${draftId}:`, error);
   }
 }
 
 // Get all secrets for a space
-export async function getAllSecrets(spaceId: string): Promise<Record<string, string> | undefined> {
+export async function getAllSecrets(spaceUri: string, spaceId: string): Promise<Record<string, string> | undefined> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return undefined;
+
     const secretRecords = await db.secrets
-      .where('spaceId')
-      .equals(spaceId)
+      .where('spaceRefId')
+      .equals(spaceRefId)
       .toArray();
 
     if (secretRecords.length === 0) {
@@ -534,64 +590,72 @@ export async function getAllSecrets(spaceId: string): Promise<Record<string, str
 
     return secrets;
   } catch (error) {
-    console.error(`Failed to get all secrets for space ${spaceId}:`, error);
+    console.error(`Failed to get all secrets for space ${spaceUri} (${spaceId}):`, error);
     return undefined;
   }
 }
 
 // Save all secrets for a space
-export async function saveAllSecrets(spaceId: string, secrets: Record<string, string>): Promise<void> {
+export async function saveAllSecrets(spaceUri: string, spaceId: string, secrets: Record<string, string>): Promise<void> {
   try {
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
     const secretRecords: SecretRecord[] = Object.entries(secrets).map(([key, value]) => ({
-      spaceId,
+      spaceRefId,
       key,
-      value
+      value,
     }));
 
     // Use bulkPut to insert/update all secrets
     await db.secrets.bulkPut(secretRecords);
   } catch (error) {
-    console.error(`Failed to save all secrets for space ${spaceId}:`, error);
+    console.error(`Failed to save all secrets for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
 // Get a specific secret for a space
-export async function getSecret(spaceId: string, key: string): Promise<string | undefined> {
+export async function getSecret(spaceUri: string, spaceId: string, key: string): Promise<string | undefined> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return undefined;
+
     const secretRecord = await db.secrets
-      .where('[spaceId+key]')
-      .equals([spaceId, key])
+      .where('[spaceRefId+key]')
+      .equals([spaceRefId, key])
       .first();
 
     return secretRecord?.value;
   } catch (error) {
-    console.error(`Failed to get secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to get secret ${key} for space ${spaceUri} (${spaceId}):`, error);
     return undefined;
   }
 }
 
 // Set a specific secret for a space
-export async function setSecret(spaceId: string, key: string, value: string): Promise<void> {
+export async function setSecret(spaceUri: string, spaceId: string, key: string, value: string): Promise<void> {
   try {
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
     await db.secrets.put({
-      spaceId,
+      spaceRefId,
       key,
       value
     });
   } catch (error) {
-    console.error(`Failed to set secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to set secret ${key} for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
 // Delete a specific secret for a space
-export async function deleteSecret(spaceId: string, key: string): Promise<void> {
+export async function deleteSecret(spaceUri: string, spaceId: string, key: string): Promise<void> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return;
+
     await db.secrets
-      .where('[spaceId+key]')
-      .equals([spaceId, key])
+      .where('[spaceRefId+key]')
+      .equals([spaceRefId, key])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to delete secret ${key} for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 

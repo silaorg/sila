@@ -7,11 +7,12 @@ import {
   FileSystemPersistenceLayer,
   ChatAppData,
   createFileStore,
+  AgentServices,
 } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolMkdir } from "../../../src/agents/tools/toolMkdir";
-import { getToolRm } from "../../../src/agents/tools/toolRm";
-import { getToolLs } from "../../../src/agents/tools/toolLs";
+import { toolMkdir } from "../../../src/agents/tools/toolMkdir";
+import { toolRm } from "../../../src/agents/tools/toolRm";
+import { toolLs } from "../../../src/agents/tools/toolLs";
 
 describe("mkdir and rm tools for workspace/chat files", () => {
   let tempDir: string;
@@ -40,10 +41,11 @@ describe("mkdir and rm tools for workspace/chat files", () => {
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
     void chatData; // currently unused, but future tests may use it
+    const services = new AgentServices(space);
 
-    const mkdirTool = getToolMkdir(space, chatTree);
-    const rmTool = getToolRm(space, chatTree);
-    const lsTool = getToolLs(space, chatTree);
+    const mkdirTool = toolMkdir.getTool(services, chatTree);
+    const rmTool = toolRm.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     await mkdirTool.handler({ uri: "file:notes/projects" });
     const afterMkdir = await lsTool.handler({ uri: "file:" });
@@ -72,9 +74,12 @@ describe("mkdir and rm tools for workspace/chat files", () => {
       throw new Error("FileStore not available");
     }
 
-    const mkdirTool = getToolMkdir(space);
-    const rmTool = getToolRm(space);
-    const lsTool = getToolLs(space);
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const services = new AgentServices(space);
+
+    const mkdirTool = toolMkdir.getTool(services, chatTree);
+    const rmTool = toolRm.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     // Create a folder under workspace assets
     await mkdirTool.handler({ uri: "file:///assets/docs" });

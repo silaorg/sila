@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { FileSystemPersistenceLayer, Space } from "@sila/core";
+import { FileSystemPersistenceLayer, Space, ChatAppData, AgentServices } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolWriteToFile } from "../../../src/agents/tools/toolWriteToFile";
-import { getToolSearchReplacePatch } from "../../../src/agents/tools/toolSearchReplacePatch";
+import { toolWriteToFile } from "../../../src/agents/tools/toolWriteToFile";
+import { toolSearchReplacePatch } from "../../../src/agents/tools/toolSearchReplacePatch";
 
 const decoder = new TextDecoder();
 
@@ -32,8 +32,10 @@ describe("apply_search_replace_patch tool", () => {
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
     }
 
-    const writeTool = getToolWriteToFile(space);
-    const patchTool = getToolSearchReplacePatch(space);
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const services = new AgentServices(space);
+    const writeTool = toolWriteToFile.getTool(services, chatTree);
+    const patchTool = toolSearchReplacePatch.getTool(services, chatTree);
 
     await writeTool.handler({
       path: "file:///assets/example.txt",
@@ -72,7 +74,9 @@ updated line2
       space.setFileStoreProvider((layer as any).getFileStoreProvider());
     }
 
-    const patchTool = getToolSearchReplacePatch(space);
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const services = new AgentServices(space);
+    const patchTool = toolSearchReplacePatch.getTool(services, chatTree);
 
     const patch = `file:///assets/newfile.md
 <<<<<<< SEARCH

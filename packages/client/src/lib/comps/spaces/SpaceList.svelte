@@ -10,8 +10,8 @@
   let renamingPopupOpen = $state(false);
   let spaceToRename = $state<SpacePointer | null>(null);
 
-  function selectSpace(spaceId: string) {
-    clientState.switchToSpace(spaceId);
+  function selectSpace(space: SpacePointer) {
+    clientState.switchToSpace(space.uri);
   }
 
   function handleRename(newName: string) {
@@ -19,10 +19,12 @@
       return;
     }
 
-    clientState.updateSpaceName(spaceToRename.id, newName);
+    clientState.updateSpaceName(spaceToRename.uri, newName);
 
     const updatedPointers = clientState.pointers.map((space) =>
-      space.id === spaceToRename?.id ? { ...space, name: newName } : space,
+      space.uri === spaceToRename.uri
+        ? { ...space, name: newName }
+        : space,
     );
     clientState.pointers = updatedPointers;
     spaceToRename = null;
@@ -34,7 +36,7 @@
   }
 
   function handleRemoveSpace(space: SpacePointer) {
-    clientState.removeSpace(space.id);
+    clientState.removeSpace(space.uri);
     // So if we access the list from swins - close it
     clientState.layout.swins.pop();
   }
@@ -42,22 +44,22 @@
 
 {#if clientState.pointers.length > 0}
   <div class="space-y-2">
-    {#each clientState.pointers as space (space.id)}
+    {#each clientState.pointers as space (space.uri)}
       <div
-        class="p-2 rounded bg-surface-200-800-token border {space.id ===
-        clientState.currentSpaceId
+        class="p-2 rounded bg-surface-200-800-token border {space.uri ===
+        clientState.currentSpaceUri
           ? 'border-primary-500'
           : 'border-surface-100-900'} flex items-center gap-3"
       >
         <!-- Radio Icon -->
         <div 
           class="flex-shrink-0 cursor-pointer hover:bg-surface-300-600-token rounded p-1 -m-1"
-          onclick={() => selectSpace(space.id)}
-          onkeydown={(e) => e.key === "Enter" && selectSpace(space.id)}
+          onclick={() => selectSpace(space)}
+          onkeydown={(e) => e.key === "Enter" && selectSpace(space)}
           role="button"
           tabindex="0"
         >
-          {#if space.id === clientState.currentSpaceId}
+          {#if space.uri === clientState.currentSpaceUri}
             <CircleCheckBig size={20} class="text-primary-500" />
           {:else}
             <Circle size={20} class="text-surface-500" />
@@ -66,8 +68,8 @@
 
         <!-- Clickable Title/Subtitle Area -->
         <div
-          onclick={() => selectSpace(space.id)}
-          onkeydown={(e) => e.key === "Enter" && selectSpace(space.id)}
+          onclick={() => selectSpace(space)}
+          onkeydown={(e) => e.key === "Enter" && selectSpace(space)}
           role="button"
           tabindex="0"
           class="flex-grow cursor-pointer hover:bg-surface-300-600-token rounded px-2 py-1 -mx-2 -my-1 ph-no-capture"
