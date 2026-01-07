@@ -43,6 +43,7 @@ function buildReadInstructions(): string {
     `- By default it returns up to ${DEFAULT_MAX_CHARS} characters.`,
     "- If the result has `truncated=true`, call `read` again with the same `uri` and `cursor=next_cursor` to continue.",
     "- Stop when `truncated=false`.",
+    "- If you pass a `cursor` that has expired or can't be applied, the response may restart from the beginning and will include `cursor_reset=true` with a reason.",
     "- Prefer reading only what you need to answer the user."
   ].join("\n");
 }
@@ -82,12 +83,29 @@ export const toolRead: AgentTool = {
           throw new Error("Invalid URI, needs to start with a scheme, such as https://");
         }
 
+        const cursorMeta: {
+          cursor_provided?: boolean;
+          cursor_used?: boolean;
+          cursor_reset?: boolean;
+          cursor_reason?: string;
+        } = cursorRaw ? { cursor_provided: true } : {};
+
+        let desiredOffsetFromCursor: number | null = null;
+        let desiredCacheKeyFromCursor: string | null = null;
+
         // Fast-path: if we have a valid cursor and cache entry, paginate without refetching/reparsing.
         if (cursorRaw) {
           const cursor = decodeCursor(cursorRaw);
-          if (cursor && cursor.uri === uri) {
+          if (!cursor) {
+            cursorMeta.cursor_reset = true;
+            cursorMeta.cursor_reason = "cursor_invalid";
+          } else if (cursor.uri !== uri) {
+            cursorMeta.cursor_reset = true;
+            cursorMeta.cursor_reason = "cursor_uri_mismatch";
+          } else {
             const cached = getCached(cursor.cacheKey, now);
             if (cached) {
+              cursorMeta.cursor_used = true;
               return paginateResult({
                 uri,
                 kind: cached.kind,
@@ -96,12 +114,17 @@ export const toolRead: AgentTool = {
                 offset: cursor.offset,
                 maxChars,
                 cacheKey: cached.cacheKey,
+                meta: cursorMeta,
               });
             }
+
+            // Cache miss (expired/evicted). We'll refetch and try to apply the cursor offset if the cacheKey matches.
+            desiredOffsetFromCursor = cursor.offset;
+            desiredCacheKeyFromCursor = cursor.cacheKey;
           }
         }
 
-        // Cache miss (or cursor invalid/expired): fetch and extract, then paginate from the start.
+        // Cache miss (or cursor invalid/expired): fetch and extract, then paginate.
         const res = await fetchImpl(uri);
         if (!res.ok) {
           throw new Error(`Failed to fetch URL: ${res.status} ${res.statusText}`);
@@ -129,14 +152,32 @@ export const toolRead: AgentTool = {
           now
         );
 
+        let offset = 0;
+        if (desiredCacheKeyFromCursor) {
+          if (desiredCacheKeyFromCursor === cacheKey) {
+            // The resource identity (uri + representation + etag/last-modified) matches; honor the cursor offset.
+            offset = desiredOffsetFromCursor ?? 0;
+            cursorMeta.cursor_used = true;
+            cursorMeta.cursor_reset = false;
+            cursorMeta.cursor_reason = "cache_miss_recovered";
+          } else {
+            // Cursor can't be safely applied (resource changed or validation differs). Restart from the beginning and signal it.
+            cursorMeta.cursor_reset = true;
+            cursorMeta.cursor_reason = "cache_miss_restart";
+          }
+        } else if (cursorRaw && cursorMeta.cursor_reset) {
+          // invalid cursor / mismatch already marked; keep restart-at-0 metadata
+        }
+
         return paginateResult({
           uri,
           kind,
           contentType,
           fullText: text,
-          offset: 0,
+          offset,
           maxChars,
           cacheKey,
+          meta: cursorMeta,
         });
       }
     };
@@ -185,6 +226,7 @@ function paginateResult(opts: {
   offset: number;
   maxChars: number;
   cacheKey: string;
+  meta?: Record<string, unknown>;
 }): {
   uri: string;
   content: string;
@@ -192,8 +234,9 @@ function paginateResult(opts: {
   next_cursor?: string;
   kind?: ReadKind;
   content_type?: string;
+  [k: string]: unknown;
 } {
-  const { uri, kind, contentType, fullText, offset, maxChars, cacheKey } = opts;
+  const { uri, kind, contentType, fullText, offset, maxChars, cacheKey, meta } = opts;
   const safeOffset = Math.max(0, Math.min(offset, fullText.length));
   const end = Math.min(fullText.length, safeOffset + maxChars);
   const content = fullText.slice(safeOffset, end);
@@ -208,6 +251,7 @@ function paginateResult(opts: {
       : undefined,
     kind,
     content_type: contentType || undefined,
+    ...(meta ?? {}),
   };
 }
 
