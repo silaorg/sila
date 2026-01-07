@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import type { ModelProvider, ModelProviderConfig } from "@sila/core";
   import { getProviderModels } from "@sila/core";
+  import { ProviderType } from "@sila/core";
   import { i18n } from "@sila/client";
 
   let {
@@ -27,6 +28,10 @@
   const isCustomProvider = $derived(provider.isCustom === true);
   // Check if this is OpenRouter provider
   const isOpenRouterProvider = $derived(provider.id === "openrouter");
+  // This card is for selecting chat language models; non-language providers are not selectable here.
+  const isLanguageProvider = $derived(
+    (provider.type ?? ProviderType.Language) === ProviderType.Language,
+  );
   // For custom providers, get the model ID from the config
   const customModelId = $derived(isCustomProvider && 'modelId' in config ? config.modelId as string : null);
 
@@ -46,6 +51,9 @@
   });
 
   function onProviderClick() {
+    if (!isLanguageProvider) {
+      return;
+    }
     if (selected) {
       return;
     }
@@ -110,9 +118,13 @@
   <div
     role="button"
     tabindex="0"
-    class="flex p-2 gap-4 items-center cursor-pointer w-full"
+    aria-disabled={!isLanguageProvider}
+    class="flex p-2 gap-4 items-center w-full {isLanguageProvider ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}"
     onclick={onProviderClick}
-    onkeydown={(e) => e.key === "Enter" && onProviderClick()}
+    onkeydown={(e) => {
+      if (!isLanguageProvider) return;
+      if (e.key === "Enter") onProviderClick();
+    }}
   >
     <div class="w-8 h-8 bg-white flex items-center justify-center rounded">
       <img class="w-5/6" src={provider.logoUrl} alt={provider.name} />

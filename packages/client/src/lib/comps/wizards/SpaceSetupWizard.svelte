@@ -36,7 +36,7 @@
   function getEffectiveProviderType(providerId: string): ProviderType {
     const provider = builtInProviders.find((p) => p.id === providerId);
     // Anything unknown (e.g. custom providers) defaults to AI
-    return provider?.type ?? ProviderType.AI;
+    return provider?.type ?? ProviderType.Language;
   }
 
   $effect(() => {
@@ -48,7 +48,7 @@
           .filter((id): id is string => typeof id === "string");
 
         hasSetupProvider = configuredProviderIds.some(
-          (id) => getEffectiveProviderType(id) === ProviderType.AI,
+          (id) => getEffectiveProviderType(id) === ProviderType.Language,
         );
         hasSetupSearchProvider = configuredProviderIds.some(
           (id) => getEffectiveProviderType(id) === ProviderType.Search,
@@ -173,7 +173,7 @@
       </p>
 
       <div class="overflow-y-auto pr-2">
-        <ModelProviders onConnect={handleProviderConnect} providerType={ProviderType.AI} />
+        <ModelProviders onConnect={handleProviderConnect} providerType={ProviderType.Language} />
       </div>
     {:else if currentStep === 1}
       <!-- Step 3: Search Provider (optional) -->

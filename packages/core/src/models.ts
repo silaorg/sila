@@ -35,7 +35,8 @@ export interface AppConfig {
 }
 
 export enum ProviderType {
-  AI, 
+  Language,
+  VizGen, 
   Search
 }
 

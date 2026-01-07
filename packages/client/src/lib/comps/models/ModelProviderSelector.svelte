@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ModelProvider, ModelProviderConfig } from "@sila/core";
+  import { ProviderType, type ModelProvider, type ModelProviderConfig } from "@sila/core";
   import { onMount } from "svelte";
   import ModelSelectCard from "./ModelSelectCard.svelte";
   import AutoModelSelectCard from "./AutoModelSelectCard.svelte";
@@ -41,6 +41,9 @@
 
     // Process all providers
     setupProviders = allProviders
+      // Only language providers can be selected as chat models.
+      // This prevents non-language providers like Fal.ai (VizGen) or Exa (Search) from showing up here.
+      .filter((provider) => (provider.type ?? ProviderType.Language) === ProviderType.Language)
       .map((provider) => {
         // For custom providers, config should already exist in the configs array
         // because custom providers are saved as provider configs
