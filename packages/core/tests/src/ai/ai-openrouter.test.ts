@@ -267,6 +267,9 @@ describe('OpenRouter AI Integration', () => {
 
     // Test the AgentServices directly to verify auto model resolution
     const { AgentServices } = await import('@sila/core');
+    const { providers } = await import('@sila/core');
+    const openrouterDefault = providers.find(p => p.id === 'openrouter')?.defaultModel;
+    expect(openrouterDefault).toBeTruthy();
     const agentServices = new AgentServices(space);
 
     // Test getMostCapableModel with OpenRouter
@@ -274,7 +277,7 @@ describe('OpenRouter AI Integration', () => {
     
     expect(mostCapableModel).not.toBeNull();
     expect(mostCapableModel?.provider).toBe('openrouter');
-    expect(mostCapableModel?.model).toBe('openai/gpt-4o'); // Should use the default model
+    expect(mostCapableModel?.model).toBe(openrouterDefault); // Should use the default model
 
     console.log('Most capable model resolved to:', mostCapableModel);
 
@@ -285,7 +288,7 @@ describe('OpenRouter AI Integration', () => {
     const lastResolved = agentServices.getLastResolvedModel();
     expect(lastResolved).not.toBeNull();
     expect(lastResolved?.provider).toBe('openrouter');
-    expect(lastResolved?.model).toBe('openai/gpt-4o');
+    expect(lastResolved?.model).toBe(openrouterDefault);
 
     console.log('Last resolved model:', lastResolved);
   }, 10000);
@@ -315,6 +318,9 @@ describe('OpenRouter AI Integration', () => {
 
     // Test the AgentServices directly to verify openrouter/auto resolution
     const { AgentServices } = await import('@sila/core');
+    const { providers } = await import('@sila/core');
+    const openrouterDefault = providers.find(p => p.id === 'openrouter')?.defaultModel;
+    expect(openrouterDefault).toBeTruthy();
     const agentServices = new AgentServices(space);
 
     // Test lang() method with "openrouter/auto"
@@ -324,7 +330,7 @@ describe('OpenRouter AI Integration', () => {
     const lastResolved = agentServices.getLastResolvedModel();
     expect(lastResolved).not.toBeNull();
     expect(lastResolved?.provider).toBe('openrouter');
-    expect(lastResolved?.model).toBe('openai/gpt-4o'); // Should use the default model
+    expect(lastResolved?.model).toBe(openrouterDefault); // Should use the default model
 
     console.log('OpenRouter/auto resolved to:', lastResolved);
   }, 10000);

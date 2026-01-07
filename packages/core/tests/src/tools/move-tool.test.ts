@@ -8,11 +8,12 @@ import {
   ChatAppData,
   FilesTreeData,
   createFileStore,
+  AgentServices,
 } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolMove } from "../../../src/agents/tools/toolMove";
-import { getToolLs } from "../../../src/agents/tools/toolLs";
-import { getToolMkdir } from "../../../src/agents/tools/toolMkdir";
+import { toolMove } from "../../../src/agents/tools/toolMove";
+import { toolLs } from "../../../src/agents/tools/toolLs";
+import { toolMkdir } from "../../../src/agents/tools/toolMkdir";
 
 describe("move tool for workspace/chat files", () => {
   let tempDir: string;
@@ -41,6 +42,7 @@ describe("move tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create a file in chat
     const content = "test content";
@@ -60,12 +62,12 @@ describe("move tool for workspace/chat files", () => {
     });
 
     // Create a folder
-    const mkdirTool = getToolMkdir(space, chatTree);
+    const mkdirTool = toolMkdir.getTool(services, chatTree);
     await mkdirTool.handler({ uri: "file:archive" });
 
     // Move the file into the folder
-    const moveTool = getToolMove(space, chatTree);
-    const lsTool = getToolLs(space, chatTree);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     await moveTool.handler({
       source: "file:document.md",
@@ -99,6 +101,9 @@ describe("move tool for workspace/chat files", () => {
       throw new Error("FileStore not available");
     }
 
+    const chatTree = ChatAppData.createNewChatTree(space, "test-config");
+    const services = new AgentServices(space);
+
     // Create a file in workspace assets
     const assetsRoot = space.getVertexByPath("assets");
     if (!assetsRoot) {
@@ -115,12 +120,12 @@ describe("move tool for workspace/chat files", () => {
     });
 
     // Create a folder
-    const mkdirTool = getToolMkdir(space);
+    const mkdirTool = toolMkdir.getTool(services, chatTree);
     await mkdirTool.handler({ uri: "file:///assets/docs" });
 
     // Move the file into the folder
-    const moveTool = getToolMove(space);
-    const lsTool = getToolLs(space);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     await moveTool.handler({
       source: "file:///assets/workspace-file.md",
@@ -152,6 +157,7 @@ describe("move tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create a file in chat
     const content = "chat file content";
@@ -170,9 +176,9 @@ describe("move tool for workspace/chat files", () => {
       ],
     });
 
-    const moveTool = getToolMove(space, chatTree);
-    const lsTool = getToolLs(space, chatTree);
-    const lsWorkspaceTool = getToolLs(space);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
+    const lsWorkspaceTool = toolLs.getTool(services, chatTree);
 
     // Move from chat to workspace
     await moveTool.handler({
@@ -225,10 +231,11 @@ describe("move tool for workspace/chat files", () => {
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
     void chatData; // unused but needed for setup
+    const services = new AgentServices(space);
 
-    const moveTool = getToolMove(space, chatTree);
-    const lsTool = getToolLs(space, chatTree);
-    const lsWorkspaceTool = getToolLs(space);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
+    const lsWorkspaceTool = toolLs.getTool(services, chatTree);
 
     // Move from workspace to chat
     await moveTool.handler({
@@ -261,9 +268,10 @@ describe("move tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create a folder with a file
-    const mkdirTool = getToolMkdir(space, chatTree);
+    const mkdirTool = toolMkdir.getTool(services, chatTree);
     await mkdirTool.handler({ uri: "file:source" });
 
     const content = "nested file content";
@@ -283,7 +291,7 @@ describe("move tool for workspace/chat files", () => {
     });
 
     // Move the file into source folder first
-    const moveTool = getToolMove(space, chatTree);
+    const moveTool = toolMove.getTool(services, chatTree);
     await moveTool.handler({
       source: "file:nested.md",
       destination: "file:source",
@@ -298,7 +306,7 @@ describe("move tool for workspace/chat files", () => {
       destination: "file:destination",
     });
 
-    const lsTool = getToolLs(space, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     // Verify source folder is in destination
     const destEntries = await lsTool.handler({ uri: "file:destination" });
@@ -330,6 +338,7 @@ describe("move tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create a file
     const content = "original file";
@@ -348,8 +357,8 @@ describe("move tool for workspace/chat files", () => {
       ],
     });
 
-    const moveTool = getToolMove(space, chatTree);
-    const lsTool = getToolLs(space, chatTree);
+    const moveTool = toolMove.getTool(services, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
 
     // Move and rename
     await moveTool.handler({
@@ -378,8 +387,9 @@ describe("move tool for workspace/chat files", () => {
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
     void chatData;
+    const services = new AgentServices(space);
 
-    const moveTool = getToolMove(space, chatTree);
+    const moveTool = toolMove.getTool(services, chatTree);
 
     await expect(
       moveTool.handler({
@@ -403,6 +413,7 @@ describe("move tool for workspace/chat files", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Create two files
     const content1 = "file 1";
@@ -437,7 +448,7 @@ describe("move tool for workspace/chat files", () => {
       ],
     });
 
-    const moveTool = getToolMove(space, chatTree);
+    const moveTool = toolMove.getTool(services, chatTree);
 
     await expect(
       moveTool.handler({

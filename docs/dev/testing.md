@@ -41,6 +41,17 @@ npm -w packages/workbench run test
 npm -w packages/workbench run test:ui
 ```
 
+#### Playwright browser install (required once per machine/CI image)
+Playwright tests need a browser binary (Chromium) downloaded locally.
+
+```bash
+# Local dev (Chromium only)
+npx playwright install chromium
+
+# CI / Linux runners (installs Chromium + OS deps)
+npx playwright install --with-deps chromium
+```
+
 ## AI provider keys (optional)
 Some tests use AI providers. Add API keys to enable them; tests auto-skip without keys.
 
@@ -61,5 +72,9 @@ packages/core/tests/assets/to-send/
   ```bash
   npm install --ignore-scripts
   npm -w packages/core run test
+  ```
+- If Playwright fails with "Executable doesn't exist ... run `npx playwright install`":
+  ```bash
+  npx playwright install chromium
   ```
 - AI tests without keys are expected to skip.

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, readFile, access } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
+import { Space, FileSystemPersistenceLayer, ChatAppData, AgentServices } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolGenerateVideo } from "../../../src/agents/tools/toolGenerateVideo";
-import { getToolLs } from "../../../src/agents/tools/toolLs";
+import { toolGenerateVideo } from "../../../src/agents/tools/toolGenerateVideo";
+import { toolLs } from "../../../src/agents/tools/toolLs";
 
 const testInputDir = path.join(__dirname, "test-input");
 
@@ -81,6 +81,7 @@ describe("generate_video tool", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     // Convert local image to data URL and add as attachment
     const image1DataUrl = await imageFileToDataUrl(image1Path);
@@ -103,13 +104,13 @@ describe("generate_video tool", () => {
     });
 
     // Verify the image file exists
-    const lsTool = getToolLs(space, chatTree);
+    const lsTool = toolLs.getTool(services, chatTree);
     const entries = await lsTool.handler({ uri: "file:" });
     const names = (entries as any[]).map((e) => e.name);
     expect(names).toContain("1.jpg");
 
     // Get the generate_video tool and call it
-    const generateVideoTool = getToolGenerateVideo(space, chatTree);
+    const generateVideoTool = toolGenerateVideo.getTool(services, chatTree);
     
     // Find the test image file path
     const image1Entry = (entries as any[]).find((e) => e.name === "1.jpg");

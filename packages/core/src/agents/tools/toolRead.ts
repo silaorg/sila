@@ -206,16 +206,25 @@ async function extractReadableText(opts: {
   }
 
   // Plain text
-  if (contentType.startsWith("text/plain")) {
+  if (
+    contentType.startsWith("text/") &&
+    !contentType.includes("html") &&
+    !contentType.includes("xml")
+  ) {
     return { kind: "text", text: await res.text() };
   }
 
   // HTML-ish (fallback)
   const html = await res.text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const defuddle = new Defuddle(doc, { url: uri, separateMarkdown: true });
-  const parsed = defuddle.parse();
-  return { kind: "html", text: parsed.contentMarkdown || parsed.content || "" };
+  if (typeof (globalThis as any).DOMParser !== "undefined") {
+    const doc = new (globalThis as any).DOMParser().parseFromString(html, "text/html");
+    const defuddle = new Defuddle(doc, { url: uri, separateMarkdown: true });
+    const parsed = defuddle.parse();
+    return { kind: "html", text: parsed.contentMarkdown || parsed.content || "" };
+  }
+
+  // Node/test environments may not have a DOMParser; fall back to returning raw HTML.
+  return { kind: "html", text: html };
 }
 
 function paginateResult(opts: {

@@ -10,9 +10,9 @@ import { mkdtemp, rm, readFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { LangMessage, LangMessages, type LanguageProvider } from "aiwrapper";
-import { Space, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
+import { Space, FileSystemPersistenceLayer, ChatAppData, AgentServices } from "@sila/core";
 import { NodeFileSystem } from "../setup/setup-node-file-system";
-import { getToolLook } from "../../../src/agents/tools/toolLook";
+import { toolLook } from "../../../src/agents/tools/toolLook";
 
 describe("look tool", () => {
   let tempDir: string;
@@ -39,6 +39,7 @@ describe("look tool", () => {
 
     const chatTree = ChatAppData.createNewChatTree(space, "test-config");
     const chatData = new ChatAppData(space, chatTree);
+    const services = new AgentServices(space);
 
     const base64Path = path.join(__dirname, "../../assets/images/cat-1px.b64");
     const base64 = (await readFile(base64Path, "utf8")).trim();
@@ -61,7 +62,7 @@ describe("look tool", () => {
       ],
     });
 
-    const providerFactory = vi.fn<() => Promise<LanguageProvider>>().mockResolvedValue({
+    const langFactory = vi.fn<() => Promise<LanguageProvider>>().mockResolvedValue({
       chat: async (input: LangMessages | LangMessage[]) => {
         const messages = input instanceof LangMessages ? input : new LangMessages(input as any);
         const result = new LangMessages(Array.from(messages));
@@ -70,13 +71,15 @@ describe("look tool", () => {
       },
     } as any);
 
-    const lookTool = getToolLook(space, chatTree, providerFactory);
+    // Override AgentServices.lang so the look tool doesn't try to resolve real providers/keys.
+    services.lang = langFactory as any;
+    const lookTool = toolLook.getTool(services, chatTree);
     const description = await lookTool.handler({
       prompt: "Describe the colors of the cat.",
       uri: "file:cat.png",
     });
 
     expect(description).toBe("A tiny pixel cat sitting on a transparent background.");
-    expect(providerFactory).toHaveBeenCalledOnce();
+    expect(langFactory).toHaveBeenCalledOnce();
   });
 });

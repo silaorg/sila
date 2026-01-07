@@ -5,6 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { ThreadMessage } from '@sila/core';
+import { convertToLangMessage } from '../../../src/agents/convertToLangMessage';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const toBase64 = (value: string) => Buffer.from(value, 'utf-8').toString('base64');
@@ -89,8 +90,13 @@ describe('Text File AI Integration', () => {
     return '';
   };
 
-  const convert = async (agent: WrapChatAgent, message: ThreadMessage, supportsVision = true) =>
-    agent['convertToLangMessage'](message, supportsVision);
+  const convert = async (message: ThreadMessage, supportsVision = true) =>
+    convertToLangMessage({
+      message,
+      data: chatData,
+      fileResolver: space.fileResolver,
+      supportsVision,
+    });
 
   describe('WrapChatAgent file-aware conversions', () => {
     it('embeds persisted text attachment content into LangMessage text', async () => {
@@ -98,15 +104,16 @@ describe('Text File AI Integration', () => {
       const message = await chatData.newMessage({ role: 'user', text: 'What number is in this file?', attachments: [attachment] });
       await wait(800);
 
-      const agent = createAgent();
-      const langMessage = await convert(agent, message);
+      const langMessage = await convert(message);
       const content = toText(langMessage);
 
       expect(content).toContain('What number is in this file?');
-      expect(content).toContain('Attachments:');
+      expect(content).toContain('<attachments>');
+      expect(content).toContain('The user attached 1 file');
+      expect(content).toContain('- test-number.txt (text)');
       expect(content).toContain('path: file:assets/test-number.txt');
-      expect(content).toMatch(/uri: sila:\/\/spaces\/.+\/files\//);
-      expect(content).toContain('Total characters: 4');
+      expect(content).toContain('--- File: test-number.txt (text) ---');
+      expect(content).toContain('Characters shown: 4 of 4');
       expect(content).toContain('8899');
     });
 
@@ -128,13 +135,11 @@ function test() {
       const message = await chatData.newMessage({ role: 'user', text: 'Please summarize this markdown', attachments: [attachment] });
       await wait(800);
 
-      const agent = createAgent();
-      const langMessage = await convert(agent, message);
+      const langMessage = await convert(message);
       const content = toText(langMessage);
 
       expect(content).toContain('--- File: test.md (text) ---');
       expect(content).toContain('Path: file:assets/test.md');
-      expect(content).toMatch(/URI: sila:\/\/spaces\/.+\/files\//);
       expect(content).toContain('# Test File');
       expect(content).toContain('**8899**');
     });
@@ -149,8 +154,7 @@ function test() {
       });
       await wait(800);
 
-      const agent = createAgent();
-      const langMessage = await convert(agent, message);
+      const langMessage = await convert(message);
       const content = toText(langMessage);
 
       expect(content).toContain('--- File: number.txt (text) ---');
@@ -192,8 +196,7 @@ function test() {
       });
       await wait(800);
 
-      const agent = createAgent();
-      const langMessage = await convert(agent, message, true);
+      const langMessage = await convert(message, true);
       const items = (langMessage as any).items;
 
       expect(Array.isArray(items)).toBe(true);
@@ -221,13 +224,13 @@ function test() {
       });
       await wait(800);
 
-      const agent = createAgent();
-      const langMessage = await convert(agent, message, false);
+      const langMessage = await convert(message, false);
       const content = toText(langMessage);
 
-      expect(content).toContain('Images attached (vision disabled):');
+      expect(content).toContain('<attachments>');
+      expect(content).toContain('The user attached 1 file');
+      expect(content).toContain('- diagram.png (image)');
       expect(content).toContain('path: file:assets/diagram.png');
-      expect(content).toMatch(/uri: sila:\/\/spaces\/.+\/files\//);
     });
   });
 });
