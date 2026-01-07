@@ -6,14 +6,6 @@ import type { AgentTool } from "./AgentTool";
 import Defuddle from "defuddle/markdown";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 
-// PDF.js requires an explicit worker URL in bundler environments (Vite/Electron renderer).
-// Without it you can get: `No "GlobalWorkerOptions.workerSrc" specified.`
-// We set it once at module init.
-GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
-  import.meta.url
-).toString();
-
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const MAX_PDF_PAGES = 50;
 
@@ -77,6 +69,8 @@ export const toolRead: AgentTool = {
 };
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  ensurePdfJsWorkerConfigured();
+
   if (bytes.byteLength > MAX_PDF_BYTES) {
     throw new Error(
       `PDF too large for read tool (size=${bytes.byteLength} bytes, limit=${MAX_PDF_BYTES})`
@@ -120,4 +114,16 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   }
 
   return parts.join("\n").trim();
+}
+
+function ensurePdfJsWorkerConfigured(): void {
+  // In bundler environments (Vite/Electron renderer), PDF.js needs an explicit worker URL.
+  // If unset, PDF.js throws: `No "GlobalWorkerOptions.workerSrc" specified.`
+  // We only set this if missing, so embedders can override it.
+  if (GlobalWorkerOptions.workerSrc) return;
+
+  GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.mjs",
+    import.meta.url
+  ).toString();
 }
