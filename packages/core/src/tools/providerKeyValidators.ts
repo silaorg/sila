@@ -25,7 +25,7 @@ export function validateKey(
     case "falai":
       return validateKey_falai(key, signal);
     case "exa":
-      return validateKey_exa(key);
+      return validateKey_exa(key, signal);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -224,10 +224,47 @@ async function validateKey_falai(
   return firstPart.length >= 8 && parts[1].length >= 8;
 }
 
-async function validateKey_exa(apiKey: string): Promise<boolean> {
+async function validateKey_exa(
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
   if (!apiKey || apiKey.trim().length === 0) {
     return false;
   }
 
-  return true;
+  const trimmedKey = apiKey.trim();
+  if (trimmedKey.length < 36) {
+    return false;
+  }
+
+  try {
+    const response = await fetch("https://api.exa.ai/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": trimmedKey,
+      },
+      body: JSON.stringify({
+        query: "test",
+        numResults: 1,
+        type: "neural",
+        useAutoprompt: false,
+      }),
+      signal,
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      return false;
+    }
+
+    return response.ok;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.log("Fetch aborted");
+    } else {
+      console.error("Fetch error:", err);
+    }
+
+    return false;
+  }
 }
