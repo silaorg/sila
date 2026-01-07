@@ -4,6 +4,10 @@ import type { AppTree } from "../../spaces/AppTree";
 import { createWorkspaceProxyFetch, isTextLikeMime } from "./workspaceProxyFetch";
 import type { AgentTool } from "./AgentTool";
 import Defuddle from "defuddle/markdown";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+
+const MAX_PDF_BYTES = 25 * 1024 * 1024;
+const MAX_PDF_PAGES = 50;
 
 export const toolRead: AgentTool = {
   name: "read",
@@ -37,6 +41,12 @@ export const toolRead: AgentTool = {
         const contentType = res.headers.get("content-type") || "";
         
         // Only allow text-like content types
+        if (contentType.includes("application/pdf")) {
+          const buffer = await res.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
+          return await extractPdfText(bytes);
+        }
+
         if (contentType && !isTextLikeMime(contentType)) {
           throw new Error(
             `Cannot read binary file. The read tool only supports text files (got content-type: ${contentType}). Use the look tool for images.`
@@ -57,3 +67,30 @@ export const toolRead: AgentTool = {
     };
   }
 };
+
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
+  if (bytes.byteLength > MAX_PDF_BYTES) {
+    throw new Error(
+      `PDF too large for read tool (size=${bytes.byteLength} bytes, limit=${MAX_PDF_BYTES})`
+    );
+  }
+
+  const pdf = await getDocument({ data: bytes }).promise;
+  const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
+  const parts: string[] = [];
+
+  for (let page = 1; page <= pageCount; page += 1) {
+    const pageData = await pdf.getPage(page);
+    const text = await pageData.getTextContent();
+    const pageText = text.items
+      .map((item) => ("str" in item ? item.str : ""))
+      .join(" ");
+    parts.push(`\n\n# Page ${page}\n${pageText}`);
+  }
+
+  if (pdf.numPages > MAX_PDF_PAGES) {
+    parts.push(`\n\n# Note\nStopped at page ${MAX_PDF_PAGES} of ${pdf.numPages}.`);
+  }
+
+  return parts.join("\n").trim();
+}
