@@ -319,29 +319,46 @@ export async function getSpaceSetup(spaceId: string): Promise<SpaceSetup | undef
 }
 
 // Get just the ttabsLayout for a space
-export async function getTtabsLayout(spaceId: string): Promise<string | null | undefined> {
+export async function getTtabsLayout(spaceKey: string): Promise<string | null | undefined> {
   try {
-    const space = await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .first();
-    return space?.ttabsLayout;
+    // New: persist layout by "spaceKey" (typically pointer.uri) to support multiple pointers
+    // that share the same underlying space id.
+    const configKey = `ttabsLayout:${spaceKey}`;
+    const fromConfig = await db.config.get(configKey);
+    if (fromConfig?.value && typeof fromConfig.value === "string") {
+      return fromConfig.value;
+    }
+
+    // Back-compat fallback (older versions stored layout inside spaces table by id).
+    // 1) Try treat "spaceKey" as an id
+    const byId = await db.spaces.where('id').equals(spaceKey).first();
+    if (byId?.ttabsLayout) {
+      return byId.ttabsLayout;
+    }
+
+    // 2) If caller passed a URI, resolve to the matching space record and use its legacy layout
+    const byUri = await db.spaces.where('uri').equals(spaceKey).first();
+    return byUri?.ttabsLayout;
   } catch (error) {
-    console.error(`Failed to get ttabsLayout for space ${spaceId}:`, error);
+    console.error(`Failed to get ttabsLayout for space ${spaceKey}:`, error);
     return undefined;
   }
 }
 
 // Save ttabsLayout for a space
-export async function saveTtabsLayout(spaceId: string, layout: string): Promise<void> {
+export async function saveTtabsLayout(spaceKey: string, layout: string): Promise<void> {
   try {
-    // Use modify to update only the specific field without loading the entire object
-    await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .modify({ ttabsLayout: layout });
+    // New: store layout keyed by spaceKey (typically pointer.uri)
+    await db.config.put({ key: `ttabsLayout:${spaceKey}`, value: layout });
+
+    // Best-effort back-compat write for older app versions that expect layout on the space row.
+    // Only do this when spaceKey looks like an actual space id record.
+    const existing = await db.spaces.get(spaceKey);
+    if (existing) {
+      await db.spaces.where('id').equals(spaceKey).modify({ ttabsLayout: layout });
+    }
   } catch (error) {
-    console.error(`Failed to save ttabsLayout for space ${spaceId}:`, error);
+    console.error(`Failed to save ttabsLayout for space ${spaceKey}:`, error);
   }
 }
 

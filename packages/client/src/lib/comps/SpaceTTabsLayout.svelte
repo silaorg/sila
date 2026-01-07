@@ -19,7 +19,7 @@
       lastSavedLayout = layoutJson;
 
       // Save to database
-      await saveTtabsLayout(spaceState.space.getId(), layoutJson);
+      await saveTtabsLayout(spaceState.pointer.uri, layoutJson);
     }
   }
 
@@ -34,21 +34,21 @@
   }
 
   $effect(() => {
-    const spaceId = spaceState.space?.getId() ?? null;
+    const spaceKey = spaceState.pointer.uri ?? null;
 
     untrack(() => {
-      setupSpaceLayout(spaceId);
+      setupSpaceLayout(spaceKey);
     });
   });
 
-  async function setupSpaceLayout(spaceId: string | null): Promise<void> {
-    if (!spaceId) {
+  async function setupSpaceLayout(spaceKey: string | null): Promise<void> {
+    if (!spaceKey) {
       spaceState.layout.ttabs.resetTiles();
       return;
     }
 
     try {
-      const ttabsLayout = await getTtabsLayout(spaceId);
+      const ttabsLayout = await getTtabsLayout(spaceKey);
       spaceState.layout.setupLayout(ttabsLayout ?? undefined);
       lastSavedLayout = ttabsLayout ?? null;
     } catch (error) {
