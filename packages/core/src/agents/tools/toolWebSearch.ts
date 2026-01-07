@@ -83,7 +83,7 @@ export const toolWebSearch: AgentTool = {
         const data = await response.json();
         const results = Array.isArray(data.results) ? data.results : [];
 
-        const normalizedResults: WebSearchResult[] = results.map((result) => {
+        const normalizedResults: WebSearchResult[] = results.map((result: any) => {
           const title = result.title ?? result.url ?? "Untitled";
           const url = result.url ?? "";
           const snippet =

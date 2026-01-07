@@ -76,6 +76,7 @@ export const hindiTexts: Partial<Texts> = {
     appearance: {
       title: "दिखावट",
       theme: "थीम",
+      themeDescription: "अपने वर्कस्पेस के लिए रंग थीम चुनें।",
       language: "भाषा",
       colorScheme: "रंग योजना",
       system: "सिस्टम",
