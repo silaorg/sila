@@ -71,7 +71,7 @@ class LocalDb extends Dexie {
   secrets!: Dexie.Table<SecretRecord, [number, string]>; // [spaceRefId, key]
 
   constructor() {
-    super('localDb');
+    super('sila');
 
     this.version(1).stores({
       // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
