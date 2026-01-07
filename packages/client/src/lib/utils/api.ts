@@ -2,7 +2,6 @@ import type { ClientState } from "@sila/client/state/clientState.svelte";
 import { savePointers, appendTreeOps, saveAllSecrets } from "@sila/client/localDb";
 import type { SpaceCreationResponse } from "@sila/core";
 import type { SpacePointer } from "@sila/client/spaces/SpacePointer";
-import { makeSpaceKey } from "@sila/client/spaces/spaceKey";
 
 // API Base URL - should match the server
 // Use Vite/SvelteKit env with a static property chain to satisfy SSR runner
@@ -140,11 +139,11 @@ export async function fetchSpaces(client: ClientState) {
           if (spaceResponse.success && spaceResponse.data) {
             const operations = spaceResponse.data.operations;
             if (operations && operations.length > 0) {
-              await appendTreeOps(makeSpaceKey(space.uri, space.id), space.id, operations);
+              await appendTreeOps(space.uri, space.id, space.id, operations);
             }
             const secrets = spaceResponse.data.secrets;
             if (secrets && Object.keys(secrets).length > 0) {
-              await saveAllSecrets(makeSpaceKey(space.uri, space.id), secrets);
+              await saveAllSecrets(space.uri, space.id, secrets);
             }
           }
         } catch (spaceError) {
@@ -167,7 +166,7 @@ export async function getSpaceTreeOps(client: ClientState, spaceId: string, tree
   try {
     const response = await api.get(`/spaces/${spaceId}/${treeId}`, undefined, client);
     if (response.success && response.data) {
-      await appendTreeOps(makeSpaceKey(`${API_BASE_URL}/spaces/${spaceId}`, spaceId), treeId, response.data as any);
+      await appendTreeOps(`${API_BASE_URL}/spaces/${spaceId}`, spaceId, treeId, response.data as any);
       return response.data;
     }
     return [] as any[];

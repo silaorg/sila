@@ -15,7 +15,6 @@ import {
   getSecret,
   setSecret
 } from "@sila/client/localDb";
-import { makeSpaceKey } from "../spaces/spaceKey";
 import { Backend, FileResolver } from "@sila/core";
 import { SpaceTelemetry } from "./spaceTelemetry";
 import VertexViewer from "./vertexViewer.svelte";
@@ -161,9 +160,6 @@ export class SpaceState {
   }
 
   // === Space-specific operations moved from SpaceStore ===
-  private get spaceKey(): string {
-    return makeSpaceKey(this.pointer.uri, this.pointer.id);
-  }
 
   /**
    * Get a draft for this space
@@ -190,28 +186,28 @@ export class SpaceState {
    * Get all secrets for this space
    */
   async getAllSecrets(): Promise<Record<string, string> | undefined> {
-    return getAllSecrets(this.spaceKey);
+    return getAllSecrets(this.pointer.uri, this.pointer.id);
   }
 
   /**
    * Save all secrets for this space
    */
   async saveAllSecrets(secrets: Record<string, string>): Promise<void> {
-    await saveAllSecrets(this.spaceKey, secrets);
+    await saveAllSecrets(this.pointer.uri, this.pointer.id, secrets);
   }
 
   /**
    * Get a specific secret for this space
    */
   async getSecret(key: string): Promise<string | undefined> {
-    return getSecret(this.spaceKey, key);
+    return getSecret(this.pointer.uri, this.pointer.id, key);
   }
 
   /**
    * Set a specific secret for this space
    */
   async setSecret(key: string, value: string): Promise<void> {
-    await setSecret(this.spaceKey, key, value);
+    await setSecret(this.pointer.uri, this.pointer.id, key, value);
   }
 
   // === Utility methods ===

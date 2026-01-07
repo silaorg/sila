@@ -2,7 +2,6 @@ import type { PersistenceLayer } from "@sila/core";
 import { IndexedDBPersistenceLayer } from "./IndexedDBPersistenceLayer";
 import { FileSystemPersistenceLayer } from "@sila/core";
 import type { AppFileSystem } from "../../appFs";
-import { makeSpaceKey } from "../spaceKey";
 
 /**
  * Determines which persistence layers are needed based on the space URI
@@ -12,19 +11,18 @@ import { makeSpaceKey } from "../spaceKey";
  */
 export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: AppFileSystem | null): PersistenceLayer[] {
   const layers: PersistenceLayer[] = [];
-  const spaceKey = makeSpaceKey(uri, spaceId);
 
   if (uri.startsWith("local://")) {
     // Local-only spaces: IndexedDB only
-    layers.push(new IndexedDBPersistenceLayer(spaceKey, spaceId));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
   } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
     // Server-synced spaces: IndexedDB + Server (future)
-    layers.push(new IndexedDBPersistenceLayer(spaceKey, spaceId));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
     // TODO: Add server persistence layer when implemented
     // layers.push(new ServerPersistenceLayer(spaceId, uri));
   } else {
     // File system path: IndexedDB + FileSystem (dual persistence)
-    layers.push(new IndexedDBPersistenceLayer(spaceKey, spaceId));
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
     if (!fs) {
       throw new Error("App file system is not configured");
     }

@@ -1,7 +1,6 @@
 import Dexie from 'dexie';
 import type { SpacePointer } from "./spaces/SpacePointer";
 import type { VertexOperation } from "@sila/core";
-import { makeSpaceKey, parseSpaceKey } from "./spaces/spaceKey";
 
 /**
  * Space setup on a client side
@@ -31,7 +30,6 @@ export interface ConfigEntry {
 
 // Individual secret record - matches server schema
 export interface SecretRecord {
-  spaceKey: string;
   spaceUri: string;
   spaceId: string;
   key: string;
@@ -44,7 +42,6 @@ export interface TreeOperation {
   clock: number;        // The counter/clock value
   peerId: string;       // The peer ID
   treeId: string;       // Tree identifier
-  spaceKey: string;     // Space reference (uri + id)
   spaceUri: string;     // For easy bulk-delete by URI
   spaceId: string;      // Underlying space id (tree id)
 
@@ -62,22 +59,22 @@ export interface TreeOperation {
 class LocalDb extends Dexie {
   spaces!: Dexie.Table<SpaceSetup, string>;
   config!: Dexie.Table<ConfigEntry, string>;
-  treeOps!: Dexie.Table<TreeOperation, string>; // Primary key is composite
-  secrets!: Dexie.Table<SecretRecord, [string, string]>; // Composite primary key [spaceId, key]
+  treeOps!: Dexie.Table<TreeOperation, [number, string, string, string, string]>; // [clock, peerId, treeId, spaceUri, spaceId]
+  secrets!: Dexie.Table<SecretRecord, [string, string, string]>; // [spaceUri, spaceId, key]
 
   constructor() {
     // WIP: we intentionally reset IndexedDB schema without migration.
     // Using a new DB name gives us a clean slate.
-    super('localDb-v3');
+    super('localDb-v4');
 
     this.version(1).stores({
       // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
       spaces: '&uri, id, name, createdAt, userId',
       config: '&key',
-      // Ops are keyed by (spaceUri + spaceId) via spaceKey to avoid collisions.
-      treeOps: '&[clock+peerId+treeId+spaceKey], spaceKey, spaceUri, treeId, [spaceKey+treeId], [spaceUri+treeId]',
-      // Secrets are keyed by spaceKey so different spaces with same id don't collide.
-      secrets: '&[spaceKey+key], spaceKey, spaceUri'
+      // Ops are keyed by (spaceUri + spaceId) to avoid collisions.
+      treeOps: '&[clock+peerId+treeId+spaceUri+spaceId], spaceUri, spaceId, treeId, [spaceUri+spaceId], [spaceUri+spaceId+treeId]',
+      // Secrets are keyed by (spaceUri + spaceId) so different spaces with same id don't collide.
+      secrets: '&[spaceUri+spaceId+key], spaceUri, spaceId, [spaceUri+spaceId]'
     });
   }
 }
@@ -105,13 +102,11 @@ function toVertexOperation(op: TreeOperation): VertexOperation {
 }
 
 // Convert from VertexOperation for storage
-function fromVertexOperation(op: VertexOperation, spaceKey: string, treeId: string): TreeOperation {
-  const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
+function fromVertexOperation(op: VertexOperation, spaceUri: string, spaceId: string, treeId: string): TreeOperation {
   const base: Partial<TreeOperation> = {
     clock: op.id.counter,
     peerId: op.id.peerId,
     treeId,
-    spaceKey,
     spaceUri,
     spaceId,
     targetId: op.targetId
@@ -373,34 +368,34 @@ export async function saveTtabsLayout(spaceKey: string, layout: string): Promise
 }
 
 // Get operations for a specific tree
-export async function getTreeOps(spaceKey: string, treeId: string): Promise<VertexOperation[]> {
+export async function getTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<VertexOperation[]> {
   try {
     const treeOps = await db.treeOps
-      .where('[spaceKey+treeId]')
-      .equals([spaceKey, treeId])
+      .where('[spaceUri+spaceId+treeId]')
+      .equals([spaceUri, spaceId, treeId])
       .toArray();
 
     return treeOps.map(toVertexOperation);
   } catch (error) {
-    console.error(`Failed to get ops for tree ${treeId} in space ${spaceKey}:`, error);
+    console.error(`Failed to get ops for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
     return [];
   }
 }
 
-export async function appendTreeOps(spaceKey: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
+export async function appendTreeOps(spaceUri: string, spaceId: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
   if (ops.length === 0) return;
 
-  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceKey, treeId));
+  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceUri, spaceId, treeId));
 
   // Use bulkPut to store operations
   await db.treeOps.bulkPut(treeOpsEntries);
 }
 
-export async function getAllSpaceTreeOps(spaceKey: string): Promise<Map<string, VertexOperation[]>> {
+export async function getAllSpaceTreeOps(spaceUri: string, spaceId: string): Promise<Map<string, VertexOperation[]>> {
   try {
     const treeOps = await db.treeOps
-      .where('spaceKey')
-      .equals(spaceKey)
+      .where('[spaceUri+spaceId]')
+      .equals([spaceUri, spaceId])
       .toArray();
 
     const treeOpsMap = new Map<string, VertexOperation[]>();
@@ -414,30 +409,30 @@ export async function getAllSpaceTreeOps(spaceKey: string): Promise<Map<string, 
 
     return treeOpsMap;
   } catch (error) {
-    console.error(`Failed to get all tree ops for space ${spaceKey}:`, error);
+    console.error(`Failed to get all tree ops for space ${spaceUri} (${spaceId}):`, error);
     return new Map();
   }
 }
 
-export async function deleteTreeOps(spaceKey: string, treeId: string): Promise<void> {
+export async function deleteTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<void> {
   try {
     await db.treeOps
-      .where('[spaceKey+treeId]')
-      .equals([spaceKey, treeId])
+      .where('[spaceUri+spaceId+treeId]')
+      .equals([spaceUri, spaceId, treeId])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceKey}:`, error);
+    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
-export async function getTreeOpCount(spaceKey: string, treeId: string): Promise<number> {
+export async function getTreeOpCount(spaceUri: string, spaceId: string, treeId: string): Promise<number> {
   try {
     return await db.treeOps
-      .where('[spaceKey+treeId]')
-      .equals([spaceKey, treeId])
+      .where('[spaceUri+spaceId+treeId]')
+      .equals([spaceUri, spaceId, treeId])
       .count();
   } catch (error) {
-    console.error(`Failed to get op count for tree ${treeId} in space ${spaceKey}:`, error);
+    console.error(`Failed to get op count for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
     return 0;
   }
 }
@@ -549,11 +544,11 @@ export async function deleteDraft(spaceUri: string, draftId: string): Promise<vo
 }
 
 // Get all secrets for a space
-export async function getAllSecrets(spaceKey: string): Promise<Record<string, string> | undefined> {
+export async function getAllSecrets(spaceUri: string, spaceId: string): Promise<Record<string, string> | undefined> {
   try {
     const secretRecords = await db.secrets
-      .where('spaceKey')
-      .equals(spaceKey)
+      .where('[spaceUri+spaceId]')
+      .equals([spaceUri, spaceId])
       .toArray();
 
     if (secretRecords.length === 0) {
@@ -567,17 +562,15 @@ export async function getAllSecrets(spaceKey: string): Promise<Record<string, st
 
     return secrets;
   } catch (error) {
-    console.error(`Failed to get all secrets for space ${spaceKey}:`, error);
+    console.error(`Failed to get all secrets for space ${spaceUri} (${spaceId}):`, error);
     return undefined;
   }
 }
 
 // Save all secrets for a space
-export async function saveAllSecrets(spaceKey: string, secrets: Record<string, string>): Promise<void> {
+export async function saveAllSecrets(spaceUri: string, spaceId: string, secrets: Record<string, string>): Promise<void> {
   try {
-    const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
     const secretRecords: SecretRecord[] = Object.entries(secrets).map(([key, value]) => ({
-      spaceKey,
       spaceUri,
       spaceId,
       key,
@@ -587,50 +580,48 @@ export async function saveAllSecrets(spaceKey: string, secrets: Record<string, s
     // Use bulkPut to insert/update all secrets
     await db.secrets.bulkPut(secretRecords);
   } catch (error) {
-    console.error(`Failed to save all secrets for space ${spaceKey}:`, error);
+    console.error(`Failed to save all secrets for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
 // Get a specific secret for a space
-export async function getSecret(spaceKey: string, key: string): Promise<string | undefined> {
+export async function getSecret(spaceUri: string, spaceId: string, key: string): Promise<string | undefined> {
   try {
     const secretRecord = await db.secrets
-      .where('[spaceKey+key]')
-      .equals([spaceKey, key])
+      .where('[spaceUri+spaceId+key]')
+      .equals([spaceUri, spaceId, key])
       .first();
 
     return secretRecord?.value;
   } catch (error) {
-    console.error(`Failed to get secret ${key} for space ${spaceKey}:`, error);
+    console.error(`Failed to get secret ${key} for space ${spaceUri} (${spaceId}):`, error);
     return undefined;
   }
 }
 
 // Set a specific secret for a space
-export async function setSecret(spaceKey: string, key: string, value: string): Promise<void> {
+export async function setSecret(spaceUri: string, spaceId: string, key: string, value: string): Promise<void> {
   try {
-    const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
     await db.secrets.put({
-      spaceKey,
       spaceUri,
       spaceId,
       key,
       value
     });
   } catch (error) {
-    console.error(`Failed to set secret ${key} for space ${spaceKey}:`, error);
+    console.error(`Failed to set secret ${key} for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
 // Delete a specific secret for a space
-export async function deleteSecret(spaceKey: string, key: string): Promise<void> {
+export async function deleteSecret(spaceUri: string, spaceId: string, key: string): Promise<void> {
   try {
     await db.secrets
-      .where('[spaceKey+key]')
-      .equals([spaceKey, key])
+      .where('[spaceUri+spaceId+key]')
+      .equals([spaceUri, spaceId, key])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete secret ${key} for space ${spaceKey}:`, error);
+    console.error(`Failed to delete secret ${key} for space ${spaceUri} (${spaceId}):`, error);
   }
 }
 
