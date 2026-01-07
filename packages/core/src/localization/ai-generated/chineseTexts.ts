@@ -76,7 +76,6 @@ export const chineseTexts: Partial<Texts> = {
     appearance: {
       title: "外观",
       theme: "主题",
-      themeDescription: "为你的工作区选择一个配色主题。",
       language: "语言",
       colorScheme: "配色",
       system: "跟随系统",

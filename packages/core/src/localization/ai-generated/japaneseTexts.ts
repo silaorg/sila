@@ -76,7 +76,6 @@ export const japaneseTexts: Partial<Texts> = {
     appearance: {
       title: "外観",
       theme: "テーマ",
-      themeDescription: "ワークスペースのカラーテーマを選択します。",
       language: "言語",
       colorScheme: "配色",
       system: "システム",

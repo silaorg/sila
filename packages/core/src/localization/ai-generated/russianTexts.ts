@@ -95,7 +95,6 @@ export const russianTexts: Partial<Texts> = {
     appearance: {
       title: "Внешний вид",
       theme: "Тема",
-      themeDescription: "Выберите цветовую тему для рабочего пространства.",
       language: "Язык",
       colorScheme: "Цветовая схема",
       system: "Системная",

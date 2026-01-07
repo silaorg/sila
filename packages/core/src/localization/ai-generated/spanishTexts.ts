@@ -76,7 +76,6 @@ export const spanishTexts: Partial<Texts> = {
     appearance: {
       title: "Apariencia",
       theme: "Tema",
-      themeDescription: "Selecciona un tema de color para tu espacio de trabajo.",
       language: "Idioma",
       colorScheme: "Esquema de color",
       system: "Sistema",

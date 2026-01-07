@@ -76,7 +76,6 @@ export const arabicTexts: Partial<Texts> = {
     appearance: {
       title: "المظهر",
       theme: "السمة",
-      themeDescription: "اختر سمة ألوان لمساحة العمل.",
       language: "اللغة",
       colorScheme: "نظام الألوان",
       system: "النظام",
