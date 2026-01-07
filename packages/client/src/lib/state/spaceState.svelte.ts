@@ -96,7 +96,8 @@ export class SpaceState {
         this.vertexViewer.setSpace(this.space);
 
         // Load space-specific theme and layout
-        await this.theme.loadSpaceTheme(this.pointer.uri);
+        // Stored at: root.theme + root.colorScheme
+        await this.theme.loadSpaceTheme(this.space);
         await this.layout.loadSpaceLayout();
 
         // Load workspace language (if set) from the space tree and apply it to i18n

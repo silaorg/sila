@@ -97,6 +97,32 @@ export class Space {
     this.rootVertex.setProperty("description", description ?? "");
   }
 
+  get workspaceTheme(): string | undefined {
+    const theme = this.rootVertex.getProperty("theme");
+    return typeof theme === "string" ? theme : undefined;
+  }
+
+  set workspaceTheme(theme: string | undefined) {
+    if (!theme) {
+      this.rootVertex.setProperty("theme", "");
+      return;
+    }
+    this.rootVertex.setProperty("theme", theme);
+  }
+
+  get workspaceColorScheme(): string | undefined {
+    const scheme = this.rootVertex.getProperty("colorScheme");
+    return typeof scheme === "string" ? scheme : undefined;
+  }
+
+  set workspaceColorScheme(colorScheme: string | undefined) {
+    if (!colorScheme) {
+      this.rootVertex.setProperty("colorScheme", "");
+      return;
+    }
+    this.rootVertex.setProperty("colorScheme", colorScheme);
+  }
+
   get fileStore(): FileStore | null {
     return this._fileStore;
   }

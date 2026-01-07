@@ -642,7 +642,7 @@ export class ClientState {
     // Load theme for current space
     if (this.currentSpaceState) {
       await this.currentSpaceState.theme.loadSpaceTheme(
-        this.currentSpaceState.pointer.id,
+        this.currentSpaceState.space ?? null,
       );
     }
 
