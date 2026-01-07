@@ -216,16 +216,6 @@ export async function getPointersForUser(userId: string | null): Promise<SpacePo
   }
 }
 
-export async function getCurrentSpaceId(): Promise<string | null> {
-  try {
-    const entry = await db.config.get('currentSpaceId');
-    return entry ? entry.value as string : null;
-  } catch (error) {
-    console.error('Failed to get currentSpaceId from database:', error);
-    return null;
-  }
-}
-
 export async function getCurrentSpaceUri(): Promise<string | null> {
   try {
     const entry = await db.config.get('currentSpaceUri');
@@ -312,16 +302,6 @@ export async function saveConfig(config: Record<string, unknown>): Promise<void>
   }
 }
 
-export async function saveCurrentSpaceId(id: string | null): Promise<void> {
-  if (id === null) return;
-
-  try {
-    await db.config.put({ key: 'currentSpaceId', value: id });
-  } catch (error) {
-    console.error('Failed to save currentSpaceId to database:', error);
-  }
-}
-
 export async function saveCurrentSpaceUri(uri: string | null): Promise<void> {
   if (uri === null) return;
 
@@ -334,17 +314,15 @@ export async function saveCurrentSpaceUri(uri: string | null): Promise<void> {
 
 export async function initializeDatabase(): Promise<{
   pointers: SpacePointer[];
-  currentSpaceId: string | null;
   currentSpaceUri: string | null;
   config: Record<string, unknown>;
 }> {
   try {
     const pointers = await getAllPointers();
-    const currentSpaceId = await getCurrentSpaceId();
     const currentSpaceUri = await getCurrentSpaceUri();
     const config = await getAllConfig();
 
-    return { pointers, currentSpaceId, currentSpaceUri, config };
+    return { pointers, currentSpaceUri, config };
   } catch (error) {
     console.error('Failed to initialize database:', error);
 
@@ -357,7 +335,7 @@ export async function initializeDatabase(): Promise<{
       console.error('Failed to recover database:', recoveryError);
     }
 
-    return { pointers: [], currentSpaceId: null, currentSpaceUri: null, config: {} };
+    return { pointers: [], currentSpaceUri: null, config: {} };
   }
 }
 
@@ -534,8 +512,6 @@ export async function deleteSpace(spaceUri: string): Promise<void> {
       const currentUri = await getCurrentSpaceUri();
       if (currentUri === spaceUri) {
         await db.config.delete('currentSpaceUri');
-        // Clear legacy id-based selection too (it may point to this space id).
-        await db.config.delete('currentSpaceId');
       }
     });
 
