@@ -35,8 +35,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
   private savedPeerIds = new Set<string>();
   private opsParser: OpsParser;
   private propOpsSinceCompact = new Map<string, number>();
-  private propOpsCompactCountThreshold = 500;
-  private propOpsCompactBytesThreshold = 1_000_000;
+  private propOpsCompactCountThreshold = 10;
 
   constructor(
     private spacePath: string, 
@@ -475,19 +474,12 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     this.propOpsSinceCompact.set(filePath, opsSinceCompact);
 
     const shouldCompactByCount = opsSinceCompact >= this.propOpsCompactCountThreshold;
-    const shouldCompactByBytes = await this.isPropOpsFileTooLarge(filePath);
-
-    if (!shouldCompactByCount && !shouldCompactByBytes) {
+    if (!shouldCompactByCount) {
       return;
     }
 
     await this.compactPropertyOpsFile(filePath, peerId);
     this.propOpsSinceCompact.set(filePath, 0);
-  }
-
-  private async isPropOpsFileTooLarge(filePath: string): Promise<boolean> {
-    const data = await this.fs.readBinaryFile(filePath);
-    return data.length >= this.propOpsCompactBytesThreshold;
   }
 
   private async compactPropertyOpsFile(filePath: string, peerId: string): Promise<void> {
