@@ -17,11 +17,11 @@
   $effect(() => {
     // When workspace changes, prefer its saved language (if any) from the space tree
     const space = clientState.currentSpace;
-    const settingsVertex = space?.tree.getVertexByPath("settings");
-    if (!settingsVertex) return;
+    const rootVertex = space?.tree.root;
+    if (!rootVertex) return;
 
     const applyFromVertex = () => {
-      const lang = settingsVertex.getProperty("language") as
+      const lang = rootVertex.getProperty("language") as
         | SupportedLanguage
         | undefined
         | null;
@@ -32,7 +32,7 @@
 
     applyFromVertex();
 
-    const unobserve = settingsVertex.observe((events) => {
+    const unobserve = rootVertex.observe((events) => {
       if (events.some((e) => e.type === "property")) {
         applyFromVertex();
       }
@@ -48,14 +48,14 @@
     i18n.language = next;
 
     const space = clientState.currentSpace;
-    const settingsVertex = space?.tree.getVertexByPath("settings");
-    if (!space || !settingsVertex) {
+    const rootVertex = space?.tree.root;
+    if (!space || !rootVertex) {
       // @TODO: decide behavior when no workspace is loaded (probably store app-level language)
       return;
     }
 
     // Persist to space tree (syncs via CRDT)
-    settingsVertex.setProperty("language", next);
+    rootVertex.setProperty("language", next);
   }
 </script>
 
@@ -68,4 +68,3 @@
     <option value={lang}>{LANGUAGE_NAMES[lang]}</option>
   {/each}
 </select>
-

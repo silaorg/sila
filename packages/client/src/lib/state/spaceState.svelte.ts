@@ -100,10 +100,10 @@ export class SpaceState {
         await this.layout.loadSpaceLayout();
 
         // Load workspace language (if set) from the space tree and apply it to i18n
-        // Stored at: root/settings.language
+        // Stored at: root.language
         // @TODO: when we add app-level/personal language preferences, treat this as an override
-        const settingsVertex = this.space.getVertexByPath("settings");
-        const lang = settingsVertex?.getProperty("language") as
+        const rootVertex = this.space.tree.root;
+        const lang = rootVertex?.getProperty("language") as
           | SupportedLanguage
           | undefined
           | null;
