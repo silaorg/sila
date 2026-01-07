@@ -49,7 +49,7 @@ export class SpaceState {
     this.layout.spaceId = this.pointer.id;
     this.vertexViewer = new VertexViewer();
 
-    const space = this.spaceManager.getSpace(this.pointer.id);
+    const space = this.spaceManager.getSpace(this.pointer.uri);
     this.fileResolver = space?.fileResolver ?? new FileResolver();
     
     this.spaceTelemetry = new SpaceTelemetry(config.analytics, () => this.space);
@@ -57,7 +57,7 @@ export class SpaceState {
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {
       this.space = space;
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.id) || [];
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
       this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 
@@ -121,7 +121,7 @@ export class SpaceState {
   disconnect(): void {
     // Close the space in SpaceManager if loaded
     if (this.space) {
-      this.spaceManager.closeSpace(this.pointer.id).catch(console.error);
+      this.spaceManager.closeSpace(this.pointer.uri).catch(console.error);
     }
 
     this.space = null;
@@ -133,13 +133,13 @@ export class SpaceState {
    */
   private async loadSpace(): Promise<Space | null> {
     // Check if already loaded in SpaceManager
-    let space = this.spaceManager.getSpace(this.pointer.id);
+    let space = this.spaceManager.getSpace(this.pointer.uri);
     if (space) return space;
 
     try {
       // Create appropriate persistence layers based on URI
       // Prefer existing layers from SpaceManager; otherwise construct using app FS provider
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.id) || createPersistenceLayersForURI(this.pointer.id, this.pointer.uri, this.getAppFs());
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || createPersistenceLayersForURI(this.pointer.id, this.pointer.uri, this.getAppFs());
 
       // Load the space using SpaceManager
       space = await this.spaceManager.loadSpace(this.pointer, this.persistenceLayers);
@@ -148,7 +148,7 @@ export class SpaceState {
       console.error("Failed to load space", this.pointer, error);
       console.log("Disconnecting space");
       try {
-        await this.spaceManager.closeSpace(this.pointer.id);
+        await this.spaceManager.closeSpace(this.pointer.uri);
       } catch (error) {
         console.error("Failed to disconnect space", error);
       }
@@ -214,7 +214,7 @@ export class SpaceState {
    * Check if this space state matches a pointer
    */
   matches(pointer: SpacePointer): boolean {
-    return this.pointer.id === pointer.id;
+    return this.pointer.uri === pointer.uri;
   }
 
   /**

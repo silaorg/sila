@@ -65,6 +65,7 @@ export class ClientState {
 
   currentSpaceState: SpaceState | null = $state(null); // @TODO: consider making it a derived state
   currentSpace: Space | null = $derived(this.currentSpaceState?.space || null);
+  currentSpaceUri: string | null = $derived(this.currentSpaceState?.pointer.uri ?? null);
 
   appVersions: AppVersions | null = $state(null);
   appVersion: string | null = $derived(this.appVersions?.client?.version ?? null);
@@ -225,10 +226,12 @@ export class ClientState {
   /**
    * Switch to a specific space by ID
    */
-  async switchToSpace(spaceId: string): Promise<void> {
-    if (this.currentSpaceId === spaceId) return;
+  async switchToSpace(spaceKeyOrId: string): Promise<void> {
+    if (this.currentSpaceUri === spaceKeyOrId || this.currentSpaceId === spaceKeyOrId) {
+      return;
+    }
 
-    await this._setCurrentSpace(spaceId);
+    await this._setCurrentSpace(spaceKeyOrId);
     await this._saveState();
   }
 
@@ -261,7 +264,7 @@ export class ClientState {
       this._fs,
     );
 
-    await this._spaceManager.addNewSpace(space, persistenceLayers);
+    await this._spaceManager.addNewSpace(space, persistenceLayers, pointer.uri);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -284,7 +287,7 @@ export class ClientState {
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space
-    await this.switchToSpace(spaceId);
+    await this.switchToSpace(pointer.uri);
 
     this._updateCurrentSpace();
     await this._saveState();
@@ -317,7 +320,7 @@ export class ClientState {
     };
 
     // Add the space to the manager without any persistence layers
-    await this._spaceManager.addNewSpace(space, []);
+    await this._spaceManager.addNewSpace(space, [], pointer.uri);
 
     // Update client state collections
     this.pointers = [...this.pointers, pointer];
@@ -330,7 +333,7 @@ export class ClientState {
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the new space without saving to local DB
-    await this._setCurrentSpace(spaceId);
+    await this._setCurrentSpace(pointer.uri);
     this._updateCurrentSpace();
 
     // Mark client initialized for in-memory usage scenarios (workbench/tests)
@@ -343,33 +346,40 @@ export class ClientState {
   /**
    * Remove a space by ID
    */
-  async removeSpace(spaceId: string): Promise<void> {
+  async removeSpace(spaceKeyOrId: string): Promise<void> {
     // Unregister space from electron file system
+    const spaceState = this._findSpaceState(spaceKeyOrId);
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
+      const spaceId = spaceState?.pointer.id ?? spaceKeyOrId;
       (window as any).electronFileSystem.unregisterSpace(spaceId);
     }
 
     // Find and disconnect the space being removed (since we keep spaces connected now)
-    const spaceToRemove = this._spaceStates.find((s) =>
-      s.pointer.id === spaceId
-    );
-    if (spaceToRemove) {
-      spaceToRemove.disconnect();
+    if (spaceState) {
+      spaceState.disconnect();
     }
 
     // Clear current space if it's being removed
-    if (this.currentSpaceState?.pointer.id === spaceId) {
+    if (this.currentSpaceUri === spaceKeyOrId || this.currentSpaceId === spaceKeyOrId) {
       this.currentSpaceState = null;
     }
 
     // Remove from our collections
-    this.pointers = this.pointers.filter((p) => p.id !== spaceId);
-    this._spaceStates = this._spaceStates.filter((s) =>
-      s.pointer.id !== spaceId
+    const updatedPointers = this.pointers.filter((pointer) =>
+      pointer.uri !== spaceKeyOrId
     );
+    this.pointers = updatedPointers.length === this.pointers.length
+      ? this.pointers.filter((pointer) => pointer.id !== spaceKeyOrId)
+      : updatedPointers;
+    const updatedSpaceStates = this._spaceStates.filter((spaceState) =>
+      spaceState.pointer.uri !== spaceKeyOrId
+    );
+    this._spaceStates = updatedSpaceStates.length === this._spaceStates.length
+      ? this._spaceStates.filter((spaceState) => spaceState.pointer.id !== spaceKeyOrId)
+      : updatedSpaceStates;
 
     // Update current space if it was removed
-    if (this.currentSpaceId === spaceId) {
+    if (this.currentSpaceId === spaceKeyOrId) {
       const nextSpaceId = this.pointers.length > 0 ? this.pointers[0].id : null;
       if (nextSpaceId) {
         await this.switchToSpace(nextSpaceId);
@@ -380,6 +390,7 @@ export class ClientState {
     }
 
     // Delete from database
+    const spaceId = spaceState?.pointer.id ?? spaceKeyOrId;
     await deleteSpace(spaceId);
 
     this._updateCurrentSpace();
@@ -389,17 +400,22 @@ export class ClientState {
   /**
    * Update space name
    */
-  async updateSpaceName(spaceId: string, name: string): Promise<void> {
-    const existingPointer = this.pointers.find((p) => p.id === spaceId);
+  async updateSpaceName(spaceKeyOrId: string, name: string): Promise<void> {
+    const existingPointer = this.pointers.find((pointer) =>
+      pointer.uri === spaceKeyOrId || pointer.id === spaceKeyOrId
+    );
     const previousName = existingPointer?.name;
 
     // Update in pointers
-    this.pointers = this.pointers.map((p) =>
-      p.id === spaceId ? { ...p, name } : p
-    );
+    this.pointers = this.pointers.map((pointer) => {
+      if (pointer.uri === spaceKeyOrId || pointer.id === spaceKeyOrId) {
+        return { ...pointer, name };
+      }
+      return pointer;
+    });
 
     // Update in SpaceState
-    const spaceState = this._spaceStates.find((s) => s.pointer.id === spaceId);
+    const spaceState = this._findSpaceState(spaceKeyOrId);
     if (spaceState) {
       spaceState.pointer = { ...spaceState.pointer, name };
 
@@ -413,7 +429,7 @@ export class ClientState {
       }
 
       if (previousName !== name) {
-        spaceState.spaceTelemetry.spaceRenamed({ space_id: spaceId });
+        spaceState.spaceTelemetry.spaceRenamed({ space_id: spaceState.pointer.id });
       }
     }
 
@@ -441,16 +457,16 @@ export class ClientState {
   /**
    * Internal method to set and connect to current space
    */
-  private async _setCurrentSpace(spaceId: string | null): Promise<void> {
+  private async _setCurrentSpace(spaceKeyOrId: string | null): Promise<void> {
     const previousSpaceId = this.currentSpaceId;
 
     // Don't disconnect current space - keep it connected for fast switching
     this.currentSpaceState = null;
 
-    if (!spaceId) return;
+    if (!spaceKeyOrId) return;
 
     // Find and connect to new space
-    const spaceState = this._spaceStates.find((s) => s.pointer.id === spaceId);
+    const spaceState = this._findSpaceState(spaceKeyOrId);
     if (spaceState) {
       try {
         this.currentSpaceState = spaceState;
@@ -460,10 +476,10 @@ export class ClientState {
           await spaceState.connect();
         }
         if (this.currentSpaceState) {
-          if (previousSpaceId && previousSpaceId !== spaceId) {
+          if (previousSpaceId && previousSpaceId !== spaceState.pointer.id) {
             this.currentSpaceState.spaceTelemetry.spaceSwitched({
               from_space_id: previousSpaceId,
-              to_space_id: spaceId,
+              to_space_id: spaceState.pointer.id,
             });
           }
           this.currentSpaceState.spaceTelemetry.spaceEntered({
@@ -471,11 +487,11 @@ export class ClientState {
           });
         }
       } catch (error) {
-        console.log(`Removing space ${spaceId} from SpaceManager`);
+        console.log(`Removing space ${spaceState.pointer.id} from SpaceManager`);
         // Don't set currentSpace if connection failed
         this.currentSpaceState = null;
         // Remove the space from the SpaceManager
-        this.removeSpace(spaceId);
+        this.removeSpace(spaceKeyOrId);
       }
     }
   }
@@ -484,8 +500,8 @@ export class ClientState {
   private _updateCurrentSpace(): void {
     // Ensure we have a current space selected
     if (!this.currentSpaceState && this.pointers.length > 0) {
-      const defaultSpaceId = this.pointers[0].id;
-      this._setCurrentSpace(defaultSpaceId);
+      const defaultSpaceUri = this.pointers[0].uri;
+      this._setCurrentSpace(defaultSpaceUri);
     }
   }
 
@@ -543,10 +559,12 @@ export class ClientState {
     const { spaceId } = await loadSpaceMetadataFromPath(this, spaceRootPath);
 
     // Check if space is already loaded
-    const existingPointer = this.pointers.find((p) => p.id === spaceId);
+    const existingPointer = this.pointers.find((pointer) =>
+      pointer.id === spaceId && pointer.uri === spaceRootPath
+    );
     if (existingPointer) {
       // Space already exists, just switch to it
-      await this.switchToSpace(spaceId);
+      await this.switchToSpace(existingPointer.uri);
       return spaceId;
     }
 
@@ -567,10 +585,7 @@ export class ClientState {
     );
 
     // Load the space using SpaceManager
-    const space = await this._spaceManager.loadSpace(
-      pointer,
-      persistenceLayers,
-    );
+    const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -597,7 +612,7 @@ export class ClientState {
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
     // Switch to the loaded space
-    await this.switchToSpace(spaceId);
+    await this.switchToSpace(pointer.uri);
 
     this._updateCurrentSpace();
     await this._saveState();
@@ -659,5 +674,12 @@ export class ClientState {
     }
     this.currentSpaceState = null;
     // @TODO: implement disconnect from server
+  }
+
+  private _findSpaceState(spaceKeyOrId: string): SpaceState | undefined {
+    return (
+      this._spaceStates.find((spaceState) => spaceState.pointer.uri === spaceKeyOrId) ??
+      this._spaceStates.find((spaceState) => spaceState.pointer.id === spaceKeyOrId)
+    );
   }
 }
