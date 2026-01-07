@@ -4,9 +4,10 @@
   import ModelSelectCard from "./ModelSelectCard.svelte";
   import AutoModelSelectCard from "./AutoModelSelectCard.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { getActiveProviders } from "@sila/core";
+  import { getActiveProviders, resolveMostCapableLanguageModel } from "@sila/core";
   const clientState = useClientState();
   import { splitModelString, combineModelString } from "@sila/core";
+  import { Lang } from "aiwrapper";
 
   let {
     selectedModel,
@@ -27,6 +28,44 @@
   };
 
   let selectedPair: SelectedPair | null = $state(null);
+  let autoSelectionLabel = $state<string | null>(null);
+
+  function isLanguageProvider(provider: ModelProvider): boolean {
+    return (provider.type ?? ProviderType.Language) === ProviderType.Language;
+  }
+
+  function toProviderDisplayName(providerId: string, allProviders: ModelProvider[]): string {
+    return (
+      Lang.models.getProvider(providerId)?.name ??
+      allProviders.find((p) => p.id === providerId)?.name ??
+      providerId
+    );
+  }
+
+  function toModelDisplayName(modelId: string): string {
+    const direct = Lang.models.id(modelId);
+    if (direct) return direct.name;
+
+    // OpenRouter-style ids: "openai/gpt-5.2"
+    const slashIdx = modelId.indexOf("/");
+    if (slashIdx !== -1) {
+      const tail = modelId.slice(slashIdx + 1);
+      const byTail = Lang.models.id(tail);
+      if (byTail) return byTail.name;
+    }
+
+    return modelId;
+  }
+
+  async function resolveAutoSelectionLabel(params: {
+    configs: ModelProviderConfig[];
+    allProviders: ModelProvider[];
+  }): Promise<string | null> {
+    const { configs, allProviders } = params;
+    const resolved = await resolveMostCapableLanguageModel(configs);
+    if (!resolved) return null;
+    return `${toProviderDisplayName(resolved.provider, allProviders)} / ${toModelDisplayName(resolved.model)}`;
+  }
 
   onMount(async () => {
     const configs = clientState.currentSpace?.getModelProviderConfigs();
@@ -39,11 +78,13 @@
     // Get all active providers (built-in + custom)
     const allProviders = getActiveProviders(customProviders);
 
+    autoSelectionLabel = await resolveAutoSelectionLabel({ configs, allProviders });
+
     // Process all providers
     setupProviders = allProviders
       // Only language providers can be selected as chat models.
       // This prevents non-language providers like Fal.ai (VizGen) or Exa (Search) from showing up here.
-      .filter((provider) => (provider.type ?? ProviderType.Language) === ProviderType.Language)
+      .filter((provider) => isLanguageProvider(provider))
       .map((provider) => {
         // For custom providers, config should already exist in the configs array
         // because custom providers are saved as provider configs
@@ -93,6 +134,7 @@
   {#if setupProviders.length > 0}
     <AutoModelSelectCard
       selected={selectedPair?.providerId === "auto"}
+      {autoSelectionLabel}
       {onSelect}
     />
   {/if}
