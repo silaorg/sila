@@ -4,7 +4,15 @@ import type { AppTree } from "../../spaces/AppTree";
 import { createWorkspaceProxyFetch, isTextLikeMime } from "./workspaceProxyFetch";
 import type { AgentTool } from "./AgentTool";
 import Defuddle from "defuddle/markdown";
-import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+
+// PDF.js requires an explicit worker URL in bundler environments (Vite/Electron renderer).
+// Without it you can get: `No "GlobalWorkerOptions.workerSrc" specified.`
+// We set it once at module init.
+GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const MAX_PDF_PAGES = 50;
@@ -75,6 +83,24 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
     );
   }
 
+  // Quick sanity check to catch proxy/cors layers corrupting binary payloads.
+  // A valid PDF should start with "%PDF-".
+  if (
+    bytes.byteLength < 5 ||
+    bytes[0] !== 0x25 || // %
+    bytes[1] !== 0x50 || // P
+    bytes[2] !== 0x44 || // D
+    bytes[3] !== 0x46 || // F
+    bytes[4] !== 0x2d    // -
+  ) {
+    const head = Array.from(bytes.slice(0, 32))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join(" ");
+    throw new Error(
+      `Expected a PDF (missing %PDF- header). First 32 bytes: ${head}`
+    );
+  }
+
   const pdf = await getDocument({ data: bytes }).promise;
   const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
   const parts: string[] = [];
@@ -82,8 +108,9 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   for (let page = 1; page <= pageCount; page += 1) {
     const pageData = await pdf.getPage(page);
     const text = await pageData.getTextContent();
-    const pageText = text.items
-      .map((item) => ("str" in item ? item.str : ""))
+    const items = (text as any).items as Array<{ str?: string }>;
+    const pageText = items
+      .map((item) => item.str ?? "")
       .join(" ");
     parts.push(`\n\n# Page ${page}\n${pageText}`);
   }
