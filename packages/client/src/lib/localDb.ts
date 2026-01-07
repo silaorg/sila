@@ -33,6 +33,8 @@ export interface SpaceRefRecord {
   spaceRefId?: number; // autoincremented primary key
   spaceUri: string;
   spaceId: string;
+  // Space-scoped UI state (small blobs; 1 record per spaceRef)
+  ttabsLayout?: string | null;
 }
 
 // Individual secret record - matches server schema
@@ -71,7 +73,7 @@ class LocalDb extends Dexie {
   constructor() {
     // WIP: we intentionally reset IndexedDB schema without migration.
     // Using a new DB name gives us a clean slate.
-    super('localDb-v5');
+    super('localDb-v6');
 
     this.version(1).stores({
       // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
@@ -372,12 +374,14 @@ export async function getSpaceSetup(spaceUri: string): Promise<SpaceSetup | unde
 // Get just the ttabsLayout for a space (keyed by space URI)
 export async function getTtabsLayout(spaceUri: string): Promise<string | null | undefined> {
   try {
-    const configKey = `ttabsLayout:${spaceUri}`;
-    const fromConfig = await db.config.get(configKey);
-    if (fromConfig?.value && typeof fromConfig.value === "string") {
-      return fromConfig.value;
-    }
-    return null;
+    const space = await db.spaces.get(spaceUri);
+    if (!space) return null;
+
+    const spaceRefId = await getSpaceRefId(spaceUri, space.id);
+    if (spaceRefId === null) return null;
+
+    const ref = await db.spaceRefs.get(spaceRefId);
+    return ref?.ttabsLayout ?? null;
   } catch (error) {
     console.error(`Failed to get ttabsLayout for space ${spaceUri}:`, error);
     return undefined;
@@ -387,7 +391,11 @@ export async function getTtabsLayout(spaceUri: string): Promise<string | null | 
 // Save ttabsLayout for a space (keyed by space URI)
 export async function saveTtabsLayout(spaceUri: string, layout: string): Promise<void> {
   try {
-    await db.config.put({ key: `ttabsLayout:${spaceUri}`, value: layout });
+    const space = await db.spaces.get(spaceUri);
+    if (!space) return;
+
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, space.id);
+    await db.spaceRefs.update(spaceRefId, { ttabsLayout: layout });
   } catch (error) {
     console.error(`Failed to save ttabsLayout for space ${spaceUri}:`, error);
   }
@@ -528,9 +536,6 @@ export async function deleteSpace(spaceUri: string): Promise<void> {
       if (currentUri === spaceUri) {
         await db.config.delete('currentSpaceUri');
       }
-
-      // Clean up any URI-keyed ttabs layout persisted in config
-      await db.config.delete(`ttabsLayout:${spaceUri}`);
     });
 
     console.log(`Space ${spaceUri} deleted from database`);
