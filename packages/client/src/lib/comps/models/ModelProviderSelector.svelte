@@ -7,7 +7,7 @@
   import { getActiveProviders, resolveMostCapableLanguageModel } from "@sila/core";
   const clientState = useClientState();
   import { splitModelString, combineModelString } from "@sila/core";
-  import { Lang } from "aiwrapper";
+  import { formatModelLabel, getProviderDisplayName } from "@sila/client/utils/modelDisplay";
 
   let {
     selectedModel,
@@ -34,29 +34,6 @@
     return (provider.type ?? ProviderType.Language) === ProviderType.Language;
   }
 
-  function toProviderDisplayName(providerId: string, allProviders: ModelProvider[]): string {
-    return (
-      Lang.models.getProvider(providerId)?.name ??
-      allProviders.find((p) => p.id === providerId)?.name ??
-      providerId
-    );
-  }
-
-  function toModelDisplayName(modelId: string): string {
-    const direct = Lang.models.id(modelId);
-    if (direct) return direct.name;
-
-    // OpenRouter-style ids: "openai/gpt-5.2"
-    const slashIdx = modelId.indexOf("/");
-    if (slashIdx !== -1) {
-      const tail = modelId.slice(slashIdx + 1);
-      const byTail = Lang.models.id(tail);
-      if (byTail) return byTail.name;
-    }
-
-    return modelId;
-  }
-
   async function resolveAutoSelectionLabel(params: {
     configs: ModelProviderConfig[];
     allProviders: ModelProvider[];
@@ -64,7 +41,11 @@
     const { configs, allProviders } = params;
     const resolved = await resolveMostCapableLanguageModel(configs);
     if (!resolved) return null;
-    return `${toProviderDisplayName(resolved.provider, allProviders)} / ${toModelDisplayName(resolved.model)}`;
+    const providerName = getProviderDisplayName(
+      resolved.provider,
+      allProviders.find((p) => p.id === resolved.provider)?.name ?? null,
+    );
+    return `${providerName} / ${formatModelLabel(resolved.model)}`;
   }
 
   onMount(async () => {
@@ -100,8 +81,6 @@
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    console.log("setupProviders", setupProviders);
 
     if (selectedModel) {
       const modelParts = splitModelString(selectedModel);

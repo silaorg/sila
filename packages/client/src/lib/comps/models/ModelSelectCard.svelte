@@ -3,8 +3,8 @@
   import type { ModelProvider, ModelProviderConfig } from "@sila/core";
   import { getProviderModels } from "@sila/core";
   import { ProviderType } from "@sila/core";
-  import { Lang } from "aiwrapper";
   import { i18n } from "@sila/client";
+  import { formatModelLabel } from "@sila/client/utils/modelDisplay";
 
   let {
     provider,
@@ -36,40 +36,6 @@
   // For custom providers, get the model ID from the config
   const customModelId = $derived(isCustomProvider && 'modelId' in config ? config.modelId as string : null);
 
-  function toModelDisplayName(modelId: string): string {
-    const direct = Lang.models.id(modelId);
-    if (direct) return direct.name;
-
-    // OpenRouter-style ids: "openai/gpt-5.2"
-    const slashIdx = modelId.indexOf("/");
-    if (slashIdx !== -1) {
-      const tail = modelId.slice(slashIdx + 1);
-      const byTail = Lang.models.id(tail);
-      if (byTail) return byTail.name;
-    }
-
-    return modelId;
-  }
-
-  function toCreatorDisplayName(creatorOrProviderId: string): string {
-    return (
-      Lang.models.getCreator(creatorOrProviderId)?.name ??
-      Lang.models.getProvider(creatorOrProviderId)?.name ??
-      creatorOrProviderId
-    );
-  }
-
-  function formatModelLabel(modelId: string): string {
-    // If model id is "creator/model", show "Creator / Model"
-    const slashIdx = modelId.indexOf("/");
-    if (slashIdx !== -1) {
-      const creator = modelId.slice(0, slashIdx);
-      const tail = modelId.slice(slashIdx + 1);
-      return `${toCreatorDisplayName(creator)} / ${toModelDisplayName(tail)}`;
-    }
-    return toModelDisplayName(modelId);
-  }
-
   const effectiveDefaultModelId = $derived.by(() => {
     // Custom providers: fixed model id from config
     if (isCustomProvider && customModelId) return customModelId;
@@ -89,30 +55,28 @@
     return provider.defaultModel ?? "";
   });
 
-  const effectiveDefaultLabel = $derived.by(() => {
-    const id = typeof effectiveDefaultModelId === "string" ? effectiveDefaultModelId.trim() : "";
-    return id ? formatModelLabel(id) : null;
-  });
+  const normalizedSelectedModelId = $derived.by(() =>
+    typeof modelId === "string" ? modelId.trim() : "",
+  );
 
-  const selectedModelLabel = $derived.by(() => {
-    const id = typeof modelId === "string" ? modelId.trim() : "";
-    return id ? formatModelLabel(id) : null;
-  });
+  const normalizedDefaultModelId = $derived.by(() =>
+    typeof effectiveDefaultModelId === "string" ? effectiveDefaultModelId.trim() : "",
+  );
+
+  const displayModelId = $derived.by(
+    () => normalizedSelectedModelId || normalizedDefaultModelId,
+  );
+
+  const displayModelLabel = $derived.by(() =>
+    displayModelId ? formatModelLabel(displayModelId) : null,
+  );
 
   const isUsingDefaultModel = $derived.by(() => {
     // Custom providers have a fixed model shown separately.
     if (isCustomProvider) return false;
-
-    const current = typeof modelId === "string" ? modelId.trim() : "";
-    const def =
-      typeof effectiveDefaultModelId === "string"
-        ? effectiveDefaultModelId.trim()
-        : "";
-
-    // If the current model isn't set (or empty), treat it as default.
-    if (!current) return true;
-    if (!def) return false;
-    return current === def;
+    if (!normalizedSelectedModelId) return true;
+    if (!normalizedDefaultModelId) return false;
+    return normalizedSelectedModelId === normalizedDefaultModelId;
   });
 
   onMount(async () => {
@@ -218,15 +182,11 @@
           — {customModelId}&nbsp;
         </span>
       {:else if selected && !showModels}
-        {#if selectedModelLabel}
+        {#if displayModelLabel}
           <span class="font-semibold">
             — {isUsingDefaultModel
-              ? i18n.texts.models.defaultOption(selectedModelLabel)
-              : selectedModelLabel}&nbsp;
-          </span>
-        {:else if effectiveDefaultLabel}
-          <span class="font-semibold">
-            — {i18n.texts.models.defaultOption(effectiveDefaultLabel)}&nbsp;
+              ? i18n.texts.models.defaultOption(displayModelLabel)
+              : displayModelLabel}&nbsp;
           </span>
         {/if}
       {/if}
