@@ -487,17 +487,31 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     const ops = await this.turnJSONLinesIntoOps(lines, peerId, 'p');
     const latestByKey = new Map<string, VertexOperation>();
 
+    // Avoid rewriting if the file already contains only the latest op per (targetId,key)
+    // and is already ordered by op counter.
+    let isSortedByCounter = true;
+    let prevCounter = -Infinity;
+    let hasDuplicatesForKey = false;
+
     for (const op of ops) {
-      if (!isAnyPropertyOp(op)) {
-        continue;
+      if (!isAnyPropertyOp(op)) continue;
+
+      if (op.id.counter < prevCounter) {
+        isSortedByCounter = false;
       }
+      prevCounter = op.id.counter;
 
       const mapKey = `${op.targetId}:${op.key}`;
       const existing = latestByKey.get(mapKey);
+      if (existing) {
+        hasDuplicatesForKey = true;
+      }
       if (!existing || op.id.counter > existing.id.counter) {
         latestByKey.set(mapKey, op);
       }
     }
+
+    if (!hasDuplicatesForKey && isSortedByCounter) return;
 
     const compactedOps = Array.from(latestByKey.values())
       .sort((a, b) => a.id.counter - b.id.counter);
