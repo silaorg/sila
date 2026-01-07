@@ -191,6 +191,16 @@ export async function getCurrentSpaceId(): Promise<string | null> {
   }
 }
 
+export async function getCurrentSpaceUri(): Promise<string | null> {
+  try {
+    const entry = await db.config.get('currentSpaceUri');
+    return entry ? entry.value as string : null;
+  } catch (error) {
+    console.error('Failed to get currentSpaceUri from database:', error);
+    return null;
+  }
+}
+
 export async function getAllConfig(): Promise<Record<string, unknown>> {
   try {
     const entries = await db.config.toArray();
@@ -276,17 +286,29 @@ export async function saveCurrentSpaceId(id: string | null): Promise<void> {
   }
 }
 
+export async function saveCurrentSpaceUri(uri: string | null): Promise<void> {
+  if (uri === null) return;
+
+  try {
+    await db.config.put({ key: 'currentSpaceUri', value: uri });
+  } catch (error) {
+    console.error('Failed to save currentSpaceUri to database:', error);
+  }
+}
+
 export async function initializeDatabase(): Promise<{
   pointers: SpacePointer[];
   currentSpaceId: string | null;
+  currentSpaceUri: string | null;
   config: Record<string, unknown>;
 }> {
   try {
     const pointers = await getAllPointers();
     const currentSpaceId = await getCurrentSpaceId();
+    const currentSpaceUri = await getCurrentSpaceUri();
     const config = await getAllConfig();
 
-    return { pointers, currentSpaceId, config };
+    return { pointers, currentSpaceId, currentSpaceUri, config };
   } catch (error) {
     console.error('Failed to initialize database:', error);
 
@@ -299,7 +321,7 @@ export async function initializeDatabase(): Promise<{
       console.error('Failed to recover database:', recoveryError);
     }
 
-    return { pointers: [], currentSpaceId: null, config: {} };
+    return { pointers: [], currentSpaceId: null, currentSpaceUri: null, config: {} };
   }
 }
 
@@ -460,6 +482,9 @@ export async function saveSpaceColorScheme(spaceId: string, colorScheme: 'system
 export async function deleteSpace(spaceId: string): Promise<void> {
   try {
     await db.transaction('rw', [db.spaces, db.treeOps, db.secrets, db.config], async () => {
+      // Capture space record (for URI-based config cleanup)
+      const space = await db.spaces.get(spaceId);
+
       // Delete all operations for this space
       await db.treeOps
         .where('spaceId')
@@ -479,6 +504,16 @@ export async function deleteSpace(spaceId: string): Promise<void> {
       const currentId = await getCurrentSpaceId();
       if (currentId === spaceId) {
         await db.config.delete('currentSpaceId');
+      }
+
+      // Also clear currentSpaceUri if it points at the deleted space's URI
+      if (space?.uri) {
+        const currentUri = await getCurrentSpaceUri();
+        if (currentUri === space.uri) {
+          await db.config.delete('currentSpaceUri');
+        }
+        // Clean up any URI-keyed ttabs layout persisted in config
+        await db.config.delete(`ttabsLayout:${space.uri}`);
       }
     });
 

@@ -62,7 +62,7 @@
       return;
     }
 
-    clientState.removeSpace(space.getId());
+    clientState.removeSpace(spaceState?.pointer.uri ?? space.getId());
   }
 
   onMount(() => {

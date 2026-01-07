@@ -15,6 +15,7 @@ import {
   initializeDatabase,
   saveConfig,
   saveCurrentSpaceId,
+  saveCurrentSpaceUri,
   savePointers,
 } from "@sila/client/localDb";
 import { Space, SpaceManager } from "@sila/core";
@@ -178,7 +179,7 @@ export class ClientState {
       this._initializationError = null;
 
       // Initialize database and load space data
-      const { pointers, currentSpaceId, config } = await initializeDatabase();
+      const { pointers, currentSpaceId, currentSpaceUri, config } = await initializeDatabase();
       this.pointers = pointers;
       this.config = config;
 
@@ -211,7 +212,9 @@ export class ClientState {
       }
 
       // Set current space and connect to it
-      await this._setCurrentSpace(currentSpaceId);
+      // Prefer URI selection (unambiguous when multiple pointers share the same id).
+      // Fallback to the legacy id for older DB state.
+      await this._setCurrentSpace(currentSpaceUri ?? currentSpaceId);
 
       // Set final status
       this._updateCurrentSpace();
@@ -513,6 +516,7 @@ export class ClientState {
       await Promise.all([
         savePointers(this.pointers),
         saveConfig(this.config),
+        saveCurrentSpaceUri(this.currentSpaceUri),
         saveCurrentSpaceId(this.currentSpaceId),
       ]);
     } catch (error) {
