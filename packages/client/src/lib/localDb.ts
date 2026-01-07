@@ -511,8 +511,10 @@ export async function saveSpaceColorScheme(spaceUri: string, colorScheme: 'syste
 // Delete a space from the database
 export async function deleteSpace(spaceUri: string): Promise<void> {
   try {
+    let spaceIdsToClearCache: string[] = [];
     await db.transaction('rw', [db.spaces, db.spaceRefs, db.treeOps, db.secrets, db.config], async () => {
       const refs = await db.spaceRefs.where('spaceUri').equals(spaceUri).toArray();
+      spaceIdsToClearCache = refs.map(r => r.spaceId);
       const refIds = refs
         .map(r => r.spaceRefId)
         .filter((v): v is number => typeof v === "number");
@@ -529,14 +531,18 @@ export async function deleteSpace(spaceUri: string): Promise<void> {
       await db.spaces.delete(spaceUri);
 
       // Check if this was the current space and clear it if so
-      const currentId = await getCurrentSpaceId();
-      if (currentId) await db.config.delete('currentSpaceId');
-
       const currentUri = await getCurrentSpaceUri();
       if (currentUri === spaceUri) {
         await db.config.delete('currentSpaceUri');
+        // Clear legacy id-based selection too (it may point to this space id).
+        await db.config.delete('currentSpaceId');
       }
     });
+
+    // Clear in-memory cache entries for this URI (best-effort; not persisted)
+    for (const spaceId of spaceIdsToClearCache) {
+      _spaceRefCache.delete(_spaceRefCacheKey(spaceUri, spaceId));
+    }
 
     console.log(`Space ${spaceUri} deleted from database`);
   } catch (error) {
