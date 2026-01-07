@@ -109,8 +109,8 @@
       }
 
       // Save space name using the new method
-      if (clientState.currentSpaceState && clientState.currentSpaceId) {
-        clientState.updateSpaceName(clientState.currentSpaceId, spaceName);
+    if (clientState.currentSpaceState && clientState.currentSpaceUri) {
+        clientState.updateSpaceName(clientState.currentSpaceUri, spaceName);
       }
       spaceNameError = ""; // Clear any previous error
     }
