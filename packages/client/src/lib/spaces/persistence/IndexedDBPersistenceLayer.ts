@@ -18,8 +18,11 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
 
   private _connected = false;
 
-  constructor(private spaceId: string) {
-    this.id = `indexeddb-${spaceId}`;
+  constructor(
+    private spaceKey: string,
+    private spaceId: string,
+  ) {
+    this.id = `indexeddb-${spaceKey}`;
   }
 
   async connect(): Promise<void> {
@@ -47,7 +50,7 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     }
 
     // Load operations for the main space tree (treeId = spaceId)
-    return await getTreeOps(this.spaceId, this.spaceId);
+    return await getTreeOps(this.spaceKey, this.spaceId);
   }
 
   async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
@@ -62,7 +65,7 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     if (opsToSave.length === 0) return;
 
     // Save operations to IndexedDB
-    await appendTreeOps(this.spaceId, treeId, opsToSave);
+    await appendTreeOps(this.spaceKey, treeId, opsToSave);
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
@@ -71,7 +74,7 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     }
 
     // Load operations for the specified app tree
-    return await getTreeOps(this.spaceId, treeId);
+    return await getTreeOps(this.spaceKey, treeId);
   }
 
   async loadSecrets(): Promise<Record<string, string> | undefined> {
@@ -80,7 +83,7 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     }
 
     // Load secrets from IndexedDB
-    return await getAllSecrets(this.spaceId);
+    return await getAllSecrets(this.spaceKey);
   }
 
   async saveSecrets(secrets: Record<string, string>): Promise<void> {
@@ -91,7 +94,7 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     if (Object.keys(secrets).length === 0) return;
 
     // Save secrets to IndexedDB
-    await saveAllSecrets(this.spaceId, secrets);
+    await saveAllSecrets(this.spaceKey, secrets);
   }
 
   // No startListening/stopListening methods - one-way persistence only

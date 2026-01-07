@@ -393,8 +393,8 @@ export class ClientState {
     }
 
     // Delete from database
-    const spaceId = spaceState?.pointer.id ?? spaceKeyOrId;
-    await deleteSpace(spaceId);
+    const spaceUri = spaceState?.pointer.uri ?? spaceKeyOrId;
+    await deleteSpace(spaceUri);
 
     this._updateCurrentSpace();
    await this._saveState();

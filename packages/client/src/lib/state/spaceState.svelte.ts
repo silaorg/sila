@@ -15,6 +15,7 @@ import {
   getSecret,
   setSecret
 } from "@sila/client/localDb";
+import { makeSpaceKey } from "../spaces/spaceKey";
 import { Backend, FileResolver } from "@sila/core";
 import { SpaceTelemetry } from "./spaceTelemetry";
 import VertexViewer from "./vertexViewer.svelte";
@@ -94,7 +95,7 @@ export class SpaceState {
         this.vertexViewer.setSpace(this.space);
 
         // Load space-specific theme and layout
-        await this.theme.loadSpaceTheme(this.pointer.id);
+        await this.theme.loadSpaceTheme(this.pointer.uri);
         await this.layout.loadSpaceLayout();
 
         this.initBackend();
@@ -160,54 +161,57 @@ export class SpaceState {
   }
 
   // === Space-specific operations moved from SpaceStore ===
+  private get spaceKey(): string {
+    return makeSpaceKey(this.pointer.uri, this.pointer.id);
+  }
 
   /**
    * Get a draft for this space
    */
   async getDraft(draftId: string): Promise<string | undefined> {
-    return getDraft(this.pointer.id, draftId);
+    return getDraft(this.pointer.uri, draftId);
   }
 
   /**
    * Save a draft for this space
    */
   async saveDraft(draftId: string, content: string): Promise<void> {
-    await saveDraft(this.pointer.id, draftId, content);
+    await saveDraft(this.pointer.uri, draftId, content);
   }
 
   /**
    * Delete a draft for this space
    */
   async deleteDraft(draftId: string): Promise<void> {
-    await deleteDraft(this.pointer.id, draftId);
+    await deleteDraft(this.pointer.uri, draftId);
   }
 
   /**
    * Get all secrets for this space
    */
   async getAllSecrets(): Promise<Record<string, string> | undefined> {
-    return getAllSecrets(this.pointer.id);
+    return getAllSecrets(this.spaceKey);
   }
 
   /**
    * Save all secrets for this space
    */
   async saveAllSecrets(secrets: Record<string, string>): Promise<void> {
-    await saveAllSecrets(this.pointer.id, secrets);
+    await saveAllSecrets(this.spaceKey, secrets);
   }
 
   /**
    * Get a specific secret for this space
    */
   async getSecret(key: string): Promise<string | undefined> {
-    return getSecret(this.pointer.id, key);
+    return getSecret(this.spaceKey, key);
   }
 
   /**
    * Set a specific secret for this space
    */
   async setSecret(key: string, value: string): Promise<void> {
-    await setSecret(this.pointer.id, key, value);
+    await setSecret(this.spaceKey, key, value);
   }
 
   // === Utility methods ===

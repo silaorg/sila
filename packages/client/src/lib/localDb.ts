@@ -1,6 +1,7 @@
 import Dexie from 'dexie';
 import type { SpacePointer } from "./spaces/SpacePointer";
 import type { VertexOperation } from "@sila/core";
+import { makeSpaceKey, parseSpaceKey } from "./spaces/spaceKey";
 
 /**
  * Space setup on a client side
@@ -30,6 +31,8 @@ export interface ConfigEntry {
 
 // Individual secret record - matches server schema
 export interface SecretRecord {
+  spaceKey: string;
+  spaceUri: string;
   spaceId: string;
   key: string;
   value: string;
@@ -41,7 +44,9 @@ export interface TreeOperation {
   clock: number;        // The counter/clock value
   peerId: string;       // The peer ID
   treeId: string;       // Tree identifier
-  spaceId: string;      // Space reference
+  spaceKey: string;     // Space reference (uri + id)
+  spaceUri: string;     // For easy bulk-delete by URI
+  spaceId: string;      // Underlying space id (tree id)
 
   // Operation data
   targetId: string;     // Target vertex ID
@@ -61,26 +66,18 @@ class LocalDb extends Dexie {
   secrets!: Dexie.Table<SecretRecord, [string, string]>; // Composite primary key [spaceId, key]
 
   constructor() {
-    super('localDb');
+    // WIP: we intentionally reset IndexedDB schema without migration.
+    // Using a new DB name gives us a clean slate.
+    super('localDb-v3');
 
     this.version(1).stores({
-      spaces: '&id, uri, name, createdAt',
+      // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
+      spaces: '&uri, id, name, createdAt, userId',
       config: '&key',
-      treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [spaceId+treeId+clock]',
-      secrets: '&[spaceId+key], spaceId' // Composite primary key [spaceId+key], indexed by spaceId
-    });
-
-    // Version 2: Add userId to spaces table
-    this.version(2).stores({
-      spaces: '&id, uri, name, createdAt, userId',
-      config: '&key',
-      treeOps: '&[clock+peerId+treeId+spaceId], spaceId, treeId, [spaceId+treeId], [spaceId+treeId+clock]',
-      secrets: '&[spaceId+key], spaceId'
-    }).upgrade(tx => {
-      // Migration: add userId field to existing spaces (set to null for backward compatibility)
-      return tx.table('spaces').toCollection().modify(space => {
-        space.userId = null;
-      });
+      // Ops are keyed by (spaceUri + spaceId) via spaceKey to avoid collisions.
+      treeOps: '&[clock+peerId+treeId+spaceKey], spaceKey, spaceUri, treeId, [spaceKey+treeId], [spaceUri+treeId]',
+      // Secrets are keyed by spaceKey so different spaces with same id don't collide.
+      secrets: '&[spaceKey+key], spaceKey, spaceUri'
     });
   }
 }
@@ -108,11 +105,14 @@ function toVertexOperation(op: TreeOperation): VertexOperation {
 }
 
 // Convert from VertexOperation for storage
-function fromVertexOperation(op: VertexOperation, spaceId: string, treeId: string): TreeOperation {
+function fromVertexOperation(op: VertexOperation, spaceKey: string, treeId: string): TreeOperation {
+  const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
   const base: Partial<TreeOperation> = {
     clock: op.id.counter,
     peerId: op.id.peerId,
     treeId,
+    spaceKey,
+    spaceUri,
     spaceId,
     targetId: op.targetId
   };
@@ -238,12 +238,13 @@ export async function savePointers(pointers: SpacePointer[]): Promise<void> {
     for (const pointer of serializablePointers) {
       try {
         // Check if this space already exists
-        const existingSpace = await db.spaces.get(pointer.id);
+        const existingSpace = await db.spaces.get(pointer.uri);
 
         if (existingSpace) {
           // Update only the pointer fields, preserving other data
-          await db.spaces.update(pointer.id, {
+          await db.spaces.update(pointer.uri, {
             uri: pointer.uri,
+            id: pointer.id,
             name: pointer.name,
             createdAt: pointer.createdAt,
             userId: pointer.userId
@@ -258,7 +259,7 @@ export async function savePointers(pointers: SpacePointer[]): Promise<void> {
           });
         }
       } catch (spaceError) {
-        console.error(`Failed to save space ${pointer.id}:`, spaceError);
+        console.error(`Failed to save space ${pointer.uri}:`, spaceError);
       }
     }
   } catch (error) {
@@ -326,16 +327,11 @@ export async function initializeDatabase(): Promise<{
 }
 
 // Get the complete SpaceSetup for a space
-export async function getSpaceSetup(spaceId: string): Promise<SpaceSetup | undefined> {
+export async function getSpaceSetup(spaceUri: string): Promise<SpaceSetup | undefined> {
   try {
-    const space = await db.spaces
-      .where('id')
-      .equals(spaceId)
-      .first();
-
-    return space;
+    return await db.spaces.get(spaceUri);
   } catch (error) {
-    console.error(`Failed to get setup for space ${spaceId}:`, error);
+    console.error(`Failed to get setup for space ${spaceUri}:`, error);
     return undefined;
   }
 }
@@ -353,12 +349,7 @@ export async function getTtabsLayout(spaceKey: string): Promise<string | null | 
 
     // Back-compat fallback (older versions stored layout inside spaces table by id).
     // 1) Try treat "spaceKey" as an id
-    const byId = await db.spaces.where('id').equals(spaceKey).first();
-    if (byId?.ttabsLayout) {
-      return byId.ttabsLayout;
-    }
-
-    // 2) If caller passed a URI, resolve to the matching space record and use its legacy layout
+    // For v3 DB, legacy layout can only be found by uri.
     const byUri = await db.spaces.where('uri').equals(spaceKey).first();
     return byUri?.ttabsLayout;
   } catch (error) {
@@ -375,44 +366,41 @@ export async function saveTtabsLayout(spaceKey: string, layout: string): Promise
 
     // Best-effort back-compat write for older app versions that expect layout on the space row.
     // Only do this when spaceKey looks like an actual space id record.
-    const existing = await db.spaces.get(spaceKey);
-    if (existing) {
-      await db.spaces.where('id').equals(spaceKey).modify({ ttabsLayout: layout });
-    }
+    // For v3 DB, no legacy writeback needed.
   } catch (error) {
     console.error(`Failed to save ttabsLayout for space ${spaceKey}:`, error);
   }
 }
 
 // Get operations for a specific tree
-export async function getTreeOps(spaceId: string, treeId: string): Promise<VertexOperation[]> {
+export async function getTreeOps(spaceKey: string, treeId: string): Promise<VertexOperation[]> {
   try {
     const treeOps = await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceKey+treeId]')
+      .equals([spaceKey, treeId])
       .toArray();
 
     return treeOps.map(toVertexOperation);
   } catch (error) {
-    console.error(`Failed to get ops for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to get ops for tree ${treeId} in space ${spaceKey}:`, error);
     return [];
   }
 }
 
-export async function appendTreeOps(spaceId: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
+export async function appendTreeOps(spaceKey: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
   if (ops.length === 0) return;
 
-  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceId, treeId));
+  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceKey, treeId));
 
   // Use bulkPut to store operations
   await db.treeOps.bulkPut(treeOpsEntries);
 }
 
-export async function getAllSpaceTreeOps(spaceId: string): Promise<Map<string, VertexOperation[]>> {
+export async function getAllSpaceTreeOps(spaceKey: string): Promise<Map<string, VertexOperation[]>> {
   try {
     const treeOps = await db.treeOps
-      .where('spaceId')
-      .equals(spaceId)
+      .where('spaceKey')
+      .equals(spaceKey)
       .toArray();
 
     const treeOpsMap = new Map<string, VertexOperation[]>();
@@ -426,120 +414,113 @@ export async function getAllSpaceTreeOps(spaceId: string): Promise<Map<string, V
 
     return treeOpsMap;
   } catch (error) {
-    console.error(`Failed to get all tree ops for space ${spaceId}:`, error);
+    console.error(`Failed to get all tree ops for space ${spaceKey}:`, error);
     return new Map();
   }
 }
 
-export async function deleteTreeOps(spaceId: string, treeId: string): Promise<void> {
+export async function deleteTreeOps(spaceKey: string, treeId: string): Promise<void> {
   try {
     await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceKey+treeId]')
+      .equals([spaceKey, treeId])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to delete ops for tree ${treeId} in space ${spaceKey}:`, error);
   }
 }
 
-export async function getTreeOpCount(spaceId: string, treeId: string): Promise<number> {
+export async function getTreeOpCount(spaceKey: string, treeId: string): Promise<number> {
   try {
     return await db.treeOps
-      .where('[spaceId+treeId]')
-      .equals([spaceId, treeId])
+      .where('[spaceKey+treeId]')
+      .equals([spaceKey, treeId])
       .count();
   } catch (error) {
-    console.error(`Failed to get op count for tree ${treeId} in space ${spaceId}:`, error);
+    console.error(`Failed to get op count for tree ${treeId} in space ${spaceKey}:`, error);
     return 0;
   }
 }
 
 // Save theme for a space
-export async function saveSpaceTheme(spaceId: string, theme: string): Promise<void> {
+export async function saveSpaceTheme(spaceUri: string, theme: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify({ theme: theme });
   } catch (error) {
-    console.error(`Failed to save theme for space ${spaceId}:`, error);
+    console.error(`Failed to save theme for space ${spaceUri}:`, error);
   }
 }
 
 // Save color scheme for a space
-export async function saveSpaceColorScheme(spaceId: string, colorScheme: 'system' | 'light' | 'dark'): Promise<void> {
+export async function saveSpaceColorScheme(spaceUri: string, colorScheme: 'system' | 'light' | 'dark'): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify({ colorScheme: colorScheme });
   } catch (error) {
-    console.error(`Failed to save color scheme for space ${spaceId}:`, error);
+    console.error(`Failed to save color scheme for space ${spaceUri}:`, error);
   }
 }
 
 // Delete a space from the database
-export async function deleteSpace(spaceId: string): Promise<void> {
+export async function deleteSpace(spaceUri: string): Promise<void> {
   try {
     await db.transaction('rw', [db.spaces, db.treeOps, db.secrets, db.config], async () => {
-      // Capture space record (for URI-based config cleanup)
-      const space = await db.spaces.get(spaceId);
-
       // Delete all operations for this space
       await db.treeOps
-        .where('spaceId')
-        .equals(spaceId)
+        .where('spaceUri')
+        .equals(spaceUri)
         .delete();
 
       // Delete all secrets for this space
       await db.secrets
-        .where('spaceId')
-        .equals(spaceId)
+        .where('spaceUri')
+        .equals(spaceUri)
         .delete();
 
       // Delete the space from the spaces table
-      await db.spaces.delete(spaceId);
+      await db.spaces.delete(spaceUri);
 
       // Check if this was the current space and clear it if so
       const currentId = await getCurrentSpaceId();
-      if (currentId === spaceId) {
-        await db.config.delete('currentSpaceId');
+      if (currentId) await db.config.delete('currentSpaceId');
+
+      const currentUri = await getCurrentSpaceUri();
+      if (currentUri === spaceUri) {
+        await db.config.delete('currentSpaceUri');
       }
 
-      // Also clear currentSpaceUri if it points at the deleted space's URI
-      if (space?.uri) {
-        const currentUri = await getCurrentSpaceUri();
-        if (currentUri === space.uri) {
-          await db.config.delete('currentSpaceUri');
-        }
-        // Clean up any URI-keyed ttabs layout persisted in config
-        await db.config.delete(`ttabsLayout:${space.uri}`);
-      }
+      // Clean up any URI-keyed ttabs layout persisted in config
+      await db.config.delete(`ttabsLayout:${spaceUri}`);
     });
 
-    console.log(`Space ${spaceId} deleted from database`);
+    console.log(`Space ${spaceUri} deleted from database`);
   } catch (error) {
-    console.error(`Failed to delete space ${spaceId} from database:`, error);
+    console.error(`Failed to delete space ${spaceUri} from database:`, error);
   }
 }
 
 // Get a draft for a space and draftId
-export async function getDraft(spaceId: string, draftId: string): Promise<string | undefined> {
+export async function getDraft(spaceUri: string, draftId: string): Promise<string | undefined> {
   try {
-    const space = await db.spaces.get(spaceId);
+    const space = await db.spaces.get(spaceUri);
     return space?.drafts?.[draftId];
   } catch (error) {
-    console.error(`Failed to get draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to get draft for space ${spaceUri} and draftId ${draftId}:`, error);
     return undefined;
   }
 }
 
 // Save a draft for a space
-export async function saveDraft(spaceId: string, draftId: string, content: string): Promise<void> {
+export async function saveDraft(spaceUri: string, draftId: string, content: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify((space) => {
         if (!space.drafts) {
           space.drafts = {};
@@ -547,32 +528,32 @@ export async function saveDraft(spaceId: string, draftId: string, content: strin
         space.drafts[draftId] = content;
       });
   } catch (error) {
-    console.error(`Failed to save draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to save draft for space ${spaceUri} and draftId ${draftId}:`, error);
   }
 }
 
 // Delete a draft for a space
-export async function deleteDraft(spaceId: string, draftId: string): Promise<void> {
+export async function deleteDraft(spaceUri: string, draftId: string): Promise<void> {
   try {
     await db.spaces
-      .where('id')
-      .equals(spaceId)
+      .where('uri')
+      .equals(spaceUri)
       .modify((space) => {
         if (space.drafts && space.drafts[draftId]) {
           delete space.drafts[draftId];
         }
       });
   } catch (error) {
-    console.error(`Failed to delete draft for space ${spaceId} and draftId ${draftId}:`, error);
+    console.error(`Failed to delete draft for space ${spaceUri} and draftId ${draftId}:`, error);
   }
 }
 
 // Get all secrets for a space
-export async function getAllSecrets(spaceId: string): Promise<Record<string, string> | undefined> {
+export async function getAllSecrets(spaceKey: string): Promise<Record<string, string> | undefined> {
   try {
     const secretRecords = await db.secrets
-      .where('spaceId')
-      .equals(spaceId)
+      .where('spaceKey')
+      .equals(spaceKey)
       .toArray();
 
     if (secretRecords.length === 0) {
@@ -586,64 +567,70 @@ export async function getAllSecrets(spaceId: string): Promise<Record<string, str
 
     return secrets;
   } catch (error) {
-    console.error(`Failed to get all secrets for space ${spaceId}:`, error);
+    console.error(`Failed to get all secrets for space ${spaceKey}:`, error);
     return undefined;
   }
 }
 
 // Save all secrets for a space
-export async function saveAllSecrets(spaceId: string, secrets: Record<string, string>): Promise<void> {
+export async function saveAllSecrets(spaceKey: string, secrets: Record<string, string>): Promise<void> {
   try {
+    const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
     const secretRecords: SecretRecord[] = Object.entries(secrets).map(([key, value]) => ({
+      spaceKey,
+      spaceUri,
       spaceId,
       key,
-      value
+      value,
     }));
 
     // Use bulkPut to insert/update all secrets
     await db.secrets.bulkPut(secretRecords);
   } catch (error) {
-    console.error(`Failed to save all secrets for space ${spaceId}:`, error);
+    console.error(`Failed to save all secrets for space ${spaceKey}:`, error);
   }
 }
 
 // Get a specific secret for a space
-export async function getSecret(spaceId: string, key: string): Promise<string | undefined> {
+export async function getSecret(spaceKey: string, key: string): Promise<string | undefined> {
   try {
     const secretRecord = await db.secrets
-      .where('[spaceId+key]')
-      .equals([spaceId, key])
+      .where('[spaceKey+key]')
+      .equals([spaceKey, key])
       .first();
 
     return secretRecord?.value;
   } catch (error) {
-    console.error(`Failed to get secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to get secret ${key} for space ${spaceKey}:`, error);
     return undefined;
   }
 }
 
 // Set a specific secret for a space
-export async function setSecret(spaceId: string, key: string, value: string): Promise<void> {
+export async function setSecret(spaceKey: string, key: string, value: string): Promise<void> {
   try {
+    const { uri: spaceUri, id: spaceId } = parseSpaceKey(spaceKey);
     await db.secrets.put({
+      spaceKey,
+      spaceUri,
       spaceId,
       key,
       value
     });
   } catch (error) {
-    console.error(`Failed to set secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to set secret ${key} for space ${spaceKey}:`, error);
   }
 }
 
 // Delete a specific secret for a space
-export async function deleteSecret(spaceId: string, key: string): Promise<void> {
+export async function deleteSecret(spaceKey: string, key: string): Promise<void> {
   try {
     await db.secrets
-      .where('[spaceId+key]')
-      .equals([spaceId, key])
+      .where('[spaceKey+key]')
+      .equals([spaceKey, key])
       .delete();
   } catch (error) {
-    console.error(`Failed to delete secret ${key} for space ${spaceId}:`, error);
+    console.error(`Failed to delete secret ${key} for space ${spaceKey}:`, error);
   }
 }
 
