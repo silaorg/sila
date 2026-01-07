@@ -109,7 +109,6 @@ app.whenReady().then(async () => {
   // IPC: cors-less fetch for renderer
   ipcMain.handle('sila:proxyFetch', async (event, url, init) => {
     const res = await fetch(url, init);
-    // IMPORTANT: do not use `res.text()` here — it corrupts binary payloads (PDFs, images, etc).
     // Return raw bytes so the renderer can reconstruct a proper Response.
     const bytes = new Uint8Array(await res.arrayBuffer());
     return {

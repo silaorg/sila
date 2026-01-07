@@ -4,7 +4,7 @@ import type { AppTree } from "../../spaces/AppTree";
 import { createWorkspaceProxyFetch, isTextLikeMime } from "./workspaceProxyFetch";
 import type { AgentTool } from "./AgentTool";
 import Defuddle from "defuddle/markdown";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 const MAX_PDF_PAGES = 50;
@@ -301,7 +301,7 @@ function decodeCursor(raw: string): ReadToolCursorV1 | null {
 }
 
 async function extractPdfText(bytes: Uint8Array): Promise<string> {
-  ensurePdfJsWorkerConfigured();
+  const hasWorker = await ensurePdfJsWorkerConfigured();
 
   if (bytes.byteLength > MAX_PDF_BYTES) {
     throw new Error(
@@ -327,7 +327,15 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
     );
   }
 
-  const pdf = await getDocument({ data: bytes }).promise;
+  // In Electron/Vite/bundled environments we need a real URL to the PDF.js worker.
+  // In Node we can usually resolve it via `import.meta.resolve`.
+  // If we still can't determine a usable worker URL, we disable the worker so PDF parsing works
+  // (just on the main thread).
+  // `disableWorker` exists at runtime, but isn't always present in `pdfjs-dist` TypeScript types,
+  // so we set it via an `any` init object to keep this file type-safe elsewhere.
+  const docInit: any = { data: bytes };
+  if (!hasWorker) docInit.disableWorker = true;
+  const pdf = await getDocument(docInit).promise;
   const pageCount = Math.min(pdf.numPages, MAX_PDF_PAGES);
   const parts: string[] = [];
 
@@ -348,14 +356,42 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   return parts.join("\n").trim();
 }
 
-function ensurePdfJsWorkerConfigured(): void {
-  // In bundler environments (Vite/Electron renderer), PDF.js needs an explicit worker URL.
-  // If unset, PDF.js throws: `No "GlobalWorkerOptions.workerSrc" specified.`
+async function ensurePdfJsWorkerConfigured(): Promise<boolean> {
   // We only set this if missing, so embedders can override it.
-  if (GlobalWorkerOptions.workerSrc) return;
+  if (GlobalWorkerOptions.workerSrc) return true;
 
-  GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.mjs",
-    import.meta.url
-  ).toString();
+  const metaResolve = (import.meta as any)?.resolve as
+    | ((specifier: string) => string)
+    | undefined;
+
+  if (typeof metaResolve === "function") {
+    try {
+      // Node returns an absolute filesystem URL string (e.g. file:///.../node_modules/...).
+      GlobalWorkerOptions.workerSrc = metaResolve(
+        "pdfjs-dist/legacy/build/pdf.worker.mjs"
+      );
+      return true;
+    } catch {
+      // fall through
+    }
+  }
+
+  // Vite/Electron renderer: let the bundler produce a URL for the worker.
+  // This is the recommended pattern for bundlers: import the worker as a URL.
+  // If this fails (e.g. non-Vite bundler), we'll fall back to `disableWorker`.
+  if (typeof (globalThis as any).window !== "undefined") {
+    try {
+      // @ts-expect-error - Vite supports `?url` imports; TypeScript doesn't resolve them in @sila/core.
+      const mod: any = await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url");
+      const url = typeof mod?.default === "string" ? mod.default : undefined;
+      if (url) {
+        GlobalWorkerOptions.workerSrc = url;
+        return true;
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  return false;
 }
