@@ -28,10 +28,16 @@ export interface ConfigEntry {
   value: unknown;
 }
 
-// Individual secret record - matches server schema
-export interface SecretRecord {
+// Interned space reference: store (spaceUri, spaceId) once and refer to it by numeric id
+export interface SpaceRefRecord {
+  spaceRefId?: number; // autoincremented primary key
   spaceUri: string;
   spaceId: string;
+}
+
+// Individual secret record - matches server schema
+export interface SecretRecord {
+  spaceRefId: number;
   key: string;
   value: string;
 }
@@ -42,8 +48,7 @@ export interface TreeOperation {
   clock: number;        // The counter/clock value
   peerId: string;       // The peer ID
   treeId: string;       // Tree identifier
-  spaceUri: string;     // For easy bulk-delete by URI
-  spaceId: string;      // Underlying space id (tree id)
+  spaceRefId: number;   // Interned (spaceUri, spaceId)
 
   // Operation data
   targetId: string;     // Target vertex ID
@@ -58,28 +63,62 @@ export interface TreeOperation {
 
 class LocalDb extends Dexie {
   spaces!: Dexie.Table<SpaceSetup, string>;
+  spaceRefs!: Dexie.Table<SpaceRefRecord, number>;
   config!: Dexie.Table<ConfigEntry, string>;
-  treeOps!: Dexie.Table<TreeOperation, [number, string, string, string, string]>; // [clock, peerId, treeId, spaceUri, spaceId]
-  secrets!: Dexie.Table<SecretRecord, [string, string, string]>; // [spaceUri, spaceId, key]
+  treeOps!: Dexie.Table<TreeOperation, [number, string, string, number]>; // [clock, peerId, treeId, spaceRefId]
+  secrets!: Dexie.Table<SecretRecord, [number, string]>; // [spaceRefId, key]
 
   constructor() {
     // WIP: we intentionally reset IndexedDB schema without migration.
     // Using a new DB name gives us a clean slate.
-    super('localDb-v4');
+    super('localDb-v5');
 
     this.version(1).stores({
       // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
       spaces: '&uri, id, name, createdAt, userId',
+      // Intern mapping: (spaceUri, spaceId) -> spaceRefId (autoincrement)
+      spaceRefs: '++spaceRefId,&[spaceUri+spaceId], spaceUri, spaceId',
       config: '&key',
-      // Ops are keyed by (spaceUri + spaceId) to avoid collisions.
-      treeOps: '&[clock+peerId+treeId+spaceUri+spaceId], spaceUri, spaceId, treeId, [spaceUri+spaceId], [spaceUri+spaceId+treeId]',
-      // Secrets are keyed by (spaceUri + spaceId) so different spaces with same id don't collide.
-      secrets: '&[spaceUri+spaceId+key], spaceUri, spaceId, [spaceUri+spaceId]'
+      // Ops are keyed by interned spaceRefId to avoid repeating long URIs on every row.
+      treeOps: '&[clock+peerId+treeId+spaceRefId], spaceRefId, treeId, [spaceRefId+treeId]',
+      // Secrets are keyed by interned spaceRefId.
+      secrets: '&[spaceRefId+key], spaceRefId'
     });
   }
 }
 
 export const db = new LocalDb();
+
+const _spaceRefCache = new Map<string, number>();
+function _spaceRefCacheKey(spaceUri: string, spaceId: string): string {
+  // Stable cache key; not persisted.
+  return `${spaceUri}\u0000${spaceId}`;
+}
+
+async function getSpaceRefId(spaceUri: string, spaceId: string): Promise<number | null> {
+  const cacheKey = _spaceRefCacheKey(spaceUri, spaceId);
+  const cached = _spaceRefCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const existing = await db.spaceRefs
+    .where('[spaceUri+spaceId]')
+    .equals([spaceUri, spaceId])
+    .first();
+  if (!existing?.spaceRefId) return null;
+
+  _spaceRefCache.set(cacheKey, existing.spaceRefId);
+  return existing.spaceRefId;
+}
+
+async function getOrCreateSpaceRefId(spaceUri: string, spaceId: string): Promise<number> {
+  const existing = await getSpaceRefId(spaceUri, spaceId);
+  if (existing !== null) return existing;
+
+  const cacheKey = _spaceRefCacheKey(spaceUri, spaceId);
+  const newId = await db.spaceRefs.add({ spaceUri, spaceId });
+  _spaceRefCache.set(cacheKey, newId);
+  return newId;
+}
 
 // Convert to VertexOperation for RepTree
 function toVertexOperation(op: TreeOperation): VertexOperation {
@@ -102,13 +141,12 @@ function toVertexOperation(op: TreeOperation): VertexOperation {
 }
 
 // Convert from VertexOperation for storage
-function fromVertexOperation(op: VertexOperation, spaceUri: string, spaceId: string, treeId: string): TreeOperation {
+function fromVertexOperation(op: VertexOperation, spaceRefId: number, treeId: string): TreeOperation {
   const base: Partial<TreeOperation> = {
     clock: op.id.counter,
     peerId: op.id.peerId,
     treeId,
-    spaceUri,
-    spaceId,
+    spaceRefId,
     targetId: op.targetId
   };
 
@@ -370,9 +408,12 @@ export async function saveTtabsLayout(spaceKey: string, layout: string): Promise
 // Get operations for a specific tree
 export async function getTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<VertexOperation[]> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return [];
+
     const treeOps = await db.treeOps
-      .where('[spaceUri+spaceId+treeId]')
-      .equals([spaceUri, spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .toArray();
 
     return treeOps.map(toVertexOperation);
@@ -385,7 +426,8 @@ export async function getTreeOps(spaceUri: string, spaceId: string, treeId: stri
 export async function appendTreeOps(spaceUri: string, spaceId: string, treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
   if (ops.length === 0) return;
 
-  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceUri, spaceId, treeId));
+  const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
+  const treeOpsEntries = ops.map(op => fromVertexOperation(op, spaceRefId, treeId));
 
   // Use bulkPut to store operations
   await db.treeOps.bulkPut(treeOpsEntries);
@@ -393,9 +435,12 @@ export async function appendTreeOps(spaceUri: string, spaceId: string, treeId: s
 
 export async function getAllSpaceTreeOps(spaceUri: string, spaceId: string): Promise<Map<string, VertexOperation[]>> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return new Map();
+
     const treeOps = await db.treeOps
-      .where('[spaceUri+spaceId]')
-      .equals([spaceUri, spaceId])
+      .where('spaceRefId')
+      .equals(spaceRefId)
       .toArray();
 
     const treeOpsMap = new Map<string, VertexOperation[]>();
@@ -416,9 +461,12 @@ export async function getAllSpaceTreeOps(spaceUri: string, spaceId: string): Pro
 
 export async function deleteTreeOps(spaceUri: string, spaceId: string, treeId: string): Promise<void> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return;
+
     await db.treeOps
-      .where('[spaceUri+spaceId+treeId]')
-      .equals([spaceUri, spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .delete();
   } catch (error) {
     console.error(`Failed to delete ops for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
@@ -427,9 +475,12 @@ export async function deleteTreeOps(spaceUri: string, spaceId: string, treeId: s
 
 export async function getTreeOpCount(spaceUri: string, spaceId: string, treeId: string): Promise<number> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return 0;
+
     return await db.treeOps
-      .where('[spaceUri+spaceId+treeId]')
-      .equals([spaceUri, spaceId, treeId])
+      .where('[spaceRefId+treeId]')
+      .equals([spaceRefId, treeId])
       .count();
   } catch (error) {
     console.error(`Failed to get op count for tree ${treeId} in space ${spaceUri} (${spaceId}):`, error);
@@ -464,18 +515,19 @@ export async function saveSpaceColorScheme(spaceUri: string, colorScheme: 'syste
 // Delete a space from the database
 export async function deleteSpace(spaceUri: string): Promise<void> {
   try {
-    await db.transaction('rw', [db.spaces, db.treeOps, db.secrets, db.config], async () => {
-      // Delete all operations for this space
-      await db.treeOps
-        .where('spaceUri')
-        .equals(spaceUri)
-        .delete();
+    await db.transaction('rw', [db.spaces, db.spaceRefs, db.treeOps, db.secrets, db.config], async () => {
+      const refs = await db.spaceRefs.where('spaceUri').equals(spaceUri).toArray();
+      const refIds = refs
+        .map(r => r.spaceRefId)
+        .filter((v): v is number => typeof v === "number");
 
-      // Delete all secrets for this space
-      await db.secrets
-        .where('spaceUri')
-        .equals(spaceUri)
-        .delete();
+      if (refIds.length > 0) {
+        await db.treeOps.where('spaceRefId').anyOf(refIds).delete();
+        await db.secrets.where('spaceRefId').anyOf(refIds).delete();
+      }
+
+      // Delete interned refs for this URI
+      await db.spaceRefs.where('spaceUri').equals(spaceUri).delete();
 
       // Delete the space from the spaces table
       await db.spaces.delete(spaceUri);
@@ -546,9 +598,12 @@ export async function deleteDraft(spaceUri: string, draftId: string): Promise<vo
 // Get all secrets for a space
 export async function getAllSecrets(spaceUri: string, spaceId: string): Promise<Record<string, string> | undefined> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return undefined;
+
     const secretRecords = await db.secrets
-      .where('[spaceUri+spaceId]')
-      .equals([spaceUri, spaceId])
+      .where('spaceRefId')
+      .equals(spaceRefId)
       .toArray();
 
     if (secretRecords.length === 0) {
@@ -570,9 +625,9 @@ export async function getAllSecrets(spaceUri: string, spaceId: string): Promise<
 // Save all secrets for a space
 export async function saveAllSecrets(spaceUri: string, spaceId: string, secrets: Record<string, string>): Promise<void> {
   try {
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
     const secretRecords: SecretRecord[] = Object.entries(secrets).map(([key, value]) => ({
-      spaceUri,
-      spaceId,
+      spaceRefId,
       key,
       value,
     }));
@@ -587,9 +642,12 @@ export async function saveAllSecrets(spaceUri: string, spaceId: string, secrets:
 // Get a specific secret for a space
 export async function getSecret(spaceUri: string, spaceId: string, key: string): Promise<string | undefined> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return undefined;
+
     const secretRecord = await db.secrets
-      .where('[spaceUri+spaceId+key]')
-      .equals([spaceUri, spaceId, key])
+      .where('[spaceRefId+key]')
+      .equals([spaceRefId, key])
       .first();
 
     return secretRecord?.value;
@@ -602,9 +660,9 @@ export async function getSecret(spaceUri: string, spaceId: string, key: string):
 // Set a specific secret for a space
 export async function setSecret(spaceUri: string, spaceId: string, key: string, value: string): Promise<void> {
   try {
+    const spaceRefId = await getOrCreateSpaceRefId(spaceUri, spaceId);
     await db.secrets.put({
-      spaceUri,
-      spaceId,
+      spaceRefId,
       key,
       value
     });
@@ -616,9 +674,12 @@ export async function setSecret(spaceUri: string, spaceId: string, key: string, 
 // Delete a specific secret for a space
 export async function deleteSecret(spaceUri: string, spaceId: string, key: string): Promise<void> {
   try {
+    const spaceRefId = await getSpaceRefId(spaceUri, spaceId);
+    if (spaceRefId === null) return;
+
     await db.secrets
-      .where('[spaceUri+spaceId+key]')
-      .equals([spaceUri, spaceId, key])
+      .where('[spaceRefId+key]')
+      .equals([spaceRefId, key])
       .delete();
   } catch (error) {
     console.error(`Failed to delete secret ${key} for space ${spaceUri} (${spaceId}):`, error);
