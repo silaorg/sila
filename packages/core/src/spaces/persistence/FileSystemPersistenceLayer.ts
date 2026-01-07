@@ -2,9 +2,7 @@ import { ConnectedPersistenceLayer } from "@sila/core";
 import type { VertexOperation } from "@sila/core";
 import {
   isMoveVertexOp,
-  isAnyPropertyOp,
-  newMoveVertexOp,
-  newSetVertexPropertyOp
+  isAnyPropertyOp
 } from "@sila/core";
 import { type WatchEvent, type UnwatchFn, type FileHandle, type AppFileSystem } from "@sila/core";
 import { interval } from "@sila/core";
@@ -15,6 +13,8 @@ export const LOCAL_SPACE_MD_FILE = 'sila.md';
 export const TEXT_INSIDE_LOCAL_SPACE_MD_FILE = `# Sila Space
 
 This directory contains a Sila space. Please do not rename or modify the 'space-v1' folder as you won't be able to open the space from Sila. Sila needs it as is.`;
+
+type OpsFileType = 'm' | 'p';
 
 /**
  * File system persistence layer that saves operations and secrets to local files.
@@ -34,6 +34,9 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
   private onIncomingOpsCallback: ((treeId: string, ops: VertexOperation[]) => void) | null = null;
   private savedPeerIds = new Set<string>();
   private opsParser: OpsParser;
+  private propOpsSinceCompact = new Map<string, number>();
+  private propOpsCompactCountThreshold = 500;
+  private propOpsCompactBytesThreshold = 1_000_000;
 
   constructor(
     private spacePath: string, 
@@ -219,17 +222,39 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     return this.makePathForOpsBasedOnDate(treeId, new Date());
   }
 
-  private async openFileToCurrentTreeOpsJSONLFile(treeId: string, peerId: string): Promise<FileHandle> {
+  private async openFileToCurrentTreeOpsJSONLFile(
+    treeId: string,
+    peerId: string,
+    opType: OpsFileType
+  ): Promise<FileHandle> {
     const dirPath = this.makePathForCurrentDayOps(treeId);
     await this.fs.mkdir(dirPath, { recursive: true });
 
-    const filePath = `${dirPath}/${peerId}.jsonl`;
+    const filePath = this.makeOpsFilePath(dirPath, peerId, opType);
 
     if (await this.fs.exists(filePath)) {
       return await this.fs.open(filePath, { append: true });
     }
 
     return await this.fs.create(filePath);
+  }
+
+  private makeOpsFilePath(dirPath: string, peerId: string, opType: OpsFileType): string {
+    return `${dirPath}/${peerId}-${opType}.jsonl`;
+  }
+
+  private getOpsFileInfo(fileName: string): { peerId: string; opType?: OpsFileType } | null {
+    if (!fileName.endsWith('.jsonl')) {
+      return null;
+    }
+
+    const match = fileName.match(/^(.*)-(m|p)\.jsonl$/);
+    if (match) {
+      return { peerId: match[1], opType: match[2] as OpsFileType };
+    }
+
+    const peerId = fileName.split('.')[0];
+    return peerId ? { peerId } : null;
   }
 
   /**
@@ -288,8 +313,12 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     for (const file of jsonlFiles) {
       try {
         const lines = await this.fs.readTextFileLines(file);
-        const peerId = file.split('/').pop()!.split('.')[0];
-        const ops = await this.turnJSONLinesIntoOps(lines, peerId);
+        const fileName = file.split('/').pop()!;
+        const fileInfo = this.getOpsFileInfo(fileName);
+        if (!fileInfo) {
+          continue;
+        }
+        const ops = await this.turnJSONLinesIntoOps(lines, fileInfo.peerId, fileInfo.opType);
         allOps.push(...ops);
       } catch (error) {
         console.error("Error reading ops from file", file, error);
@@ -357,18 +386,30 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
       // Save ops for each peerId
       for (const [peerId, opsForPeerId] of opsByPeerId.entries()) {
         try {
-          // Copy the ops to avoid modifying the original array while saving 
-          // because saving is async.
-          const ops = [...opsForPeerId];
-          const opsJSONLines = this.turnOpsIntoJSONLines(ops);
-          const opsFile = await this.openFileToCurrentTreeOpsJSONLFile(treeId, peerId);
-          await opsFile.write(new TextEncoder().encode(opsJSONLines));
-          await opsFile.close();
-          
-          // We remove precisely the ops that we just saved
-          this.removeSavedOpsFromOpsToSave(treeId, ops);
+          const opsToSave = [...opsForPeerId];
+          const moveOps = opsToSave.filter(isMoveVertexOp);
+          const propertyOps = opsToSave.filter(isAnyPropertyOp);
 
-          this.savedPeerIds.add(peerId);
+          if (moveOps.length > 0) {
+            const opsJSONLines = this.turnMoveOpsIntoJSONLines(moveOps);
+            const opsFile = await this.openFileToCurrentTreeOpsJSONLFile(treeId, peerId, 'm');
+            await opsFile.write(new TextEncoder().encode(opsJSONLines));
+            await opsFile.close();
+            this.removeSavedOpsFromOpsToSave(treeId, moveOps);
+          }
+
+          if (propertyOps.length > 0) {
+            const opsJSONLines = this.turnPropertyOpsIntoJSONLines(propertyOps);
+            const opsFile = await this.openFileToCurrentTreeOpsJSONLFile(treeId, peerId, 'p');
+            await opsFile.write(new TextEncoder().encode(opsJSONLines));
+            await opsFile.close();
+            this.removeSavedOpsFromOpsToSave(treeId, propertyOps);
+            await this.maybeCompactPropertyOps(treeId, peerId, propertyOps.length);
+          }
+
+          if (moveOps.length > 0 || propertyOps.length > 0) {
+            this.savedPeerIds.add(peerId);
+          }
 
         } catch (error) {
           console.error("Error saving ops to file", error);
@@ -392,25 +433,84 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     return false;
   }
 
-  private turnOpsIntoJSONLines(ops: VertexOperation[]): string {
+  private turnMoveOpsIntoJSONLines(ops: VertexOperation[]): string {
     let str = '';
 
     for (const op of ops) {
       if (isMoveVertexOp(op)) {
         // Save parentId with quotes because it might be null
-        str += `["m",${op.id.counter},"${op.targetId}",${JSON.stringify(op.parentId)}]\n`;
-      } else if (isAnyPropertyOp(op)) {
-        // Convert undefined to empty object ({}) because JSON doesn't support undefined
-        const value = op.value === undefined ? {} : op.value;
-        str += `["p",${op.id.counter},"${op.targetId}","${op.key}",${JSON.stringify(value)}]\n`;
+        str += `[${op.id.counter},"${op.targetId}",${JSON.stringify(op.parentId)}]\n`;
       }
     }
 
     return str;
   }
 
-  private async turnJSONLinesIntoOps(lines: string[], peerId: string): Promise<VertexOperation[]> {
-    return await this.opsParser.parseLines(lines, peerId);
+  private turnPropertyOpsIntoJSONLines(ops: VertexOperation[]): string {
+    let str = '';
+
+    for (const op of ops) {
+      if (isAnyPropertyOp(op)) {
+        // Convert undefined to empty object ({}) because JSON doesn't support undefined
+        const value = op.value === undefined ? {} : op.value;
+        str += `[${op.id.counter},"${op.targetId}","${op.key}",${JSON.stringify(value)}]\n`;
+      }
+    }
+
+    return str;
+  }
+
+  private async turnJSONLinesIntoOps(
+    lines: string[],
+    peerId: string,
+    opTypeHint?: OpsFileType
+  ): Promise<VertexOperation[]> {
+    return await this.opsParser.parseLines(lines, peerId, opTypeHint);
+  }
+
+  private async maybeCompactPropertyOps(treeId: string, peerId: string, newOpsCount: number): Promise<void> {
+    const dirPath = this.makePathForCurrentDayOps(treeId);
+    const filePath = this.makeOpsFilePath(dirPath, peerId, 'p');
+    const opsSinceCompact = (this.propOpsSinceCompact.get(filePath) ?? 0) + newOpsCount;
+    this.propOpsSinceCompact.set(filePath, opsSinceCompact);
+
+    const shouldCompactByCount = opsSinceCompact >= this.propOpsCompactCountThreshold;
+    const shouldCompactByBytes = await this.isPropOpsFileTooLarge(filePath);
+
+    if (!shouldCompactByCount && !shouldCompactByBytes) {
+      return;
+    }
+
+    await this.compactPropertyOpsFile(filePath, peerId);
+    this.propOpsSinceCompact.set(filePath, 0);
+  }
+
+  private async isPropOpsFileTooLarge(filePath: string): Promise<boolean> {
+    const data = await this.fs.readBinaryFile(filePath);
+    return data.length >= this.propOpsCompactBytesThreshold;
+  }
+
+  private async compactPropertyOpsFile(filePath: string, peerId: string): Promise<void> {
+    const lines = await this.fs.readTextFileLines(filePath);
+    const ops = await this.turnJSONLinesIntoOps(lines, peerId, 'p');
+    const latestByKey = new Map<string, VertexOperation>();
+
+    for (const op of ops) {
+      if (!isAnyPropertyOp(op)) {
+        continue;
+      }
+
+      const mapKey = `${op.targetId}:${op.key}`;
+      const existing = latestByKey.get(mapKey);
+      if (!existing || op.id.counter > existing.id.counter) {
+        latestByKey.set(mapKey, op);
+      }
+    }
+
+    const compactedOps = Array.from(latestByKey.values())
+      .sort((a, b) => a.id.counter - b.id.counter);
+    const output = this.turnPropertyOpsIntoJSONLines(compactedOps);
+    await this.fs.writeTextFile(filePath, output);
   }
 
   // Secrets encryption/decryption (preserved from OLD_LocalSpaceSync.ts)
@@ -548,13 +648,21 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     }
 
     let peerId: string | null = null;
+    let opType: OpsFileType | undefined;
     let treeId: string | null = null;
 
     try {
       const splitPath = path.split('/');
 
       // Extract peer ID from the filename (remove .jsonl extension)
-      peerId = splitPath.pop()!.split('.')[0];
+      const fileName = splitPath.pop()!;
+      const fileInfo = this.getOpsFileInfo(fileName);
+      if (!fileInfo) {
+        throw new Error("Ops file info not found in the path");
+      }
+
+      peerId = fileInfo.peerId;
+      opType = fileInfo.opType;
 
       if (!peerId) {
         throw new Error("Peer ID not found in the path");
@@ -600,7 +708,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     }
 
     const lines = await this.fs.readTextFileLines(path);
-    const ops = await this.turnJSONLinesIntoOps(lines, peerId);
+    const ops = await this.turnJSONLinesIntoOps(lines, peerId, opType);
 
     if (ops.length === 0) {
       return;
