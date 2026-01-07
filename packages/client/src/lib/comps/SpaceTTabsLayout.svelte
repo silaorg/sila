@@ -34,21 +34,21 @@
   }
 
   $effect(() => {
-    const spaceKey = spaceState.pointer.uri ?? null;
+    const spaceUri = spaceState.pointer.uri ?? null;
 
     untrack(() => {
-      setupSpaceLayout(spaceKey);
+      setupSpaceLayout(spaceUri);
     });
   });
 
-  async function setupSpaceLayout(spaceKey: string | null): Promise<void> {
-    if (!spaceKey) {
+  async function setupSpaceLayout(spaceUri: string | null): Promise<void> {
+    if (!spaceUri) {
       spaceState.layout.ttabs.resetTiles();
       return;
     }
 
     try {
-      const ttabsLayout = await getTtabsLayout(spaceKey);
+      const ttabsLayout = await getTtabsLayout(spaceUri);
       spaceState.layout.setupLayout(ttabsLayout ?? undefined);
       lastSavedLayout = ttabsLayout ?? null;
     } catch (error) {
