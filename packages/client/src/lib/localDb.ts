@@ -71,9 +71,7 @@ class LocalDb extends Dexie {
   secrets!: Dexie.Table<SecretRecord, [number, string]>; // [spaceRefId, key]
 
   constructor() {
-    // WIP: we intentionally reset IndexedDB schema without migration.
-    // Using a new DB name gives us a clean slate.
-    super('localDb-v6');
+    super('localDb');
 
     this.version(1).stores({
       // Keyed by uri (UI/reference key). id is stored as a value and may repeat across URIs.
