@@ -98,23 +98,6 @@
 
   function handleStepChange(newStep: number) {
     currentWizardStep = newStep;
-
-    // @NOTE: we're probably going to remove this as we changed how the space is named now
-    /*
-    if (newStep === 1) {
-      // Moving from step 0 (Name) to step 1 (Provider)
-      // Allow empty space name (skip naming)
-      if (!spaceName.trim()) {
-        spaceName = "My Workspace"; // Default name if skipped
-      }
-
-      // Save space name using the new method
-    if (clientState.currentSpaceState && clientState.currentSpaceUri) {
-        clientState.updateSpaceName(clientState.currentSpaceUri, spaceName);
-      }
-      spaceNameError = ""; // Clear any previous error
-    }
-    */
   }
 
   function completeSetup() {
