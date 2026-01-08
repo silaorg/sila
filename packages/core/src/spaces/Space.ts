@@ -50,7 +50,6 @@ export class Space {
       "onboarding": true,
     });
     const appConfigs = root.newNamedChild("configs");
-    appConfigs.newChild(Space.getDefaultAppConfig(createTexts("en")));
     root.newNamedChild("threads");
     root.newNamedChild("providers");
     root.newNamedChild("assets");
@@ -335,24 +334,11 @@ export class Space {
   }
 
   getAppConfigs(): AppConfig[] {
-    return this.getArray<AppConfig>("configs");
+    return this.appConfigs.getAll();
   }
 
   getAppConfig(configId: string): AppConfig | undefined {
-    const config = this.findObjectWithPropertyAtPath("configs", "id", configId);
-
-    if (configId === "default") {
-      const defaultConfig = Space.getDefaultAppConfig(this.getWorkspaceTexts());
-
-      return {
-        ...config,
-        ...defaultConfig,
-      } as AppConfig;
-    }
-
-    if (!config) return undefined;
-
-    return config as AppConfig;
+    return this.appConfigs.get(configId);
   }
 
   static getDefaultAppConfig(texts: Texts): AppConfig {
@@ -511,6 +497,30 @@ export class Space {
   }
 
   updateAppConfig(configId: string, updates: Partial<AppConfig>): void {
+    // Default assistant is virtual (computed). We only persist overrides in the tree.
+    // The UI should be responsible for restricting which fields can be edited.
+    if (configId === "default") {
+      // No updates provided
+      if (Object.keys(updates).length === 0) {
+        return;
+      }
+
+      const existingVertex = this.getFirstVertexWithPropertyAtPath(
+        "configs",
+        "id",
+        configId,
+      );
+
+      // Create minimal overrides entry if missing
+      if (!existingVertex) {
+        this.insertIntoArray("configs", { id: "default", ...updates });
+        return;
+      }
+
+      this.updateInArray(existingVertex.id, updates);
+      return;
+    }
+
     const vertexId = this.getFirstVertexWithPropertyAtPath(
       "configs",
       "id",

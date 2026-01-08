@@ -23,8 +23,6 @@
     }
   });
 
-  const placeholder = "Ask anything";
-
   function handleSend(msg: string, attachments?: AttachmentPreview[]) {
     // Allow sending if there's either text content or attachments
     if (!msg && (!attachments || attachments.length === 0)) {
@@ -77,7 +75,6 @@
     <SendMessageForm
       onSend={handleSend}
       onConfigChange={handleConfigChange}
-      {placeholder}
       draftId="new-thread"
       showConfigSelector={true}
       configId={targetAppConfig?.id}

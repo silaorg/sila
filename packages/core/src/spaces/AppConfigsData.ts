@@ -11,40 +11,25 @@ function getTextsForLanguage(language?: string): Texts {
   return createTexts("en");
 }
 
-function enrichDefaultConfig(
-  configs: AppConfig[],
-  languageProvider?: () => string | undefined,
-): AppConfig[] {
-  // Enrich the default config with the default values
-  const defaultConfigIndex = configs.findIndex((config) => config.id === "default");
-  if (defaultConfigIndex !== -1) {
-    const defaultConfig = Space.getDefaultAppConfig(
-      getTextsForLanguage(languageProvider?.()),
-    );
-    configs[defaultConfigIndex] = {
-      ...defaultConfig,
-      ...configs[defaultConfigIndex],
-    };
-  }
-
+function sortByCreatedAt(configs: AppConfig[]): AppConfig[] {
   return configs.sort((a, b) => {
     // @TODO: fix this, make sure we do have _c in our configs
-    const aDate = new Date((a as any)._c).getTime();
-    const bDate = new Date((b as any)._c).getTime();
+    const aC = (a as any)?._c;
+    const bC = (b as any)?._c;
+    const aDate = typeof aC === "number" ? aC : new Date(aC ?? 0).getTime();
+    const bDate = typeof bC === "number" ? bC : new Date(bC ?? 0).getTime();
     return aDate - bDate;
   });
 }
 
-// @TODO: answer: should I resolve 'id' into vertex id? And same for _n to 'name'?
-
 // @TODO: could it be based on a generic data class? SpaceArray<T>(rootVertex: Vertex)
 export class AppConfigsData {
   private root: Vertex;
-  private languageProvider?: () => string | undefined;
+  private getWorkspaceLanguage?: () => string | undefined;
 
-  constructor(root: Vertex, languageProvider?: () => string | undefined) {
+  constructor(root: Vertex, getWorkspaceLanguage?: () => string | undefined) {
     this.root = root;
-    this.languageProvider = languageProvider;
+    this.getWorkspaceLanguage = getWorkspaceLanguage;
 
     if (!this.root) {
       throw new Error("App configs vertex not found");
@@ -52,20 +37,44 @@ export class AppConfigsData {
   }
 
   getAll(): AppConfig[] {
-    return enrichDefaultConfig(
-      this.root.getChildrenAsTypedArray<AppConfig>(),
-      this.languageProvider,
-    );
+    const configs = this.root.getChildrenAsTypedArray<AppConfig>();
+
+    // Default assistant is always virtual (computed from texts).
+    // If it exists in the tree, we only treat it as an overrides container.
+    const storedDefault = configs.find((c) => c.id === "default");
+    const others = configs.filter((c) => c.id !== "default");
+
+    const defaultConfig: AppConfig = {
+      ...Space.getDefaultAppConfig(
+        getTextsForLanguage(this.getWorkspaceLanguage?.()),
+      ),
+      // Only allow persisted overrides for default assistant (for now).
+      targetLLM: storedDefault?.targetLLM,
+      visible: storedDefault?.visible ?? true,
+    };
+    // Keep default first in UI lists
+    (defaultConfig as any)._c = (storedDefault as any)?._c ?? 0;
+
+    return [defaultConfig, ...sortByCreatedAt(others)];
   }
 
   get(configId: string): AppConfig | undefined {
-    const config = this.root.findFirstTypedChildWithProperty<AppConfig>("id", configId);
+    if (configId === "default") {
+      const storedDefault = this.root.findFirstTypedChildWithProperty<AppConfig>(
+        "id",
+        "default",
+      );
 
-    if (config?.id === "default") {
-      return enrichDefaultConfig([config], this.languageProvider)[0];
+      return {
+        ...Space.getDefaultAppConfig(
+          getTextsForLanguage(this.getWorkspaceLanguage?.()),
+        ),
+        targetLLM: storedDefault?.targetLLM,
+        visible: storedDefault?.visible ?? true,
+      };
     }
 
-    return config;
+    return this.root.findFirstTypedChildWithProperty<AppConfig>("id", configId);
   }
 
   // @TODO: consider adding automatically
@@ -82,6 +91,9 @@ export class AppConfigsData {
   }
 
   update(id: string, updates: Partial<AppConfig>) {
+    if (id === "default") {
+      throw new Error("Default app config is virtual; update it via Space.updateAppConfig");
+    }
     const targetVertex = this.root.findFirstChildVertexWithProperty("id", id);
     if (!targetVertex) {
       throw new Error(`App config ${id} not found`);
@@ -91,6 +103,9 @@ export class AppConfigsData {
   }
 
   delete(entry: AppConfig) {
+    if (entry.id === "default") {
+      throw new Error("Default app config cannot be deleted");
+    }
     const vertex = this.root.findFirstChildVertexWithProperty("id", entry.id);
     if (!vertex) {
       throw new Error(`App config ${entry.id} not found`);
@@ -100,9 +115,8 @@ export class AppConfigsData {
   }
 
   observe(observer: (appConfigs: AppConfig[]) => void) {
-    const languageProvider = this.languageProvider;
     const observerWrapper = (appConfigs: AppConfig[]) => {
-      observer(enrichDefaultConfig(appConfigs, languageProvider));
+      observer(this.getAll());
     };
 
     observerWrapper(this.getAll());

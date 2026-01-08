@@ -59,7 +59,7 @@ export const chineseTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "聊天",
     button: "新建提问",
     description: "基础聊天助手",
     instructions:

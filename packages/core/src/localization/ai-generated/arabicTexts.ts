@@ -59,7 +59,7 @@ export const arabicTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "دردشة",
     button: "استعلام جديد",
     description: "مساعد دردشة أساسي",
     instructions:

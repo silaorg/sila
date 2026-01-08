@@ -59,7 +59,7 @@ export const turkishTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "Sohbet",
     button: "Yeni sorgu",
     description: "Temel bir sohbet asistanı",
     instructions:

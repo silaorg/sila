@@ -59,7 +59,7 @@ export const koreanTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "채팅",
     button: "새 질문",
     description: "기본 채팅 어시스턴트",
     instructions:

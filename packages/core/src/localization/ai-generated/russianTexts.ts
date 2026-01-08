@@ -78,7 +78,7 @@ export const russianTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "Чат",
     button: "Новый запрос",
     description: "Базовый чат-ассистент",
     instructions:

@@ -59,7 +59,7 @@ export const hindiTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "चैट",
     button: "नया प्रश्न",
     description: "एक बुनियादी चैट सहायक",
     instructions:

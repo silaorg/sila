@@ -55,7 +55,7 @@
     onSend,
     onStop = () => {},
     isFocused = true,
-    placeholder = i18n.texts.messageForm.placeholder,
+    placeholder: externalPlaceholder = undefined,
     status = "can-send-message",
     disabled = false,
     draftId,
@@ -65,6 +65,8 @@
     onConfigChange = undefined,
     configId: externalConfigId = undefined,
   }: SendMessageFormProps = $props();
+
+  let placeholder = $derived(externalPlaceholder ?? i18n.texts.messageForm.placeholder);
 
   function openModelProvidersSettings() {
     clientState.layout.swins.open(
@@ -79,8 +81,10 @@
   let isSending = $state(false);
   let attachmentsMenuOpen = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
-  type ChatEditorInstance = InstanceType<typeof ChatEditor>;
-  let editorRef: ChatEditorInstance | null = $state(null);
+  type ChatEditorRef = {
+    insertFileMentionAtCursor: (file: FileMention) => void;
+  };
+  let editorRef: ChatEditorRef | null = $state(null);
   type AttachmentWithLoading = AttachmentPreview & { isLoading?: boolean };
   let attachments = $state<AttachmentWithLoading[]>([]);
   function persistDraftContent(text: string) {

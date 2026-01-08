@@ -59,7 +59,7 @@ export const japaneseTexts: Partial<Texts> = {
   },
 
   defaultAppConfig: {
-    name: "Chat",
+    name: "チャット",
     button: "新しい質問",
     description: "基本的なチャットアシスタント",
     instructions:

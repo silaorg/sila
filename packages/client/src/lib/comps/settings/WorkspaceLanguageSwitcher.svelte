@@ -27,6 +27,10 @@
         | null;
       if (lang && (SUPPORTED_LANGUAGES as ReadonlyArray<string>).includes(lang)) {
         selected = lang;
+        // Ensure UI texts follow the workspace language, even on initial load.
+        if (i18n.language !== lang) {
+          i18n.language = lang;
+        }
       }
     };
 
