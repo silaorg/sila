@@ -88,6 +88,35 @@ export const spanishTexts: Partial<Texts> = {
       title: "Proveedores de modelos",
       description: "Conecta proveedores de modelos de IA para impulsar tus asistentes. Son el cerebro de tus asistentes. Recomendamos configurar OpenAI, Anthropic o Google primero."
     },
+    sidebar: {
+      workspaceTitle: "Espacio de trabajo",
+      workspacePreferencesTitle: "Preferencias del espacio de trabajo",
+      workspacePreferencesLabel: "Preferencias",
+      appTitle: "App"
+    },
+    workspacePreferences: {
+      description: "Describe tu espacio de trabajo para la IA y elige el idioma de la interfaz y de la IA.",
+      descriptionLabel: "Descripción del espacio de trabajo",
+      descriptionPlaceholder: "Describe para qué sirve este espacio de trabajo o las preferencias de los asistentes en texto plano.",
+      storedPathLabel: "Este espacio de trabajo se guarda en:",
+      revealButton: "Mostrar",
+      noWorkspaceLoaded: "No hay ningún espacio de trabajo cargado.",
+      notStoredOnDiskError: "Este espacio de trabajo no está almacenado en el disco.",
+      revealUnsupportedError: "Mostrar no está disponible en esta versión.",
+      revealFailedError: "No se pudo mostrar la ruta del espacio de trabajo."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Almacenamiento",
+      workspaceLocationLabel: "Ubicación del espacio de trabajo:",
+      noWorkspaceLoaded: "No hay ningún espacio de trabajo cargado.",
+      syncPlaceholder: "La configuración de sincronización estará disponible pronto."
+    },
+    personalization: {
+      title: "Perfil de usuario",
+      description: "Los detalles del perfil y las preferencias de personalización estarán disponibles pronto.",
+      openProfile: "Abrir perfil",
+      signInPlaceholder: "Las opciones de inicio de sesión aparecerán aquí cuando la autenticación esté habilitada."
+    },
     spaces: {
       title: "Espacios de trabajo",
       spaceCount: (count: number) => `Tienes ${count === 1 ? "1 espacio de trabajo" : `${count} espacios de trabajo`}`,

@@ -107,6 +107,35 @@ export const russianTexts: Partial<Texts> = {
       title: "Провайдеры моделей",
       description: "Подключите провайдеров ИИ, чтобы ассистенты работали. Это их «мозг». Рекомендуем сначала настроить OpenAI, Anthropic или Google."
     },
+    sidebar: {
+      workspaceTitle: "Рабочее пространство",
+      workspacePreferencesTitle: "Настройки рабочего пространства",
+      workspacePreferencesLabel: "Настройки",
+      appTitle: "Приложение"
+    },
+    workspacePreferences: {
+      description: "Опишите рабочее пространство для ИИ и выберите язык интерфейса и ИИ.",
+      descriptionLabel: "Описание рабочего пространства",
+      descriptionPlaceholder: "Опишите назначение рабочего пространства или предпочтения для ассистентов простым текстом.",
+      storedPathLabel: "Это рабочее пространство хранится в:",
+      revealButton: "Показать",
+      noWorkspaceLoaded: "Рабочее пространство не загружено.",
+      notStoredOnDiskError: "Это рабочее пространство не хранится на диске.",
+      revealUnsupportedError: "Показ пути не поддерживается в этой сборке.",
+      revealFailedError: "Не удалось показать путь к рабочему пространству."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Хранилище",
+      workspaceLocationLabel: "Расположение рабочего пространства:",
+      noWorkspaceLoaded: "Рабочее пространство не загружено.",
+      syncPlaceholder: "Настройки синхронизации скоро появятся."
+    },
+    personalization: {
+      title: "Профиль пользователя",
+      description: "Скоро появятся детали профиля и настройки персонализации.",
+      openProfile: "Открыть профиль",
+      signInPlaceholder: "Варианты входа появятся здесь, когда будет включена аутентификация."
+    },
     spaces: {
       title: "Рабочие пространства",
       spaceCount: (count: number) => `У вас ${pluralize(

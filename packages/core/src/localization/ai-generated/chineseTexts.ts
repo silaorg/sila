@@ -88,6 +88,35 @@ export const chineseTexts: Partial<Texts> = {
       title: "模型提供商",
       description: "连接 AI 模型提供商来驱动你的助手。它们是助手的“大脑”。建议先配置 OpenAI、Anthropic 或 Google。"
     },
+    sidebar: {
+      workspaceTitle: "工作区",
+      workspacePreferencesTitle: "工作区偏好设置",
+      workspacePreferencesLabel: "偏好设置",
+      appTitle: "应用"
+    },
+    workspacePreferences: {
+      description: "为 AI 描述你的工作区，并选择界面和 AI 的语言。",
+      descriptionLabel: "工作区描述",
+      descriptionPlaceholder: "用纯文本描述此工作区用途或助手偏好。",
+      storedPathLabel: "此工作区存储在：",
+      revealButton: "显示",
+      noWorkspaceLoaded: "未加载工作区。",
+      notStoredOnDiskError: "此工作区未存储在磁盘上。",
+      revealUnsupportedError: "此版本不支持显示。",
+      revealFailedError: "无法显示工作区路径。"
+    },
+    workspacePrivacySync: {
+      storageTitle: "存储",
+      workspaceLocationLabel: "工作区位置：",
+      noWorkspaceLoaded: "未加载工作区。",
+      syncPlaceholder: "同步设置即将推出。"
+    },
+    personalization: {
+      title: "用户资料",
+      description: "个人资料与个性化偏好即将推出。",
+      openProfile: "打开资料",
+      signInPlaceholder: "启用身份验证后，登录选项将显示在此处。"
+    },
     spaces: {
       title: "工作区",
       spaceCount: (count: number) => `你有${count === 1 ? "1 个工作区" : `${count} 个工作区`}`,

@@ -88,6 +88,35 @@ export const arabicTexts: Partial<Texts> = {
       title: "مزودو النماذج",
       description: "اربط مزودي نماذج الذكاء الاصطناعي لتشغيل المساعدين. هذه هي عقول المساعدين. نوصي بالبدء بـ OpenAI أو Anthropic أو Google."
     },
+    sidebar: {
+      workspaceTitle: "مساحة العمل",
+      workspacePreferencesTitle: "تفضيلات مساحة العمل",
+      workspacePreferencesLabel: "التفضيلات",
+      appTitle: "التطبيق"
+    },
+    workspacePreferences: {
+      description: "صف مساحة العمل للذكاء الاصطناعي واختر لغة الواجهة ولغة الذكاء الاصطناعي.",
+      descriptionLabel: "وصف مساحة العمل",
+      descriptionPlaceholder: "صف الغرض من مساحة العمل أو تفضيلات المساعدين بنص عادي.",
+      storedPathLabel: "يتم حفظ مساحة العمل هذه في:",
+      revealButton: "إظهار",
+      noWorkspaceLoaded: "لا توجد مساحة عمل محمّلة.",
+      notStoredOnDiskError: "مساحة العمل هذه غير مخزنة على القرص.",
+      revealUnsupportedError: "الإظهار غير مدعوم في هذا الإصدار.",
+      revealFailedError: "فشل في إظهار مسار مساحة العمل."
+    },
+    workspacePrivacySync: {
+      storageTitle: "التخزين",
+      workspaceLocationLabel: "موقع مساحة العمل:",
+      noWorkspaceLoaded: "لا توجد مساحة عمل محمّلة.",
+      syncPlaceholder: "إعدادات المزامنة ستتوفر قريبًا."
+    },
+    personalization: {
+      title: "ملف المستخدم",
+      description: "تفاصيل الملف وتفضيلات التخصيص ستتوفر قريبًا.",
+      openProfile: "فتح الملف",
+      signInPlaceholder: "ستظهر خيارات تسجيل الدخول هنا عند تفعيل المصادقة."
+    },
     spaces: {
       title: "مساحات العمل",
       spaceCount: (count: number) => `لديك ${count} مساحة عمل`,

@@ -88,6 +88,35 @@ export const koreanTexts: Partial<Texts> = {
       title: "모델 제공자",
       description: "AI 모델 제공자를 연결해 어시스턴트를 구동하세요. 어시스턴트의 두뇌입니다. 먼저 OpenAI, Anthropic, Google을 설정하는 것을 추천합니다."
     },
+    sidebar: {
+      workspaceTitle: "워크스페이스",
+      workspacePreferencesTitle: "워크스페이스 환경설정",
+      workspacePreferencesLabel: "환경설정",
+      appTitle: "앱"
+    },
+    workspacePreferences: {
+      description: "AI를 위해 워크스페이스를 설명하고 UI와 AI 언어를 선택하세요.",
+      descriptionLabel: "워크스페이스 설명",
+      descriptionPlaceholder: "이 워크스페이스의 목적이나 어시스턴트 선호 사항을 일반 텍스트로 적어주세요.",
+      storedPathLabel: "이 워크스페이스는 다음 위치에 저장됩니다:",
+      revealButton: "보기",
+      noWorkspaceLoaded: "로드된 워크스페이스가 없습니다.",
+      notStoredOnDiskError: "이 워크스페이스는 디스크에 저장되어 있지 않습니다.",
+      revealUnsupportedError: "이 빌드에서는 경로 표시가 지원되지 않습니다.",
+      revealFailedError: "워크스페이스 경로를 표시하지 못했습니다."
+    },
+    workspacePrivacySync: {
+      storageTitle: "저장소",
+      workspaceLocationLabel: "워크스페이스 위치:",
+      noWorkspaceLoaded: "로드된 워크스페이스가 없습니다.",
+      syncPlaceholder: "동기화 설정은 곧 제공됩니다."
+    },
+    personalization: {
+      title: "사용자 프로필",
+      description: "프로필 정보와 개인화 설정은 곧 제공됩니다.",
+      openProfile: "프로필 열기",
+      signInPlaceholder: "인증이 활성화되면 여기에 로그인 옵션이 표시됩니다."
+    },
     spaces: {
       title: "워크스페이스",
       spaceCount: (count: number) => `워크스페이스 ${count}개가 있습니다`,

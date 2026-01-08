@@ -88,6 +88,35 @@ export const japaneseTexts: Partial<Texts> = {
       title: "モデル提供元",
       description: "AIモデルの提供元を接続してアシスタントを動かします。アシスタントの“脳”です。まずは OpenAI、Anthropic、Google の設定をおすすめします。"
     },
+    sidebar: {
+      workspaceTitle: "ワークスペース",
+      workspacePreferencesTitle: "ワークスペース設定",
+      workspacePreferencesLabel: "設定",
+      appTitle: "アプリ"
+    },
+    workspacePreferences: {
+      description: "AI向けにワークスペースを説明し、UIとAIの言語を選択します。",
+      descriptionLabel: "ワークスペースの説明",
+      descriptionPlaceholder: "このワークスペースの目的やアシスタントの好みを平文で説明してください。",
+      storedPathLabel: "このワークスペースの保存場所:",
+      revealButton: "表示",
+      noWorkspaceLoaded: "ワークスペースが読み込まれていません。",
+      notStoredOnDiskError: "このワークスペースはディスクに保存されていません。",
+      revealUnsupportedError: "このビルドでは表示がサポートされていません。",
+      revealFailedError: "ワークスペースのパスを表示できませんでした。"
+    },
+    workspacePrivacySync: {
+      storageTitle: "ストレージ",
+      workspaceLocationLabel: "ワークスペースの場所:",
+      noWorkspaceLoaded: "ワークスペースが読み込まれていません。",
+      syncPlaceholder: "同期設定は近日公開です。"
+    },
+    personalization: {
+      title: "ユーザープロフィール",
+      description: "プロフィール情報とパーソナライズ設定は近日公開です。",
+      openProfile: "プロフィールを開く",
+      signInPlaceholder: "認証が有効になると、ここにサインインオプションが表示されます。"
+    },
     spaces: {
       title: "ワークスペース",
       spaceCount: (count: number) => `ワークスペースは ${count} 件あります`,

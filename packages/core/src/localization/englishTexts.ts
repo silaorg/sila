@@ -89,6 +89,35 @@ export const englishTexts: Texts = {
       title: "Model Providers",
       description: "Connect AI model providers to power your assistants. These are the brains that make your assistants work. We recommend setting up OpenAI, Anthropic, or Google first."
     },
+    sidebar: {
+      workspaceTitle: "Workspace",
+      workspacePreferencesTitle: "Workspace Preferences",
+      workspacePreferencesLabel: "Preferences",
+      appTitle: "App"
+    },
+    workspacePreferences: {
+      description: "Describe your workspace for AI and choose the UI and AI language.",
+      descriptionLabel: "Workspace description",
+      descriptionPlaceholder: "Describe what this workspace is for or any assistant preferences in plain text.",
+      storedPathLabel: "This workspace is stored at:",
+      revealButton: "Reveal",
+      noWorkspaceLoaded: "No workspace loaded.",
+      notStoredOnDiskError: "This workspace is not stored on disk.",
+      revealUnsupportedError: "Reveal is not supported in this build.",
+      revealFailedError: "Failed to reveal the workspace path."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Storage",
+      workspaceLocationLabel: "Workspace location:",
+      noWorkspaceLoaded: "No workspace loaded.",
+      syncPlaceholder: "Sync settings are coming soon."
+    },
+    personalization: {
+      title: "User profile",
+      description: "Profile details and personalization preferences are coming soon.",
+      openProfile: "Open profile",
+      signInPlaceholder: "Sign-in options will appear here when authentication is enabled."
+    },
     spaces: {
       title: "Workspaces",
       spaceCount: (count: number) => `You have ${count === 1 ? '1 workspace' : `${count} workspaces`}`,

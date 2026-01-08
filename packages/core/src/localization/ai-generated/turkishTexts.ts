@@ -88,6 +88,35 @@ export const turkishTexts: Partial<Texts> = {
       title: "Model Sağlayıcıları",
       description: "Asistanlarını çalıştırmak için model sağlayıcıları bağla. Bunlar asistanların “beyni”. Önce OpenAI, Anthropic veya Google’ı kurmanı öneririz."
     },
+    sidebar: {
+      workspaceTitle: "Çalışma alanı",
+      workspacePreferencesTitle: "Çalışma alanı tercihleri",
+      workspacePreferencesLabel: "Tercihler",
+      appTitle: "Uygulama"
+    },
+    workspacePreferences: {
+      description: "Çalışma alanınızı yapay zeka için tanımlayın ve arayüz ile yapay zeka dilini seçin.",
+      descriptionLabel: "Çalışma alanı açıklaması",
+      descriptionPlaceholder: "Bu çalışma alanının amacını veya asistan tercihlerini düz metinle açıklayın.",
+      storedPathLabel: "Bu çalışma alanı şurada saklanır:",
+      revealButton: "Göster",
+      noWorkspaceLoaded: "Çalışma alanı yüklenmedi.",
+      notStoredOnDiskError: "Bu çalışma alanı diskte saklanmıyor.",
+      revealUnsupportedError: "Gösterme bu sürümde desteklenmiyor.",
+      revealFailedError: "Çalışma alanı yolu gösterilemedi."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Depolama",
+      workspaceLocationLabel: "Çalışma alanı konumu:",
+      noWorkspaceLoaded: "Çalışma alanı yüklenmedi.",
+      syncPlaceholder: "Senkronizasyon ayarları yakında geliyor."
+    },
+    personalization: {
+      title: "Kullanıcı profili",
+      description: "Profil bilgileri ve kişiselleştirme tercihleri yakında geliyor.",
+      openProfile: "Profili aç",
+      signInPlaceholder: "Kimlik doğrulama etkinleştirildiğinde oturum açma seçenekleri burada görünecek."
+    },
     spaces: {
       title: "Çalışma Alanları",
       spaceCount: (count: number) => `${count === 1 ? "1 çalışma alanın var" : `${count} çalışma alanın var`}`,

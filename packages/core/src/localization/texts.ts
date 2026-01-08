@@ -86,6 +86,35 @@ export interface Texts {
       title: string;
       description: string;
     };
+    sidebar: {
+      workspaceTitle: string;
+      workspacePreferencesTitle: string;
+      workspacePreferencesLabel: string;
+      appTitle: string;
+    };
+    workspacePreferences: {
+      description: string;
+      descriptionLabel: string;
+      descriptionPlaceholder: string;
+      storedPathLabel: string;
+      revealButton: string;
+      noWorkspaceLoaded: string;
+      notStoredOnDiskError: string;
+      revealUnsupportedError: string;
+      revealFailedError: string;
+    };
+    workspacePrivacySync: {
+      storageTitle: string;
+      workspaceLocationLabel: string;
+      noWorkspaceLoaded: string;
+      syncPlaceholder: string;
+    };
+    personalization: {
+      title: string;
+      description: string;
+      openProfile: string;
+      signInPlaceholder: string;
+    };
     spaces: {
       title: string;
       spaceCount: (count: number) => string;

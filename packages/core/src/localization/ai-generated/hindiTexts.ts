@@ -88,6 +88,35 @@ export const hindiTexts: Partial<Texts> = {
       title: "मॉडल प्रदाता",
       description: "अपने सहायकों को चलाने के लिए AI मॉडल प्रदाता जोड़ें। यही उनके ‘दिमाग’ हैं। पहले OpenAI, Anthropic या Google सेटअप करने की सलाह है।"
     },
+    sidebar: {
+      workspaceTitle: "वर्कस्पेस",
+      workspacePreferencesTitle: "वर्कस्पेस प्राथमिकताएँ",
+      workspacePreferencesLabel: "प्राथमिकताएँ",
+      appTitle: "ऐप"
+    },
+    workspacePreferences: {
+      description: "AI के लिए अपने वर्कस्पेस का वर्णन करें और UI तथा AI की भाषा चुनें।",
+      descriptionLabel: "वर्कस्पेस विवरण",
+      descriptionPlaceholder: "इस वर्कस्पेस का उद्देश्य या सहायक प्राथमिकताएँ साधारण टेक्स्ट में लिखें।",
+      storedPathLabel: "यह वर्कस्पेस यहाँ संग्रहीत है:",
+      revealButton: "दिखाएँ",
+      noWorkspaceLoaded: "कोई वर्कस्पेस लोड नहीं है।",
+      notStoredOnDiskError: "यह वर्कस्पेस डिस्क पर संग्रहीत नहीं है।",
+      revealUnsupportedError: "इस बिल्ड में दिखाना समर्थित नहीं है।",
+      revealFailedError: "वर्कस्पेस पथ दिखाने में विफल।"
+    },
+    workspacePrivacySync: {
+      storageTitle: "स्टोरेज",
+      workspaceLocationLabel: "वर्कस्पेस स्थान:",
+      noWorkspaceLoaded: "कोई वर्कस्पेस लोड नहीं है।",
+      syncPlaceholder: "सिंक सेटिंग्स जल्द आ रही हैं।"
+    },
+    personalization: {
+      title: "उपयोगकर्ता प्रोफ़ाइल",
+      description: "प्रोफ़ाइल विवरण और वैयक्तिकरण प्राथमिकताएँ जल्द आ रही हैं।",
+      openProfile: "प्रोफ़ाइल खोलें",
+      signInPlaceholder: "प्रमाणीकरण सक्षम होने पर साइन-इन विकल्प यहाँ दिखेंगे।"
+    },
     spaces: {
       title: "वर्कस्पेस",
       spaceCount: (count: number) => `आपके पास ${count} वर्कस्पेस ${count === 1 ? "है" : "हैं"}`,
