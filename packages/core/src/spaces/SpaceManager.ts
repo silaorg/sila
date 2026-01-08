@@ -26,6 +26,71 @@ export class SpaceManager {
   // @TODO: refactor to put layers in 'spaces' map
   private spaceLayers = new Map<string, PersistenceLayer[]>();
 
+  private registerTreeLoader(space: Space, persistenceLayers: PersistenceLayer[]) {
+    if (persistenceLayers.length === 0) return;
+
+    // Register tree loader that uses race-based loading
+    space.registerTreeLoader(async (appTreeId: string) => {
+      const treeLoadPromises = persistenceLayers.map(async (layer) => {
+        await layer.connect();
+        const ops = await layer.loadTreeOps(appTreeId);
+        return { layer, ops };
+      });
+
+      let appTree: AppTree | undefined;
+
+      try {
+        // Use the first layer that successfully loads the app tree
+        const firstTreeResult = await Promise.race(treeLoadPromises);
+        if (firstTreeResult.ops.length === 0) {
+          throw new Error("No app tree ops found");
+        }
+
+        const tree = new RepTree(uuid(), firstTreeResult.ops);
+        // @NOTE: would make sense to check if the tree has a valid structure for an app tree
+        if (!tree.root) {
+          throw new Error("No root vertex found in app tree");
+        }
+
+        appTree = new AppTree(tree);
+
+        // Continue with remaining layers as they complete
+        Promise.allSettled(treeLoadPromises).then(results => {
+          results.forEach(result => {
+            if (result.status === 'fulfilled' && result.value !== firstTreeResult) {
+              const { ops } = result.value;
+              if (ops.length > 0) {
+                appTree!.tree.merge(ops);
+              }
+            }
+          });
+        }).catch(error => console.error('Failed to load app tree from additional layers:', error));
+      } catch {
+        // Try to get ops from all layers
+        const allOps: VertexOperation[] = [];
+        const results = await Promise.allSettled(treeLoadPromises);
+
+        results.forEach(result => {
+          if (result.status === 'fulfilled') {
+            allOps.push(...result.value.ops);
+          }
+        });
+
+        const tree = new RepTree(uuid(), allOps);
+        if (!tree.root) {
+          return undefined;
+        }
+
+        appTree = new AppTree(tree);
+      }
+
+      // Sync the app tree ops between layers in case if they have different ops
+      this.syncTreeOpsBetweenLayers(appTreeId, persistenceLayers);
+
+      return appTree;
+    });
+  }
+
   /**
    * Add a new space to the manager. Saves the space to the persistence layers.
    * @param space - The space to add
@@ -42,6 +107,9 @@ export class SpaceManager {
     if (persistenceLayers.length > 0) {
       // Connect all layers
       await Promise.all(persistenceLayers.map(layer => layer.connect()));
+
+      // Register tree loader so this space can lazily load AppTrees (incl. ones created by other peers)
+      this.registerTreeLoader(space, persistenceLayers);
 
       // Save initial operations to all layers
       const initOps = space.tree.getAllOps();
@@ -162,65 +230,7 @@ export class SpaceManager {
     // Sync the space tree ops between layers in case if they have different ops
     this.syncTreeOpsBetweenLayers(space.getId(), persistenceLayers);
 
-    // Register tree loader that uses race-based loading
-    space.registerTreeLoader(async (appTreeId: string) => {
-      const treeLoadPromises = persistenceLayers.map(async (layer) => {
-        const ops = await layer.loadTreeOps(appTreeId);
-        return { layer, ops };
-      });
-
-      let appTree: AppTree | undefined;
-
-      try {
-        // Use the first layer that successfully loads the app tree
-        const firstTreeResult = await Promise.race(treeLoadPromises);
-        if (firstTreeResult.ops.length === 0) {
-          throw new Error("No app tree ops found");
-        }
-
-        const tree = new RepTree(uuid(), firstTreeResult.ops);
-        // @NOTE: would make sense to check if the tree has a valid structure for an app tree
-        if (!tree.root) {
-          throw new Error("No root vertex found in app tree");
-        }
-
-        appTree = new AppTree(tree);
-
-        // Continue with remaining layers as they complete
-        Promise.allSettled(treeLoadPromises).then(results => {
-          results.forEach(result => {
-            if (result.status === 'fulfilled' && result.value !== firstTreeResult) {
-              const { ops } = result.value;
-              if (ops.length > 0) {
-                appTree!.tree.merge(ops);
-              }
-            }
-          });
-        }).catch(error => console.error('Failed to load app tree from additional layers:', error));
-      } catch {
-        // Try to get ops from all layers
-        const allOps: VertexOperation[] = [];
-        const results = await Promise.allSettled(treeLoadPromises);
-
-        results.forEach(result => {
-          if (result.status === 'fulfilled') {
-            allOps.push(...result.value.ops);
-          }
-        });
-
-        const tree = new RepTree(uuid(), allOps);
-        if (!tree.root) {
-          return undefined;
-        }
-
-        appTree = new AppTree(tree);
-      }
-
-      // Sync the app tree ops between layers in case if they have different ops
-      this.syncTreeOpsBetweenLayers(appTreeId, persistenceLayers);
-
-      return appTree;
-    });
+    this.registerTreeLoader(space, persistenceLayers);
 
     // Load secrets using race-based approach
     const secretPromises = persistenceLayers.map(async (layer) => {
@@ -382,6 +392,9 @@ export class SpaceManager {
 
       // Set up tracking for the new layer
       this.setupOperationTracking(space, [layer]);
+
+      // Update tree loader to include the new layer
+      this.registerTreeLoader(space, newLayers);
     }
   }
 
