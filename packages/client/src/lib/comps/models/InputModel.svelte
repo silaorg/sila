@@ -36,6 +36,7 @@
   let model = $state("");
   let provider = $state<ModelProvider | null>(null);
   let error = $state("");
+  let warning = $state<string | null>(null);
   let allProviders = $state<ModelProvider[]>([]);
 
   // Load all providers including custom ones
@@ -74,13 +75,19 @@
     const provId = getProviderId(value);
     if (!provId || !allProviders.some((p) => p.id === provId)) {
       const providerLabel = provId || "";
-      error = i18n.texts.models.unknownProvider(providerLabel);
-      inputElement.setCustomValidity(i18n.texts.models.unknownProvider(providerLabel));
+      // Fall back to default ("auto") but keep a visible warning for the user.
+      warning = i18n.texts.models.unknownProvider(providerLabel);
+      error = "";
+      inputElement.setCustomValidity("");
+      if (value !== "auto") {
+        value = "auto";
+      }
       return;
     }
 
     error = "";
     inputElement.setCustomValidity("");
+    warning = null;
   }
 
   function onInputInvalid() {
@@ -159,12 +166,28 @@
   </div>
 {:else}
   <div class="input variant-form-material">
-    <ProgressRing value={null} size="size-14" />
+    <button
+      type="button"
+      class="flex p-2 gap-4 items-center cursor-pointer w-full"
+      onclick={onRequestChange}
+    >
+      <div class="w-8 h-8 flex items-center justify-center rounded">
+        <ProgressRing value={null} size="size-14" />
+      </div>
+      <div class="">
+        <span class="font-semibold">{i18n.texts.models.selectModelTitle}</span>
+      </div>
+    </button>
   </div>
 {/if}
 {#if error}
   <div class="flex intems-center mt-2 text-red-500 text-sm">
     <CircleAlert size={18} class="w-6 mr-2" /><span>{error}</span>
+  </div>
+{/if}
+{#if warning}
+  <div class="flex items-center mt-2 text-error-500 text-sm">
+    <CircleAlert size={18} class="w-6 mr-2" /><span>{warning}</span>
   </div>
 {/if}
 <input

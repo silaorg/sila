@@ -5,6 +5,7 @@
   import { ProviderType } from "@sila/core";
   import { i18n } from "@sila/client";
   import { formatModelLabel } from "@sila/client/utils/modelDisplay";
+  import { CircleAlert } from "lucide-svelte/icons";
 
   let {
     provider,
@@ -24,6 +25,7 @@
   let models = $state<string[]>([]);
   let showModels = $state(false);
   let customModelInput = $state("");
+  let loadError = $state<string | null>(null);
   
   // Check if this is a custom provider
   const isCustomProvider = $derived(provider.isCustom === true);
@@ -82,10 +84,20 @@
   onMount(async () => {
     // Only fetch models for non-custom providers and non-OpenRouter providers
     if (!isCustomProvider && !isOpenRouterProvider) {
-      models = await getProviderModels(
-        provider.id,
-        config.type !== "cloud" ? "" : config.apiKey,
-      );
+      try {
+        models = await getProviderModels(
+          provider.id,
+          config.type !== "cloud" ? "" : config.apiKey,
+        );
+        loadError = null;
+      } catch (err: unknown) {
+        models = [];
+        const message = err instanceof Error ? err.message : String(err);
+        // Prefer a stable i18n string for "Unknown provider" cases.
+        loadError = message.includes("Unknown provider")
+          ? i18n.texts.models.unknownProvider(provider.id)
+          : message;
+      }
     }
     
     // Initialize custom model input for OpenRouter
@@ -220,6 +232,12 @@
     {#if selected && !isCustomProvider}
       {#if showModels}
         <div class="p-2 space-y-4">
+          {#if loadError}
+            <div class="flex items-center gap-2 text-error-500 text-sm">
+              <CircleAlert size={18} />
+              <span>{loadError}</span>
+            </div>
+          {/if}
           {#if isOpenRouterProvider}
             <div class="space-y-2">
               <label class="label">

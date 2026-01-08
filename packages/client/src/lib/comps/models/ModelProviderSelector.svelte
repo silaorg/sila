@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ProviderType, type ModelProvider, type ModelProviderConfig } from "@sila/core";
   import { onMount } from "svelte";
+  import { CircleAlert } from "lucide-svelte/icons";
   import ModelSelectCard from "./ModelSelectCard.svelte";
   import AutoModelSelectCard from "./AutoModelSelectCard.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -8,6 +9,7 @@
   const clientState = useClientState();
   import { splitModelString, combineModelString } from "@sila/core";
   import { formatModelLabel, getProviderDisplayName } from "@sila/client/utils/modelDisplay";
+  import { i18n } from "@sila/client";
 
   let {
     selectedModel,
@@ -29,6 +31,7 @@
 
   let selectedPair: SelectedPair | null = $state(null);
   let autoSelectionLabel = $state<string | null>(null);
+  let unknownSelectedProviderId = $state<string | null>(null);
 
   function isLanguageProvider(provider: ModelProvider): boolean {
     return (provider.type ?? ProviderType.Language) === ProviderType.Language;
@@ -91,6 +94,17 @@
         };
       }
     }
+
+    // If the selected model references a provider we no longer know about,
+    // fall back to Auto but keep a visible warning for the user.
+    if (
+      selectedPair &&
+      selectedPair.providerId !== "auto" &&
+      !setupProviders.some((p) => p.provider.id === selectedPair?.providerId)
+    ) {
+      unknownSelectedProviderId = selectedPair.providerId;
+      onSelect("auto", "");
+    }
   });
 
   function getPairString(pair: SelectedPair) {
@@ -108,6 +122,13 @@
     onModelSelect(selectedModel);
   }
 </script>
+
+{#if unknownSelectedProviderId}
+  <div class="flex items-center gap-2 mb-2 text-error-500 text-sm">
+    <CircleAlert size={18} />
+    <span>{i18n.texts.models.unknownProvider(unknownSelectedProviderId)}</span>
+  </div>
+{/if}
 
 <div class="grid grid-cols-1 gap-2">
   {#if setupProviders.length > 0}
