@@ -12,18 +12,60 @@
     openState = false;
   }
 
-  function startRenamingThread() {
-    // @TODO: implement renaming
+  // function startRenamingThread() {
+  //   // @TODO: implement renaming
+  //   popoverClose();
+  // }
+
+  async function openInNewTab() {
+    const space = clientState.currentSpace;
+    const layout = clientState.currentSpaceState?.layout;
+    if (!space || !layout) {
+      popoverClose();
+      return;
+    }
+
+    const appTree = await space.loadAppTree(appTreeId);
+    const appId = appTree?.getAppId();
+    const appTreeName =
+      (appTree?.tree.root?.getProperty("name") as string | undefined) ??
+      space.getVertexReferencingAppTree(appTreeId)?.name;
+
+    if (appId === "files") {
+      layout.openFilesTab(appTreeId, appTreeName ?? "Files");
+    } else {
+      layout.openChatTab(appTreeId, appTreeName ?? "New chat");
+    }
     popoverClose();
   }
 
-  function openInNewTab() {
-    // @TODO: implement opening in new tab
-    popoverClose();
-  }
+  async function duplicateThread() {
+    const space = clientState.currentSpace;
+    const layout = clientState.currentSpaceState?.layout;
+    if (!space || !layout) {
+      popoverClose();
+      return;
+    }
 
-  function duplicateThread() {
-    // @TODO: implement duplication
+    const appTree = await space.loadAppTree(appTreeId);
+    const appId = appTree?.getAppId();
+    if (!appId) {
+      popoverClose();
+      return;
+    }
+
+    const appTreeName =
+      (appTree?.tree.root?.getProperty("name") as string | undefined) ??
+      space.getVertexReferencingAppTree(appTreeId)?.name ??
+      "New chat";
+    const newTree = space.newAppTree(appId);
+    space.setAppTreeName(newTree.getId(), `${appTreeName} copy`);
+
+    if (appId === "files") {
+      layout.openFilesTab(newTree.getId(), `${appTreeName} copy`);
+    } else {
+      layout.openChatTab(newTree.getId(), `${appTreeName} copy`);
+    }
     popoverClose();
   }
 
@@ -49,9 +91,9 @@
         <button class="btn btn-sm text-left" onclick={openInNewTab}
           >{i18n.texts.appTreeMenu.openInNewTab}</button
         >
-        <button class="btn btn-sm text-left" onclick={startRenamingThread}
+        <!-- <button class="btn btn-sm text-left" onclick={startRenamingThread}
           >{i18n.texts.actions.rename}</button
-        >
+        > -->
 
         <div class="border-t border-surface-200-800 my-2"></div>
 
