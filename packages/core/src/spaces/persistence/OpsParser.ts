@@ -75,10 +75,10 @@ export class OpsParser {
    * @param peerId - The peer ID to associate with the operations
    * @returns Promise that resolves to an array of VertexOperation objects
    */
-  async parseLines(lines: string[], peerId: string): Promise<VertexOperation[]> {
+  async parseLines(lines: string[], peerId: string, opTypeHint?: ParsedOp['type']): Promise<VertexOperation[]> {
     // If no worker (Node.js environment), parse synchronously
     if (!this.worker) {
-      return this.parseLinesSync(lines, peerId);
+      return this.parseLinesSync(lines, peerId, opTypeHint);
     }
 
     const requestId = crypto.randomUUID();
@@ -100,17 +100,31 @@ export class OpsParser {
         }
       });
 
-      this.worker!.postMessage({ lines, peerId, requestId });
+      this.worker!.postMessage({ lines, peerId, requestId, opTypeHint });
     });
   }
 
-  private parseLinesSync(lines: string[], peerId: string): VertexOperation[] {
+  private parseLinesSync(lines: string[], peerId: string, opTypeHint?: ParsedOp['type']): VertexOperation[] {
     const operations: VertexOperation[] = [];
     
     for (const line of lines) {
       if (!line.trim()) continue;
       
       try {
+        if (opTypeHint) {
+          if (opTypeHint === 'm') {
+            const parsed = JSON.parse(line) as [number, string, string | null];
+            const [counter, targetId, parentId] = parsed;
+            operations.push(newMoveVertexOp(counter, peerId, targetId, parentId));
+          } else {
+            const parsed = JSON.parse(line) as [number, string, string, any];
+            const [counter, targetId, key, rawValue] = parsed;
+            const propValue = rawValue && typeof rawValue === 'object' && Object.keys(rawValue).length === 0 ? undefined : rawValue;
+            operations.push(newSetVertexPropertyOp(counter, peerId, targetId, key, propValue));
+          }
+          continue;
+        }
+
         const parsed = JSON.parse(line) as [string, number, string, any, any?];
         const [type, counter, targetId, value1, value2] = parsed;
         

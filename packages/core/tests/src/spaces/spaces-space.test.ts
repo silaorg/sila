@@ -49,4 +49,19 @@ describe('Space creation and file-system persistence', () => {
     expect(Space.isValid(loaded.tree)).toBe(true);
     expect(loaded.name).toBe('Test Space');
   });
+
+  it('registers a tree loader for spaces created via addNewSpace (so peer-created trees can be loaded)', async () => {
+    const fs = new NodeFileSystem();
+
+    const space = Space.newSpace(crypto.randomUUID());
+    const spaceId = space.getId();
+
+    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
+    const manager = new SpaceManager();
+    await manager.addNewSpace(space, [layer]);
+
+    // Should not throw "No tree loader registered"
+    const maybeTree = await space.loadAppTree('chat');
+    expect(maybeTree).toBeUndefined();
+  });
 });
