@@ -58,6 +58,14 @@ export const arabicTexts: Partial<Texts> = {
     description: "يمكنك إنشاء توجيهات النظام الخاصة بك بالاعتماد على المساعد الافتراضي. في الإصدارات القادمة من Sila ستتوفر أنواع أخرى من التطبيقات مع الأدوات وواجهات API الخارجية.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "استعلام جديد",
+    description: "مساعد دردشة أساسي",
+    instructions:
+      "أنت سيلا، مساعد ذكاء اصطناعي. كن مباشرًا في جميع الردود. استخدم لغة بسيطة. تجنب المجاملات والحشو والرسمية.",
+  },
+
   appConfigDropdown: {
     placeholder: "اختر مساعدًا...",
     newAssistant: "مساعد جديد",

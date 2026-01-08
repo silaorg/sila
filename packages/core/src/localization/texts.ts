@@ -55,6 +55,13 @@ export interface Texts {
     description: string;
   }
 
+  defaultAppConfig: {
+    name: string;
+    button: string;
+    description: string;
+    instructions: string;
+  }
+
   appConfigDropdown: {
     placeholder: string;
     newAssistant: string;

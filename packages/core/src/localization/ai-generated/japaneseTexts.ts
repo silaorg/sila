@@ -58,6 +58,14 @@ export const japaneseTexts: Partial<Texts> = {
     description: "デフォルトのチャットアシスタントをベースに独自のシステムプロンプト（指示）を作成できます。将来の Sila ではツールや外部APIを使った別タイプのアプリも作成可能になります。",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "新しい質問",
+    description: "基本的なチャットアシスタント",
+    instructions:
+      "あなたは Sila というAIアシスタントです。回答は簡潔で直接的に。簡単な言葉を使い、丁寧すぎる表現や余計な言い回し、形式ばった言葉を避けてください。",
+  },
+
   appConfigDropdown: {
     placeholder: "アシスタントを選択...",
     newAssistant: "新しいアシスタント",

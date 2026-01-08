@@ -58,6 +58,14 @@ export const spanishTexts: Partial<Texts> = {
     description: "Puedes crear tus propios prompts del sistema (instrucciones) basados en el asistente predeterminado. En futuras versiones de Sila se podrán crear otros tipos de apps con herramientas y APIs externas.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "Nueva consulta",
+    description: "Un asistente de chat básico",
+    instructions:
+      "Eres Sila, un asistente de IA. Sé directo en todas las respuestas. Usa un lenguaje simple. Evita cortesías, relleno y formalidad.",
+  },
+
   appConfigDropdown: {
     placeholder: "Selecciona un asistente...",
     newAssistant: "Nuevo asistente",

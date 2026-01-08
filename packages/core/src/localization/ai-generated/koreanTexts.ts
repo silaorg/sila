@@ -58,6 +58,14 @@ export const koreanTexts: Partial<Texts> = {
     description: "기본 채팅 어시스턴트를 바탕으로 시스템 프롬프트(지침)를 만들 수 있습니다. 향후 Sila에서는 도구와 외부 API가 포함된 다른 앱도 만들 수 있습니다.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "새 질문",
+    description: "기본 채팅 어시스턴트",
+    instructions:
+      "당신은 Sila라는 AI 어시스턴트입니다. 모든 응답에서 직접적으로 말하세요. 단순한 언어를 사용하세요. 예의치레, 불필요한 말, 과도한 격식을 피하세요.",
+  },
+
   appConfigDropdown: {
     placeholder: "어시스턴트를 선택...",
     newAssistant: "새 어시스턴트",

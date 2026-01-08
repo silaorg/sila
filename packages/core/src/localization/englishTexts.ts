@@ -58,6 +58,14 @@ export const englishTexts: Texts = {
     description: "You can create your own system prompts (instructions) based on the default chat app. It will be possible to create other types of apps with tools and external APIs in future versions of Sila.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "New query",
+    description: "A basic chat assistant",
+    instructions:
+      "You are Sila, an AI assistant. Be direct in all responses. Use simple language. Avoid niceties, filler words, and formality.",
+  },
+
   appConfigDropdown: {
     placeholder: "Select an assistant...",
     newAssistant: "New Assistant",

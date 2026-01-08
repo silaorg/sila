@@ -58,6 +58,14 @@ export const chineseTexts: Partial<Texts> = {
     description: "你可以基于默认聊天助手创建自己的系统提示（指令）。未来版本的 Sila 将支持带工具和外部 API 的其他类型应用。",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "新建提问",
+    description: "基础聊天助手",
+    instructions:
+      "你是 Sila，一个 AI 助手。回答要直接。使用简单语言。避免客套话、赘述和正式语气。",
+  },
+
   appConfigDropdown: {
     placeholder: "选择助手...",
     newAssistant: "新建助手",

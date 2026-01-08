@@ -58,6 +58,14 @@ export const turkishTexts: Partial<Texts> = {
     description: "Varsayılan sohbet uygulamasına göre kendi sistem yönergelerinizi oluşturabilirsiniz. Sila’nın gelecekteki sürümlerinde araçlar ve harici API’lerle başka uygulama türleri mümkün olacak.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "Yeni sorgu",
+    description: "Temel bir sohbet asistanı",
+    instructions:
+      "Sen Sila, bir AI asistansın. Tüm yanıtlarda doğrudan ol. Basit bir dil kullan. Nezaket kalıplarından, dolgu sözlerden ve resmiyetten kaçın.",
+  },
+
   appConfigDropdown: {
     placeholder: "Bir asistan seç...",
     newAssistant: "Yeni Asistan",

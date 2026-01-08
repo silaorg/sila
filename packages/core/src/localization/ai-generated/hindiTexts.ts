@@ -58,6 +58,14 @@ export const hindiTexts: Partial<Texts> = {
     description: "आप डिफ़ॉल्ट चैट सहायक के आधार पर अपने सिस्टम प्रॉम्प्ट (निर्देश) बना सकते हैं। भविष्य में Sila में टूल्स और बाहरी API वाली अन्य ऐप्स संभव होंगी।",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "नया प्रश्न",
+    description: "एक बुनियादी चैट सहायक",
+    instructions:
+      "तुम Sila हो, एक AI सहायक। सभी जवाब सीधे दो। सरल भाषा इस्तेमाल करो। औपचारिकता, भराव और अनावश्यक विनम्रता से बचो।",
+  },
+
   appConfigDropdown: {
     placeholder: "सहायक चुनें...",
     newAssistant: "नया सहायक",
