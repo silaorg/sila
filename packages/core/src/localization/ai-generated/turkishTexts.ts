@@ -76,6 +76,7 @@ export const turkishTexts: Partial<Texts> = {
     appearance: {
       title: "Görünüm",
       theme: "Tema",
+      themeDescription: "Çalışma alanınız için bir renk teması seçin.",
       language: "Dil",
       colorScheme: "Renk şeması",
       system: "Sistem",

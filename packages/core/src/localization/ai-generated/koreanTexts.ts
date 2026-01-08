@@ -76,6 +76,7 @@ export const koreanTexts: Partial<Texts> = {
     appearance: {
       title: "모양",
       theme: "테마",
+      themeDescription: "워크스페이스의 색상 테마를 선택하세요.",
       language: "언어",
       colorScheme: "색 구성",
       system: "시스템",
