@@ -13,7 +13,7 @@
   }
 </script>
 
-<div class="flex justify-between items-center pb-4">
+<div class="flex justify-between items-center pb-4 gap-4">
   <h3 class="h3">{i18n.texts.spacesPage.openerPageTitle}</h3>
 </div>
 <p class="mb-6">{i18n.texts.spacesPage.openerPageDescription}</p>
