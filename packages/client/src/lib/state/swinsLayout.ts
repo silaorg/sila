@@ -5,6 +5,9 @@ import SettingsProviders from "../swins/routes/SettingsProviders.svelte";
 import SettingsAssistants from "../swins/routes/SettingsAssistants.svelte";
 import SettingsWorkspaces from "../swins/routes/SettingsWorkspaces.svelte";
 import SettingsDev from "../swins/routes/SettingsDev.svelte";
+import SettingsWorkspacePreferences from "../swins/routes/SettingsWorkspacePreferences.svelte";
+import SettingsWorkspacePrivacySync from "../swins/routes/SettingsWorkspacePrivacySync.svelte";
+import SettingsAppPersonalization from "../swins/routes/SettingsAppPersonalization.svelte";
 import Spaces from "../swins/routes/Spaces.svelte";
 import Apps from "../swins/routes/Apps.svelte";
 import AppConfigEditing from "@sila/client/comps/configs/AppConfigEditing.svelte";
@@ -32,6 +35,10 @@ export const swinsLayout = {
     key: 'settings',
     target: Settings,
   },
+  settingsWorkspacePreferences: {
+    key: 'settings-workspace-preferences',
+    target: SettingsWorkspacePreferences,
+  },
   settingsAppearance: {
     key: 'settings-appearance',
     target: SettingsAppearance,
@@ -43,6 +50,14 @@ export const swinsLayout = {
   settingsAssistants: {
     key: 'settings-assistants',
     target: SettingsAssistants,
+  },
+  settingsWorkspacePrivacySync: {
+    key: 'settings-workspace-privacy-sync',
+    target: SettingsWorkspacePrivacySync,
+  },
+  settingsAppPersonalization: {
+    key: 'settings-app-personalization',
+    target: SettingsAppPersonalization,
   },
   settingsWorkspaces: {
     key: 'settings-workspaces',

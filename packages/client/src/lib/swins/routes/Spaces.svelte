@@ -1,20 +1,11 @@
 <script lang="ts">
   import SpaceList from "@sila/client/comps/spaces/SpaceList.svelte";
   import { i18n } from "@sila/client";
-  import { useClientState } from "@sila/client/state/clientStateContext";
   import { Plus } from "lucide-svelte";
-  const clientState = useClientState();
   import SwinsNavButton from "../SwinsNavButton.svelte";
-
-  /*
-  async function handleNewSpace() {
-    await clientState.createNewSpace('local');
-    clientState.layout.swins.clear();
-  }
-  */
 </script>
 
-<div class="flex justify-between items-center pb-4">
+<div class="flex justify-between items-center pb-4 gap-4">
   <h3 class="h3">{i18n.texts.spacesPage.title}</h3>
   <SwinsNavButton
     className="btn preset-filled-primary-500"

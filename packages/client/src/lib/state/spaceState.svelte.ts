@@ -19,6 +19,8 @@ import { Backend, FileResolver } from "@sila/core";
 import { SpaceTelemetry } from "./spaceTelemetry";
 import VertexViewer from "./vertexViewer.svelte";
 import { AppTelemetry } from "./clientTelemetry";
+import { i18n } from "@sila/client";
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@sila/core";
 
 export type SpaceStateConfig = {
   pointer: SpacePointer;
@@ -94,8 +96,21 @@ export class SpaceState {
         this.vertexViewer.setSpace(this.space);
 
         // Load space-specific theme and layout
-        await this.theme.loadSpaceTheme(this.pointer.uri);
+        // Stored at: root.theme + root.colorScheme
+        await this.theme.loadSpaceTheme(this.space);
         await this.layout.loadSpaceLayout();
+
+        // Load workspace language (if set) from the space tree and apply it to i18n
+        // Stored at: root.language
+        // @TODO: when we add app-level/personal language preferences, treat this as an override
+        const rootVertex = this.space.tree.root;
+        const lang = rootVertex?.getProperty("language") as
+          | SupportedLanguage
+          | undefined
+          | null;
+        if (lang && (SUPPORTED_LANGUAGES as ReadonlyArray<string>).includes(lang)) {
+          i18n.language = lang;
+        }
 
         this.initBackend();
 

@@ -1,12 +1,13 @@
 <script lang="ts">
-  import type { ModelProvider, ModelProviderConfig } from "@sila/core";
+  import { ProviderType, type ModelProvider, type ModelProviderConfig } from "@sila/core";
   import { onMount } from "svelte";
   import ModelSelectCard from "./ModelSelectCard.svelte";
   import AutoModelSelectCard from "./AutoModelSelectCard.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
-  import { getActiveProviders } from "@sila/core";
+  import { getActiveProviders, resolveMostCapableLanguageModel } from "@sila/core";
   const clientState = useClientState();
   import { splitModelString, combineModelString } from "@sila/core";
+  import { formatModelLabel, getProviderDisplayName } from "@sila/client/utils/modelDisplay";
 
   let {
     selectedModel,
@@ -27,6 +28,25 @@
   };
 
   let selectedPair: SelectedPair | null = $state(null);
+  let autoSelectionLabel = $state<string | null>(null);
+
+  function isLanguageProvider(provider: ModelProvider): boolean {
+    return (provider.type ?? ProviderType.Language) === ProviderType.Language;
+  }
+
+  async function resolveAutoSelectionLabel(params: {
+    configs: ModelProviderConfig[];
+    allProviders: ModelProvider[];
+  }): Promise<string | null> {
+    const { configs, allProviders } = params;
+    const resolved = await resolveMostCapableLanguageModel(configs);
+    if (!resolved) return null;
+    const providerName = getProviderDisplayName(
+      resolved.provider,
+      allProviders.find((p) => p.id === resolved.provider)?.name ?? null,
+    );
+    return `${providerName} / ${formatModelLabel(resolved.model)}`;
+  }
 
   onMount(async () => {
     const configs = clientState.currentSpace?.getModelProviderConfigs();
@@ -39,8 +59,13 @@
     // Get all active providers (built-in + custom)
     const allProviders = getActiveProviders(customProviders);
 
+    autoSelectionLabel = await resolveAutoSelectionLabel({ configs, allProviders });
+
     // Process all providers
     setupProviders = allProviders
+      // Only language providers can be selected as chat models.
+      // This prevents non-language providers like Fal.ai (VizGen) or Exa (Search) from showing up here.
+      .filter((provider) => isLanguageProvider(provider))
       .map((provider) => {
         // For custom providers, config should already exist in the configs array
         // because custom providers are saved as provider configs
@@ -56,8 +81,6 @@
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    console.log("setupProviders", setupProviders);
 
     if (selectedModel) {
       const modelParts = splitModelString(selectedModel);
@@ -90,6 +113,7 @@
   {#if setupProviders.length > 0}
     <AutoModelSelectCard
       selected={selectedPair?.providerId === "auto"}
+      {autoSelectionLabel}
       {onSelect}
     />
   {/if}

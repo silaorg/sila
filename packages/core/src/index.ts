@@ -6,6 +6,7 @@ export * from './customProviders';
 export * from './apiTypes';
 export * from './localization';
 export * from './utils';
+export { resolveAutoModelIdForProvider, resolveMostCapableLanguageModel } from "./utils/autoModel";
 export * from './tools';
 export * from './agents';
 export * from './spaces';

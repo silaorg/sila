@@ -58,6 +58,14 @@ export const arabicTexts: Partial<Texts> = {
     description: "يمكنك إنشاء توجيهات النظام الخاصة بك بالاعتماد على المساعد الافتراضي. في الإصدارات القادمة من Sila ستتوفر أنواع أخرى من التطبيقات مع الأدوات وواجهات API الخارجية.",
   },
 
+  defaultAppConfig: {
+    name: "دردشة",
+    button: "استعلام جديد",
+    description: "مساعد دردشة أساسي",
+    instructions:
+      "أنت سيلا، مساعد ذكاء اصطناعي. كن مباشرًا في جميع الردود. استخدم لغة بسيطة. تجنب المجاملات والحشو والرسمية.",
+  },
+
   appConfigDropdown: {
     placeholder: "اختر مساعدًا...",
     newAssistant: "مساعد جديد",
@@ -76,6 +84,7 @@ export const arabicTexts: Partial<Texts> = {
     appearance: {
       title: "المظهر",
       theme: "السمة",
+      themeDescription: "اختر سمة لونية لمساحة عملك.",
       language: "اللغة",
       colorScheme: "نظام الألوان",
       system: "النظام",
@@ -87,6 +96,35 @@ export const arabicTexts: Partial<Texts> = {
     providers: {
       title: "مزودو النماذج",
       description: "اربط مزودي نماذج الذكاء الاصطناعي لتشغيل المساعدين. هذه هي عقول المساعدين. نوصي بالبدء بـ OpenAI أو Anthropic أو Google."
+    },
+    sidebar: {
+      workspaceTitle: "مساحة العمل",
+      workspacePreferencesTitle: "تفضيلات مساحة العمل",
+      workspacePreferencesLabel: "التفضيلات",
+      appTitle: "التطبيق"
+    },
+    workspacePreferences: {
+      description: "صف مساحة العمل للذكاء الاصطناعي واختر لغة الواجهة ولغة الذكاء الاصطناعي.",
+      descriptionLabel: "وصف مساحة العمل",
+      descriptionPlaceholder: "صف الغرض من مساحة العمل أو تفضيلات المساعدين بنص عادي.",
+      storedPathLabel: "يتم حفظ مساحة العمل هذه في:",
+      revealButton: "إظهار",
+      noWorkspaceLoaded: "لا توجد مساحة عمل محمّلة.",
+      notStoredOnDiskError: "مساحة العمل هذه غير مخزنة على القرص.",
+      revealUnsupportedError: "الإظهار غير مدعوم في هذا الإصدار.",
+      revealFailedError: "فشل في إظهار مسار مساحة العمل."
+    },
+    workspacePrivacySync: {
+      storageTitle: "التخزين",
+      workspaceLocationLabel: "موقع مساحة العمل:",
+      noWorkspaceLoaded: "لا توجد مساحة عمل محمّلة.",
+      syncPlaceholder: "إعدادات المزامنة ستتوفر قريبًا."
+    },
+    personalization: {
+      title: "ملف المستخدم",
+      description: "تفاصيل الملف وتفضيلات التخصيص ستتوفر قريبًا.",
+      openProfile: "فتح الملف",
+      signInPlaceholder: "ستظهر خيارات تسجيل الدخول هنا عند تفعيل المصادقة."
     },
     spaces: {
       title: "مساحات العمل",

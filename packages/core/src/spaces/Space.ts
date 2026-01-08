@@ -9,6 +9,8 @@ import { AppConfigsData } from "./AppConfigsData";
 import uuid from "../utils/uuid";
 import { createFileStore, FileResolver, type FileStore } from "./files";
 import type { FileStoreProvider } from "./files/FileStore";
+import { createTexts, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../localization/getTexts";
+import type { Texts } from "../localization/texts";
 
 export class Space {
   readonly tree: RepTree;
@@ -48,10 +50,8 @@ export class Space {
       "onboarding": true,
     });
     const appConfigs = root.newNamedChild("configs");
-    appConfigs.newChild(Space.getDefaultAppConfig());
     root.newNamedChild("threads");
     root.newNamedChild("providers");
-    root.newNamedChild("settings");
     root.newNamedChild("assets");
 
     return new Space(tree);
@@ -71,9 +71,60 @@ export class Space {
     }
 
     this.appTreesVertex = tree.getVertexByPath("threads") as Vertex;
-    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath("configs")!);
+    this.appConfigs = new AppConfigsData(
+      this.tree.getVertexByPath("configs")!,
+      () => this.workspaceLanguage,
+    );
 
     this.fileResolver = new FileResolver(this);
+  }
+
+  get workspaceLanguage(): string | undefined {
+    const lang = this.rootVertex.getProperty("language");
+    return typeof lang === "string" ? lang : undefined;
+  }
+
+  set workspaceLanguage(language: string | undefined) {
+    if (!language) {
+      this.rootVertex.setProperty("language", "");
+      return;
+    }
+    this.rootVertex.setProperty("language", language);
+  }
+
+  get workspaceDescription(): string | undefined {
+    const description = this.rootVertex.getProperty("description");
+    return typeof description === "string" ? description : undefined;
+  }
+
+  set workspaceDescription(description: string | undefined) {
+    this.rootVertex.setProperty("description", description ?? "");
+  }
+
+  get workspaceTheme(): string | undefined {
+    const theme = this.rootVertex.getProperty("theme");
+    return typeof theme === "string" ? theme : undefined;
+  }
+
+  set workspaceTheme(theme: string | undefined) {
+    if (!theme) {
+      this.rootVertex.setProperty("theme", "");
+      return;
+    }
+    this.rootVertex.setProperty("theme", theme);
+  }
+
+  get workspaceColorScheme(): string | undefined {
+    const scheme = this.rootVertex.getProperty("colorScheme");
+    return typeof scheme === "string" ? scheme : undefined;
+  }
+
+  set workspaceColorScheme(colorScheme: string | undefined) {
+    if (!colorScheme) {
+      this.rootVertex.setProperty("colorScheme", "");
+      return;
+    }
+    this.rootVertex.setProperty("colorScheme", colorScheme);
   }
 
   get fileStore(): FileStore | null {
@@ -283,36 +334,30 @@ export class Space {
   }
 
   getAppConfigs(): AppConfig[] {
-    return this.getArray<AppConfig>("configs");
+    return this.appConfigs.getAll();
   }
 
   getAppConfig(configId: string): AppConfig | undefined {
-    const config = this.findObjectWithPropertyAtPath("configs", "id", configId);
-
-    if (configId === "default") {
-      const defaultConfig = Space.getDefaultAppConfig();
-
-      return {
-        ...config,
-        ...defaultConfig,
-      } as AppConfig;
-    }
-
-    if (!config) return undefined;
-
-    return config as AppConfig;
+    return this.appConfigs.get(configId);
   }
 
-  static getDefaultAppConfig(): AppConfig {
+  static getDefaultAppConfig(texts: Texts): AppConfig {
     return {
       id: "default",
-      name: "Chat",
-      button: "New query",
+      name: texts.defaultAppConfig.name,
+      button: texts.defaultAppConfig.button,
       visible: true,
-      description: "A basic chat assistant",
-      instructions:
-        "You are Sila, an AI assistant. Be direct in all responses. Use simple language. Avoid niceties, filler words, and formality.",
+      description: texts.defaultAppConfig.description,
+      instructions: texts.defaultAppConfig.instructions,
     } as AppConfig;
+  }
+
+  private getWorkspaceTexts(): Texts {
+    const language = this.workspaceLanguage;
+    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      return createTexts(language as SupportedLanguage);
+    }
+    return createTexts("en");
   }
 
   // Get provider config and add API key from secrets if it's a cloud provider
@@ -452,6 +497,30 @@ export class Space {
   }
 
   updateAppConfig(configId: string, updates: Partial<AppConfig>): void {
+    // Default assistant is virtual (computed). We only persist overrides in the tree.
+    // The UI should be responsible for restricting which fields can be edited.
+    if (configId === "default") {
+      // No updates provided
+      if (Object.keys(updates).length === 0) {
+        return;
+      }
+
+      const existingVertex = this.getFirstVertexWithPropertyAtPath(
+        "configs",
+        "id",
+        configId,
+      );
+
+      // Create minimal overrides entry if missing
+      if (!existingVertex) {
+        this.insertIntoArray("configs", { id: "default", ...updates });
+        return;
+      }
+
+      this.updateInArray(existingVertex.id, updates);
+      return;
+    }
+
     const vertexId = this.getFirstVertexWithPropertyAtPath(
       "configs",
       "id",

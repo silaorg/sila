@@ -8,21 +8,17 @@
 <div class="flex gap-4 w-full">
   <SettingsSidebar />
   
-  <div class="flex-1">
-    <h2 class="h2 mb-6">{i18n.texts.settingsPage.appearance.title}</h2>
-    
-    <div class="card p-4 border-[1px] border-surface-200-800">
-      <div class="space-y-4">
-        <label class="label">
-          <span>{i18n.texts.settingsPage.appearance.colorScheme}</span>
-          <Lightswitch />
-        </label>
+  <div class="flex-1 space-y-4">
+    <div class="space-y-4">
+      <label class="label">
+        <span>{i18n.texts.settingsPage.appearance.colorScheme}</span>
+        <Lightswitch />
+      </label>
 
-        <label class="label">
-          <span>{i18n.texts.settingsPage.appearance.theme}</span>
-          <ThemeSwitcher />
-        </label>
-      </div>
+      <label class="label">
+        <span>{i18n.texts.settingsPage.appearance.theme}</span>
+        <ThemeSwitcher />
+      </label>
     </div>
   </div>
 </div>

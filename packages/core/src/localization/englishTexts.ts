@@ -58,6 +58,14 @@ export const englishTexts: Texts = {
     description: "You can create your own system prompts (instructions) based on the default chat app. It will be possible to create other types of apps with tools and external APIs in future versions of Sila.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "New query",
+    description: "A basic chat assistant",
+    instructions:
+      "You are Sila, an AI assistant. Be direct in all responses. Use simple language. Avoid niceties, filler words, and formality.",
+  },
+
   appConfigDropdown: {
     placeholder: "Select an assistant...",
     newAssistant: "New Assistant",
@@ -88,6 +96,35 @@ export const englishTexts: Texts = {
     providers: {
       title: "Model Providers",
       description: "Connect AI model providers to power your assistants. These are the brains that make your assistants work. We recommend setting up OpenAI, Anthropic, or Google first."
+    },
+    sidebar: {
+      workspaceTitle: "Workspace",
+      workspacePreferencesTitle: "Workspace Preferences",
+      workspacePreferencesLabel: "Preferences",
+      appTitle: "App"
+    },
+    workspacePreferences: {
+      description: "Describe your workspace for AI and choose the UI and AI language.",
+      descriptionLabel: "Workspace description",
+      descriptionPlaceholder: "Describe what this workspace is for or any assistant preferences in plain text.",
+      storedPathLabel: "This workspace is stored at:",
+      revealButton: "Reveal",
+      noWorkspaceLoaded: "No workspace loaded.",
+      notStoredOnDiskError: "This workspace is not stored on disk.",
+      revealUnsupportedError: "Reveal is not supported in this build.",
+      revealFailedError: "Failed to reveal the workspace path."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Storage",
+      workspaceLocationLabel: "Workspace location:",
+      noWorkspaceLoaded: "No workspace loaded.",
+      syncPlaceholder: "Sync settings are coming soon."
+    },
+    personalization: {
+      title: "User profile",
+      description: "Profile details and personalization preferences are coming soon.",
+      openProfile: "Open profile",
+      signInPlaceholder: "Sign-in options will appear here when authentication is enabled."
     },
     spaces: {
       title: "Workspaces",

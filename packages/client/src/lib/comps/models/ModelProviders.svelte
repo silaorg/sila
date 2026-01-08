@@ -22,7 +22,7 @@
   } = $props();
 
   function getEffectiveProviderType(provider: ModelProvider): ProviderType {
-    return provider.type ?? ProviderType.AI;
+    return provider.type ?? ProviderType.Language;
   }
 
   function filterByType(list: ModelProvider[]): ModelProvider[] {
@@ -79,7 +79,7 @@
       />
     {/each}
 
-    {#if providerType === undefined || providerType === ProviderType.AI}
+    {#if providerType === undefined || providerType === ProviderType.Language}
       <AddCustomProviderCard onProviderAdded={handleCustomProviderAdded} />
     {/if}
   </div>

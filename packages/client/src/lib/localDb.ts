@@ -17,8 +17,6 @@ export type SpaceSetup = {
 
   // Additional fields
   ttabsLayout?: string | null;
-  theme?: string | null;
-  colorScheme?: 'system' | 'light' | 'dark' | null;
   drafts?: { [draftId: string]: string } | null;
   // Note: secrets moved to separate table
 };
@@ -277,7 +275,6 @@ export async function savePointers(pointers: SpacePointer[]): Promise<void> {
           await db.spaces.put({
             ...pointer,
             ttabsLayout: null,
-            theme: null,
             drafts: null,
           });
         }
@@ -334,16 +331,6 @@ export async function initializeDatabase(): Promise<{
     }
 
     return { pointers: [], currentSpaceUri: null, config: {} };
-  }
-}
-
-// Get the complete SpaceSetup for a space
-export async function getSpaceSetup(spaceUri: string): Promise<SpaceSetup | undefined> {
-  try {
-    return await db.spaces.get(spaceUri);
-  } catch (error) {
-    console.error(`Failed to get setup for space ${spaceUri}:`, error);
-    return undefined;
   }
 }
 
@@ -461,29 +448,6 @@ export async function getTreeOpCount(spaceUri: string, spaceId: string, treeId: 
 }
 
 // Save theme for a space
-export async function saveSpaceTheme(spaceUri: string, theme: string): Promise<void> {
-  try {
-    await db.spaces
-      .where('uri')
-      .equals(spaceUri)
-      .modify({ theme: theme });
-  } catch (error) {
-    console.error(`Failed to save theme for space ${spaceUri}:`, error);
-  }
-}
-
-// Save color scheme for a space
-export async function saveSpaceColorScheme(spaceUri: string, colorScheme: 'system' | 'light' | 'dark'): Promise<void> {
-  try {
-    await db.spaces
-      .where('uri')
-      .equals(spaceUri)
-      .modify({ colorScheme: colorScheme });
-  } catch (error) {
-    console.error(`Failed to save color scheme for space ${spaceUri}:`, error);
-  }
-}
-
 // Delete a space from the database
 export async function deleteSpace(spaceUri: string): Promise<void> {
   try {

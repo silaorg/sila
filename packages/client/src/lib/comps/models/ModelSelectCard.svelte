@@ -2,7 +2,9 @@
   import { onMount } from "svelte";
   import type { ModelProvider, ModelProviderConfig } from "@sila/core";
   import { getProviderModels } from "@sila/core";
+  import { ProviderType } from "@sila/core";
   import { i18n } from "@sila/client";
+  import { formatModelLabel } from "@sila/client/utils/modelDisplay";
 
   let {
     provider,
@@ -27,8 +29,55 @@
   const isCustomProvider = $derived(provider.isCustom === true);
   // Check if this is OpenRouter provider
   const isOpenRouterProvider = $derived(provider.id === "openrouter");
+  // This card is for selecting chat language models; non-language providers are not selectable here.
+  const isLanguageProvider = $derived(
+    (provider.type ?? ProviderType.Language) === ProviderType.Language,
+  );
   // For custom providers, get the model ID from the config
   const customModelId = $derived(isCustomProvider && 'modelId' in config ? config.modelId as string : null);
+
+  const effectiveDefaultModelId = $derived.by(() => {
+    // Custom providers: fixed model id from config
+    if (isCustomProvider && customModelId) return customModelId;
+
+    // OpenRouter: use configured default model unless user types a custom one
+    if (isOpenRouterProvider) return provider.defaultModel ?? "";
+
+    // Prefer provider.defaultModel when it's available in the fetched list
+    if (provider.defaultModel && models.includes(provider.defaultModel)) {
+      return provider.defaultModel;
+    }
+
+    // Otherwise fall back to the first fetched model (e.g. local providers)
+    if (models.length > 0) return models[0];
+
+    // Last resort: whatever is configured as default
+    return provider.defaultModel ?? "";
+  });
+
+  const normalizedSelectedModelId = $derived.by(() =>
+    typeof modelId === "string" ? modelId.trim() : "",
+  );
+
+  const normalizedDefaultModelId = $derived.by(() =>
+    typeof effectiveDefaultModelId === "string" ? effectiveDefaultModelId.trim() : "",
+  );
+
+  const displayModelId = $derived.by(
+    () => normalizedSelectedModelId || normalizedDefaultModelId,
+  );
+
+  const displayModelLabel = $derived.by(() =>
+    displayModelId ? formatModelLabel(displayModelId) : null,
+  );
+
+  const isUsingDefaultModel = $derived.by(() => {
+    // Custom providers have a fixed model shown separately.
+    if (isCustomProvider) return false;
+    if (!normalizedSelectedModelId) return true;
+    if (!normalizedDefaultModelId) return false;
+    return normalizedSelectedModelId === normalizedDefaultModelId;
+  });
 
   onMount(async () => {
     // Only fetch models for non-custom providers and non-OpenRouter providers
@@ -46,6 +95,9 @@
   });
 
   function onProviderClick() {
+    if (!isLanguageProvider) {
+      return;
+    }
     if (selected) {
       return;
     }
@@ -110,9 +162,13 @@
   <div
     role="button"
     tabindex="0"
-    class="flex p-2 gap-4 items-center cursor-pointer w-full"
+    aria-disabled={!isLanguageProvider}
+    class="flex p-2 gap-4 items-center w-full {isLanguageProvider ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}"
     onclick={onProviderClick}
-    onkeydown={(e) => e.key === "Enter" && onProviderClick()}
+    onkeydown={(e) => {
+      if (!isLanguageProvider) return;
+      if (e.key === "Enter") onProviderClick();
+    }}
   >
     <div class="w-8 h-8 bg-white flex items-center justify-center rounded">
       <img class="w-5/6" src={provider.logoUrl} alt={provider.name} />
@@ -125,10 +181,14 @@
         <span class="font-semibold">
           — {customModelId}&nbsp;
         </span>
-      {:else if selected && !showModels && modelId && modelId !== provider.defaultModel}
-        <span class="font-semibold">
-          — {modelId}&nbsp;
-        </span>
+      {:else if selected && !showModels}
+        {#if displayModelLabel}
+          <span class="font-semibold">
+            — {isUsingDefaultModel
+              ? i18n.texts.models.defaultOption(displayModelLabel)
+              : displayModelLabel}&nbsp;
+          </span>
+        {/if}
       {/if}
     </div>
     {#if selected && !isCustomProvider}

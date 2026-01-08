@@ -10,14 +10,14 @@
 
 <div class="flex flex-col h-full bg-surface-100-900/50" data-testid="sidebar">
   <div class="min-h-min py-2 px-2">
-    <div class="flex items-center w-full gap-2 pb-3">
+    <div class="flex items-center w-full pb-3">
       <div class="flex-1 min-w-0">
         <SpaceSelectorPopup />
       </div>
       <div class="flex items-center">
         <SwinsNavButton
-          component="settings"
-          title={i18n.texts.settingsPage.title}
+          component="settingsWorkspacePreferences"
+          title="Preferences"
           className="p-2 rounded hover:preset-tonal"
         >
           <Settings size={18} />

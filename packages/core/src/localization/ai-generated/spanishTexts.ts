@@ -58,6 +58,14 @@ export const spanishTexts: Partial<Texts> = {
     description: "Puedes crear tus propios prompts del sistema (instrucciones) basados en el asistente predeterminado. En futuras versiones de Sila se podrán crear otros tipos de apps con herramientas y APIs externas.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "Nueva consulta",
+    description: "Un asistente de chat básico",
+    instructions:
+      "Eres Sila, un asistente de IA. Sé directo en todas las respuestas. Usa un lenguaje simple. Evita cortesías, relleno y formalidad.",
+  },
+
   appConfigDropdown: {
     placeholder: "Selecciona un asistente...",
     newAssistant: "Nuevo asistente",
@@ -76,6 +84,7 @@ export const spanishTexts: Partial<Texts> = {
     appearance: {
       title: "Apariencia",
       theme: "Tema",
+      themeDescription: "Elige un tema de color para tu espacio de trabajo.",
       language: "Idioma",
       colorScheme: "Esquema de color",
       system: "Sistema",
@@ -87,6 +96,35 @@ export const spanishTexts: Partial<Texts> = {
     providers: {
       title: "Proveedores de modelos",
       description: "Conecta proveedores de modelos de IA para impulsar tus asistentes. Son el cerebro de tus asistentes. Recomendamos configurar OpenAI, Anthropic o Google primero."
+    },
+    sidebar: {
+      workspaceTitle: "Espacio de trabajo",
+      workspacePreferencesTitle: "Preferencias del espacio de trabajo",
+      workspacePreferencesLabel: "Preferencias",
+      appTitle: "App"
+    },
+    workspacePreferences: {
+      description: "Describe tu espacio de trabajo para la IA y elige el idioma de la interfaz y de la IA.",
+      descriptionLabel: "Descripción del espacio de trabajo",
+      descriptionPlaceholder: "Describe para qué sirve este espacio de trabajo o las preferencias de los asistentes en texto plano.",
+      storedPathLabel: "Este espacio de trabajo se guarda en:",
+      revealButton: "Mostrar",
+      noWorkspaceLoaded: "No hay ningún espacio de trabajo cargado.",
+      notStoredOnDiskError: "Este espacio de trabajo no está almacenado en el disco.",
+      revealUnsupportedError: "Mostrar no está disponible en esta versión.",
+      revealFailedError: "No se pudo mostrar la ruta del espacio de trabajo."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Almacenamiento",
+      workspaceLocationLabel: "Ubicación del espacio de trabajo:",
+      noWorkspaceLoaded: "No hay ningún espacio de trabajo cargado.",
+      syncPlaceholder: "La configuración de sincronización estará disponible pronto."
+    },
+    personalization: {
+      title: "Perfil de usuario",
+      description: "Los detalles del perfil y las preferencias de personalización estarán disponibles pronto.",
+      openProfile: "Abrir perfil",
+      signInPlaceholder: "Las opciones de inicio de sesión aparecerán aquí cuando la autenticación esté habilitada."
     },
     spaces: {
       title: "Espacios de trabajo",

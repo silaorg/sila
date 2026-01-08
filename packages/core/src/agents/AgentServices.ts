@@ -1,8 +1,7 @@
 import { Lang, LanguageProvider } from 'aiwrapper';
-import { providers } from "../providers";
 import { Space } from '../spaces/Space';
-import { getProviderModels } from '../tools/providerModels';
 import { splitModelString } from '../utils/modelUtils';
+import { resolveAutoModelIdForProvider, resolveMostCapableLanguageModel } from '../utils/autoModel';
 import { LangTool } from 'aiwrapper/dist/lang/messages';
 import type { AppTree } from "../spaces/AppTree";
 import { toolRead } from "./tools/toolRead";
@@ -93,86 +92,7 @@ export class AgentServices {
   async getMostCapableModel(): Promise<
     { provider: string; model: string } | null
   > {
-    const providerConfigs = this.space.getModelProviderConfigs();
-    const providerOrder = ["openai", "anthropic", "google", "xai", "openrouter", "deepseek", "groq", "mistral", "ollama"];
-
-    // Sort configured providers by priority
-    const sortedProviders = providerConfigs
-      .map(config => config.id)
-      .sort((a, b) => {
-        // Custom providers get lower priority than built-in ones
-        if (a.startsWith('custom-') && !b.startsWith('custom-')) return 1;
-        if (!a.startsWith('custom-') && b.startsWith('custom-')) return -1;
-
-        const indexA = providerOrder.indexOf(a);
-        const indexB = providerOrder.indexOf(b);
-        return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-      });
-
-    for (const provider of sortedProviders) {
-      const providerConfig = this.space.getModelProviderConfig(provider);
-      if (!providerConfig) continue;
-
-      // Handle custom providers
-      if (provider.startsWith('custom-')) {
-        if ('modelId' in providerConfig) {
-          return {
-            provider,
-            model: providerConfig.modelId as string
-          };
-        }
-        continue;
-      }
-
-      // Handle local providers
-      if (providerConfig.type === "local") {
-        const models = await getProviderModels(provider, "");
-        if (models && models.length > 0) {
-          return {
-            provider,
-            model: models[0] // @TODO: consider picking the most capable model from the list
-          };
-        }
-        continue;
-      }
-
-      // Handle cloud providers
-      try {
-        // Try Lang.models first
-        const models = Lang.models.fromProvider(provider);
-        if (models && models.length > 0) {
-          const defaultModel = this.getDefaultModelForProvider(provider, models);
-          return {
-            provider,
-            model: defaultModel
-          };
-        }
-      } catch (error) {
-        // Fall back to static provider config
-      }
-
-      // Special case for OpenRouter - use static provider config since models are entered manually
-      if (provider === "openrouter") {
-        const staticProvider = providers.find(p => p.id === provider);
-        if (staticProvider?.defaultModel) {
-          return {
-            provider,
-            model: staticProvider.defaultModel
-          };
-        }
-      }
-
-      // Fall back to static provider config for other providers
-      const staticProvider = providers.find(p => p.id === provider);
-      if (staticProvider?.defaultModel) {
-        return {
-          provider,
-          model: staticProvider.defaultModel
-        };
-      }
-    }
-
-    return null;
+    return await resolveMostCapableLanguageModel(this.space.getModelProviderConfigs());
   }
 
   getToolsForModel(
@@ -252,53 +172,11 @@ export class AgentServices {
   }
 
   /**
-   * Selects the best model from a list of available models for a given provider.
-   * Prioritizes the configured default model if available, otherwise falls back to the first model.
+   * Resolve "provider/auto" to a concrete model id for that provider.
+   *
+   * Delegates to a shared util so UI + agent behavior stays consistent.
    */
-  private getDefaultModelForProvider(provider: string, models: any[]): string {
-    const providerConfig = providers.find(p => p.id === provider);
-    if (providerConfig?.defaultModel) {
-      if (!models.some(m => m.id === providerConfig.defaultModel)) {
-        console.warn(`Default model ${providerConfig.defaultModel} not found in models for provider ${provider}`);
-      }
-
-      return providerConfig.defaultModel;
-    }
-    return models[0].id;
-  }
-
   private async resolveAutoModel(provider: string): Promise<string> {
-    // Special case for OpenRouter - use static provider config since models are entered manually
-    if (provider === "openrouter") {
-      const providerConfig = providers.find(p => p.id === provider);
-      if (providerConfig?.defaultModel) {
-        return providerConfig.defaultModel;
-      }
-      throw new Error(`No default model configured for OpenRouter`);
-    }
-
-    // Try to use Lang.models first for cloud providers
-    if (provider !== "ollama" && provider !== "local") {
-      try {
-        const models = Lang.models.fromProvider(provider);
-        if (models && models.length > 0) {
-          return this.getDefaultModelForProvider(provider, models);
-        }
-      } catch (error) {
-        // Fall back to legacy implementation
-      }
-    }
-
-    // Fall back to legacy implementation
-    const models = await getProviderModels(provider, "");
-    if (models.length === 0) {
-      throw new Error(`No models found for provider ${provider}`);
-    }
-
-    const providerConfig = providers.find(p => p.id === provider);
-    if (providerConfig?.defaultModel && models.includes(providerConfig.defaultModel)) {
-      return providerConfig.defaultModel;
-    }
-    return models[0];
+    return await resolveAutoModelIdForProvider(provider);
   }
 }

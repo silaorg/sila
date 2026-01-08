@@ -2,19 +2,57 @@
   import { MoreVertical } from "lucide-svelte";
   import ContextMenu from "@sila/client/comps/ui/ContextMenu.svelte";
   import { i18n } from "@sila/client";
+  import { toast } from "svelte-sonner";
 
   let { 
     onRename = () => {},
     onRemove = () => {},
+    spaceUri = null,
   }: { 
     onRename: () => void;
     onRemove: () => void;
+    spaceUri?: string | null;
   } = $props();
   let openState = $state(false);
 
   function handleRename() {
     openState = false;
     onRename();
+  }
+
+  function isDiskBackedUri(uri: string): boolean {
+    return !(
+      uri.startsWith("local://") ||
+      uri.startsWith("http://") ||
+      uri.startsWith("https://")
+    );
+  }
+
+  async function handleRevealFolder() {
+    openState = false;
+
+    if (!spaceUri) return;
+    if (!isDiskBackedUri(spaceUri)) {
+      toast.error(i18n.texts.settingsPage.workspacePreferences.notStoredOnDiskError);
+      return;
+    }
+
+    const efs = (window as any).electronFileSystem;
+    if (!efs?.revealPath) {
+      toast.error(i18n.texts.settingsPage.workspacePreferences.revealUnsupportedError);
+      return;
+    }
+
+    try {
+      const err = await efs.revealPath(spaceUri);
+      if (typeof err === "string" && err) {
+        toast.error(err);
+      }
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : i18n.texts.settingsPage.workspacePreferences.revealFailedError
+      );
+    }
   }
 
   function handleRemove() {
@@ -44,6 +82,13 @@
 
     {#snippet content()}
       <div class="flex flex-col gap-1">
+        <button
+          class="btn btn-sm text-left"
+          onclick={handleRevealFolder}
+          disabled={!spaceUri || !isDiskBackedUri(spaceUri)}
+        >
+          {i18n.texts.settingsPage.workspacePreferences.revealButton}
+        </button>
         <button class="btn btn-sm text-left" onclick={handleRename}>
           {i18n.texts.actions.rename}
         </button>
