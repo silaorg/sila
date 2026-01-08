@@ -1,6 +1,7 @@
 import type { LangToolWithHandler } from "aiwrapper";
 import type { AppTree } from "../../spaces/AppTree";
 import type { AgentTool } from "./AgentTool";
+import { proxyFetch } from "../../utils/proxyFetch";
 
 interface WebSearchResult {
   title: string;
@@ -59,7 +60,7 @@ export const toolWebSearch: AgentTool = {
 
         const limit = Math.max(1, Math.min(numResults ?? 5, 10));
 
-        const response = await fetch("https://api.exa.ai/search", {
+        const response = await proxyFetch("https://api.exa.ai/search", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

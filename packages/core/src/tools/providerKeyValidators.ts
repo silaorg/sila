@@ -1,3 +1,5 @@
+import { proxyFetch } from "../utils/proxyFetch";
+
 export function validateKey(
   provider: string,
   key: string,
@@ -238,7 +240,7 @@ async function validateKey_exa(
   }
 
   try {
-    const response = await fetch("https://api.exa.ai/search", {
+    const response = await proxyFetch("https://api.exa.ai/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
