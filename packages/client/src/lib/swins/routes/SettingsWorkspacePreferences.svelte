@@ -103,13 +103,13 @@
       pointer.uri.startsWith("http://") ||
       pointer.uri.startsWith("https://")
     ) {
-      toast.error("This workspace is not stored on disk.");
+      toast.error(i18n.texts.settingsPage.workspacePreferences.notStoredOnDiskError);
       return;
     }
 
     const efs = (window as any).electronFileSystem;
     if (!efs?.revealPath) {
-      toast.error("Reveal is not supported in this build.");
+      toast.error(i18n.texts.settingsPage.workspacePreferences.revealUnsupportedError);
       return;
     }
 
@@ -119,7 +119,9 @@
         toast.error(err);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to reveal path");
+      toast.error(
+        e instanceof Error ? e.message : i18n.texts.settingsPage.workspacePreferences.revealFailedError
+      );
     }
   }
 </script>
@@ -129,7 +131,7 @@
 
   <div class="flex-1 space-y-4">
     <p class="text-sm">
-      You can describe your workspace here for AI and select the UI and AI's language.
+      {i18n.texts.settingsPage.workspacePreferences.description}
     </p>
     <div class="space-y-4">
       <label class="label">
@@ -154,12 +156,12 @@
       </label>
 
       <label class="label">
-        <span>Workspace description</span>
+        <span>{i18n.texts.settingsPage.workspacePreferences.descriptionLabel}</span>
         <textarea
           class="textarea"
           rows="5"
           bind:value={workspaceDescription}
-          placeholder="Describe what this workspace is for or any preferences for the assistants in plain text"
+          placeholder={i18n.texts.settingsPage.workspacePreferences.descriptionPlaceholder}
           disabled={!pointer}
           onfocus={() => (isEditingDescription = true)}
           onblur={() => {
@@ -174,7 +176,7 @@
           <div class="text-sm grid gap-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-surface-600-300">
-                This space is stored at path:
+                {i18n.texts.settingsPage.workspacePreferences.storedPathLabel}
               </span>
               <span class="font-mono break-all">{pointer.uri}</span>
               <button
@@ -185,13 +187,13 @@
                   pointer.uri.startsWith("http://") ||
                   pointer.uri.startsWith("https://")}
               >
-                Reveal
+                {i18n.texts.settingsPage.workspacePreferences.revealButton}
               </button>
             </div>
           </div>
         {:else}
           <div class="text-sm text-surface-600-300">
-            No workspace loaded.
+            {i18n.texts.settingsPage.workspacePreferences.noWorkspaceLoaded}
           </div>
         {/if}
       </div>

@@ -58,6 +58,14 @@ export const turkishTexts: Partial<Texts> = {
     description: "Varsayılan sohbet uygulamasına göre kendi sistem yönergelerinizi oluşturabilirsiniz. Sila’nın gelecekteki sürümlerinde araçlar ve harici API’lerle başka uygulama türleri mümkün olacak.",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "Yeni sorgu",
+    description: "Temel bir sohbet asistanı",
+    instructions:
+      "Sen Sila, bir AI asistansın. Tüm yanıtlarda doğrudan ol. Basit bir dil kullan. Nezaket kalıplarından, dolgu sözlerden ve resmiyetten kaçın.",
+  },
+
   appConfigDropdown: {
     placeholder: "Bir asistan seç...",
     newAssistant: "Yeni Asistan",
@@ -76,6 +84,7 @@ export const turkishTexts: Partial<Texts> = {
     appearance: {
       title: "Görünüm",
       theme: "Tema",
+      themeDescription: "Çalışma alanınız için bir renk teması seçin.",
       language: "Dil",
       colorScheme: "Renk şeması",
       system: "Sistem",
@@ -87,6 +96,35 @@ export const turkishTexts: Partial<Texts> = {
     providers: {
       title: "Model Sağlayıcıları",
       description: "Asistanlarını çalıştırmak için model sağlayıcıları bağla. Bunlar asistanların “beyni”. Önce OpenAI, Anthropic veya Google’ı kurmanı öneririz."
+    },
+    sidebar: {
+      workspaceTitle: "Çalışma alanı",
+      workspacePreferencesTitle: "Çalışma alanı tercihleri",
+      workspacePreferencesLabel: "Tercihler",
+      appTitle: "Uygulama"
+    },
+    workspacePreferences: {
+      description: "Çalışma alanınızı yapay zeka için tanımlayın ve arayüz ile yapay zeka dilini seçin.",
+      descriptionLabel: "Çalışma alanı açıklaması",
+      descriptionPlaceholder: "Bu çalışma alanının amacını veya asistan tercihlerini düz metinle açıklayın.",
+      storedPathLabel: "Bu çalışma alanı şurada saklanır:",
+      revealButton: "Göster",
+      noWorkspaceLoaded: "Çalışma alanı yüklenmedi.",
+      notStoredOnDiskError: "Bu çalışma alanı diskte saklanmıyor.",
+      revealUnsupportedError: "Gösterme bu sürümde desteklenmiyor.",
+      revealFailedError: "Çalışma alanı yolu gösterilemedi."
+    },
+    workspacePrivacySync: {
+      storageTitle: "Depolama",
+      workspaceLocationLabel: "Çalışma alanı konumu:",
+      noWorkspaceLoaded: "Çalışma alanı yüklenmedi.",
+      syncPlaceholder: "Senkronizasyon ayarları yakında geliyor."
+    },
+    personalization: {
+      title: "Kullanıcı profili",
+      description: "Profil bilgileri ve kişiselleştirme tercihleri yakında geliyor.",
+      openProfile: "Profili aç",
+      signInPlaceholder: "Kimlik doğrulama etkinleştirildiğinde oturum açma seçenekleri burada görünecek."
     },
     spaces: {
       title: "Çalışma Alanları",

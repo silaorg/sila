@@ -9,6 +9,8 @@ import { AppConfigsData } from "./AppConfigsData";
 import uuid from "../utils/uuid";
 import { createFileStore, FileResolver, type FileStore } from "./files";
 import type { FileStoreProvider } from "./files/FileStore";
+import { createTexts, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../localization/getTexts";
+import type { Texts } from "../localization/texts";
 
 export class Space {
   readonly tree: RepTree;
@@ -48,7 +50,7 @@ export class Space {
       "onboarding": true,
     });
     const appConfigs = root.newNamedChild("configs");
-    appConfigs.newChild(Space.getDefaultAppConfig());
+    appConfigs.newChild(Space.getDefaultAppConfig(createTexts("en")));
     root.newNamedChild("threads");
     root.newNamedChild("providers");
     root.newNamedChild("assets");
@@ -70,7 +72,10 @@ export class Space {
     }
 
     this.appTreesVertex = tree.getVertexByPath("threads") as Vertex;
-    this.appConfigs = new AppConfigsData(this.tree.getVertexByPath("configs")!);
+    this.appConfigs = new AppConfigsData(
+      this.tree.getVertexByPath("configs")!,
+      () => this.workspaceLanguage,
+    );
 
     this.fileResolver = new FileResolver(this);
   }
@@ -337,7 +342,7 @@ export class Space {
     const config = this.findObjectWithPropertyAtPath("configs", "id", configId);
 
     if (configId === "default") {
-      const defaultConfig = Space.getDefaultAppConfig();
+      const defaultConfig = Space.getDefaultAppConfig(this.getWorkspaceTexts());
 
       return {
         ...config,
@@ -350,16 +355,23 @@ export class Space {
     return config as AppConfig;
   }
 
-  static getDefaultAppConfig(): AppConfig {
+  static getDefaultAppConfig(texts: Texts): AppConfig {
     return {
       id: "default",
-      name: "Chat",
-      button: "New query",
+      name: texts.defaultAppConfig.name,
+      button: texts.defaultAppConfig.button,
       visible: true,
-      description: "A basic chat assistant",
-      instructions:
-        "You are Sila, an AI assistant. Be direct in all responses. Use simple language. Avoid niceties, filler words, and formality.",
+      description: texts.defaultAppConfig.description,
+      instructions: texts.defaultAppConfig.instructions,
     } as AppConfig;
+  }
+
+  private getWorkspaceTexts(): Texts {
+    const language = this.workspaceLanguage;
+    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+      return createTexts(language as SupportedLanguage);
+    }
+    return createTexts("en");
   }
 
   // Get provider config and add API key from secrets if it's a cloud provider

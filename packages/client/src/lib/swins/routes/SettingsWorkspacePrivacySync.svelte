@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import SettingsSidebar from "./SettingsSidebar.svelte";
 
@@ -11,20 +12,23 @@
 
   <div class="flex-1 space-y-4">
     <div class="space-y-3">
-      <div class="text-sm font-medium">Storage</div>
+      <div class="text-sm font-medium">{i18n.texts.settingsPage.workspacePrivacySync.storageTitle}</div>
       {#if pointer}
         <div class="text-sm">
-          <div class="text-surface-600-300">Workspace location:</div>
+          <div class="text-surface-600-300">
+            {i18n.texts.settingsPage.workspacePrivacySync.workspaceLocationLabel}
+          </div>
           <div class="font-mono break-all">{pointer.uri}</div>
         </div>
       {:else}
-        <div class="text-sm text-surface-600-300">No workspace loaded.</div>
+        <div class="text-sm text-surface-600-300">
+          {i18n.texts.settingsPage.workspacePrivacySync.noWorkspaceLoaded}
+        </div>
       {/if}
 
       <div class="text-xs text-surface-600-300">
-        @TODO: show sync provider/status, what gets synced, export defaults, retention, attachment policy.
+        {i18n.texts.settingsPage.workspacePrivacySync.syncPlaceholder}
       </div>
     </div>
   </div>
 </div>
-

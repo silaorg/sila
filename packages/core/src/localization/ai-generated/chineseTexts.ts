@@ -58,6 +58,14 @@ export const chineseTexts: Partial<Texts> = {
     description: "你可以基于默认聊天助手创建自己的系统提示（指令）。未来版本的 Sila 将支持带工具和外部 API 的其他类型应用。",
   },
 
+  defaultAppConfig: {
+    name: "Chat",
+    button: "新建提问",
+    description: "基础聊天助手",
+    instructions:
+      "你是 Sila，一个 AI 助手。回答要直接。使用简单语言。避免客套话、赘述和正式语气。",
+  },
+
   appConfigDropdown: {
     placeholder: "选择助手...",
     newAssistant: "新建助手",
@@ -76,6 +84,7 @@ export const chineseTexts: Partial<Texts> = {
     appearance: {
       title: "外观",
       theme: "主题",
+      themeDescription: "为你的工作区选择一个配色主题。",
       language: "语言",
       colorScheme: "配色",
       system: "跟随系统",
@@ -87,6 +96,35 @@ export const chineseTexts: Partial<Texts> = {
     providers: {
       title: "模型提供商",
       description: "连接 AI 模型提供商来驱动你的助手。它们是助手的“大脑”。建议先配置 OpenAI、Anthropic 或 Google。"
+    },
+    sidebar: {
+      workspaceTitle: "工作区",
+      workspacePreferencesTitle: "工作区偏好设置",
+      workspacePreferencesLabel: "偏好设置",
+      appTitle: "应用"
+    },
+    workspacePreferences: {
+      description: "为 AI 描述你的工作区，并选择界面和 AI 的语言。",
+      descriptionLabel: "工作区描述",
+      descriptionPlaceholder: "用纯文本描述此工作区用途或助手偏好。",
+      storedPathLabel: "此工作区存储在：",
+      revealButton: "显示",
+      noWorkspaceLoaded: "未加载工作区。",
+      notStoredOnDiskError: "此工作区未存储在磁盘上。",
+      revealUnsupportedError: "此版本不支持显示。",
+      revealFailedError: "无法显示工作区路径。"
+    },
+    workspacePrivacySync: {
+      storageTitle: "存储",
+      workspaceLocationLabel: "工作区位置：",
+      noWorkspaceLoaded: "未加载工作区。",
+      syncPlaceholder: "同步设置即将推出。"
+    },
+    personalization: {
+      title: "用户资料",
+      description: "个人资料与个性化偏好即将推出。",
+      openProfile: "打开资料",
+      signInPlaceholder: "启用身份验证后，登录选项将显示在此处。"
     },
     spaces: {
       title: "工作区",

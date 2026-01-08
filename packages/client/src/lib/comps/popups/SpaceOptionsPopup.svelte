@@ -33,13 +33,13 @@
 
     if (!spaceUri) return;
     if (!isDiskBackedUri(spaceUri)) {
-      toast.error("This workspace is not stored on disk.");
+      toast.error(i18n.texts.settingsPage.workspacePreferences.notStoredOnDiskError);
       return;
     }
 
     const efs = (window as any).electronFileSystem;
     if (!efs?.revealPath) {
-      toast.error("Reveal is not supported in this build.");
+      toast.error(i18n.texts.settingsPage.workspacePreferences.revealUnsupportedError);
       return;
     }
 
@@ -49,7 +49,9 @@
         toast.error(err);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to reveal folder");
+      toast.error(
+        e instanceof Error ? e.message : i18n.texts.settingsPage.workspacePreferences.revealFailedError
+      );
     }
   }
 
@@ -85,7 +87,7 @@
           onclick={handleRevealFolder}
           disabled={!spaceUri || !isDiskBackedUri(spaceUri)}
         >
-          Reveal Folder
+          {i18n.texts.settingsPage.workspacePreferences.revealButton}
         </button>
         <button class="btn btn-sm text-left" onclick={handleRename}>
           {i18n.texts.actions.rename}

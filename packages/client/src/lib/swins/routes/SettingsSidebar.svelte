@@ -25,17 +25,17 @@
 
 <nav class="flex flex-col gap-1 min-w-[200px] sticky top-0 self-start">
   <div class="px-3 pt-2 pb-1 text-xs font-medium text-surface-600-300 uppercase tracking-wide">
-    Workspace
+    {i18n.texts.settingsPage.sidebar.workspaceTitle}
   </div>
 
   <SwinsNavButton
     component="settingsWorkspacePreferences"
     pop="current"
-    title="Workspace Preferences"
+    title={i18n.texts.settingsPage.sidebar.workspacePreferencesTitle}
     className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-workspace-preferences' ? 'preset-tonal' : ''}"
   >
     <Settings size={18} />
-    <span>Preferences</span>
+    <span>{i18n.texts.settingsPage.sidebar.workspacePreferencesLabel}</span>
   </SwinsNavButton>
 
   <SwinsNavButton
@@ -81,7 +81,7 @@
   -->
 
   <div class="px-3 pt-4 pb-1 text-xs font-medium text-surface-600-300 uppercase tracking-wide">
-    App
+    {i18n.texts.settingsPage.sidebar.appTitle}
   </div>
 
   <!--

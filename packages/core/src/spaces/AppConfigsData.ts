@@ -1,12 +1,26 @@
 import type { AppConfig } from "../models";
 import type { Vertex } from "reptree";
 import { Space } from "./Space";
+import { createTexts, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../localization/getTexts";
+import type { Texts } from "../localization/texts";
 
-function enrichDefaultConfig(configs: AppConfig[]): AppConfig[] {
+function getTextsForLanguage(language?: string): Texts {
+  if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
+    return createTexts(language as SupportedLanguage);
+  }
+  return createTexts("en");
+}
+
+function enrichDefaultConfig(
+  configs: AppConfig[],
+  languageProvider?: () => string | undefined,
+): AppConfig[] {
   // Enrich the default config with the default values
   const defaultConfigIndex = configs.findIndex((config) => config.id === "default");
   if (defaultConfigIndex !== -1) {
-    const defaultConfig = Space.getDefaultAppConfig();
+    const defaultConfig = Space.getDefaultAppConfig(
+      getTextsForLanguage(languageProvider?.()),
+    );
     configs[defaultConfigIndex] = {
       ...defaultConfig,
       ...configs[defaultConfigIndex],
@@ -26,9 +40,11 @@ function enrichDefaultConfig(configs: AppConfig[]): AppConfig[] {
 // @TODO: could it be based on a generic data class? SpaceArray<T>(rootVertex: Vertex)
 export class AppConfigsData {
   private root: Vertex;
+  private languageProvider?: () => string | undefined;
 
-  constructor(root: Vertex) {
+  constructor(root: Vertex, languageProvider?: () => string | undefined) {
     this.root = root;
+    this.languageProvider = languageProvider;
 
     if (!this.root) {
       throw new Error("App configs vertex not found");
@@ -36,14 +52,17 @@ export class AppConfigsData {
   }
 
   getAll(): AppConfig[] {
-    return enrichDefaultConfig(this.root.getChildrenAsTypedArray<AppConfig>());
+    return enrichDefaultConfig(
+      this.root.getChildrenAsTypedArray<AppConfig>(),
+      this.languageProvider,
+    );
   }
 
   get(configId: string): AppConfig | undefined {
     const config = this.root.findFirstTypedChildWithProperty<AppConfig>("id", configId);
 
     if (config?.id === "default") {
-      return enrichDefaultConfig([config])[0];
+      return enrichDefaultConfig([config], this.languageProvider)[0];
     }
 
     return config;
@@ -81,11 +100,12 @@ export class AppConfigsData {
   }
 
   observe(observer: (appConfigs: AppConfig[]) => void) {
-    function observerWrapper(appConfigs: AppConfig[]) {
-      observer(enrichDefaultConfig(appConfigs));
-    }
+    const languageProvider = this.languageProvider;
+    const observerWrapper = (appConfigs: AppConfig[]) => {
+      observer(enrichDefaultConfig(appConfigs, languageProvider));
+    };
 
-    observer(this.getAll());
+    observerWrapper(this.getAll());
 
     return this.root.observeChildrenAsTypedArray(observerWrapper);
   }
