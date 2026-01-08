@@ -1,7 +1,7 @@
 import { type ParsedOp } from './OpsParser';
 
 self.onmessage = (e: MessageEvent) => {
-  const { lines, peerId, requestId } = e.data;
+  const { lines, peerId, requestId, opTypeHint } = e.data;
   
   try {
     const operations: ParsedOp[] = [];
@@ -11,6 +11,32 @@ self.onmessage = (e: MessageEvent) => {
         try {
           // Remove surrounding quotes and null characters if present
           const cleanLine = line.replace(/^"|"$/g, '').replace(/\u0000/g, '');
+
+          if (opTypeHint === "m") {
+            const [counter, targetId, parentId] = JSON.parse(cleanLine);
+            operations.push({
+              type: 'm',
+              counter,
+              peerId,
+              targetId,
+              parentId
+            });
+            continue;
+          }
+
+          if (opTypeHint === "p") {
+            const [counter, targetId, key, value] = JSON.parse(cleanLine);
+            operations.push({
+              type: 'p',
+              counter,
+              peerId,
+              targetId,
+              key,
+              value
+            });
+            continue;
+          }
+
           const [opType, counter, targetId, ...rest] = JSON.parse(cleanLine);
           
           if (opType === "m" && rest.length === 1) {
