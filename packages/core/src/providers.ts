@@ -81,13 +81,15 @@ export const providers: ModelProvider[] = [
     defaultModel: "mistral-large-latest"
   },
   */
-  {
-    id: "ollama",
-    name: "Ollama",
-    access: "local",
-    url: "https://ollama.com/",
-    logoUrl: "/providers/ollama.png",
-  },
+  /*
+   {
+     id: "ollama",
+     name: "Ollama",
+     access: "local",
+     url: "https://ollama.com/",
+     logoUrl: "/providers/ollama.png",
+   },
+   */
   {
     id: "falai",
     name: "Fal.ai",

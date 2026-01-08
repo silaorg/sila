@@ -79,8 +79,10 @@
       />
     {/each}
 
+    <!--
     {#if providerType === undefined || providerType === ProviderType.Language}
       <AddCustomProviderCard onProviderAdded={handleCustomProviderAdded} />
     {/if}
+    -->
   </div>
 </div>
