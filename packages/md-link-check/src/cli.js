@@ -7,19 +7,24 @@ function printHelp() {
   console.log("md-link-check [root] --include \"docs/**/*.md\" --exclude \"**/node_modules/**\"");
   console.log("");
   console.log("Options:");
-  console.log("  --include  Comma-separated glob patterns (default: **/*.md)");
-  console.log("  --exclude  Comma-separated glob patterns");
-  console.log("  --help     Show this help message");
+  console.log("  --include       Comma-separated glob patterns (default: **/*.md)");
+  console.log("  --exclude       Comma-separated glob patterns");
+  console.log("  --no-external   Skip external link checks");
+  console.log("  --help          Show this help message");
 }
 
 function parseArgs(argv) {
-  const args = { include: undefined, exclude: undefined, root: undefined };
+  const args = { include: undefined, exclude: undefined, root: undefined, checkExternal: true };
   const positionals = [];
 
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") {
       args.help = true;
+      continue;
+    }
+    if (arg === "--no-external") {
+      args.checkExternal = false;
       continue;
     }
     if (arg === "--include") {
@@ -66,6 +71,7 @@ async function run() {
     root: args.root,
     include: args.include,
     exclude: args.exclude,
+    checkExternal: args.checkExternal,
   });
 
   if (result.issues.length === 0) {

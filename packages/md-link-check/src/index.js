@@ -6,7 +6,8 @@ import markdownLinkCheck from "markdown-link-check";
 
 const DEFAULT_INCLUDE = "**/*.md";
 const DEFAULT_EXCLUDE = "**/node_modules/**,**/dist/**,**/build/**";
-const DEFAULT_IGNORE = /^(https?:|mailto:|tel:|data:|ftp:)/i;
+const DEFAULT_EXTERNAL_IGNORE = /^(https?:|mailto:|tel:|data:|ftp:)/i;
+const INTERNAL_LINK = /^(#|\.?\/?|\.\.\/)/;
 
 const markdownLinkCheckAsync = promisify(markdownLinkCheck);
 
@@ -128,10 +129,6 @@ function parseLinkTarget(raw) {
   return target;
 }
 
-function isExternalLink(target) {
-  return DEFAULT_IGNORE.test(target);
-}
-
 function resolveFileTarget(baseUrl, targetPath) {
   const resolved = new URL(targetPath, baseUrl);
   if (resolved.protocol !== "file:") {
@@ -140,76 +137,134 @@ function resolveFileTarget(baseUrl, targetPath) {
   return fileURLToPath(resolved);
 }
 
+function isExternalLink(target, externalPattern) {
+  return externalPattern.test(target);
+}
+
+async function checkInternalLinks(file, options) {
+  const content = fs.readFileSync(file, "utf8");
+  const fileDir = path.dirname(file);
+  const baseUrl = pathToFileURL(`${fileDir}${path.sep}`).href;
+  const anchorCache = options.anchorCache;
+  const externalPattern = options.externalPattern;
+
+  const results = await markdownLinkCheckAsync(content, {
+    baseUrl,
+    ignorePatterns: [{ pattern: externalPattern }],
+    showProgressBar: false,
+  });
+
+  const issues = [];
+
+  for (const result of results) {
+    const target = parseLinkTarget(result.link);
+    if (!target || isExternalLink(target, externalPattern)) {
+      continue;
+    }
+
+    const [pathPart, anchorPart] = target.split("#");
+    const hasPath = pathPart && pathPart.length > 0;
+
+    if (!hasPath && anchorPart) {
+      if (result.status !== 200) {
+        issues.push({
+          file,
+          target,
+          reason: "missing anchor",
+        });
+      }
+      continue;
+    }
+
+    const resolvedPath = resolveFileTarget(baseUrl, pathPart);
+    if (!resolvedPath) {
+      issues.push({
+        file,
+        target,
+        reason: "unsupported protocol",
+      });
+      continue;
+    }
+
+    if (result.status !== 200) {
+      issues.push({
+        file,
+        target,
+        reason: "missing file",
+      });
+      continue;
+    }
+
+    if (anchorPart) {
+      const anchors = getAnchorSet(resolvedPath, anchorCache);
+      if (!anchors.has(anchorPart)) {
+        issues.push({
+          file,
+          target,
+          reason: "missing anchor",
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+async function checkExternalLinks(file, options) {
+  const content = fs.readFileSync(file, "utf8");
+  const fileDir = path.dirname(file);
+  const baseUrl = pathToFileURL(`${fileDir}${path.sep}`).href;
+  const externalPattern = options.externalPattern;
+
+  const results = await markdownLinkCheckAsync(content, {
+    baseUrl,
+    ignorePatterns: [{ pattern: INTERNAL_LINK }],
+    showProgressBar: false,
+  });
+
+  const issues = [];
+
+  for (const result of results) {
+    const target = parseLinkTarget(result.link);
+    if (!target || !isExternalLink(target, externalPattern)) {
+      continue;
+    }
+
+    if (result.status !== 200) {
+      issues.push({
+        file,
+        target,
+        reason: result.status === "error" ? "external error" : "external dead",
+      });
+    }
+  }
+
+  return issues;
+}
+
 async function checkMarkdownLinks(options = {}) {
   const root = options.root ? path.resolve(options.root) : process.cwd();
   const include = options.include ?? DEFAULT_INCLUDE;
   const exclude = options.exclude ?? DEFAULT_EXCLUDE;
-  const ignorePattern = options.ignorePattern ?? DEFAULT_IGNORE;
+  const externalPattern = options.externalPattern ?? DEFAULT_EXTERNAL_IGNORE;
+  const checkExternal = options.checkExternal ?? true;
 
   const files = listMarkdownFiles(root, include, exclude);
   const anchorCache = new Map();
   const issues = [];
 
   for (const file of files) {
-    const content = fs.readFileSync(file, "utf8");
-    const fileDir = path.dirname(file);
-    const baseUrl = pathToFileURL(`${fileDir}${path.sep}`).href;
-
-    const results = await markdownLinkCheckAsync(content, {
-      baseUrl,
-      ignorePatterns: [{ pattern: ignorePattern }],
-      showProgressBar: false,
+    const internalIssues = await checkInternalLinks(file, {
+      anchorCache,
+      externalPattern,
     });
+    issues.push(...internalIssues);
 
-    for (const result of results) {
-      const target = parseLinkTarget(result.link);
-      if (!target || isExternalLink(target)) {
-        continue;
-      }
-
-      const [pathPart, anchorPart] = target.split("#");
-      const hasPath = pathPart && pathPart.length > 0;
-
-      if (!hasPath && anchorPart) {
-        if (result.status !== 200) {
-          issues.push({
-            file,
-            target,
-            reason: "missing anchor",
-          });
-        }
-        continue;
-      }
-
-      const resolvedPath = resolveFileTarget(baseUrl, pathPart);
-      if (!resolvedPath) {
-        issues.push({
-          file,
-          target,
-          reason: "unsupported protocol",
-        });
-        continue;
-      }
-
-      if (result.status !== 200) {
-        issues.push({
-          file,
-          target,
-          reason: "missing file",
-        });
-        continue;
-      }
-
-      if (anchorPart) {
-        const anchors = getAnchorSet(resolvedPath, anchorCache);
-        if (!anchors.has(anchorPart)) {
-          issues.push({
-            file,
-            target,
-            reason: "missing anchor",
-          });
-        }
-      }
+    if (checkExternal) {
+      const externalIssues = await checkExternalLinks(file, {
+        externalPattern,
+      });
+      issues.push(...externalIssues);
     }
   }
 

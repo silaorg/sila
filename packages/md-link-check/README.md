@@ -10,6 +10,12 @@ Run from this repo:
 node packages/md-link-check/src/cli.js docs --include "**/*.md"
 ```
 
+Skip external checks:
+
+```
+node packages/md-link-check/src/cli.js docs --include "**/*.md" --no-external
+```
+
 ## CLI
 
 ```
@@ -21,6 +27,7 @@ Defaults:
 - `root`: current working directory
 - `--include`: `**/*.md`
 - `--exclude`: `**/node_modules/**,**/dist/**,**/build/**`
+- external links are checked by default
 
 Exit codes:
 
@@ -32,6 +39,6 @@ Exit codes:
 ```
 import { checkMarkdownLinks } from "@sila/md-link-check";
 
-const result = await checkMarkdownLinks({ root: "docs" });
+const result = await checkMarkdownLinks({ root: "docs", checkExternal: false });
 console.log(result.issues);
 ```
