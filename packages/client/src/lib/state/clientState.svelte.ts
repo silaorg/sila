@@ -11,8 +11,8 @@ import {
   loadSpaceMetadataFromPath,
 } from "../spaces/fileSystemSpaceUtils";
 import {
-  deleteSpace,
   initializeDatabase,
+  removeSpaceFromDb,
   saveConfig,
   saveCurrentSpaceUri,
   savePointers,
@@ -360,12 +360,12 @@ export class ClientState {
       (window as any).electronFileSystem.unregisterSpace(spaceId);
     }
 
-    // Find and disconnect the space being removed (since we keep spaces connected now)
+    // Find and disconnect the space (since we keep spaces connected now)
     if (spaceState) {
       spaceState.disconnect();
     }
 
-    // Clear current space if it's being removed
+    // Clear current space if it's the one we're removing from the list
     if (this.currentSpaceUri === spaceKeyOrId || this.currentSpaceId === spaceKeyOrId) {
       this.currentSpaceState = null;
     }
@@ -395,9 +395,9 @@ export class ClientState {
       }
     }
 
-    // Delete from database
+    // Remove from database
     const spaceUri = spaceState?.pointer.uri ?? spaceKeyOrId;
-    await deleteSpace(spaceUri);
+    await removeSpaceFromDb(spaceUri);
 
     this._updateCurrentSpace();
    await this._saveState();

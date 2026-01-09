@@ -317,6 +317,9 @@ export async function initializeDatabase(): Promise<{
     const currentSpaceUri = await getCurrentSpaceUri();
     const config = await getAllConfig();
 
+    // Best-effort: resume any pending space cleanup after restart.
+    void runSpaceDeletionGc();
+
     return { pointers, currentSpaceUri, config };
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -447,44 +450,146 @@ export async function getTreeOpCount(spaceUri: string, spaceId: string, treeId: 
   }
 }
 
-// Save theme for a space
-// Delete a space from the database
+type SpaceDeletionQueueItem = {
+  refIds: number[];
+  enqueuedAt: number; // epoch ms
+};
+
+const SPACE_DELETION_QUEUE_KEY = "spaceDeletionQueue";
+let _spaceDeletionGcRunning = false;
+const DEFAULT_DELETION_BATCH_SIZE = 5000;
+
+function _yieldToMainThread(): Promise<void> {
+  // Let the UI breathe between batches.
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+async function _getDeletionQueue(): Promise<SpaceDeletionQueueItem[]> {
+  const entry = await db.config.get(SPACE_DELETION_QUEUE_KEY);
+  const val = entry?.value;
+  if (!val) return [];
+  if (!Array.isArray(val)) return [];
+  // Best-effort validation.
+  return val.filter(Boolean) as SpaceDeletionQueueItem[];
+}
+
+async function _setDeletionQueue(items: SpaceDeletionQueueItem[]): Promise<void> {
+  await db.config.put({ key: SPACE_DELETION_QUEUE_KEY, value: items });
+}
+
+/**
+ * Delete a space from the client database.
+ *
+ * This is intentionally a **fast** operation: it removes the space from the visible list
+ * immediately, and enqueues ops/secrets cleanup to a durable queue processed in the background
+ * (including after app restart).
+ */
 export async function deleteSpace(spaceUri: string): Promise<void> {
   try {
     let spaceIdsToClearCache: string[] = [];
-    await db.transaction('rw', [db.spaces, db.spaceRefs, db.treeOps, db.secrets, db.config], async () => {
+    let refIds: number[] = [];
+
+    await db.transaction('rw', [db.spaces, db.spaceRefs, db.config], async () => {
       const refs = await db.spaceRefs.where('spaceUri').equals(spaceUri).toArray();
       spaceIdsToClearCache = refs.map(r => r.spaceId);
-      const refIds = refs
+      refIds = refs
         .map(r => r.spaceRefId)
         .filter((v): v is number => typeof v === "number");
 
-      if (refIds.length > 0) {
-        await db.treeOps.where('spaceRefId').anyOf(refIds).delete();
-        await db.secrets.where('spaceRefId').anyOf(refIds).delete();
-      }
-
-      // Delete interned refs for this URI
+      // Remove the space from the visible list immediately.
       await db.spaceRefs.where('spaceUri').equals(spaceUri).delete();
-
-      // Delete the space from the spaces table
       await db.spaces.delete(spaceUri);
 
-      // Check if this was the current space and clear it if so
       const currentUri = await getCurrentSpaceUri();
       if (currentUri === spaceUri) {
         await db.config.delete('currentSpaceUri');
       }
+
+      if (refIds.length > 0) {
+        const queue = await _getDeletionQueue();
+        const mergedRefIds = new Set<number>();
+        for (const job of queue) {
+          for (const id of job.refIds) mergedRefIds.add(id);
+        }
+        for (const id of refIds) mergedRefIds.add(id);
+
+        await _setDeletionQueue([{
+          refIds: Array.from(mergedRefIds),
+          enqueuedAt: Date.now(),
+        }]);
+      }
     });
 
-    // Clear in-memory cache entries for this URI (best-effort; not persisted)
     for (const spaceId of spaceIdsToClearCache) {
       _spaceRefCache.delete(_spaceRefCacheKey(spaceUri, spaceId));
     }
 
-    console.log(`Space ${spaceUri} deleted from database`);
+    // Kick off GC in the background (best effort).
+    void runSpaceDeletionGc();
   } catch (error) {
     console.error(`Failed to delete space ${spaceUri} from database:`, error);
+  }
+}
+
+/**
+ * Remove a space from the local DB (fast path + durable cleanup queue).
+ *
+ * Named to avoid leaking "deletion" semantics into higher-level state managers.
+ */
+export async function removeSpaceFromDb(spaceUri: string): Promise<void> {
+  return deleteSpace(spaceUri);
+}
+
+/**
+ * Process queued space deletions in small batches.
+ * This intentionally yields between batches so it doesn't freeze the UI.
+ */
+export async function runSpaceDeletionGc(opts?: { batchSize?: number }): Promise<void> {
+  if (_spaceDeletionGcRunning) return;
+  _spaceDeletionGcRunning = true;
+
+  const batchSize = Math.max(1, opts?.batchSize ?? DEFAULT_DELETION_BATCH_SIZE);
+
+  try {
+    while (true) {
+      const queue = await _getDeletionQueue();
+      if (queue.length === 0) break;
+
+      // Queue is stored as a single merged job.
+      const job = queue[0];
+
+      // Delete data for all refIds in this job.
+      for (const refId of job.refIds) {
+        // Secrets are usually small; delete in one go.
+        try {
+          await db.secrets.where('spaceRefId').equals(refId).delete();
+        } catch (e) {
+          console.error("Failed deleting secrets for spaceRefId", refId, e);
+        }
+
+        // Ops can be huge; delete in batches by primary key.
+        // NOTE: This is still potentially expensive overall, but it avoids UI hangs.
+        while (true) {
+          const keys = await db.treeOps
+            .where('spaceRefId')
+            .equals(refId)
+            .limit(batchSize)
+            .primaryKeys();
+          if (keys.length === 0) break;
+
+          await db.treeOps.bulkDelete(keys);
+          await _yieldToMainThread();
+        }
+      }
+
+      // Clear queue after processing the merged job.
+      await _setDeletionQueue([]);
+      await _yieldToMainThread();
+    }
+  } catch (e) {
+    console.error("Space deletion GC failed:", e);
+  } finally {
+    _spaceDeletionGcRunning = false;
   }
 }
 

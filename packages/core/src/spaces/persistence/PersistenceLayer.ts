@@ -9,7 +9,7 @@ export interface PersistenceLayer {
   connect(): Promise<void>
   isConnected(): boolean
   disconnect(): Promise<void>
-  
+
   // Multi-tree support - handles both space tree and app trees
   loadSpaceTreeOps(): Promise<VertexOperation[]>
   saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>
