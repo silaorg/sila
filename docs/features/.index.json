@@ -6,6 +6,11 @@
       "label": "Workspaces"
     },
     {
+      "name": "projects",
+      "type": "page",
+      "label": "Projects"
+    },
+    {
       "name": "assistants",
       "type": "page",
       "label": "Assistants"
@@ -54,6 +59,11 @@
       "name": "themes",
       "type": "page",
       "label": "Themes"
+    },
+    {
+      "name": "import-from-chatgpt",
+      "type": "page",
+      "label": "Import from ChatGPT"
     }
   ]
 }

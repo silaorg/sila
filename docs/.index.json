@@ -44,6 +44,11 @@
       "name": "dev",
       "type": "section",
       "label": "For Developers"
+    },
+    {
+      "name": "glossary",
+      "type": "section",
+      "label": "Glossary"
     }
   ]
 }

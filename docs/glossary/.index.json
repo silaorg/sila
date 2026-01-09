@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "name": "agent",
+      "type": "page",
+      "label": "Agent"
+    },
+    {
+      "name": "assistant",
+      "type": "page",
+      "label": "Assistant"
+    },
+    {
+      "name": "ai-model",
+      "type": "page",
+      "label": "AI Model"
+    },
+    {
+      "name": "space",
+      "type": "page",
+      "label": "Space"
+    },
+    {
+      "name": "workspace",
+      "type": "page",
+      "label": "Workspace"
+    }
+  ]
+}
+
