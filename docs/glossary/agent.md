@@ -1,5 +1,4 @@
 # Agent
 
-See: [Assistant](assistant)
-
+See: [Assistant](assistant.md)
 

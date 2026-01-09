@@ -1,3 +1,3 @@
 # Glossary of Sila
 
-<TODO>Make a component here that prints out the terms from individual files</TODO>
+Use this glossary to learn common Sila terms. More entries will be added over time.

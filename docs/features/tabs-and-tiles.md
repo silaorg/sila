@@ -1,6 +1,4 @@
-# Tabs and tiles 
-
-
+# Tabs and tiles
 Sila lets you work across multiple conversations with tabs and split tiles — similar to VSCode and modern browsers.
 
 ## What you can do
@@ -8,7 +6,7 @@ Sila lets you work across multiple conversations with tabs and split tiles — s
 - **Open multiple tabs**: Keep several chats, assistants, or files open at once. Switch instantly.
 - **Split into tiles**: Arrange views side by side. Compare chats or draft in one tile while referencing another.
 - **Drag and drop**: Reorder tabs, move them between tiles, or pop them into new splits.
-- **Keyboard shortcuts**: Use quick keys to open, close, switch, and move tabs. See Shortcuts.
+- **Keyboard shortcuts**: Use quick keys to open, close, switch, and move tabs. See [Shortcuts](./shortcuts.md).
 
 ## Why it matters
 

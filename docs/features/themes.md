@@ -17,4 +17,4 @@ See how workspaces organize your data and settings: [Workspaces](./workspaces.md
 ## Notes
 - Changes apply instantly across the UI.
 - Works offline; settings are stored locally with the workspace.
-- Advanced: Theme and color scheme are persisted per space and loaded on switch (see `packages/client/src/lib/state/theme.svelte.ts`).
+- Theme and color scheme are saved per workspace and applied when you switch.

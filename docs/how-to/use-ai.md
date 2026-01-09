@@ -1,29 +1,29 @@
 # How to use AI
 
-Here we have practical, short guides on how to use AI in Sila.
+Here are practical, short guides on how to use AI in Sila.
 
 <TODO>Examples for each</TODO>
 
-## Instead of Google with follow up questions
+## Instead of Google, with follow-up questions
 
-Just ask questions to the default assistant. It will try to answer based on its knowledge or will search internet if the answer is specific. The advatnage over googling is that you can follow up with questions. When the assistant searches - you can alsways see the provided sources and explore them yourself.
+Ask questions to the default assistant. It will answer from its knowledge or search the internet when needed. The advantage over search engines is that you can ask follow-up questions. When the assistant searches, you can see the sources and explore them yourself.
 
 ## Search in your documents
 
-Attach your PDFs, Word docs and text files to chats OR upload them to your workspace and then the agent in Sila can search them.
+Attach PDFs, Word docs, or text files to chats. You can also upload files to your workspace so the assistant can search them.
 
 ## Create and edit documents
 
-Aside from getting things written for you in chat - you can ask to make a text file and then edit it with follow up questions. After the AI is done you download it.
+Besides generating text in chat, you can ask for a text file and edit it with follow-up questions. When you are done, download the file.
 
 ## Research
 
-Ask assistants to do a research. It's a more powerful case of using search where the assistant will start searching whatever it things fit the request.
+Ask assistants to do research. It is a more powerful version of search where the assistant gathers sources that fit your request.
 
 ## Generate and edit images
 
-Ask the assistant that has access to image generation to make images for you and ask to edit them.
+Ask an assistant with image generation enabled to create images and edit them.
 
 ## Learn and study
 
-Have an assistant that is helping you to learn new topics rather than doing work for you and giving you all of the asnwers upfront.
+Have an assistant help you learn new topics instead of doing all the work for you.

@@ -1,6 +1,6 @@
 # The problem with ChatGPT
 
-OpenAI - the creator of ChatGPT - owns your data. They want to create a super assistant that people will depend on more and more over time. OpenAI will try to trap users in their platform, making it hard to switch to something else - because they hold on to their data and workflows. With Sila, we provide a counterbalance: a ChatGPT‑like experience where you (or your team, organization) own the data and can use any AI models.
+OpenAI, the creator of ChatGPT, owns your data. They want to create a super assistant that people depend on over time. That can make it hard to switch, because they hold your data and workflows. Sila is a counterbalance: a ChatGPT-like experience where you (or your team) own the data and can use any AI models.
 
 ## How Sila solves this
 

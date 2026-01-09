@@ -9,9 +9,9 @@ Use this prompt:
 ```
 I'm transferring my data to another app. Provide everything you know about me with minimal formatting and only relevant data. Speak about me in the third person.
 
-Put everything in <about the user>. Output as markdown behind ticks.
+Put everything in <about the user>. Output as markdown inside triple backticks.
 ```
 
 ## How to move it to Sila
 
-Go to the default assistant or create a new one in [Assistants](../features/assistants.md) and just add what ChatGPT gave you to the instruction.
+Go to the default assistant or create a new one in [Assistants](../features/assistants.md). Add what ChatGPT gave you to the assistant instructions.
