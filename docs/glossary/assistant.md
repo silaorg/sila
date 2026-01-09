@@ -8,5 +8,5 @@ Also could be called: agent, bot
 - Works with OpenAI, Google, Anthropic, Ollama, and OpenAI‑compatible APIs
 - Stored locally as files you own; switch models without losing context
 
-See also: [chat](chat), [ai model](ai-model), [tool](tool), [workspace](workspace)
+See also: [AI model](ai-model.md), [workspace](workspace.md)
 Further reading: [Assistants feature](../features/assistants.md)

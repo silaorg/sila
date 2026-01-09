@@ -2,7 +2,6 @@
 
 Holds your conversations, files, and assistants for a project or interest.
 
-See also: [space](space), [assistant](assistant), [chat](chat)
+See also: [space](space.md), [assistant](assistant.md)
 Further reading: [Workspaces](../features/workspaces.md)
-
 

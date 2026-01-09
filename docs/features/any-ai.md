@@ -3,9 +3,9 @@
 Sila is not tied to a single model or provider. You decide which AI services to use and can change them at any time.
 
 ## Bring your own keys
-Keys are long unique passwords providers give (instead of the need to log-in with email, password every time you want to use the service)
+Keys are long, unique passwords that providers give you. They let apps access the service without signing in each time.
 
-Connect OpenAI, Anthropic, or any other compatible API by supplying your own keys. Prefer running models yourself? Point Sila to a local server or to an open‑source model and keep everything on your hardware.
+Connect OpenAI, Anthropic, or any other compatible API by supplying your own keys. Prefer running models yourself? Point Sila to a local server or an open-source model and keep everything on your hardware.
 
 ## Mix and match
 
@@ -13,4 +13,4 @@ Different tasks call for different strengths. Use a fast model for brainstorming
 
 ## Why it's better than ChatGPT
 
-ChatGPT limits you to the models it offers and requires a subscription for premium options. Sila lets you experiment with the latest models or even run them for free on your own machine, all while owning the results.
+ChatGPT limits you to the models it offers and requires a subscription for premium options. Sila lets you experiment with the latest models or run them for free on your own machine, while keeping the results.

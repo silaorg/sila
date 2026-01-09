@@ -1,9 +1,9 @@
 # Shortcuts
 
-You can start new chats, swtich between assistants with shorcuts. And you can also change shorcuts.
+You can start new chats and switch between assistants with shortcuts. You can also customize them.
 
-Here are the most important shorctus:
+Here are the most important shortcuts:
 - Start a new chat (opens a popover) / Command + N
-- Switch an assistant while the message textarea is selected / Command + Tab 
+- Switch an assistant while the message textarea is selected / Command + Tab
 - Close/Open a sidebar / Command + B
 - Close an active tab / Command + W

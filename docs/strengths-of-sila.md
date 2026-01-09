@@ -1,16 +1,16 @@
 # Strengths of Sila
 
 ## Easy to start
-Download the app, set up your workspace, and start using it the same way as ChatGPT. No need to host servers or struggle with a complicated interface.
+Download the app, set up your workspace, and start using it right away. No need to host servers or learn a complex interface.
 
 ## As powerful as ChatGPT
-You can use Sila with any major, powerful AI models. It has all the same features as ChatGPT and a very similar interface.
+Use Sila with any major AI model. It offers the same core capabilities and a familiar interface.
 
-## No Subscriptions
-Pay as you go, either for API costs from AI providers or the actual compute if you run models yourself. Sila itself is completely free.
+## No subscriptions
+Pay as you go for provider API costs or local compute. Sila itself is free.
 
-## Private & Local
-You decide where to store your data. You can store everything locally on your file system, and optionally sync with Dropbox, iCloud, etc. to use Sila across multiple devices.
+## Private & local
+You decide where to store your data. Keep everything on your file system and optionally sync with Dropbox, iCloud, or similar services to use Sila across devices.
 
 ## Open Source
 All the code is under the MIT license. Use Sila for free, modify it, or fork it.

@@ -1,9 +1,8 @@
 # Space
 
-In the app, we call it a [workspace](workspace).
+In the app, we call it a [workspace](workspace.md).
 
-Under-the-hood data structure that stores your data and syncs changes.
+It is the internal data structure that stores your data and syncs changes.
 
-Further reading: [Spaces (workspaces) under-the-hood](../dev/spaces/spaces.md).
-
+Further reading: [Spaces (workspaces) under the hood](../dev/spaces/spaces.md).
 
