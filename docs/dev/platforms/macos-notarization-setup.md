@@ -193,5 +193,5 @@ If you're only developing locally and don't need notarization:
 ## Resources
 
 - [Apple's Notarization Documentation](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
-- [electron-builder Notarization Guide](https://www.electron.build/configuration/code-signing#how-to-sign-app-using-p12-certificate)
+- [electron-builder Code Signing Guide](https://www.electron.build/code-signing)
 - [App-Specific Passwords](https://support.apple.com/en-us/HT204397)

@@ -2,7 +2,7 @@
 
 ## Three steps
 
-- [Download](../download) and open Sila.
+- [Download](https://silain.com/download) and open Sila.
 - Create a new [workspace](./features/workspaces.md).
 - Set up an [AI model provider](./features/any-ai.md).
 

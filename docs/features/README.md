@@ -35,4 +35,4 @@ Pay as you go for provider API costs or local compute if you run models yourself
 
 ## Development
 
-For developers and contributors, explore the [development section](dev/README.md) for architecture, codebase, testing, and contribution guidelines.
+For developers and contributors, explore the [development section](../dev/README.md) for architecture, codebase, testing, and contribution guidelines.
