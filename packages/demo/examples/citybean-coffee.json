@@ -482,7 +482,39 @@
             "role": "assistant",
             "text": "SMS: ‘☀️ Sun bonus! Flash this text for BOGO cold brew today only’. Geo-target: cafés within 5 mi of parks.",
             "createdAt": "2025-08-06T10:55:04Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "What if it’s super hot—any tweak?",
+                "createdAt": "2025-08-06T10:55:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "Swap the offer to iced: “Free cold-foam upgrade” or “$1 off any iced latte.” It converts well without stressing espresso throughput.",
+                    "createdAt": "2025-08-06T10:55:13Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "Any operational prep we should do before sending it?",
+                        "createdAt": "2025-08-06T10:55:18Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Prep extra cold brew + ice, pre-batch simple syrups, and add 1 runner 12–3. Quick win: stage cups/lids by the bar to cut grab-time.",
+                            "createdAt": "2025-08-06T10:55:22Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -501,7 +533,39 @@
             "role": "assistant",
             "text": "Votes: Aria (35), Leo (29), Mina (27). Tweet: ‘🎉 Congrats Aria – our Latte-Art champ! Check her swan pour this weekend.’",
             "createdAt": "2025-08-06T11:00:05Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "Can we add a short follow-up post to drive foot traffic?",
+                "createdAt": "2025-08-06T11:00:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "“Aria’s swan pour is on the menu today. Ask for the ‘Swan Latte’ at any CityBean and we’ll donate $1 to the local food bank.”",
+                    "createdAt": "2025-08-06T11:00:14Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "How do we keep stores consistent on the ‘Swan Latte’?",
+                        "createdAt": "2025-08-06T11:00:20Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Make it a vanilla oat latte with a cinnamon stencil. 3-step card + 20-sec training clip is enough for consistency across shifts.",
+                            "createdAt": "2025-08-06T11:00:24Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -520,7 +584,39 @@
             "role": "assistant",
             "text": "Tested ‘Meet Your Matcha’ (32% open) vs ‘Green Goodness Inside’ (24%). Choose ‘Meet Your Matcha’.",
             "createdAt": "2025-08-06T11:05:04Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "Why did ‘Meet Your Matcha’ win?",
+                "createdAt": "2025-08-06T11:05:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "It’s specific, playful, and it clearly signals matcha. The other reads generic/health-y, which tends to underperform for us.",
+                    "createdAt": "2025-08-06T11:05:13Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "Give me 2 more short subjects in the same vibe.",
+                        "createdAt": "2025-08-06T11:05:18Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "1) “Matcha, Meet Your Morning”\n2) “Whisked. Iced. Perfect.”",
+                            "createdAt": "2025-08-06T11:05:22Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -539,7 +635,39 @@
             "role": "assistant",
             "text": "Suggested swap: Miller (North Side) trades with Patel (Riverside) for Wed-Thu. Notification email queued to HR + both managers.",
             "createdAt": "2025-08-06T11:10:05Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "Any risk with that swap?",
+                "createdAt": "2025-08-06T11:10:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "Only risk is Riverside’s Thursday delivery window. Patel knows that store better, so I’d keep Patel on Thu and swap only Wed if needed.",
+                    "createdAt": "2025-08-06T11:10:14Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "Who should cover openings if someone calls out?",
+                        "createdAt": "2025-08-06T11:10:20Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Assign the senior shift lead as opener with a checklist + manager-on-call for approvals. It keeps the line moving and avoids cash drawer delays.",
+                            "createdAt": "2025-08-06T11:10:24Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -558,7 +686,39 @@
             "role": "assistant",
             "text": "6 hot leads (Austin, Denver, Boise...) and 3 in legal (Phoenix, Tampa, Tacoma). Visual pipeline chart attached.",
             "createdAt": "2025-08-06T11:15:04Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "If we can only prioritize one city this month, which should it be?",
+                "createdAt": "2025-08-06T11:15:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "Denver. Strong foot-traffic comps, higher average ticket, and fewer direct “premium drive‑thru” competitors in our target neighborhoods.",
+                    "createdAt": "2025-08-06T11:15:13Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "What’s the fastest next step to move it forward?",
+                        "createdAt": "2025-08-06T11:15:18Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Book a 30‑min site-selection call + send the unit economics one‑pager (build cost, staffing model, break-even month). Keep it simple and concrete.",
+                            "createdAt": "2025-08-06T11:15:22Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -577,7 +737,39 @@
             "role": "assistant",
             "text": "Relocate pastry display to north wall, shift merch to entry sightline. Expected uplift: +7 % pastry sales.",
             "createdAt": "2025-08-06T11:20:04Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "What merch should go closest to the entrance?",
+                "createdAt": "2025-08-06T11:20:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "High-impulse, low-decision: beans (best sellers), cold cups, and gift cards. Keep “premium” items (brewers) one step deeper so people pause.",
+                    "createdAt": "2025-08-06T11:20:14Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "How do we know if it worked?",
+                        "createdAt": "2025-08-06T11:20:20Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Track attach-rate (merch per ticket) and time-in-queue. BeanFlow can compare 7-day pre/post for the same dayparts to avoid weekend bias.",
+                            "createdAt": "2025-08-06T11:20:24Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -596,7 +788,39 @@
             "role": "assistant",
             "text": "Vision: 40 cafés, 60% app orders, zero waste-to-landfill. CapEx: $3.4 M equipment, $1.2 M IT, $0.6 M training. Memo draft attached.",
             "createdAt": "2025-08-06T11:25:06Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "Give me the one-sentence vision we can put on slide 1.",
+                "createdAt": "2025-08-06T11:25:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "“Build the most operationally excellent neighborhood café brand — fast, consistent, and locally loved — powered by real-time data.”",
+                    "createdAt": "2025-08-06T11:25:13Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "Top 3 priorities for Q1?",
+                        "createdAt": "2025-08-06T11:25:18Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "1) Reduce waste by 3 pts (training + forecasting)\n2) Speed up drive‑thru by 10 s (bar layout + staffing)\n3) Grow app reorder rate (better offers + smoother pickup).",
+                            "createdAt": "2025-08-06T11:25:22Z",
+                            "main": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -607,15 +831,95 @@
       "assistant": "market",
       "messages": {
         "role": "user",
-        "text": "Write a brief description about CityBean Coffee to communicate it to other people when they ask about the company",
+        "text": "What is CityBean Coffee?",
         "createdAt": "2025-08-06T11:30:00Z",
         "main": true,
         "children": [
           {
             "role": "assistant",
-            "text": "CityBean Coffee is a fast-growing regional chain with 17 company-owned cafés and 24 franchise locations. Our competitive moat is BeanFlow — an in-house platform that unifies dynamic supply chain, POS + loyalty, and real-time operations dashboards. Think ‘Starbucks meets DevOps’: a coffee company that iterates like a software startup.",
+            "text": "CityBean Coffee is a fast-growing regional chain with 17 company-owned cafés and 24 franchise locations, powered by BeanFlow — our in-house ops platform for POS + loyalty + real-time dashboards.",
             "createdAt": "2025-08-06T11:30:05Z",
-            "main": true
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "What’s your most popular drink?",
+                "createdAt": "2025-08-06T11:30:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "Classic oat latte. Fun fact: we use a slightly longer ratio for better sweetness without extra syrup.",
+                    "createdAt": "2025-08-06T11:30:13Z",
+                    "main": true,
+                    "children": [
+                      {
+                        "role": "user",
+                        "text": "Do you roast your own beans?",
+                        "createdAt": "2025-08-06T11:30:18Z",
+                        "main": true,
+                        "children": [
+                          {
+                            "role": "assistant",
+                            "text": "Yes — we roast centrally and tune profiles by region. BeanFlow tracks yield + waste so we can adjust week to week.",
+                            "createdAt": "2025-08-06T11:30:22Z",
+                            "main": true,
+                            "children": [
+                              {
+                                "role": "user",
+                                "text": "Any recommendation for someone who likes sweet coffee?",
+                                "createdAt": "2025-08-06T11:30:28Z",
+                                "main": true,
+                                "children": [
+                                  {
+                                    "role": "assistant",
+                                    "text": "Try a vanilla cold brew with a splash of oat. It’s sweet, but still tastes like coffee.",
+                                    "createdAt": "2025-08-06T11:30:32Z",
+                                    "main": true,
+                                    "children": [
+                                      {
+                                        "role": "user",
+                                        "text": "What’s BeanFlow, in plain English?",
+                                        "createdAt": "2025-08-06T11:30:38Z",
+                                        "main": true,
+                                        "children": [
+                                          {
+                                            "role": "assistant",
+                                            "text": "It’s our internal “ops brain”: it connects sales, inventory, staffing, and quality checks so managers spot issues early (like a waste spike or a drive‑thru slowdown).",
+                                            "createdAt": "2025-08-06T11:30:42Z",
+                                            "main": true,
+                                            "children": [
+                                              {
+                                                "role": "user",
+                                                "text": "When’s the best time to avoid lines?",
+                                                "createdAt": "2025-08-06T11:30:48Z",
+                                                "main": true,
+                                                "children": [
+                                                  {
+                                                    "role": "assistant",
+                                                    "text": "Mid‑morning (9:30–11) is usually calm. If you do hit a rush, our bar layout is optimized for fast milk + espresso handoffs.",
+                                                    "createdAt": "2025-08-06T11:30:52Z",
+                                                    "main": true
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
