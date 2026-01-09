@@ -8,6 +8,8 @@
 
 <TODO>Video</TODO>
 
+<!--
 Optional: [Import your data from OpenAI](./features/import-from-chatgpt.md).
+-->
 
 See also: [How to use AI in Sila](./how-to/use-ai.md).

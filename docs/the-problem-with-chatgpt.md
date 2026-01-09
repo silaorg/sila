@@ -6,4 +6,6 @@ OpenAI, the creator of ChatGPT, owns your data. They want to create a super assi
 
 - **[Own your data](own.md)**: Keep your conversations, assistants, and files under your control with local-first storage
 - **[Workspaces](features/workspaces.md)**: Separate work and personal AI conversations into different workspaces stored in different locations
+<!--
 - **[Import from ChatGPT](features/import-from-chatgpt.md)**: Migrate your existing conversations and memory about you to maintain continuity
+-->
