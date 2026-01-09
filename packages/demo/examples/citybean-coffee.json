@@ -1,7 +1,7 @@
 {
   "type": "sila-space",
   "version": "1",
-  "name": "CityBean Coffee Demo Workspace",
+  "name": "CityBean Coffee",
   "createdAt": "2025-08-06T09:00:00Z",
   "description": "Demo workspace for CityBean Coffee with seed conversations covering market and operations topics.",
 
@@ -916,6 +916,40 @@
                         ]
                       }
                     ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Pumpkin Latte Sales",
+      "assistant": "operations",
+      "messages": {
+        "role": "user",
+        "text": "3-day finance snapshot since the Pumpkin Latte launch",
+        "createdAt": "2025-08-06T11:35:00Z",
+        "main": true,
+        "children": [
+          {
+            "role": "assistant",
+            "text": "☕ Pumpkin Latte Kick-off (last 3 days)\n\n| Metric | Value | Δ vs prior 3-day |\n|---|---:|---:|\n| Net sales | $312k | +18% |\n| Gross margin | 62.4% | ↔ |\n| Promo spend | $7.8k | n/a |\n| Net profit | $187k | +19% |\n\nBottom line: **+$41k** in profit in 72 hours.",
+            "createdAt": "2025-08-06T11:35:04Z",
+            "main": true,
+            "children": [
+              {
+                "role": "user",
+                "text": "Why is gross margin flat even though sales jumped?",
+                "createdAt": "2025-08-06T11:35:10Z",
+                "main": true,
+                "children": [
+                  {
+                    "role": "assistant",
+                    "text": "Two likely drivers: (1) promo mix (more discounts + add-ons like alt milks) kept margin rate steady, and (2) pumpkin COGS is a bit higher than baseline drinks. Net profit still rose because volume covered it.\n\nIf you want a quick fix: cap discounting during peak hours and push higher-margin modifiers (extra shot) instead of syrup-heavy upsells.",
+                    "createdAt": "2025-08-06T11:35:14Z",
+                    "main": true
                   }
                 ]
               }
