@@ -1,8 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL, fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+import markdownLinkCheck from "markdown-link-check";
 
 const DEFAULT_INCLUDE = "**/*.md";
 const DEFAULT_EXCLUDE = "**/node_modules/**,**/dist/**,**/build/**";
+const DEFAULT_IGNORE = /^(https?:|mailto:|tel:|data:|ftp:)/i;
+
+const markdownLinkCheckAsync = promisify(markdownLinkCheck);
 
 function splitPatterns(value, fallback) {
   const raw = value && value.trim().length > 0 ? value : fallback;
@@ -53,46 +59,60 @@ function listMarkdownFiles(root, include, exclude) {
   return files;
 }
 
-function slugifyHeading(text, seen) {
-  const base = text
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  if (!base) {
-    return null;
-  }
-
-  const count = seen.get(base) ?? 0;
-  seen.set(base, count + 1);
-  if (count === 0) {
-    return base;
-  }
-  return `${base}-${count}`;
+function removeCodeBlocks(markdown) {
+  return markdown.replace(/^```[\S\s]+?^```$/gm, "");
 }
 
-function getAnchorMap(filePath, cache) {
+function extractHtmlSections(markdown) {
+  markdown = removeCodeBlocks(markdown)
+    .replace(/<!--[\S\s]+?-->/gm, "")
+    .replace(/(?<!\\)`[\S\s]+?(?<!\\)`/gm, "");
+
+  const regexAllId = /<(?<tag>[^\s]+).*?id=["'](?<id>[^"']*?)["'].*?>/gim;
+  const regexAName = /<a.*?name=["'](?<name>[^"']*?)["'].*?>/gim;
+
+  const sections = []
+    .concat(Array.from(markdown.matchAll(regexAllId), (match) => match.groups.id))
+    .concat(Array.from(markdown.matchAll(regexAName), (match) => match.groups.name));
+
+  return sections;
+}
+
+function extractSections(markdown) {
+  markdown = removeCodeBlocks(markdown);
+  const sectionTitles = markdown.match(/^#+ .*$/gm) || [];
+
+  const sections = sectionTitles.map((section) =>
+    encodeURIComponent(
+      section
+        .replace(/\[(.+)\]\(((?:\.?\/|https?:\/\/|#)[\w\d./?=#-]+)\)/, "$1")
+        .toLowerCase()
+        .replace(/^#+\s*/, "")
+        .replace(/[^\p{L}\p{Nd}\p{Nl}\s_\-`]/gu, "")
+        .replace(/\*(?=.*)/gu, "")
+        .replace(/`/gu, "")
+        .replace(/\s/gu, "-")
+    )
+  );
+
+  const uniq = {};
+  for (let section of sections) {
+    if (section in uniq) {
+      uniq[section] += 1;
+      section = `${section}-${uniq[section]}`;
+    }
+    uniq[section] = 0;
+  }
+
+  return Object.keys(uniq) ?? [];
+}
+
+function getAnchorSet(filePath, cache) {
   if (cache.has(filePath)) {
     return cache.get(filePath);
   }
-  const anchors = new Set();
-  const seen = new Map();
-  const content = fs.readFileSync(filePath, "utf8");
-  const lines = content.split(/\r?\n/);
-  for (const line of lines) {
-    const match = line.match(/^(#{1,6})\s+(.+)$/);
-    if (!match) {
-      continue;
-    }
-    const heading = match[2].trim();
-    const slug = slugifyHeading(heading, seen);
-    if (slug) {
-      anchors.add(slug);
-    }
-  }
+  const markdown = fs.readFileSync(filePath, "utf8");
+  const anchors = new Set(extractSections(markdown).concat(extractHtmlSections(markdown)));
   cache.set(filePath, anchors);
   return anchors;
 }
@@ -109,85 +129,88 @@ function parseLinkTarget(raw) {
 }
 
 function isExternalLink(target) {
-  return /^(https?:|mailto:|tel:|data:|ftp:)/i.test(target);
+  return DEFAULT_IGNORE.test(target);
 }
 
-function extractLinks(content) {
-  const links = [];
-  const lines = content.split(/\r?\n/);
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let match;
-    while ((match = regex.exec(line))) {
-      const start = match.index;
-      if (start > 0 && line[start - 1] === "!") {
-        continue;
-      }
-      links.push({
-        line: index + 1,
-        raw: match[2],
-      });
-    }
+function resolveFileTarget(baseUrl, targetPath) {
+  const resolved = new URL(targetPath, baseUrl);
+  if (resolved.protocol !== "file:") {
+    return null;
   }
-  return links;
+  return fileURLToPath(resolved);
 }
 
-function checkFileLinks(filePath, root, anchorCache) {
-  const issues = [];
-  const content = fs.readFileSync(filePath, "utf8");
-  const links = extractLinks(content);
-  const fileDir = path.dirname(filePath);
-
-  for (const link of links) {
-    const target = parseLinkTarget(link.raw);
-    if (!target || isExternalLink(target)) {
-      continue;
-    }
-
-    const [pathPart, anchorPart] = target.split("#");
-    const hasPath = pathPart && pathPart.length > 0;
-    const resolvedPath = hasPath
-      ? path.resolve(fileDir, pathPart)
-      : filePath;
-
-    if (hasPath && !fs.existsSync(resolvedPath)) {
-      issues.push({
-        file: filePath,
-        line: link.line,
-        target,
-        reason: "missing file",
-      });
-      continue;
-    }
-
-    if (anchorPart) {
-      const anchors = getAnchorMap(resolvedPath, anchorCache);
-      if (!anchors.has(anchorPart)) {
-        issues.push({
-          file: filePath,
-          line: link.line,
-          target,
-          reason: "missing anchor",
-        });
-      }
-    }
-  }
-
-  return issues;
-}
-
-function checkMarkdownLinks(options = {}) {
+async function checkMarkdownLinks(options = {}) {
   const root = options.root ? path.resolve(options.root) : process.cwd();
   const include = options.include ?? DEFAULT_INCLUDE;
   const exclude = options.exclude ?? DEFAULT_EXCLUDE;
+  const ignorePattern = options.ignorePattern ?? DEFAULT_IGNORE;
 
   const files = listMarkdownFiles(root, include, exclude);
   const anchorCache = new Map();
   const issues = [];
 
   for (const file of files) {
-    issues.push(...checkFileLinks(file, root, anchorCache));
+    const content = fs.readFileSync(file, "utf8");
+    const fileDir = path.dirname(file);
+    const baseUrl = pathToFileURL(`${fileDir}${path.sep}`).href;
+
+    const results = await markdownLinkCheckAsync(content, {
+      baseUrl,
+      ignorePatterns: [{ pattern: ignorePattern }],
+      showProgressBar: false,
+    });
+
+    for (const result of results) {
+      const target = parseLinkTarget(result.link);
+      if (!target || isExternalLink(target)) {
+        continue;
+      }
+
+      const [pathPart, anchorPart] = target.split("#");
+      const hasPath = pathPart && pathPart.length > 0;
+
+      if (!hasPath && anchorPart) {
+        if (result.status !== 200) {
+          issues.push({
+            file,
+            target,
+            reason: "missing anchor",
+          });
+        }
+        continue;
+      }
+
+      const resolvedPath = resolveFileTarget(baseUrl, pathPart);
+      if (!resolvedPath) {
+        issues.push({
+          file,
+          target,
+          reason: "unsupported protocol",
+        });
+        continue;
+      }
+
+      if (result.status !== 200) {
+        issues.push({
+          file,
+          target,
+          reason: "missing file",
+        });
+        continue;
+      }
+
+      if (anchorPart) {
+        const anchors = getAnchorSet(resolvedPath, anchorCache);
+        if (!anchors.has(anchorPart)) {
+          issues.push({
+            file,
+            target,
+            reason: "missing anchor",
+          });
+        }
+      }
+    }
   }
 
   return { root, files, issues };

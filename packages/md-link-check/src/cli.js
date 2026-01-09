@@ -52,17 +52,17 @@ function parseArgs(argv) {
 
 function formatIssue(issue, root) {
   const relative = path.relative(root, issue.file).split(path.sep).join("/");
-  return `${relative}:${issue.line} broken link -> ${issue.target}`;
+  return `${relative} broken link -> ${issue.target} (${issue.reason})`;
 }
 
-function run() {
+async function run() {
   const args = parseArgs(process.argv);
   if (args.help) {
     printHelp();
     process.exit(0);
   }
 
-  const result = checkMarkdownLinks({
+  const result = await checkMarkdownLinks({
     root: args.root,
     include: args.include,
     exclude: args.exclude,
@@ -80,4 +80,7 @@ function run() {
   process.exit(1);
 }
 
-run();
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

@@ -32,6 +32,6 @@ Exit codes:
 ```
 import { checkMarkdownLinks } from "@sila/md-link-check";
 
-const result = checkMarkdownLinks({ root: "docs" });
+const result = await checkMarkdownLinks({ root: "docs" });
 console.log(result.issues);
 ```

@@ -11,5 +11,8 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "markdown-link-check": "^3.14.2"
+  }
 }
