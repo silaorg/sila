@@ -2,6 +2,7 @@ import ChatAppLoader from "@sila/client/comps/apps/chat/ChatAppLoader.svelte";
 import FilesAppLoader from "@sila/client/comps/apps/files/FilesAppLoader.svelte";
 import Sidebar from "@sila/client/comps/sidebar/Sidebar.svelte";
 import SidebarToggle from "@sila/client/comps/sidebar/SidebarToggle.svelte";
+import FileViewerTab from "@sila/client/comps/vertex-viewer/FileViewerTab.svelte";
 import {
   createTtabs,
   type TtabsTheme,
@@ -152,6 +153,7 @@ export class LayoutStore {
     this.ttabs.registerComponent('sidebar', Sidebar);
     this.ttabs.registerComponent('chat', ChatAppLoader);
     this.ttabs.registerComponent('files', FilesAppLoader);
+    this.ttabs.registerComponent('fileViewer', FileViewerTab);
     this.ttabs.registerComponent('sidebarToggle', SidebarToggle);
     this.ttabs.registerComponent('noTabsContent', DefaultAppPage);
     this.ttabs.registerComponent('tabBarNewThreadButton', TabBarNewThreadButton);
@@ -301,6 +303,41 @@ export class LayoutStore {
 
     // Set the component for the tab
     this.ttabs.setComponent(tab, 'files', { treeId });
+    this.ttabs.setFocusedActiveTab(tab);
+  }
+
+  openFileViewerTab(treeId: string, vertexId: string, name: string): void {
+    const existingTabId = this._findTabByFileRef(treeId, vertexId);
+    if (existingTabId) {
+      this.ttabs.setFocusedActiveTab(existingTabId);
+      return;
+    }
+
+    if (!this.layoutRefs.contentGrid) {
+      const grids = Object.values(this.ttabs.getTiles()).filter(
+        (tile) => tile.type === 'grid' && !tile.parent
+      );
+      if (grids.length === 0) {
+        console.error("No non root grid found");
+        return;
+      }
+      this.layoutRefs.contentGrid = grids[0].id;
+    }
+
+    const grid = this.ttabs.getGrid(this.layoutRefs.contentGrid);
+    let tab: string;
+
+    const lazyTabs = this.ttabs.getLazyTabs(grid.id);
+
+    if (lazyTabs.length > 0) {
+      const lazyTab = lazyTabs[0];
+      tab = lazyTab.id;
+      this.ttabs.updateTile(tab, { name });
+    } else {
+      tab = this.ttabs.addTab(grid.id, name, true, true);
+    }
+
+    this.ttabs.setComponent(tab, 'fileViewer', { treeId, vertexId, name });
     this.ttabs.setFocusedActiveTab(tab);
   }
 
@@ -470,6 +507,23 @@ export class LayoutStore {
         if (
           content?.componentId === 'chat' &&
           content?.data?.componentProps?.treeId === treeId
+        ) {
+          return tile.id;
+        }
+      }
+    }
+    return undefined;
+  }
+
+  private _findTabByFileRef(treeId: string, vertexId: string): string | undefined {
+    for (const tileId in this.ttabs.tiles) {
+      const tile = this.ttabs.tiles[tileId];
+      if (tile.type === 'tab') {
+        const content = this.ttabs.getTabContent(tile.id);
+        if (
+          content?.componentId === 'fileViewer' &&
+          content?.data?.componentProps?.treeId === treeId &&
+          content?.data?.componentProps?.vertexId === vertexId
         ) {
           return tile.id;
         }

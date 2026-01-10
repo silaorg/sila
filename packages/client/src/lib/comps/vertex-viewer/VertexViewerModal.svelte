@@ -1,8 +1,11 @@
 <script lang="ts">
   import { closeStack } from "@sila/client/utils/closeStack";
-  import { FILE_PREVIEW_CONFIGS } from "@sila/client/utils/filePreview";
+  import {
+    FILE_PREVIEW_CONFIGS,
+    getFilePreviewConfig,
+  } from "@sila/client/utils/filePreview";
   import type { ResolvedFileInfo } from "@sila/core";
-  import { X, Download, File } from "lucide-svelte";
+  import { X, Download, File, SquareArrowOutUpRight } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import FileView from "./FileView.svelte";
   import { i18n } from "@sila/client";
@@ -18,6 +21,16 @@
     if (!spaceState) return null;
 
     return spaceState.fileResolver.resolveVertexToFileReference(activeVertex);
+  });
+
+  const canOpenInTab = $derived.by(() => {
+    if (!activeFile?.mimeType) return false;
+    const previewConfig = getFilePreviewConfig(activeFile.mimeType);
+    return (
+      previewConfig.previewType === "image" ||
+      previewConfig.previewType === "text" ||
+      previewConfig.previewType === "code"
+    );
   });
 
   function handleBackdropClick(event: Event) {
@@ -72,6 +85,25 @@
       console.error("Download failed:", error);
     }
   }
+
+  function handleOpenInTab() {
+    if (!activeVertex) return;
+
+    const spaceState = clientState.currentSpaceState;
+    if (!spaceState) return;
+
+    const fileName =
+      activeFile?.name ??
+      activeVertex.name ??
+      i18n.texts.filesApp.untitledLabel;
+
+    spaceState.layout.openFileViewerTab(
+      activeVertex.treeId,
+      activeVertex.id,
+      fileName
+    );
+    vertexViewer?.close();
+  }
 </script>
 
 {#if activeVertex}
@@ -93,23 +125,36 @@
     role="button"
     aria-label={i18n.texts.actions.close}
   >
-    <!-- Close button -->
-    <button
-      class="absolute top-4 right-4 btn-icon bg-black/50 text-white hover:bg-black/70 z-10"
-      onclick={() => vertexViewer?.close()}
-    >
-      <X size={20} />
-    </button>
-
-    {#if activeFile}
-      <!-- Download button -->
+    <div class="absolute top-4 right-4 z-10 flex flex-col gap-2">
       <button
-        class="absolute top-16 right-4 btn-icon bg-black/50 text-white hover:bg-black/70 z-10"
-        onclick={handleDownload}
+        class="btn-icon bg-black/50 text-white hover:bg-black/70"
+        onclick={() => vertexViewer?.close()}
+        aria-label={i18n.texts.actions.close}
       >
-        <Download size={20} />
+        <X size={20} />
       </button>
-    {/if}
+
+      {#if activeFile}
+        <button
+          class="btn-icon bg-black/50 text-white hover:bg-black/70"
+          onclick={handleDownload}
+          aria-label="Download"
+        >
+          <Download size={20} />
+        </button>
+      {/if}
+
+      {#if activeFile && canOpenInTab}
+        <button
+          class="btn-icon bg-black/50 text-white hover:bg-black/70"
+          onclick={handleOpenInTab}
+          aria-label={i18n.texts.actions.openInNewTab}
+          title={i18n.texts.actions.openInNewTab}
+        >
+          <SquareArrowOutUpRight size={20} />
+        </button>
+      {/if}
+    </div>
 
     <!-- Content -->
     <div
