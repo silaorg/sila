@@ -37,7 +37,8 @@
     }}
   >
     <div
-      class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80"
+      class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80 transition-opacity"
+      class:opacity-0={!swins.overlayEnabled}
       onclick={closeAll}
       onkeydown={(e) => e.key === "Enter" && closeAll}
       role="button"

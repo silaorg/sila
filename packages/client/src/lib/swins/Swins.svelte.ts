@@ -36,6 +36,9 @@ export class SWins {
   
   // Stack of windows
   windows: WindowEntry<any>[] = $state([]);
+
+  // Overlay for the swins stack
+  overlayEnabled: boolean = $state(true);
   
   /**
    * Register a component that can be used in windows
@@ -62,7 +65,9 @@ export class SWins {
       console.error(`Component with ID "${componentId}" not found in registry`);
       return this;
     }
-    
+
+    this.overlayEnabled = true;
+
     // Create a unique ID for this window instance
     const id = `${componentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     
@@ -79,6 +84,9 @@ export class SWins {
     if (this.windows.length > 0) {
       this.windows = this.windows.slice(0, -1);
     }
+    if (this.windows.length === 0) {
+      this.overlayEnabled = true;
+    }
     return this;
   }
   
@@ -91,6 +99,9 @@ export class SWins {
     const windowIndex = this.windows.findLastIndex(window => window.componentId === componentId);
     if (windowIndex !== -1) {
       this.windows = this.windows.slice(0, windowIndex + 1);
+      if (this.windows.length === 0) {
+        this.overlayEnabled = true;
+      }
       return true;
     }
     
@@ -106,6 +117,9 @@ export class SWins {
     const windowIndex = this.windows.findIndex(window => window.id === id);
     if (windowIndex !== -1) {
       this.windows = this.windows.slice(0, windowIndex + 1);
+      if (this.windows.length === 0) {
+        this.overlayEnabled = true;
+      }
 
       return true;
     }
@@ -124,6 +138,8 @@ export class SWins {
     if (this.windows.length === 0) {
       return this.open(componentId, props, title);
     }
+
+    this.overlayEnabled = true;
     
     // Create a unique ID for this window instance
     const id = `${componentId}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -142,12 +158,26 @@ export class SWins {
    */
   clear() {
     this.windows = [];
+    this.overlayEnabled = true;
     return this;
   }
 
   clearRegistry() {
     this.componentRegistry = {};
     return this;
+  }
+
+  setOverlayEnabled(enabled: boolean) {
+    this.overlayEnabled = enabled;
+    return this;
+  }
+
+  disableOverlay() {
+    return this.setOverlayEnabled(false);
+  }
+
+  enableOverlay() {
+    return this.setOverlayEnabled(true);
   }
   
   /**
