@@ -292,6 +292,27 @@
     menuOpen = false;
   }
 
+  function openSelectedInNewTab() {
+    if (selectedIds.size !== 1) return;
+    const id = Array.from(selectedIds)[0];
+    const v = items.find((i) => i.id === id);
+    if (!v || isFolder(v)) return;
+
+    const layout = clientState.currentSpaceState?.layout;
+    if (!layout) return;
+
+    const fileName = v.name ?? i18n.texts.filesApp.untitledLabel;
+    layout.openFileViewerTab(v.treeId, v.id, fileName);
+    menuOpen = false;
+  }
+
+  const canOpenInNewTab = $derived.by(() => {
+    if (selectedIds.size !== 1) return false;
+    const id = Array.from(selectedIds)[0];
+    const v = items.find((i) => i.id === id);
+    return Boolean(v && !isFolder(v));
+  });
+
   function renameSelected() {
     if (selectedIds.size !== 1) return;
     renamingId = Array.from(selectedIds)[0];
@@ -503,6 +524,13 @@
               onclick={openSelected}
               disabled={selectedIds.size !== 1}>{i18n.texts.actions.open}</button
             >
+            <button
+              class="btn btn-sm text-left"
+              onclick={openSelectedInNewTab}
+              disabled={!canOpenInNewTab}
+            >
+              {i18n.texts.actions.openInNewTab}
+            </button>
             <button
               class="btn btn-sm text-left"
               onclick={renameSelected}
