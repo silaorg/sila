@@ -2,7 +2,7 @@
 
 ## Workspaces
 
-Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, folders, theme, and language. Create multiple workspaces for different purposes and switch quickly.
+Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, projects, theme, and language. Create multiple workspaces for different purposes and switch quickly.
 
 ## Local-first but syncs
 
@@ -15,7 +15,11 @@ From OpenAI, Google, and Anthropic to Ollama, plus any OpenAI-compatible API. Br
 
 ## Assistants
 
-Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, one assistant can always search a specific source, reference a document, and create conversations in a chosen folder.
+Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, one assistant can always search a specific source, reference a document, and create conversations in a chosen project.
+
+## Files
+
+Attach files to chats and reuse them across your workspace. See: [Files](./files.md).
 
 ## Chats
 
@@ -36,3 +40,4 @@ Pay as you go for provider API costs or local compute if you run models yourself
 ## Development
 
 For developers and contributors, explore the [development section](../dev/README.md) for architecture, codebase, testing, and contribution guidelines.
+

@@ -11,6 +11,11 @@
       "label": "Projects"
     },
     {
+      "name": "files",
+      "type": "page",
+      "label": "Files"
+    },
+    {
       "name": "assistants",
       "type": "page",
       "label": "Assistants"

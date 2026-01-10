@@ -6,6 +6,8 @@ If you already used ChatGPT, you know how to chat in Sila. Chat is also flexible
 
 Drag images or documents into a chat. They stay in your workspace, and the assistant can reference them.
 
+See: [Files](./files.md).
+
 ## Branch replies
 
 Start a new branch from any message to try alternatives. Switch or merge branches later.
