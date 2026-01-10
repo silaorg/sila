@@ -258,7 +258,6 @@
   let menuOpen = $state(false);
   let menuX = $state(0);
   let menuY = $state(0);
-  let menuTarget: Vertex | null = null;
   let renamingId: string | null = $state(null);
 
   function onItemContextMenu(event: MouseEvent, v: Vertex) {
@@ -266,7 +265,6 @@
     if (!selectedIds.has(v.id)) {
       selectSingle(v);
     }
-    menuTarget = v;
     menuX = event.clientX;
     menuY = event.clientY;
     menuOpen = true;

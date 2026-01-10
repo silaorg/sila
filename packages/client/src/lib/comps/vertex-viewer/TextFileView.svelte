@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { ResolvedFileInfo } from "@sila/core";
-  import { formatFileSize } from "@sila/client/utils/filePreview";
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
   import { i18n } from "@sila/client";
