@@ -92,6 +92,8 @@
     const spaceState = clientState.currentSpaceState;
     if (!spaceState) return;
 
+    clientState.layout.swins.disableOverlay();
+
     const fileName =
       activeFile?.name ??
       activeVertex.name ??

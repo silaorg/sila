@@ -301,6 +301,8 @@
     const layout = clientState.currentSpaceState?.layout;
     if (!layout) return;
 
+    clientState.layout.swins.disableOverlay();
+
     const fileName = v.name ?? i18n.texts.filesApp.untitledLabel;
     layout.openFileViewerTab(v.treeId, v.id, fileName);
     menuOpen = false;
