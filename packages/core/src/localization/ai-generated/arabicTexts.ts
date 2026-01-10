@@ -103,6 +103,11 @@ export const arabicTexts: Partial<Texts> = {
       workspacePreferencesLabel: "التفضيلات",
       appTitle: "التطبيق"
     },
+    aboutSila: {
+      title: "حول Sila",
+      websiteLinkLabel: "الموقع",
+      docsLinkLabel: "الوثائق"
+    },
     workspacePreferences: {
       description: "صف مساحة العمل للذكاء الاصطناعي واختر لغة الواجهة ولغة الذكاء الاصطناعي.",
       descriptionLabel: "وصف مساحة العمل",

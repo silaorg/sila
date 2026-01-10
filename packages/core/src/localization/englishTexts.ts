@@ -103,6 +103,11 @@ export const englishTexts: Texts = {
       workspacePreferencesLabel: "Preferences",
       appTitle: "App"
     },
+    aboutSila: {
+      title: "About Sila",
+      websiteLinkLabel: "Website",
+      docsLinkLabel: "Docs"
+    },
     workspacePreferences: {
       description: "Describe your workspace for AI and choose the UI and AI language.",
       descriptionLabel: "Workspace description",

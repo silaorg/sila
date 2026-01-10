@@ -4,6 +4,7 @@ import SettingsAppearance from "../swins/routes/SettingsAppearance.svelte";
 import SettingsProviders from "../swins/routes/SettingsProviders.svelte";
 import SettingsAssistants from "../swins/routes/SettingsAssistants.svelte";
 import SettingsWorkspaces from "../swins/routes/SettingsWorkspaces.svelte";
+import SettingsAboutSila from "../swins/routes/SettingsAboutSila.svelte";
 import SettingsDev from "../swins/routes/SettingsDev.svelte";
 import SettingsWorkspacePreferences from "../swins/routes/SettingsWorkspacePreferences.svelte";
 import SettingsWorkspacePrivacySync from "../swins/routes/SettingsWorkspacePrivacySync.svelte";
@@ -62,6 +63,10 @@ export const swinsLayout = {
   settingsWorkspaces: {
     key: 'settings-workspaces',
     target: SettingsWorkspaces,
+  },
+  settingsAboutSila: {
+    key: 'settings-about-sila',
+    target: SettingsAboutSila,
   },
   settingsDev: {
     key: 'settings-dev',

@@ -8,6 +8,7 @@
     Settings,
     Palette,
     Shield,
+    Info,
   } from "lucide-svelte";
   import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -104,6 +105,16 @@
   >
     <FolderOpen size={18} />
     <span>{i18n.texts.settingsPage.spaces.title}</span>
+  </SwinsNavButton>
+
+  <SwinsNavButton
+    component="settingsAboutSila"
+    pop="current"
+    title={i18n.texts.settingsPage.aboutSila.title}
+    className="w-full flex gap-2 items-center py-2 px-3 rounded hover:preset-tonal {activeComponentId === 'settings-about-sila' ? 'preset-tonal' : ''}"
+  >
+    <Info size={18} />
+    <span>{i18n.texts.settingsPage.aboutSila.title}</span>
   </SwinsNavButton>
 
   <SwinsNavButton

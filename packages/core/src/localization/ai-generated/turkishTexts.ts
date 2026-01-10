@@ -103,6 +103,11 @@ export const turkishTexts: Partial<Texts> = {
       workspacePreferencesLabel: "Tercihler",
       appTitle: "Uygulama"
     },
+    aboutSila: {
+      title: "Sila Hakkında",
+      websiteLinkLabel: "Web sitesi",
+      docsLinkLabel: "Dokümanlar"
+    },
     workspacePreferences: {
       description: "Çalışma alanınızı yapay zeka için tanımlayın ve arayüz ile yapay zeka dilini seçin.",
       descriptionLabel: "Çalışma alanı açıklaması",

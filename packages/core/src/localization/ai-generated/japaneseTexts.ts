@@ -103,6 +103,11 @@ export const japaneseTexts: Partial<Texts> = {
       workspacePreferencesLabel: "設定",
       appTitle: "アプリ"
     },
+    aboutSila: {
+      title: "Sila について",
+      websiteLinkLabel: "ウェブサイト",
+      docsLinkLabel: "ドキュメント"
+    },
     workspacePreferences: {
       description: "AI向けにワークスペースを説明し、UIとAIの言語を選択します。",
       descriptionLabel: "ワークスペースの説明",

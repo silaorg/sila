@@ -103,6 +103,11 @@ export const koreanTexts: Partial<Texts> = {
       workspacePreferencesLabel: "환경설정",
       appTitle: "앱"
     },
+    aboutSila: {
+      title: "Sila 정보",
+      websiteLinkLabel: "웹사이트",
+      docsLinkLabel: "문서"
+    },
     workspacePreferences: {
       description: "AI를 위해 워크스페이스를 설명하고 UI와 AI 언어를 선택하세요.",
       descriptionLabel: "워크스페이스 설명",

@@ -103,6 +103,11 @@ export const vietnameseTexts: Partial<Texts> = {
       workspacePreferencesLabel: "Tùy chọn",
       appTitle: "Ứng dụng"
     },
+    aboutSila: {
+      title: "Giới thiệu Sila",
+      websiteLinkLabel: "Trang web",
+      docsLinkLabel: "Tài liệu"
+    },
     workspacePreferences: {
       description: "Mô tả workspace cho AI và chọn ngôn ngữ giao diện và AI.",
       descriptionLabel: "Mô tả workspace",

@@ -103,6 +103,11 @@ export const spanishTexts: Partial<Texts> = {
       workspacePreferencesLabel: "Preferencias",
       appTitle: "App"
     },
+    aboutSila: {
+      title: "Acerca de Sila",
+      websiteLinkLabel: "Sitio web",
+      docsLinkLabel: "Documentación"
+    },
     workspacePreferences: {
       description: "Describe tu espacio de trabajo para la IA y elige el idioma de la interfaz y de la IA.",
       descriptionLabel: "Descripción del espacio de trabajo",

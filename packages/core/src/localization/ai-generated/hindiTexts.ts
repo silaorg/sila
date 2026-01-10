@@ -103,6 +103,11 @@ export const hindiTexts: Partial<Texts> = {
       workspacePreferencesLabel: "प्राथमिकताएँ",
       appTitle: "ऐप"
     },
+    aboutSila: {
+      title: "Sila के बारे में",
+      websiteLinkLabel: "वेबसाइट",
+      docsLinkLabel: "दस्तावेज़"
+    },
     workspacePreferences: {
       description: "AI के लिए अपने वर्कस्पेस का वर्णन करें और UI तथा AI की भाषा चुनें।",
       descriptionLabel: "वर्कस्पेस विवरण",

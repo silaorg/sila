@@ -99,6 +99,11 @@ export interface Texts {
       workspacePreferencesLabel: string;
       appTitle: string;
     };
+    aboutSila: {
+      title: string;
+      websiteLinkLabel: string;
+      docsLinkLabel: string;
+    };
     workspacePreferences: {
       description: string;
       descriptionLabel: string;

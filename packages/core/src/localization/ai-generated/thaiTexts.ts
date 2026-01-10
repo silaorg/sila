@@ -103,6 +103,11 @@ export const thaiTexts: Partial<Texts> = {
       workspacePreferencesLabel: "การตั้งค่า",
       appTitle: "แอป"
     },
+    aboutSila: {
+      title: "เกี่ยวกับ Sila",
+      websiteLinkLabel: "เว็บไซต์",
+      docsLinkLabel: "เอกสาร"
+    },
     workspacePreferences: {
       description: "อธิบายเวิร์กสเปซให้ AI และเลือกภาษา UI กับ AI.",
       descriptionLabel: "คำอธิบายเวิร์กสเปซ",

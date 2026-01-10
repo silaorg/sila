@@ -122,6 +122,11 @@ export const russianTexts: Partial<Texts> = {
       workspacePreferencesLabel: "Настройки",
       appTitle: "Приложение"
     },
+    aboutSila: {
+      title: "О Sila",
+      websiteLinkLabel: "Сайт",
+      docsLinkLabel: "Документация"
+    },
     workspacePreferences: {
       description: "Опишите рабочее пространство для ИИ и выберите язык интерфейса и ИИ.",
       descriptionLabel: "Описание рабочего пространства",

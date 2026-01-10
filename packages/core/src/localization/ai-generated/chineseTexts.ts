@@ -103,6 +103,11 @@ export const chineseTexts: Partial<Texts> = {
       workspacePreferencesLabel: "偏好设置",
       appTitle: "应用"
     },
+    aboutSila: {
+      title: "关于 Sila",
+      websiteLinkLabel: "网站",
+      docsLinkLabel: "文档"
+    },
     workspacePreferences: {
       description: "为 AI 描述你的工作区，并选择界面和 AI 的语言。",
       descriptionLabel: "工作区描述",

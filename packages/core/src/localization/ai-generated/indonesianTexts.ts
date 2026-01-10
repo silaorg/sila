@@ -103,6 +103,11 @@ export const indonesianTexts: Partial<Texts> = {
       workspacePreferencesLabel: "Preferensi",
       appTitle: "Aplikasi"
     },
+    aboutSila: {
+      title: "Tentang Sila",
+      websiteLinkLabel: "Situs web",
+      docsLinkLabel: "Dokumentasi"
+    },
     workspacePreferences: {
       description: "Jelaskan workspace untuk AI dan pilih bahasa UI serta AI.",
       descriptionLabel: "Deskripsi workspace",
