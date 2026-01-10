@@ -36,15 +36,14 @@
       return true;
     }}
   >
-    {#if swins.overlayEnabled}
-      <div
-        class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80"
-        onclick={closeAll}
-        onkeydown={(e) => e.key === "Enter" && closeAll}
-        role="button"
-        tabindex="0"
-      ></div>
-    {/if}
+    <div
+      class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80 transition-opacity"
+      class:opacity-0={!swins.overlayEnabled}
+      onclick={closeAll}
+      onkeydown={(e) => e.key === "Enter" && closeAll}
+      role="button"
+      tabindex="0"
+    ></div>
     {#each swins.windows as page, i (page.id)}
       <div
         class="relative card selectable-text rounded-lg bg-surface-50-950 border-1 border-surface-200-800 shadow-2xl max-w-[800px] w-full flex flex-col overflow-hidden max-h-[calc(100vh-10rem)]"
