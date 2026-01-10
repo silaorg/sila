@@ -325,17 +325,7 @@ export class LayoutStore {
     }
 
     const grid = this.ttabs.getGrid(this.layoutRefs.contentGrid);
-    let tab: string;
-
-    const lazyTabs = this.ttabs.getLazyTabs(grid.id);
-
-    if (lazyTabs.length > 0) {
-      const lazyTab = lazyTabs[0];
-      tab = lazyTab.id;
-      this.ttabs.updateTile(tab, { name });
-    } else {
-      tab = this.ttabs.addTab(grid.id, name, true, true);
-    }
+    const tab = this.ttabs.addTab(grid.id, name, true, false);
 
     this.ttabs.setComponent(tab, 'fileViewer', { treeId, vertexId, name });
     this.ttabs.setFocusedActiveTab(tab);
