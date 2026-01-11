@@ -27,36 +27,30 @@ To estimate cost for a message: `(input_tokens × input_rate) + (output_tokens �
 - Vision: You pay per image and/or per processed tokens depending on provider.
 - Audio: You pay per minute for transcription or TTS.
 
-## Example monthly costs with GPT-5
+## Example monthly costs with GPT-5.2
 
-These examples use GPT-5 pricing: $1.25 per 1M input tokens, $10.00 per 1M output tokens.
+These examples use GPT-5.2 pricing: $1.75 per 1M input tokens, $14.00 per 1M output tokens.
 
 - Starter (casual)
   - 10 chats/day × 30 days = 300 chats
   - ~1,200 tokens/chat total
   - ≈ 360k tokens/month
-  - Input: ~180k × $1.25 = **$0.23**
-  - Output: ~180k × $10.00 = **$1.80**
-  - **Total: ~$2/month**
+  - Input: ~180k × $1.75 = **$0.32**
+  - Output: ~180k × $14.00 = **$2.52**
+  - **Total: ~$3/month**
 
 - Pro (deep work)
   - 30 chats/day × 30 days = 900 chats
   - ~3k tokens/chat total
   - ≈ 2.7M tokens/month
-  - Input: ~1.35M × $1.25 = **$1.69**
-  - Output: ~1.35M × $10.00 = **$13.50**
-  - **Total: ~$15/month**
+  - Input: ~1.35M × $1.75 = **$2.36**
+  - Output: ~1.35M × $14.00 = **$18.90**
+  - **Total: ~$21/month**
 
 - Team (5 people)
   - 5 × 30 chats/day × 30 days = 4,500 chats
   - ~3k tokens/chat total
   - ≈ 13.5M tokens/month
-  - Input: ~6.75M × $1.25 = **$8.44**
-  - Output: ~6.75M × $10.00 = **$67.50**
-  - **Total: ~$76/month**
-
-Assumptions: balanced input/output tokens, moderate context sizes, using GPT-5 pricing.
-
-## Cost management
-
-Sila helps manage costs automatically with efficient defaults and smart context management. You can always see the selected model per assistant and chat to track usage.
+  - Input: ~6.75M × $1.75 = **$11.81**
+  - Output: ~6.75M × $14.00 = **$94.50**
+  - **Total: ~$106/month**

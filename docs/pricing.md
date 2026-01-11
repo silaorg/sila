@@ -1,21 +1,8 @@
 # Sila is free for anyone, for any use
 
-Sila is open source, so the app is free. Use it anywhere. No restrictions.
+Sila is open source, the app is free, and you can use it anywhere with no restrictions.
 
-## What you pay for
-
-Sila itself costs nothing. You only pay for:
-
-- **AI model usage**: When you use AI models from providers like OpenAI, Google, or Anthropic
-- **Local compute**: If you run models locally (hardware and electricity costs)
-
-## AI model costs
-
-You pay AI providers directly for inference (the model's compute).
-
-- **You bring your own keys**: OpenAI, Google, Anthropic, or your own server (OpenAI‑compatible APIs)
-- **Pay as you go**: Providers bill for tokens (text), images, and audio minutes
-- **Local models**: With Ollama or similar, inference is free to use, but you pay with your hardware resources and electricity
+When you use AI models from providers like OpenAI, Google, or Anthropic, you will need an account with them and pay based on usage.
 
 [How to set up AI providers](./how-to/setup-providers/README.md).  
-[How to estimate AI inference costs](how-to/estimate-inference-price.md)
+[How to estimate AI inference costs](./how-to/estimate-inference-price.md).
