@@ -6,7 +6,7 @@ Organize your chats and assistants into separate workspaces. Each workspace can 
 
 ## Files and folders
 
-Attach files to chats and reuse them across your workspace. Organize your assets into folders. Sila has its own virtual file system. See: [Files](./files.md).
+Attach files to chats and reuse them across your workspace. Organize your assets into folders. Sila has its own virtual file system.
 
 ## Documents
 

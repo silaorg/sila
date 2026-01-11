@@ -6,11 +6,6 @@
       "label": "Workspaces"
     },
     {
-      "name": "projects",
-      "type": "page",
-      "label": "Projects"
-    },
-    {
       "name": "files",
       "type": "page",
       "label": "Files"
