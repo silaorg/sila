@@ -18,6 +18,8 @@
   let resolvedFile = $state<ResolvedFileInfo | null>(null);
   let isLoading = $state(false);
   let loadError = $state<string | null>(null);
+  let currentVertex = $state<Vertex | null>(null);
+  let reloadToken = $state(0);
 
   let previewConfig = $derived.by(() => {
     if (!resolvedFile?.mimeType) return null;
@@ -38,6 +40,8 @@
 
     if (!spaceState || !space) {
       resolvedFile = null;
+      currentVertex = null;
+      reloadToken = 0;
       loadError = i18n.texts.files.failedToLoad;
       isLoading = false;
       return;
@@ -46,6 +50,8 @@
     let isActive = true;
     isLoading = true;
     loadError = null;
+    currentVertex = null;
+    reloadToken = 0;
 
     const loadVertex = async (): Promise<Vertex> => {
       if (treeId === space.getId()) {
@@ -72,6 +78,7 @@
     loadVertex()
       .then((vertex) => {
         if (!isActive) return;
+        currentVertex = vertex;
         const resolved = spaceState.fileResolver.resolveVertexToFileReference(
           vertex
         );
@@ -98,6 +105,50 @@
     };
   });
 
+  $effect(() => {
+    const vertex = currentVertex;
+    const spaceState = clientState.currentSpaceState;
+
+    if (!vertex || !spaceState) {
+      return;
+    }
+
+    const updateResolvedFile = () => {
+      const resolved = spaceState.fileResolver.resolveVertexToFileReference(
+        vertex
+      );
+      if (!resolved) {
+        loadError = i18n.texts.files.failedToLoad;
+        resolvedFile = null;
+        return;
+      }
+      loadError = null;
+      resolvedFile = resolved;
+    };
+
+    updateResolvedFile();
+
+    const unobserve = vertex.observe((events) => {
+      const shouldReload = events.some(
+        (event) =>
+          event.type === "property" &&
+          (event.key === "updatedAt" ||
+            event.key === "id" ||
+            event.key === "hash" ||
+            event.key === "mimeType" ||
+            event.key === "size"),
+      );
+      if (shouldReload) {
+        reloadToken += 1;
+        updateResolvedFile();
+      }
+    });
+
+    return () => {
+      unobserve();
+    };
+  });
+
 </script>
 
 <div class="flex h-full w-full flex-col">
@@ -114,11 +165,11 @@
           <div
             class="w-full max-w-4xl bg-surface-50-950"
           >
-            <FileView file={resolvedFile} />
+            <FileView file={resolvedFile} {reloadToken} />
           </div>
         </div>
       {:else}
-        <FileView file={resolvedFile} />
+        <FileView file={resolvedFile} {reloadToken} />
       {/if}
     {:else}
       <div class="text-sm">{i18n.texts.files.noFileData}</div>

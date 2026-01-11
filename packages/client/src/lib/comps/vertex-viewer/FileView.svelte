@@ -8,7 +8,10 @@
   import VideoFileView from "./VideoFileView.svelte";
   import PdfFileView from "./PdfFileView.svelte";
 
-  const { file }: { file: ResolvedFileInfo } = $props();
+  const {
+    file,
+    reloadToken = 0,
+  }: { file: ResolvedFileInfo; reloadToken?: number } = $props();
 
   let previewConfig = $derived.by(() => {
     if (!file?.mimeType) return null;
@@ -28,7 +31,7 @@
   {:else if previewConfig.previewType === "pdf"}
     <PdfFileView {file} />
   {:else if previewConfig.previewType === "text" || previewConfig.previewType === "code"}
-    <TextFileView {file} />
+    <TextFileView {file} {reloadToken} />
   {:else}
     <div class="bg-white text-black p-8 rounded text-center max-w-md">
       <div class="text-6xl mb-4"><FileIcon size={20} /></div>

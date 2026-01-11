@@ -149,12 +149,14 @@ async function handleCreate(
     existingVertex.setProperty("id", mutableId);
     existingVertex.setProperty("mimeType", inferredMime);
     existingVertex.setProperty("size", bytes.byteLength);
+    existingVertex.setProperty("updatedAt", Date.now());
   } else {
     parent.newNamedChild(name, {
       name: name,
       id: mutableId,
       mimeType: inferredMime,
       size: bytes.byteLength,
+      updatedAt: Date.now(),
     });
   }
 }
@@ -230,6 +232,7 @@ async function handleUpdate(
   fileVertex.setProperty("id", mutableId);
   fileVertex.setProperty("mimeType", inferredMime);
   fileVertex.setProperty("size", bytes.byteLength);
+  fileVertex.setProperty("updatedAt", Date.now());
 }
 
 async function handleDelete(

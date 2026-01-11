@@ -4,19 +4,23 @@
   import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
   import { i18n } from "@sila/client";
 
-  const { file }: { file: ResolvedFileInfo } = $props();
+  const {
+    file,
+    reloadToken = 0,
+  }: { file: ResolvedFileInfo; reloadToken?: number } = $props();
 
   let textContent = $state<string | null>(null);
   let isTextLoading = $state(false);
   let textError = $state<string | null>(null);
-  let lastLoadedUrl = $state<string | null>(null);
+  let lastLoadedSignature = $state<string | null>(null);
 
   // Load text content when the file changes
   $effect(() => {
     const url = file?.url;
-    if (!url || url === lastLoadedUrl) return;
+    const signature = url ? `${url}|${reloadToken}` : null;
+    if (!signature || signature === lastLoadedSignature) return;
 
-    lastLoadedUrl = url;
+    lastLoadedSignature = signature;
     isTextLoading = true;
     textError = null;
     textContent = null;

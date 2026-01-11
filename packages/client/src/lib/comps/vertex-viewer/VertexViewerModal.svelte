@@ -14,14 +14,8 @@
   const vertexViewer = $derived(clientState.currentSpaceState?.vertexViewer);
   const activeVertex = $derived(vertexViewer?.activeVertex);
 
-  const activeFile: ResolvedFileInfo | null = $derived.by(() => {
-    if (!activeVertex) return null;
-
-    const spaceState = clientState.currentSpaceState;
-    if (!spaceState) return null;
-
-    return spaceState.fileResolver.resolveVertexToFileReference(activeVertex);
-  });
+  let activeFile = $state<ResolvedFileInfo | null>(null);
+  let reloadToken = $state(0);
 
   const activePreviewConfig = $derived.by(() => {
     if (!activeFile?.mimeType) return null;
@@ -74,6 +68,43 @@
 
     return name;
   }
+
+  $effect(() => {
+    const vertex = activeVertex;
+    const spaceState = clientState.currentSpaceState;
+
+    if (!vertex || !spaceState) {
+      activeFile = null;
+      reloadToken = 0;
+      return;
+    }
+
+    const updateActiveFile = () => {
+      activeFile = spaceState.fileResolver.resolveVertexToFileReference(vertex);
+    };
+
+    updateActiveFile();
+
+    const unobserve = vertex.observe((events) => {
+      const shouldReload = events.some(
+        (event) =>
+          event.type === "property" &&
+          (event.key === "updatedAt" ||
+            event.key === "id" ||
+            event.key === "hash" ||
+            event.key === "mimeType" ||
+            event.key === "size"),
+      );
+      if (shouldReload) {
+        reloadToken += 1;
+        updateActiveFile();
+      }
+    });
+
+    return () => {
+      unobserve();
+    };
+  });
 
   async function handleDownload() {
     if (!activeFile) return;
@@ -185,7 +216,7 @@
                 <h3 class="text-sm font-medium break-words">{activeFile.name}</h3>
               </div>
               <div class="p-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
-                <FileView file={activeFile} />
+                <FileView file={activeFile} {reloadToken} />
               </div>
             </div>
           </div>
@@ -205,12 +236,12 @@
                 <span class="text-[10px] uppercase tracking-wide">PDF</span>
               </div>
               <div class="h-[calc(100vh-10rem)]">
-                <FileView file={activeFile} />
+                <FileView file={activeFile} {reloadToken} />
               </div>
             </div>
           </div>
         {:else}
-          <FileView file={activeFile} />
+          <FileView file={activeFile} {reloadToken} />
         {/if}
       {:else}
         <div class="bg-white text-black p-8 rounded text-center max-w-md">
