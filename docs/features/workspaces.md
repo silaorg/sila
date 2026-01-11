@@ -12,8 +12,6 @@ Every workspace is stored as ordinary files on your computer. There is no accoun
 
 Want the same private workspace on another computer or phone? Place the workspace folder inside iCloud, Dropbox, Google Drive, or any file‑syncing service. Sila's local‑first engine keeps each copy in sync and resolves changes automatically. You can even work offline; edits made on different devices merge when the folders sync again.
 
-Your workspace can also be [shared with a team](./multiplayer.md).
-
 ## Why it’s better than ChatGPT
 
-ChatGPT keeps conversations in a remote account that you can't easily move or back up. With Sila, workspaces are portable, private, and easy to archive. You stay in control while still enjoying multi‑device access and even [multiplayer](./multiplayer.md).
+ChatGPT keeps conversations in a remote account that you can't easily move or back up. With Sila, workspaces are portable, private, and easy to archive.
