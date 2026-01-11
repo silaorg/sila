@@ -163,7 +163,7 @@
       {#if shouldUseDocLayout}
         <div class="w-full flex justify-center">
           <div
-            class="w-full max-w-4xl bg-surface-50-950"
+            class="w-full max-w-4xl bg-surface-50-950 p-6 md:p-8"
           >
             <FileView file={resolvedFile} {reloadToken} />
           </div>
