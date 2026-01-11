@@ -144,6 +144,7 @@ async function handleWrite(
     existingVertex.setProperty("id", mutableId);
     existingVertex.setProperty("mimeType", inferredMime);
     existingVertex.setProperty("size", bytes.byteLength);
+    existingVertex.setProperty("updatedAt", Date.now());
   } else {
     // Create new file vertex
     parent.newNamedChild(name, {
@@ -151,6 +152,7 @@ async function handleWrite(
       id: mutableId,
       mimeType: inferredMime,
       size: bytes.byteLength,
+      updatedAt: Date.now(),
     });
   }
 }

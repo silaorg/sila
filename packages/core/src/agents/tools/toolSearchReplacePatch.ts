@@ -229,12 +229,14 @@ async function handlePatch(
     existingVertex.setProperty("id", mutableId);
     existingVertex.setProperty("mimeType", inferredMime);
     existingVertex.setProperty("size", bytes.byteLength);
+    existingVertex.setProperty("updatedAt", Date.now());
   } else {
     parent.newNamedChild(name, {
       name,
       id: mutableId,
       mimeType: inferredMime,
       size: bytes.byteLength,
+      updatedAt: Date.now(),
     });
   }
 
