@@ -23,6 +23,16 @@
     return spaceState.fileResolver.resolveVertexToFileReference(activeVertex);
   });
 
+  const activePreviewConfig = $derived.by(() => {
+    if (!activeFile?.mimeType) return null;
+    return getFilePreviewConfig(activeFile.mimeType);
+  });
+
+  const shouldWrapModalContent = $derived.by(() => {
+    const previewType = activePreviewConfig?.previewType;
+    return previewType === "text" || previewType === "code";
+  });
+
   const canOpenInTab = $derived.by(() => {
     if (!activeFile?.mimeType) return false;
     const previewConfig = getFilePreviewConfig(activeFile.mimeType);
@@ -159,11 +169,24 @@
     </div>
 
     <!-- Content -->
-    <div
-      class="relative max-w-full max-h-full p-8"
-    >
+    <div class="relative max-w-full max-h-full p-8">
       {#if activeFile}
-        <FileView file={activeFile} />
+        {#if shouldWrapModalContent}
+          <div class="w-full flex justify-center">
+            <div
+              class="w-full max-w-4xl rounded bg-surface-50-950 shadow-sm overflow-hidden flex flex-col"
+            >
+              <div class="p-4 border-b border-surface-200-800">
+                <h3 class="text-sm font-medium break-words">{activeFile.name}</h3>
+              </div>
+              <div class="p-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
+                <FileView file={activeFile} />
+              </div>
+            </div>
+          </div>
+        {:else}
+          <FileView file={activeFile} />
+        {/if}
       {:else}
         <div class="bg-white text-black p-8 rounded text-center max-w-md">
           <div class="text-6xl mb-4"><File size={20} /></div>

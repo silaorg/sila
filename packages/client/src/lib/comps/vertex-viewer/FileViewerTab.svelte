@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ResolvedFileInfo, Vertex } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
+  import { getFilePreviewConfig } from "@sila/client/utils/filePreview";
   import FileView from "./FileView.svelte";
   import { i18n } from "@sila/client";
 
@@ -17,6 +18,16 @@
   let resolvedFile = $state<ResolvedFileInfo | null>(null);
   let isLoading = $state(false);
   let loadError = $state<string | null>(null);
+
+  let previewConfig = $derived.by(() => {
+    if (!resolvedFile?.mimeType) return null;
+    return getFilePreviewConfig(resolvedFile.mimeType);
+  });
+
+  let shouldUseDocLayout = $derived.by(() => {
+    const previewType = previewConfig?.previewType;
+    return previewType === "text" || previewType === "code";
+  });
 
   $effect(() => {
     treeId;
@@ -89,14 +100,24 @@
 
 </script>
 
-<div class="flex h-full w-full flex-col bg-surface-50-950 text-surface-900-50">
-  <div class="flex-1 overflow-auto p-4">
+<div class="flex h-full w-full flex-col">
+  <div class="flex-1 overflow-auto p-6">
     {#if isLoading}
       <div class="text-sm">{i18n.texts.fileViewer.loading}</div>
     {:else if loadError}
       <div class="text-sm">{loadError}</div>
     {:else if resolvedFile}
-      <FileView file={resolvedFile} context="tab" />
+      {#if shouldUseDocLayout}
+        <div class="w-full flex justify-center">
+          <div
+            class="w-full max-w-4xl bg-surface-50-950"
+          >
+            <FileView file={resolvedFile} />
+          </div>
+        </div>
+      {:else}
+        <FileView file={resolvedFile} />
+      {/if}
     {:else}
       <div class="text-sm">{i18n.texts.files.noFileData}</div>
     {/if}
