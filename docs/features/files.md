@@ -1,19 +1,9 @@
-# Files
+# Files and folders
 
-Sila stores files **inside your workspace**. Nothing is uploaded by default.
+You can upload files to workspaces and organize them in folders.
 
-## Attach files to a chat
+Attachments stay local to the chat, but you can move them to workspace assets to make them available to other assistants.
 
-Attach images or text documents to a message. The assistant can reference them later.
+Upload files to workspace folders from the file browser. Use the Upload button or drag and drop files into a folder. Create folders and move files there to keep assets organized.
 
-## Browse workspace files
-
-Use the Files app to organize files into folders and reuse them across chats.
-
-## How file storage works (high level)
-
-Sila stores file bytes under your workspace folder:
-
-- **Binary files (images, etc.)**: stored as **content-addressed** blobs (SHA-256 hash). This makes them immutable and deduplicated.
-- **Text files**: stored as **mutable** documents (UUID). This allows tools to update them safely.
-
+Reference files in a message by attaching them or by typing @ to pick a file from the workspace. Ask the assistant to use those files, write a new text document, or generate an image. Save or move the new files into folders from the file browser to keep related assets together.
