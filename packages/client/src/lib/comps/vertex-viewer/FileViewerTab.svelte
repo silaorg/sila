@@ -101,7 +101,9 @@
 </script>
 
 <div class="flex h-full w-full flex-col">
-  <div class="flex-1 overflow-auto p-6">
+  <div
+    class="flex-1 overflow-auto"
+  >
     {#if isLoading}
       <div class="text-sm">{i18n.texts.fileViewer.loading}</div>
     {:else if loadError}

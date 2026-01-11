@@ -33,11 +33,16 @@
     return previewType === "text" || previewType === "code";
   });
 
+  const shouldWrapPdfContent = $derived.by(() => {
+    return activePreviewConfig?.previewType === "pdf";
+  });
+
   const canOpenInTab = $derived.by(() => {
     if (!activeFile?.mimeType) return false;
     const previewConfig = getFilePreviewConfig(activeFile.mimeType);
     return (
       previewConfig.previewType === "image" ||
+      previewConfig.previewType === "pdf" ||
       previewConfig.previewType === "text" ||
       previewConfig.previewType === "code"
     );
@@ -180,6 +185,26 @@
                 <h3 class="text-sm font-medium break-words">{activeFile.name}</h3>
               </div>
               <div class="p-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
+                <FileView file={activeFile} />
+              </div>
+            </div>
+          </div>
+        {:else if shouldWrapPdfContent}
+          <div class="w-full flex justify-center">
+            <div
+              class="w-[90vw] max-w-[1200px] rounded bg-surface-50-950 shadow-sm overflow-hidden flex flex-col"
+            >
+              <div
+                class="p-4 border-b border-surface-200-800 flex items-center justify-between gap-3"
+              >
+                <div class="min-w-0">
+                  <h3 class="text-sm font-medium break-words">
+                    {activeFile.name}
+                  </h3>
+                </div>
+                <span class="text-[10px] uppercase tracking-wide">PDF</span>
+              </div>
+              <div class="h-[calc(100vh-10rem)]">
                 <FileView file={activeFile} />
               </div>
             </div>
