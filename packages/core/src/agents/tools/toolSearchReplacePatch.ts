@@ -19,7 +19,7 @@ interface FilePatch {
   blocks: SearchReplaceBlock[];
 }
 
-export const searchReplacePatchInstruction = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then the block:
+export const searchReplacePatchInstruction = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then:
 
 file:///assets/example.txt
 <<<<<<< SEARCH
@@ -28,11 +28,14 @@ old text
 new text
 >>>>>>> REPLACE
 
-You can include multiple file sections in one patch; the tool applies each in order (creates missing files by default). Paths must be workspace (file:///...) or chat (file:...) URIs.
+Patch matching rules:
+- SEARCH is an exact match and is applied once (first occurrence).
+- Use the smallest SEARCH block that is guaranteed unique.
+- Start with 1-3 lines (target line + minimal nearby context). If ambiguous or likely repeated, expand by adding the nearest unique anchor (e.g., a heading) and keep it as short as possible (prefer <10 lines).
 
-Each SEARCH block is matched once (first exact occurrence); include enough lines in SEARCH to uniquely target the intended text. An empty SEARCH replaces the entire file content for that section.
+An empty SEARCH replaces the entire file content. Subsequent blocks for the same file apply to the updated content.
 
-After applying a patch, read the patched file to confirm the changes.`;
+You can include multiple file sections in one patch; all blocks for the same path are grouped and applied in the order they appear, and files are processed by first appearance of each path. Missing files are created by default.`;
 
 export const toolSearchReplacePatch: AgentTool = {
   name: "apply_search_replace_patch",
