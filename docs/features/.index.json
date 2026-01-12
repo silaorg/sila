@@ -11,6 +11,11 @@
       "label": "Files"
     },
     {
+      "name": "new-documents",
+      "type": "page",
+      "label": "New documents"
+    },
+    {
       "name": "assistants",
       "type": "page",
       "label": "Assistants"
