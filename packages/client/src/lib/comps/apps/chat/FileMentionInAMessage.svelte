@@ -27,6 +27,6 @@
   }
 </script>
 
-<button class="inline-flex items-center gap-1 p-1 rounded bg-primary-300-700 text-xs" title={title} onclick={openFile}>
+<button class="chat-file-mention anchor" title={title} onclick={openFile}>
   {@render children()}
 </button>
