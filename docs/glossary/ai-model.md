@@ -9,5 +9,4 @@ Also called: model, LLM, foundation model
 - Capabilities vary (context window, tools/functions, vision/audio, token limits, cost)
 
 See also: [assistant](assistant.md), [workspace](workspace.md)
-Further reading: [Any AI models](../features/any-ai.md), [Set up providers](../how-to/setup-providers/README.md)
-
+[any AI models](../features/any-ai.md)

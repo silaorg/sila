@@ -19,11 +19,6 @@
       "name": "estimate-inference-price",
       "type": "page",
       "label": "Estimate AI Inference Costs"
-    },
-    {
-      "name": "setup-providers",
-      "type": "section",
-      "label": "Setup Providers"
     }
   ]
 }
