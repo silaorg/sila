@@ -55,7 +55,7 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-empty-state-color': 'var(--color-surface-500)',
     
     // Utility elements
-    '--ttabs-resizer-hover-color': 'var(--color-secondary-500)',
+    '--ttabs-resizer-hover-color': 'var(--color-primary-500)',
     '--ttabs-drop-indicator-color': 'var(--color-primary-500)',
     '--ttabs-drop-target-outline': '2px dashed color-mix(in oklab, var(--color-primary-500) 50%, transparent)',
     '--ttabs-split-indicator-color': 'color-mix(in oklab, var(--color-surface-200-800) 70%, transparent)',
