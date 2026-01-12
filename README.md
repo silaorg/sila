@@ -14,7 +14,7 @@ Sila
 
 Sila is like ChatGPT, but you own your assistants, chats, and files. The more you use AI, the more it learns about you and your preferences. This data becomes more valuable over time. That's why you should own it, not OpenAI or Google.
 
-![Sila screenshot](docs/assets/screenshot.png)
+![Sila](docs/screenshots/app-dark.png)
 
 Unlike most similar projects, you don't need to host a server or register an account to use Sila. Even though your data is stored locally as plain files, it can be synced effectively across multiple devices. Later, you can even host your workspace on a server and invite team members. Sila combines the power of local-first with collaborative capabilities.
 
@@ -24,13 +24,19 @@ Unlike most similar projects, you don't need to host a server or register an acc
 
 Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, files, themes, and languages. Create multiple workspaces for different purposes and switch between them quickly.
 
+![Workspaces](docs/screenshots/workspaces-dark.png.png)
+
 ### Files and folders
 
 Attach files to chats and reuse them across your workspace. Organize your assets into folders. Sila has its own virtual file system.
 
+![Files](docs/screenshots/assets-dark.png)
+
 ### Documents
 
 Assistants can write and edit text documents (in Markdown) locally inside a chat and save them to workspace folders so they can be referenced in other conversations.
+
+![Documents](docs/screenshots/doc-view-dark.png)
 
 ### Flexible chats
 
@@ -40,6 +46,8 @@ When you chat, you can switch between assistants, branch conversations, referenc
 
 Create your own assistants with their instructions, AI models, and tools. Assistants can support different workflows. For example, an assistant can always search a specific source, reference a document, and create conversations in a chosen project.
 
+![Assistants](docs/screenshots/assistant-dark.png)
+
 ### Local-first
 
 Workspaces are stored locally. You can sync them with iCloud, Dropbox, or similar services to use across devices. Your assistants, chats, and generated data remain under your control. Sync conflicts are resolved automatically. No accounts required. Sila works offline if the AI model runs on your device.
@@ -48,13 +56,19 @@ Workspaces are stored locally. You can sync them with iCloud, Dropbox, or simila
 
 Switch between tabs and split windows. It works much like VS Code. You can have multiple conversations open across tabs, chat with different assistants at the same time, and quickly switch between them.
 
+![Tabs](docs/screenshots/tabs-dark.png)
+
 ### Many themes
 
 Use different themes for your workspaces—from colorful to minimal. It's a simple way to set a mood or tell your workspaces apart.
 
+![Tabs](docs/screenshots/themes-dark.png)
+
 ### Any AI models
 
 You can use any major AI model from the ones powering ChatGPT, to Claude and Gemini.
+
+![Tabs](docs/screenshots/providers.png)
 
 ### No subscriptions
 
