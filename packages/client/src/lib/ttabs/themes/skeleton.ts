@@ -1,8 +1,7 @@
 import type { TtabsTheme } from 'ttabs-svelte';
 
 /**
- * A theme for ttabs that integrates with Skeleton UI's theme system
- * Requires Skeleton UI to be installed and configured
+ * A theme for ttabs that integrates with Skeleton
  */
 export const SKELETON_THEME: TtabsTheme = {
   name: 'skeleton',
@@ -59,7 +58,7 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-resizer-hover-color': 'var(--color-secondary-500)',
     '--ttabs-drop-indicator-color': 'var(--color-primary-500)',
     '--ttabs-drop-target-outline': '2px dashed color-mix(in oklab, var(--color-primary-500) 50%, transparent)',
-    '--ttabs-split-indicator-color': 'color-mix(in oklab, var(--color-tertiary-500) 50%, transparent)',
+    '--ttabs-split-indicator-color': 'color-mix(in oklab, var(--color-surface-200-800) 70%, transparent)',
     '--ttabs-row-resizer-size': '6px',
     '--ttabs-row-resizer-offset': '-3px',
     '--ttabs-column-resizer-size': '6px',
@@ -91,36 +90,3 @@ export const SKELETON_GLASS_THEME: TtabsTheme = {
     '--ttabs-grid-bg': 'color-mix(in oklab, var(--color-surface-200-800) 30%, transparent)'
   }
 };
-
-// Create a custom close button component for Skeleton UI
-// Note: this should be implemented as a .svelte file, but included here for reference
-/*
-<!-- SkeletonCloseButton.svelte -->
-<script lang="ts">
-  export let tabId: string;
-  export let ttabs: any;
-  export let onClose: () => void;
-</script>
-
-<button
-  class="btn-icon btn-icon-sm variant-ghost hover:variant-soft rounded-full"
-  on:click={(e) => {
-    e.stopPropagation();
-    onClose();
-  }}
-  aria-label="Close tab"
->
-  <span class="text-sm">✕</span>
-</button>
-
-<style>
-  button {
-    margin-left: 8px;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-</style>
-*/ 
