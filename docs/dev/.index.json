@@ -11,14 +11,14 @@
       "label": "Testing"
     },
     {
-      "name": "files",
-      "type": "section",
-      "label": "Files"
-    },
-    {
       "name": "releases",
       "type": "page",
       "label": "Releases"
+    },
+    {
+      "name": "files",
+      "type": "section",
+      "label": "Files"
     },
     {
       "name": "platforms",
