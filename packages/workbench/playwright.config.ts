@@ -13,8 +13,8 @@ export default defineConfig({
 	use: {
 		baseURL: 'http://localhost:5173',
 		trace: 'on-first-retry',
-    viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 2
+		viewport: { width: 1280, height: 720 },
+		deviceScaleFactor: 2,
 	},
 	webServer: {
 		command: 'npm run dev',
@@ -23,7 +23,6 @@ export default defineConfig({
 		cwd: __dirname,
 	},
 	projects: [
-		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+		{ name: 'chromium' },
 	],
 });
-

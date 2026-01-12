@@ -31,13 +31,15 @@ const nodes = {
       label: {},
     },
     toDOM(node: PMNode): DOMOutputSpec {
+      const path = String(node.attrs.path ?? "");
+      const label = String(node.attrs.label ?? "");
       return [
         "span",
         {
-          class: "inline-flex items-center gap-1 px-1.5 rounded-md bg-primary-300-700 text-xs font-semibold",
-          "data-file-path": node.attrs.path,
+          class: "chat-file-mention anchor",
+          "data-file-path": path,
         },
-        `${node.attrs.label}`,
+        label,
       ] as DOMOutputSpec;
     },
     parseDOM: [

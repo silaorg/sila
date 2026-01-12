@@ -726,19 +726,19 @@
 
 <style>
   :global(.chat-file-mention) {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0 0.4rem;
-    border-radius: 0.375rem;
-    background: rgba(59, 130, 246, 0.16);
-    color: rgb(37, 99, 235);
-    font-size: 0.85em;
-    font-weight: 600;
+    display: inline;
+    padding: 0 0.2rem;
+    border-radius: 0.4rem;
+    background: color-mix(in oklab, var(--anchor-font-color) 16%, transparent);
+    color: var(--anchor-font-color);
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+    vertical-align: baseline;
   }
 
   :global(.dark .chat-file-mention) {
-    background: rgba(96, 165, 250, 0.15);
-    color: rgb(191, 219, 254);
+    background: color-mix(in oklab, var(--anchor-font-color-dark) 18%, transparent);
+    color: var(--anchor-font-color-dark);
   }
 </style>
