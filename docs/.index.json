@@ -31,11 +31,6 @@
       "label": "Features"
     },
     {
-      "name": "compare",
-      "type": "section",
-      "label": "Compare Sila"
-    },
-    {
       "name": "how-to",
       "type": "section",
       "label": "How To"
