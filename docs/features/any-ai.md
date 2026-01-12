@@ -2,6 +2,8 @@
 
 Sila is not tied to a single model or provider. You decide which AI services to use and can change them at any time.
 
+<Screenshot name="providers" alt="AI providers in Sila" />
+
 ## Bring your own keys
 Keys are long, unique passwords that providers give you. They let apps access the service without signing in each time.
 

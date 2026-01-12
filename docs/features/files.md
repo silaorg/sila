@@ -2,6 +2,8 @@
 
 You can upload files to workspaces and organize them in folders.
 
+<Screenshot name="assets" alt="Files and folders in Sila" />
+
 Attachments stay local to the chat, but you can move them to workspace assets to make them available to other assistants.
 
 Upload files to workspace folders from the file browser. Use the Upload button or drag and drop files into a folder. Create folders and move files there to keep assets organized.

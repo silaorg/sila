@@ -2,6 +2,8 @@
 
 If you already used ChatGPT, you know how to chat in Sila. Chat is also flexible: switch assistants in the same conversation, edit any message, and branch replies.
 
+<Screenshot name="app" alt="Chats in Sila" />
+
 ## Attach files
 
 Drag images or documents into a chat. They stay in your workspace, and the assistant can reference them.

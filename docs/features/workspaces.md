@@ -2,6 +2,8 @@
 
 Sila organizes everything you do into workspaces. A workspace holds your conversations, files, and assistants for a project or interest. Unlike ChatGPT, you choose where your workspace is stored. You can create as many workspaces as you want and switch between them with a click.
 
+<Screenshot name="workspaces" alt="Workspaces in Sila" />
+
 ## You own your data
 
 Every workspace is stored as ordinary files on your computer. There is no account or remote server; the content belongs solely to you. This means you can explore ideas, store sensitive material, or experiment with any model without worrying about someone else having access.
