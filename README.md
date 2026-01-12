@@ -24,7 +24,7 @@ Unlike most similar projects, you don't need to host a server or register an acc
 
 Organize your chats and assistants into separate workspaces. Each workspace can have its own assistants, files, themes, and languages. Create multiple workspaces for different purposes and switch between them quickly.
 
-![Workspaces](docs/screenshots/workspaces-dark.png.png)
+![Workspaces](docs/screenshots/workspaces-dark.png)
 
 ### Files and folders
 
