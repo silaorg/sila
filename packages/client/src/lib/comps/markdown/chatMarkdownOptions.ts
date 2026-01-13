@@ -14,10 +14,7 @@ import {
 
 export const chatMarkdownOptions = new MarkpageOptions()
   .overrideBuiltinToken("code", MarkdownCode as Component)
-  .overrideBuiltinToken("codespan", MarkdownCodeSpan as Component)
-  // @NOTE: those are not built-in tokens; let's refactor the logic for defining custom tokensin Markpage 
-  .overrideBuiltinToken("texInline", MarkdownTeX as Component)
-  .overrideBuiltinToken("texBlock", MarkdownTeXBlock as Component)
+  .overrideBuiltinToken("codespan", MarkdownCodeSpan as Component) 
   .overrideBuiltinToken("link", MarkdownLink as Component)
   .overrideBuiltinToken("image", MarkdownImage as Component)
   .extendMarkdown({
@@ -26,5 +23,4 @@ export const chatMarkdownOptions = new MarkpageOptions()
       createBlockLatexExtension(MarkdownTeXBlock),
     ],
   });
-
 
