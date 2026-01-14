@@ -16,7 +16,12 @@ export type SearchResult = {
 };
 
 export async function buildChatSearchEntries(space: Space): Promise<SearchThreadEntry[]> {
-  const appTreeIds = space.getAppTreeIds();
+  const appTreeRefs = space.getAppTreeIds();
+  const appTreeIds = appTreeRefs.length > 0
+    ? appTreeRefs
+        .map((vertexId) => space.getVertex(vertexId)?.getProperty("tid"))
+        .filter((treeId): treeId is string => typeof treeId === "string")
+    : space.getLoadedAppTrees().map((tree) => tree.getId());
   const entries: SearchThreadEntry[] = [];
 
   for (const appTreeId of appTreeIds) {
