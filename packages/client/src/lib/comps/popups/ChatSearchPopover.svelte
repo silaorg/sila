@@ -63,14 +63,14 @@
       return;
     }
 
-    entries;
+    const currentEntries = entries;
     error = null;
     let cancelled = false;
     void (async () => {
       try {
         const nextResults = await queryChatSearch(
           currentSpace,
-          entries,
+          currentEntries,
           trimmed,
         );
         if (!cancelled) {
