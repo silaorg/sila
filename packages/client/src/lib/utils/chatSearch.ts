@@ -44,7 +44,8 @@ export async function buildChatSearchEntries(space: Space): Promise<SearchThread
     const messages = chatData.messageVertices
       .map((vertex) => vertex.getProperty("text"))
       .filter((text): text is string => typeof text === "string" && text.trim().length > 0);
-    const updatedAt = appTree.tree.root?.updatedAt?.getTime();
+    const updatedAt = appTree.tree.root?.updatedAt?.getTime()
+      ?? appTree.tree.root?.createdAt?.getTime();
 
     entries.push({
       threadId: appTreeId,

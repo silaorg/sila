@@ -1,12 +1,11 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
   import Settings from "lucide-svelte/icons/settings-2";
   import AppButtons from "./AppButtons.svelte";
   import AppTrees from "./AppTrees.svelte";
   import SpaceSelectorPopup from "../popups/SpaceSelectorPopup.svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
+  import ChatSearchPopover from "./ChatSearchPopover.svelte";
   import SidebarToggle from "./SidebarToggle.svelte";
-  import { i18n } from "@sila/client";
 </script>
 
 <div class="flex flex-col h-full bg-surface-100-900/50" data-testid="sidebar">
@@ -16,14 +15,7 @@
         <SpaceSelectorPopup />
       </div>
       <div class="flex items-center">
-        <SwinsNavButton
-          component="chatSearch"
-          title="Search"
-          className="p-2 rounded hover:preset-tonal"
-          dataRole="open-search"
-        >
-          <Search size={18} />
-        </SwinsNavButton>
+        <ChatSearchPopover />
         <SwinsNavButton
           component="settingsWorkspacePreferences"
           title="Preferences"
