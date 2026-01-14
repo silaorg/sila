@@ -58,6 +58,30 @@ contextBridge.exposeInMainWorld('desktopNet', {
   }
 });
 
+// Expose desktop search APIs to the renderer
+contextBridge.exposeInMainWorld('desktopSearch', {
+  /**
+   * @param {string} spaceId
+   */
+  loadChatIndex: (spaceId) => {
+    return ipcRenderer.invoke('sila:chat-search:load-index', spaceId);
+  },
+  /**
+   * @param {string} spaceId
+   * @param {Array<{ threadId: string; title: string; messages: string[]; updatedAt?: number }>} entries
+   */
+  saveChatIndex: (spaceId, entries) => {
+    return ipcRenderer.invoke('sila:chat-search:save-index', { spaceId, entries });
+  },
+  /**
+   * @param {string} spaceId
+   * @param {string} query
+   */
+  queryChatIndex: (spaceId, query) => {
+    return ipcRenderer.invoke('sila:chat-search:query', { spaceId, query });
+  },
+});
+
 // Expose menu action listener to the renderer
 contextBridge.exposeInMainWorld('desktopMenu', {
   /**
