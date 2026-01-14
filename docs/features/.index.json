@@ -46,11 +46,6 @@
       "label": "Research"
     },
     {
-      "name": "shortcuts",
-      "type": "page",
-      "label": "Shortcuts"
-    },
-    {
       "name": "tabs-and-tiles",
       "type": "page",
       "label": "Tabs and Tiles"
