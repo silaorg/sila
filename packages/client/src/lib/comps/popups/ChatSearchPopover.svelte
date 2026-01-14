@@ -59,7 +59,8 @@
   });
 
   onDestroy(() => {
-    if (popoverElement?.parentElement === document.body) {
+    if (!popoverElement || typeof document === "undefined") return;
+    if (popoverElement.parentElement === document.body) {
       document.body.removeChild(popoverElement);
     }
   });
@@ -114,6 +115,12 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closePopover();
+      return;
+    }
     if (!open || visibleItems.length === 0) return;
 
     if (event.key === "ArrowDown") {
@@ -164,14 +171,14 @@
   }}
 >
   <div
-    class="absolute left-0 top-0 w-full h-full cursor-auto bg-transparent"
+    class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80 transition-opacity"
     onclick={closePopover}
   ></div>
-  <div class="relative card selectable-text rounded-lg bg-surface-50-950 border-1 border-surface-200-800 shadow-2xl w-[520px] flex flex-col overflow-hidden">
-    <div class="flex items-center gap-2 border-b border-surface-200-800">
+  <div class="relative card selectable-text rounded-lg bg-surface-50-950 border-1 border-surface-200-800 shadow-2xl w-[520px] flex flex-col overflow-hidden max-h-[calc(100vh-10rem)]">
+    <div class="flex items-center gap-2 border-b border-surface-200-800 px-3 py-2.5">
       <div class="relative flex-1">
         <input
-          class="input w-full pl-10 text-base border border-surface-200-800 rounded-xl outline-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus:border-surface-200-800 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-none focus-visible:shadow-none"
+          class="input w-full pl-10 pr-3 py-2 text-base border-0 rounded-xl outline-none ring-0 ring-offset-0 shadow-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-none focus-visible:shadow-none"
           type="text"
           placeholder="Search chats..."
           bind:value={query}

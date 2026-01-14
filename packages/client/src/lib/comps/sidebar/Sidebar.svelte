@@ -4,7 +4,7 @@
   import AppTrees from "./AppTrees.svelte";
   import SpaceSelectorPopup from "../popups/SpaceSelectorPopup.svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
-  import ChatSearchPopover from "./ChatSearchPopover.svelte";
+  import ChatSearchPopover from "../popups/ChatSearchPopover.svelte";
   import SidebarToggle from "./SidebarToggle.svelte";
 </script>
 
