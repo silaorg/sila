@@ -18,11 +18,10 @@ We persist the index per workspace.
 On desktop, store it in app data, outside the workspace directory.
 Path: `app.getPath("userData")/search-index/<spaceId>/chat-index.json`.
 This avoids sync conflicts in local-first workspaces.
+Outside desktop, we keep the index in memory.
+It rebuilds when you open chat search.
 
-Outside desktop, store a mutable file inside the space.
-It lives under `space-v1/files/var/uuid/` in the workspace root.
-
-Format (both desktop and workspace storage):
+Format (desktop storage):
 
 ```json
 {

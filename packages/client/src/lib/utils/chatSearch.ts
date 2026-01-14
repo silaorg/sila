@@ -31,7 +31,6 @@ type DesktopSearchBridge = {
   queryChatIndex?: (spaceId: string, query: string) => Promise<SearchResult[]>;
 };
 
-const CHAT_SEARCH_INDEX_UUID = "00000000-0000-0000-0000-000000000001";
 const CHAT_SEARCH_INDEX_VERSION = 1 as const;
 
 export async function buildChatSearchEntries(
@@ -220,25 +219,7 @@ async function loadChatSearchIndex(space: Space): Promise<ChatSearchIndex | null
     }
   }
 
-  const store = space.fileStore;
-  if (!store) return null;
-
-  try {
-    const exists = await store.existsMutable(CHAT_SEARCH_INDEX_UUID);
-    if (!exists) return null;
-    const bytes = await store.getMutable(CHAT_SEARCH_INDEX_UUID);
-    const text = new TextDecoder().decode(bytes);
-    const parsed = JSON.parse(text) as ChatSearchIndex;
-    if (parsed?.version !== CHAT_SEARCH_INDEX_VERSION || !Array.isArray(parsed.entries)) {
-      return null;
-    }
-    if (!parsed.entries.every(isValidSearchEntry)) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
@@ -258,18 +239,6 @@ async function saveChatSearchIndex(space: Space, entries: SearchThreadEntry[]): 
     await desktopSearch.saveChatIndex(space.getId(), entries);
     return;
   }
-
-  const store = space.fileStore;
-  if (!store) return;
-
-  const payload: ChatSearchIndex = {
-    version: CHAT_SEARCH_INDEX_VERSION,
-    updatedAt: Date.now(),
-    entries,
-  };
-  const text = JSON.stringify(payload);
-  const bytes = new TextEncoder().encode(text);
-  await store.putMutable(CHAT_SEARCH_INDEX_UUID, bytes);
 }
 
 function getDesktopSearch(): DesktopSearchBridge | null {
