@@ -21,6 +21,9 @@
   let popoverElement: HTMLDivElement | null = null;
   let inputElement: HTMLInputElement | null = null;
 
+  const recentWindowMs = 7 * 24 * 60 * 60 * 1000;
+  const recentLimit = 8;
+
   const results = $derived.by(() =>
     searchChatThreads(entries, query)
   );
@@ -29,12 +32,12 @@
   const hasQuery = $derived(trimmedQuery.length > 0);
 
   const recentThreads = $derived.by(() => {
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - recentWindowMs;
     const sorted = [...entries].sort(
       (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
     );
     const withinWeek = sorted.filter((entry) => (entry.updatedAt ?? 0) >= cutoff);
-    return (withinWeek.length > 0 ? withinWeek : sorted).slice(0, 8);
+    return (withinWeek.length > 0 ? withinWeek : sorted).slice(0, recentLimit);
   });
 
   const visibleItems = $derived.by(() =>
@@ -66,15 +69,11 @@
   });
 
   $effect(() => {
-    query;
-    activeIndex = 0;
-  });
-
-  $effect(() => {
     if (!open) {
       activeIndex = 0;
       return;
     }
+    query;
     if (visibleItems.length === 0) {
       activeIndex = 0;
       return;
@@ -164,6 +163,7 @@
   data-state={open ? "open" : "closed"}
   role="dialog"
   aria-hidden={!open}
+  onkeydown={handleKeydown}
   use:closeStack={() => {
     if (!open) return false;
     closePopover();
