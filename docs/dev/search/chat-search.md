@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Provide a simple chat search for titles and message text.
-Index is local and easy to rebuild.
-On desktop, keep the index outside the workspace folder.
+Chat search scans chat titles and message text.
+It builds an index per workspace.
+Desktop builds persist that index outside the workspace folder.
 
 ## Indexing idea
 
-Build a lightweight in-memory index from chat app trees.
-Tokenize titles and message bodies into terms.
-Store per-thread metadata (title, updatedAt).
+We build the index from chat app trees.
+Each entry stores a thread title, messages, and updatedAt.
+Tokenization is simple and runs locally.
 
 ## Storage
 
