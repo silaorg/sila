@@ -8,7 +8,6 @@
     type SearchThreadEntry,
   } from "@sila/client/utils/chatSearch";
   import Search from "lucide-svelte/icons/search";
-  import RefreshCcw from "lucide-svelte/icons/refresh-ccw";
 
   const clientState = useClientState();
 
@@ -90,15 +89,9 @@
         </span>
       </div>
     </div>
-    <button
-      class="btn btn-sm preset-tonal"
-      type="button"
-      onclick={buildIndex}
-      disabled={isIndexing}
-    >
-      <RefreshCcw size={16} />
-      {isIndexing ? "Indexing" : "Rebuild"}
-    </button>
+    {#if isIndexing}
+      <div class="text-xs text-surface-500">Indexing…</div>
+    {/if}
   </div>
 
   {#if error}

@@ -28,6 +28,7 @@
           component="settingsWorkspacePreferences"
           title="Preferences"
           className="p-2 rounded hover:preset-tonal"
+          dataRole="open-settings"
         >
           <Settings size={18} />
         </SwinsNavButton>
