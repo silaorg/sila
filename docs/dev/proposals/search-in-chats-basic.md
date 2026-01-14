@@ -101,6 +101,13 @@ No stemming or language detection.
 - Update on thread change.
 - Use a debounce timer (500ms).
 
+## When to index
+
+- On workspace open, if no index exists.
+- After thread changes settle (debounce 500ms).
+- On demand from the search modal if the index is missing.
+- On app idle, rebuild only if a version marker changes.
+
 ## Query flow
 
 - Tokenize query.
