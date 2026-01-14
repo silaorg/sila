@@ -74,9 +74,8 @@ export async function buildChatSearchEntries(
     const cached = existingEntries.get(appTreeId);
     processed.add(appTreeId);
 
-    if (cached && cached.updatedAt === updatedAt) {
+    if (cached && updatedAt !== undefined && cached.updatedAt === updatedAt) {
       if (cached.title !== title) {
-        cached.title = title;
         shouldPersist = true;
       }
       entries.push({
@@ -194,16 +193,27 @@ async function loadChatSearchIndex(space: Space): Promise<ChatSearchIndex | null
     const bytes = await store.getMutable(CHAT_SEARCH_INDEX_UUID);
     const text = new TextDecoder().decode(bytes);
     const parsed = JSON.parse(text) as ChatSearchIndex;
-    if (
-      parsed?.version !== CHAT_SEARCH_INDEX_VERSION
-      || !Array.isArray(parsed.entries)
-    ) {
+    if (parsed?.version !== CHAT_SEARCH_INDEX_VERSION || !Array.isArray(parsed.entries)) {
+      return null;
+    }
+    if (!parsed.entries.every(isValidSearchEntry)) {
       return null;
     }
     return parsed;
   } catch {
     return null;
   }
+}
+
+function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as SearchThreadEntry;
+  if (typeof entry.threadId !== "string") return false;
+  if (typeof entry.title !== "string") return false;
+  if (!Array.isArray(entry.messages)) return false;
+  if (!entry.messages.every((message) => typeof message === "string")) return false;
+  if (entry.updatedAt !== undefined && typeof entry.updatedAt !== "number") return false;
+  return true;
 }
 
 async function saveChatSearchIndex(space: Space, entries: SearchThreadEntry[]): Promise<void> {
