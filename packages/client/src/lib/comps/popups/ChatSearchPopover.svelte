@@ -223,7 +223,6 @@
           placeholder="Search chats..."
           bind:value={query}
           bind:this={inputElement}
-          onkeydown={handleKeydown}
         />
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500">
           <Search size={16} />
