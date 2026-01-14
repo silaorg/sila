@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Search from "lucide-svelte/icons/search";
   import Settings from "lucide-svelte/icons/settings-2";
   import AppButtons from "./AppButtons.svelte";
   import AppTrees from "./AppTrees.svelte";
@@ -15,6 +16,14 @@
         <SpaceSelectorPopup />
       </div>
       <div class="flex items-center">
+        <SwinsNavButton
+          component="chatSearch"
+          title="Search"
+          className="p-2 rounded hover:preset-tonal"
+          dataRole="open-search"
+        >
+          <Search size={18} />
+        </SwinsNavButton>
         <SwinsNavButton
           component="settingsWorkspacePreferences"
           title="Preferences"
