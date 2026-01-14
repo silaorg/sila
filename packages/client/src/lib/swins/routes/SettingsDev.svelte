@@ -22,7 +22,7 @@
     indexError = null;
 
     try {
-      await buildChatSearchEntries(clientState.currentSpace);
+      await buildChatSearchEntries(clientState.currentSpace, { forceRebuild: true });
       lastIndexedAt = Date.now();
     } catch (error) {
       indexError = error instanceof Error ? error.message : String(error);
