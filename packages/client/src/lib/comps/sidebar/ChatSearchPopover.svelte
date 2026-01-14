@@ -69,9 +69,10 @@
 <Popover
   {open}
   onOpenChange={(event) => (open = event.open)}
-  positioning={{ placement: "bottom" }}
+  positioning={{ placement: "bottom", strategy: "fixed" }}
   arrow={false}
   triggerBase="p-2 rounded hover:preset-tonal"
+  positionerClasses="!left-1/2 !top-16 !-translate-x-1/2"
   contentBase="card bg-surface-50-950 border border-surface-200-800 shadow-2xl w-[520px] rounded-2xl overflow-hidden"
 >
   {#snippet trigger()}
@@ -81,10 +82,10 @@
   {/snippet}
 
   {#snippet content()}
-    <div class="flex items-center gap-2 px-4 py-3 border-b border-surface-200-800">
+    <div class="flex items-center gap-2 border-b border-surface-200-800">
       <div class="relative flex-1">
         <input
-          class="input w-full pl-10 text-base"
+          class="input w-full pl-10 text-base border border-surface-200-800 rounded-xl"
           type="text"
           placeholder="Search chats..."
           bind:value={query}
