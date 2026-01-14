@@ -25,7 +25,12 @@ type BuildChatSearchOptions = {
   forceRebuild?: boolean;
 };
 
-const CHAT_SEARCH_INDEX_UUID = "00000000-0000-0000-0000-000000000001";
+type DesktopSearchBridge = {
+  loadChatIndex?: (spaceId: string) => Promise<ChatSearchIndex | null>;
+  saveChatIndex?: (spaceId: string, entries: SearchThreadEntry[]) => Promise<boolean>;
+  queryChatIndex?: (spaceId: string, query: string) => Promise<SearchResult[]>;
+};
+
 const CHAT_SEARCH_INDEX_VERSION = 1 as const;
 
 export async function buildChatSearchEntries(
@@ -157,6 +162,19 @@ export function searchChatThreads(entries: SearchThreadEntry[], query: string): 
   });
 }
 
+export async function queryChatSearch(
+  space: Space,
+  entries: SearchThreadEntry[],
+  query: string,
+): Promise<SearchResult[]> {
+  const desktopSearch = getDesktopSearch();
+  if (desktopSearch?.queryChatIndex) {
+    return await desktopSearch.queryChatIndex(space.getId(), query);
+  }
+
+  return searchChatThreads(entries, query);
+}
+
 function tokenize(input: string): string[] {
   return input
     .toLowerCase()
@@ -184,25 +202,24 @@ function truncate(value: string, maxLength: number): string {
 }
 
 async function loadChatSearchIndex(space: Space): Promise<ChatSearchIndex | null> {
-  const store = space.fileStore;
-  if (!store) return null;
-
-  try {
-    const exists = await store.existsMutable(CHAT_SEARCH_INDEX_UUID);
-    if (!exists) return null;
-    const bytes = await store.getMutable(CHAT_SEARCH_INDEX_UUID);
-    const text = new TextDecoder().decode(bytes);
-    const parsed = JSON.parse(text) as ChatSearchIndex;
-    if (parsed?.version !== CHAT_SEARCH_INDEX_VERSION || !Array.isArray(parsed.entries)) {
+  const desktopSearch = getDesktopSearch();
+  if (desktopSearch?.loadChatIndex) {
+    try {
+      const remoteIndex = await desktopSearch.loadChatIndex(space.getId());
+      if (!remoteIndex) return null;
+      if (remoteIndex?.version !== CHAT_SEARCH_INDEX_VERSION || !Array.isArray(remoteIndex.entries)) {
+        return null;
+      }
+      if (!remoteIndex.entries.every(isValidSearchEntry)) {
+        return null;
+      }
+      return remoteIndex;
+    } catch {
       return null;
     }
-    if (!parsed.entries.every(isValidSearchEntry)) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
   }
+
+  return null;
 }
 
 function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
@@ -217,15 +234,14 @@ function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
 }
 
 async function saveChatSearchIndex(space: Space, entries: SearchThreadEntry[]): Promise<void> {
-  const store = space.fileStore;
-  if (!store) return;
+  const desktopSearch = getDesktopSearch();
+  if (desktopSearch?.saveChatIndex) {
+    await desktopSearch.saveChatIndex(space.getId(), entries);
+    return;
+  }
+}
 
-  const payload: ChatSearchIndex = {
-    version: CHAT_SEARCH_INDEX_VERSION,
-    updatedAt: Date.now(),
-    entries,
-  };
-  const text = JSON.stringify(payload);
-  const bytes = new TextEncoder().encode(text);
-  await store.putMutable(CHAT_SEARCH_INDEX_UUID, bytes);
+function getDesktopSearch(): DesktopSearchBridge | null {
+  if (typeof window === "undefined") return null;
+  return ((window as any).desktopSearch ?? null) as DesktopSearchBridge | null;
 }

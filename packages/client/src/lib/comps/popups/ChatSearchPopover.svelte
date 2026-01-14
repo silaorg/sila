@@ -5,7 +5,7 @@
   import { closeStack } from "@sila/client/utils/closeStack";
   import {
     buildChatSearchEntries,
-    searchChatThreads,
+    queryChatSearch,
     type SearchResult,
     type SearchThreadEntry,
   } from "@sila/client/utils/chatSearch";
@@ -24,9 +24,7 @@
   const recentWindowMs = 7 * 24 * 60 * 60 * 1000;
   const recentLimit = 8;
 
-  const results = $derived.by(() =>
-    searchChatThreads(entries, query)
-  );
+  let results = $state<SearchResult[]>([]);
 
   const trimmedQuery = $derived(query.trim());
   const hasQuery = $derived(trimmedQuery.length > 0);
@@ -47,6 +45,48 @@
   $effect(() => {
     if (!open) return;
     void buildIndex();
+  });
+
+  $effect(() => {
+    if (!open) {
+      results = [];
+      return;
+    }
+    const trimmed = query.trim();
+    if (!trimmed) {
+      results = [];
+      return;
+    }
+    const currentSpace = clientState.currentSpace;
+    if (!currentSpace) {
+      results = [];
+      return;
+    }
+
+    const currentEntries = entries;
+    error = null;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const nextResults = await queryChatSearch(
+          currentSpace,
+          currentEntries,
+          trimmed,
+        );
+        if (!cancelled) {
+          results = nextResults;
+        }
+      } catch (err) {
+        if (!cancelled) {
+          error = err instanceof Error ? err.message : String(err);
+          results = [];
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   });
 
   $effect(() => {
@@ -183,7 +223,6 @@
           placeholder="Search chats..."
           bind:value={query}
           bind:this={inputElement}
-          onkeydown={handleKeydown}
         />
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500">
           <Search size={16} />
