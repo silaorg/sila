@@ -4,6 +4,7 @@
 
 Provide a simple chat search for titles and message text.
 Index is local and easy to rebuild.
+On desktop, keep the index outside the workspace folder.
 
 ## Indexing idea
 
@@ -14,10 +15,14 @@ Store per-thread metadata (title, updatedAt).
 ## Storage
 
 We persist the index per workspace.
-We store it as a mutable file inside the space.
+On desktop, store it in app data, outside the workspace directory.
+Path: `app.getPath("userData")/search-index/<spaceId>/chat-index.json`.
+This avoids sync conflicts in local-first workspaces.
+
+Outside desktop, store a mutable file inside the space.
 It lives under `space-v1/files/var/uuid/` in the workspace root.
 
-Format:
+Format (both desktop and workspace storage):
 
 ```json
 {
@@ -60,3 +65,16 @@ Format:
 - Add change observers to refresh without opening search.
 - Add file/document search in the same UI.
 - Improve ranking (recency, field weighting).
+
+## Desktop backend
+
+Electron runs search in the main process.
+The UI calls it through IPC.
+
+IPC handlers:
+
+- `sila:chat-search:load-index`
+- `sila:chat-search:save-index`
+- `sila:chat-search:query`
+
+Renderer bridge: `window.desktopSearch`.
