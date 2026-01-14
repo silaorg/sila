@@ -15,7 +15,27 @@ export type SearchResult = {
   score: number;
 };
 
-export async function buildChatSearchEntries(space: Space): Promise<SearchThreadEntry[]> {
+type ChatSearchIndex = {
+  version: 1;
+  updatedAt: number;
+  entries: SearchThreadEntry[];
+};
+
+type BuildChatSearchOptions = {
+  forceRebuild?: boolean;
+};
+
+const CHAT_SEARCH_INDEX_UUID = "00000000-0000-0000-0000-000000000001";
+const CHAT_SEARCH_INDEX_VERSION = 1 as const;
+
+export async function buildChatSearchEntries(
+  space: Space,
+  options: BuildChatSearchOptions = {},
+): Promise<SearchThreadEntry[]> {
+  const persistedIndex = options.forceRebuild ? null : await loadChatSearchIndex(space);
+  const existingEntries = new Map(
+    (persistedIndex?.entries ?? []).map((entry) => [entry.threadId, entry])
+  );
   const appTreeRefs = space.getAppTreeIds();
   const appTreeIds = appTreeRefs.length > 0
     ? appTreeRefs
@@ -23,6 +43,8 @@ export async function buildChatSearchEntries(space: Space): Promise<SearchThread
         .filter((treeId): treeId is string => typeof treeId === "string")
     : space.getLoadedAppTrees().map((tree) => tree.getId());
   const entries: SearchThreadEntry[] = [];
+  const processed = new Set<string>();
+  let shouldPersist = options.forceRebuild ?? false;
 
   for (const appTreeId of appTreeIds) {
     let appTree = space.getAppTree(appTreeId);
@@ -30,6 +52,11 @@ export async function buildChatSearchEntries(space: Space): Promise<SearchThread
       try {
         appTree = await space.loadAppTree(appTreeId);
       } catch {
+        const cached = existingEntries.get(appTreeId);
+        if (cached) {
+          entries.push(cached);
+          processed.add(appTreeId);
+        }
         continue;
       }
     }
@@ -41,11 +68,27 @@ export async function buildChatSearchEntries(space: Space): Promise<SearchThread
     const chatData = new ChatAppData(space, appTree);
     const spaceVertex = space.getVertexReferencingAppTree(appTreeId);
     const title = chatData.title ?? spaceVertex?.name ?? "New chat";
+    const updatedAt = appTree.tree.root?.updatedAt?.getTime()
+      ?? appTree.tree.root?.createdAt?.getTime();
+
+    const cached = existingEntries.get(appTreeId);
+    processed.add(appTreeId);
+
+    if (cached && updatedAt !== undefined && cached.updatedAt === updatedAt) {
+      if (cached.title !== title) {
+        shouldPersist = true;
+      }
+      entries.push({
+        ...cached,
+        title,
+        updatedAt,
+      });
+      continue;
+    }
+
     const messages = chatData.messageVertices
       .map((vertex) => vertex.getProperty("text"))
       .filter((text): text is string => typeof text === "string" && text.trim().length > 0);
-    const updatedAt = appTree.tree.root?.updatedAt?.getTime()
-      ?? appTree.tree.root?.createdAt?.getTime();
 
     entries.push({
       threadId: appTreeId,
@@ -53,6 +96,20 @@ export async function buildChatSearchEntries(space: Space): Promise<SearchThread
       messages,
       updatedAt,
     });
+    shouldPersist = true;
+  }
+
+  if (!shouldPersist && persistedIndex) {
+    for (const entryId of existingEntries.keys()) {
+      if (!processed.has(entryId)) {
+        shouldPersist = true;
+        break;
+      }
+    }
+  }
+
+  if (shouldPersist) {
+    await saveChatSearchIndex(space, entries);
   }
 
   return entries;
@@ -124,4 +181,51 @@ function countOccurrences(haystack: string, needle: string): number {
 function truncate(value: string, maxLength: number): string {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+async function loadChatSearchIndex(space: Space): Promise<ChatSearchIndex | null> {
+  const store = space.fileStore;
+  if (!store) return null;
+
+  try {
+    const exists = await store.existsMutable(CHAT_SEARCH_INDEX_UUID);
+    if (!exists) return null;
+    const bytes = await store.getMutable(CHAT_SEARCH_INDEX_UUID);
+    const text = new TextDecoder().decode(bytes);
+    const parsed = JSON.parse(text) as ChatSearchIndex;
+    if (parsed?.version !== CHAT_SEARCH_INDEX_VERSION || !Array.isArray(parsed.entries)) {
+      return null;
+    }
+    if (!parsed.entries.every(isValidSearchEntry)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as SearchThreadEntry;
+  if (typeof entry.threadId !== "string") return false;
+  if (typeof entry.title !== "string") return false;
+  if (!Array.isArray(entry.messages)) return false;
+  if (!entry.messages.every((message) => typeof message === "string")) return false;
+  if (entry.updatedAt !== undefined && typeof entry.updatedAt !== "number") return false;
+  return true;
+}
+
+async function saveChatSearchIndex(space: Space, entries: SearchThreadEntry[]): Promise<void> {
+  const store = space.fileStore;
+  if (!store) return;
+
+  const payload: ChatSearchIndex = {
+    version: CHAT_SEARCH_INDEX_VERSION,
+    updatedAt: Date.now(),
+    entries,
+  };
+  const text = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(text);
+  await store.putMutable(CHAT_SEARCH_INDEX_UUID, bytes);
 }
