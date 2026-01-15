@@ -1,37 +1,34 @@
-# Workbench screenshots for e2e tests
+# Workbench screenshots with Playwright
 
-Use the workbench app to capture UI screenshots.
-This is the fastest way to validate new UI work.
+We capture screenshots in Playwright e2e tests.
+Use the same flow for docs images and UI confirmation.
 
-## Steps
+## Why
 
-1) Start the client CSS build.
-2) Start the workbench dev server.
-3) Open the workbench route that shows your feature.
-4) Use Playwright to save a screenshot.
+- Visual confirmation for new UI features.
+- Screenshots for user docs.
 
-```bash
-# Terminal A
-npm -w packages/client run dev
+## Workflow
 
-# Terminal B
-cd packages/workbench
-npx vite dev --host 0.0.0.0 --port 4173
-```
+1) Create or update a workbench e2e test.
+2) Navigate to the workbench route for the feature.
+3) Wait for the UI to be ready.
+4) Call `page.screenshot` with a path under `screenshots/`.
 
-```python
-from playwright.sync_api import sync_playwright
+Example from existing tests:
 
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page(viewport={"width": 1280, "height": 720})
-    page.goto("http://127.0.0.1:4173/app/pumpkin-latte", wait_until="networkidle")
-    page.screenshot(path="artifacts/feature.png", full_page=True)
-    browser.close()
+```ts
+import { expect, test } from '@playwright/test';
+
+test('captures app UI', async ({ page }) => {
+  await page.goto('/app');
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByTestId('space-root')).toBeVisible();
+  await page.screenshot({ path: 'screenshots/app.png' });
+});
 ```
 
 ## Notes
 
-- Save the image under `artifacts/` so it is collected.
-- Attach the screenshot in the final response.
-- If the browser tool fails, report the failure and move on.
+- Keep screenshot names stable so diffs stay readable.
+- Use a route under `packages/workbench/src/routes`.
