@@ -13,6 +13,7 @@ Perhaps we need to setup a proper testing for the `packages/desktop` (Electron a
 The core tests use Vitest and the workbench uses Playwright.
 
 ## Run tests
+
 From the repository root:
 
 ```bash
@@ -33,6 +34,7 @@ npx vitest --config packages/core/tests/vitest.config.ts
 ```
 
 ### Playwright (workbench)
+
 ```bash
 # Run workbench Playwright tests
 npm -w packages/workbench run test
@@ -42,6 +44,7 @@ npm -w packages/workbench run test:ui
 ```
 
 #### Playwright browser install (required once per machine/CI image)
+
 Playwright tests need a browser binary (Chromium) downloaded locally.
 
 ```bash
@@ -53,6 +56,7 @@ npx playwright install --with-deps chromium
 ```
 
 ## AI provider keys (optional)
+
 Some tests use AI providers. Add API keys to enable them; tests auto-skip without keys.
 
 - Create `.env` in repo root
@@ -61,6 +65,7 @@ Some tests use AI providers. Add API keys to enable them; tests auto-skip withou
   - `OPENROUTER_API_KEY=...`
 
 ## Test assets
+
 Small, deterministic fixtures live in:
 ```
 packages/core/tests/assets/images/
@@ -68,13 +73,18 @@ packages/core/tests/assets/to-send/
 ```
 
 ## Troubleshooting
+
 - If postinstall scripts are blocked:
+
   ```bash
   npm install --ignore-scripts
   npm -w packages/core run test
   ```
+
 - If Playwright fails with "Executable doesn't exist ... run `npx playwright install`":
+  
   ```bash
   npx playwright install chromium
   ```
+  
 - AI tests without keys are expected to skip.

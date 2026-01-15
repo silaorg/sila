@@ -27,8 +27,3 @@ test('captures app UI', async ({ page }) => {
   await page.screenshot({ path: 'screenshots/app.png' });
 });
 ```
-
-## Notes
-
-- Keep screenshot names stable so diffs stay readable.
-- Use a route under `packages/workbench/src/routes`.
