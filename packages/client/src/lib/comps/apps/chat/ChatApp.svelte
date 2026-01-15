@@ -1,6 +1,7 @@
 <script lang="ts">
   import SendMessageForm from "../../forms/SendMessageForm.svelte";
   import ChatAppMessage from "./ChatAppMessage.svelte";
+  import FindInPage from "./FindInPage.svelte";
   import { onMount, tick } from "svelte";
   import { timeout } from "@sila/core";
   import { ChatAppData } from "@sila/core";
@@ -8,21 +9,13 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
-  import { ArrowDown, ChevronDown, ChevronUp, Images, Search, X } from "lucide-svelte";
+  import { ArrowDown, Images } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { provideChatAppData } from "./chatAppContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
   import { i18n } from "@sila/client";
-  import {
-    clearActivePageSearchMatch,
-    clearPageSearchHighlights,
-    highlightPageSearchMatches,
-    setActivePageSearchMatch,
-    type PageSearchController,
-    type PageSearchMatch,
-  } from "@sila/client/utils/pageSearch";
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
@@ -46,24 +39,11 @@
   let lastMessageTxt: string | null = null;
   let lastProcessMessagesExpanded = $state(false);
   let isScrollingProgrammatically = $state(false);
-  let pageSearchOpen = $state(false);
-  let pageSearchQuery = $state("");
-  let pageSearchMatches = $state<PageSearchMatch[]>([]);
-  let pageSearchActiveIndex = $state(0);
-  let pageSearchActiveMatch = $state<PageSearchMatch | null>(null);
-  let pageSearchInputEl = $state<HTMLInputElement | null>(null);
-  let pageSearchTimer: number | null = null;
-
-  const isMac =
-    typeof window !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
-
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
   let pageSearchEnabled = $derived(
     clientState.pageSearchConfig.enabled && !clientState.pageSearchConfig.useNative
   );
-  let pageSearchTotal = $derived(pageSearchMatches.length);
-  let pageSearchIndex = $derived(pageSearchTotal > 0 ? pageSearchActiveIndex + 1 : 0);
 
   const visibleMessages = $derived.by(() => {
     const messagesToShow: VisibleMessage[] = [];
@@ -129,24 +109,6 @@
     return () => {
       resizeObserver.disconnect();
     };
-  });
-
-  $effect(() => {
-    if (!pageSearchOpen) return;
-    messages;
-    if (!messageContainerEl) return;
-    tick().then(() => {
-      schedulePageSearch();
-    });
-  });
-
-  $effect(() => {
-    if (!pageSearchOpen && messageContainerEl) {
-      clearPageSearchHighlights(messageContainerEl);
-      pageSearchMatches = [];
-      pageSearchActiveIndex = 0;
-      pageSearchActiveMatch = null;
-    }
   });
 
   function updateScrollMetrics() {
@@ -215,110 +177,6 @@
     formStatus = "can-send-message";
   }
 
-  function schedulePageSearch() {
-    if (!pageSearchOpen) return;
-    if (!messageContainerEl) return;
-    if (pageSearchTimer) {
-      window.clearTimeout(pageSearchTimer);
-    }
-    pageSearchTimer = window.setTimeout(() => {
-      pageSearchTimer = null;
-      applyPageSearch();
-    }, 50);
-  }
-
-  function applyPageSearch() {
-    if (!messageContainerEl) return;
-    const result = highlightPageSearchMatches(messageContainerEl, pageSearchQuery, 1000);
-    pageSearchMatches = result.matches;
-    if (pageSearchMatches.length === 0) {
-      clearActivePageSearchMatch(pageSearchActiveMatch);
-      pageSearchActiveMatch = null;
-      pageSearchActiveIndex = 0;
-      return;
-    }
-    const nextIndex = Math.min(pageSearchActiveIndex, pageSearchMatches.length - 1);
-    setActivePageSearchIndex(nextIndex);
-  }
-
-  function setActivePageSearchIndex(index: number) {
-    if (pageSearchMatches.length === 0) return;
-    clearActivePageSearchMatch(pageSearchActiveMatch);
-    pageSearchActiveIndex = ((index % pageSearchMatches.length) + pageSearchMatches.length) % pageSearchMatches.length;
-    const nextMatch = pageSearchMatches[pageSearchActiveIndex] ?? null;
-    pageSearchActiveMatch = nextMatch;
-    setActivePageSearchMatch(nextMatch);
-  }
-
-  function goToNextMatch() {
-    if (pageSearchMatches.length === 0) return;
-    setActivePageSearchIndex(pageSearchActiveIndex + 1);
-  }
-
-  function goToPrevMatch() {
-    if (pageSearchMatches.length === 0) return;
-    setActivePageSearchIndex(pageSearchActiveIndex - 1);
-  }
-
-  function openPageSearch() {
-    if (!pageSearchEnabled) return;
-    pageSearchOpen = true;
-    tick().then(() => {
-      pageSearchInputEl?.focus();
-      pageSearchInputEl?.select();
-      schedulePageSearch();
-    });
-  }
-
-  function closePageSearch() {
-    pageSearchOpen = false;
-    pageSearchQuery = "";
-  }
-
-  function togglePageSearch() {
-    if (pageSearchOpen) {
-      closePageSearch();
-    } else {
-      openPageSearch();
-    }
-  }
-
-  function handlePageSearchInput(event: Event) {
-    const target = event.target as HTMLInputElement | null;
-    pageSearchQuery = target?.value ?? "";
-    pageSearchActiveIndex = 0;
-    schedulePageSearch();
-  }
-
-  function handlePageSearchKeydown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      closePageSearch();
-      return;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (event.shiftKey) {
-        goToPrevMatch();
-      } else {
-        goToNextMatch();
-      }
-    }
-  }
-
-  const pageSearchController: PageSearchController = {
-    open: openPageSearch,
-    close: closePageSearch,
-    toggle: togglePageSearch,
-    setQuery: (value: string) => {
-      pageSearchQuery = value;
-      pageSearchActiveIndex = 0;
-      schedulePageSearch();
-    },
-    next: goToNextMatch,
-    prev: goToPrevMatch,
-  };
-
   onMount(() => {
     messages = data.messageVertices;
     refreshHasFiles();
@@ -349,18 +207,8 @@
 
     const onResize = () => updateScrollMetrics();
     window.addEventListener("resize", onResize);
-    clientState.pageSearchController = pageSearchController;
 
     return () => {
-      if (clientState.pageSearchController === pageSearchController) {
-        clientState.pageSearchController = null;
-      }
-      if (pageSearchTimer) {
-        window.clearTimeout(pageSearchTimer);
-      }
-      if (messageContainerEl) {
-        clearPageSearchHighlights(messageContainerEl);
-      }
       msgsObs();
       updateObs();
       window.removeEventListener("resize", onResize);
@@ -457,67 +305,12 @@
   class="flex flex-col w-full h-full overflow-hidden relative"
   data-component="chat-app"
 >
-  {#if pageSearchOpen}
-    <div
-      class="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 rounded-xl border border-surface-200-800 bg-surface-50-950 px-3 py-2 shadow"
-      data-testid="chat-page-search"
-    >
-      <Search size={14} />
-      <input
-        class="input h-8 min-w-[200px] bg-transparent px-2"
-        placeholder="Find in chat"
-        aria-label="Find in chat"
-        bind:this={pageSearchInputEl}
-        value={pageSearchQuery}
-        oninput={handlePageSearchInput}
-        onkeydown={handlePageSearchKeydown}
-        data-testid="chat-page-search-input"
-      />
-      <span class="text-xs text-surface-500 hidden sm:inline">
-        {isMac ? "⌘F" : "Ctrl+F"}
-      </span>
-      <span class="text-xs text-surface-500" data-testid="chat-page-search-count">
-        {pageSearchIndex}/{pageSearchTotal}
-      </span>
-      <div class="flex items-center gap-1">
-        <button
-          class="btn-icon btn-sm preset-outline"
-          type="button"
-          aria-label="Find previous"
-          onclick={goToPrevMatch}
-        >
-          <ChevronUp size={16} />
-        </button>
-        <button
-          class="btn-icon btn-sm preset-outline"
-          type="button"
-          aria-label="Find next"
-          onclick={goToNextMatch}
-        >
-          <ChevronDown size={16} />
-        </button>
-      </div>
-      <button
-        class="btn-icon btn-sm preset-outline"
-        type="button"
-        aria-label="Close find bar"
-        onclick={closePageSearch}
-      >
-        <X size={16} />
-      </button>
-    </div>
-  {/if}
+  <FindInPage
+    containerEl={messageContainerEl}
+    enabled={pageSearchEnabled}
+    contentVersion={messages}
+  />
   <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
-    {#if pageSearchEnabled}
-      <button
-        class="btn-icon btn-sm preset-outline sm:hidden"
-        type="button"
-        aria-label="Find in chat"
-        onclick={openPageSearch}
-      >
-        <Search size={16} />
-      </button>
-    {/if}
     {#if hasFiles}
       <button
         class="btn-icon btn-sm preset-outline flex items-center gap-2"
