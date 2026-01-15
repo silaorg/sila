@@ -87,11 +87,10 @@
     queryTimer = setTimeout(() => {
       void (async () => {
         try {
-          const nextResults = await queryChatSearch(
-            currentSpace,
-            currentEntries,
-            trimmed,
-          );
+        const nextResults = await queryChatSearch(
+          currentEntries,
+          trimmed,
+        );
           if (!cancelled) {
             results = nextResults;
           }

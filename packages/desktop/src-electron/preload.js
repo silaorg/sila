@@ -73,13 +73,6 @@ contextBridge.exposeInMainWorld('desktopSearch', {
   saveChatIndex: (spaceId, entries) => {
     return ipcRenderer.invoke('sila:chat-search:save-index', { spaceId, entries });
   },
-  /**
-   * @param {string} spaceId
-   * @param {string} query
-   */
-  queryChatIndex: (spaceId, query) => {
-    return ipcRenderer.invoke('sila:chat-search:query', { spaceId, query });
-  },
 });
 
 // Expose menu action listener to the renderer
