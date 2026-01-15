@@ -186,6 +186,7 @@
 
   function closePopover() {
     open = false;
+    query = "";
   }
 
   function handleKeydown(event: KeyboardEvent) {
