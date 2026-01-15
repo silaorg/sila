@@ -308,7 +308,7 @@
   <FindInPage
     containerEl={messageContainerEl}
     enabled={pageSearchEnabled}
-    contentVersion={messages}
+    contentRevision={messages}
   />
   <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
     {#if pageSearchEnabled}

@@ -14,11 +14,11 @@
   let {
     containerEl,
     enabled,
-    contentVersion,
+    contentRevision,
   }: {
     containerEl: HTMLElement | null;
     enabled: boolean;
-    contentVersion: unknown;
+    contentRevision: unknown;
   } = $props();
 
   const clientState = useClientState();
@@ -29,14 +29,14 @@
   let pageSearchActiveIndex = $state(0);
   let pageSearchActiveMatch = $state<PageSearchMatch | null>(null);
   let pageSearchInputEl = $state<HTMLInputElement | null>(null);
-  let pageSearchTimer: number | null = $state(null);
+  let pageSearchTimer: number | null = null;
 
   let pageSearchTotal = $derived(pageSearchMatches.length);
   let pageSearchIndex = $derived(pageSearchTotal > 0 ? pageSearchActiveIndex + 1 : 0);
 
   $effect(() => {
     if (!pageSearchOpen) return;
-    contentVersion;
+    contentRevision;
     if (!containerEl) return;
     tick().then(() => {
       schedulePageSearch();
@@ -71,6 +71,7 @@
   }
 
   function applyPageSearch() {
+    if (!pageSearchOpen) return;
     if (!containerEl) return;
     const result = highlightPageSearchMatches(containerEl, pageSearchQuery, 1000);
     pageSearchMatches = result.matches;
@@ -118,6 +119,10 @@
   function closePageSearch() {
     pageSearchOpen = false;
     pageSearchQuery = "";
+    if (pageSearchTimer) {
+      window.clearTimeout(pageSearchTimer);
+      pageSearchTimer = null;
+    }
   }
 
   function togglePageSearch() {
