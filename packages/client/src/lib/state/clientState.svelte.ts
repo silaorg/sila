@@ -25,6 +25,7 @@ import { toast } from "svelte-sonner";
 import { EventStacks } from "../utils/eventStacks";
 import { AnalyticsEvents, type AnalyticsName } from "./analyticsEvents";
 import { type AnalyticsConfig, AppTelemetry } from "./clientTelemetry";
+import type { PageSearchConfig, PageSearchController } from "../utils/pageSearch";
 
 interface AuthTokens {
   access_token: string;
@@ -38,6 +39,7 @@ export type ClientStateConfig = {
   dialog?: AppDialogs;
   telemetryConfig?: AnalyticsConfig;
   appVersions?: AppVersions;
+  pageSearch?: Partial<PageSearchConfig>;
 };
 
 type SpaceStatus = "disconnected" | "loading" | "ready" | "error";
@@ -78,6 +80,11 @@ export class ClientState {
   );
   config: Record<string, unknown> = $state({});
   auth = new AuthStore();
+  pageSearchConfig: PageSearchConfig = $state({
+    enabled: true,
+    useNative: false,
+  });
+  pageSearchController: PageSearchController | null = $state(null);
 
   spaceStatus: SpaceStatus = $derived.by(() => {
     if (!this.currentSpaceState) {
@@ -168,6 +175,12 @@ export class ClientState {
     this._dialog = initState?.dialog || null;
     this.appVersions = initState?.appVersions ?? null;
     this.appTelemetry.init(initState?.telemetryConfig ?? null);
+    if (initState?.pageSearch) {
+      this.pageSearchConfig = {
+        ...this.pageSearchConfig,
+        ...initState.pageSearch,
+      };
+    }
 
     await this.loadFromLocalDb();
     this.appTelemetry.capture(AnalyticsEvents.AppOpened, { spaces: this.pointers.length });
