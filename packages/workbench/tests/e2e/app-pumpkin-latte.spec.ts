@@ -17,4 +17,20 @@ test.describe('app', () => {
 
     await page.screenshot({ path: 'screenshots/app-pumpkin-latte-sales.png' });
   });
+
+  test('finds the last CityBean demo message with page search', async ({ page }) => {
+    await page.goto('/app/pumpkin-latte');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByTestId('space-root')).toBeVisible({ timeout: 5000 });
+
+    await page.keyboard.press('Control+F');
+    const searchInput = page.getByTestId('chat-page-search-input');
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill('cap discounting during peak hours');
+
+    const matches = page.locator('mark[data-chat-find]');
+    await expect(matches).toHaveCount(1);
+    await expect(page.getByTestId('chat-page-search-count')).toContainText('1/1');
+  });
 });
