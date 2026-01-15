@@ -32,6 +32,7 @@ Format (desktop storage):
       "threadId": "app-tree-id",
       "title": "Chat title",
       "messages": ["message text"],
+      "searchText": "chat title message text",
       "updatedAt": 1710000000000
     }
   ]

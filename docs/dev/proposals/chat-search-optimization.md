@@ -10,21 +10,20 @@ Chat search only. No file/document search.
 
 ## Current behavior (summary)
 
-Desktop queries load and parse the index JSON on each query.
-Each query builds a combined text string per thread and scans all threads.
+Renderer loads the persisted index on open (desktop) and queries in memory.
+Each query scans all threads using the precomputed `searchText`.
 
 ## Problems
 
-- IO on every keystroke for large workspaces.
+- Renderer memory grows with large workspaces.
 - O(total text) scan per query.
-- Duplicate search logic in renderer and main.
 
 ## Proposed changes
 
-### 1) Cache the index in the main process
+### 1) Move query execution to main
 
 Keep an in-memory index per space in the Electron main process.
-Only reload when the index file changes or when we explicitly save.
+Renderer sends queries over IPC and receives results only.
 
 Minimal API change:
 
@@ -58,12 +57,9 @@ Search uses `searchText` for `includes` and `countOccurrences`.
 Add a short debounce (150–200 ms) to query execution.
 This reduces IPC and query load on fast typing.
 
-### 4) Optional: Move all search logic to main
+### 4) Optional: Compact index format
 
-Renderer only asks for results.
-This removes duplicate search code and keeps behavior consistent.
-
-This is optional if steps 1–3 are enough.
+Store a compact JSONL or SQLite index to reduce memory and load time.
 
 ## Migration
 
