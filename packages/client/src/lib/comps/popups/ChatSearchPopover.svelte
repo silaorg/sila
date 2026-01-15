@@ -20,6 +20,7 @@
   let activeIndex = $state(0);
   let popoverElement: HTMLDivElement | null = null;
   let inputElement: HTMLInputElement | null = null;
+  let resultsElement: HTMLDivElement | null = null;
   let queryTimer: number | null = null;
 
   const recentWindowMs = 7 * 24 * 60 * 60 * 1000;
@@ -122,6 +123,17 @@
   $effect(() => {
     if (!open) return;
     requestAnimationFrame(() => inputElement?.focus());
+  });
+
+  $effect(() => {
+    if (!open || !resultsElement) return;
+    activeIndex;
+    requestAnimationFrame(() => {
+      const active = resultsElement?.querySelector(
+        `[data-result-index="${activeIndex}"]`,
+      ) as HTMLElement | null;
+      active?.scrollIntoView({ block: "nearest" });
+    });
   });
 
   onDestroy(() => {
@@ -261,7 +273,10 @@
       </button>
     </div>
 
-    <div class="px-4 py-3 space-y-4">
+    <div
+      class="flex-1 min-h-0 px-4 py-3 space-y-4 overflow-y-auto"
+      bind:this={resultsElement}
+    >
       {#if error}
         <p class="text-sm text-error-500">{error}</p>
       {/if}
@@ -287,6 +302,7 @@
                     onmouseenter={() => (activeIndex = index)}
                     role="option"
                     aria-selected={isActive}
+                    data-result-index={index}
                   >
                     <MessageCircle size={18} class="text-surface-500" />
                     <span class="text-sm font-medium truncate">{entry.title}</span>
@@ -310,6 +326,7 @@
                 onmouseenter={() => (activeIndex = index)}
                 role="option"
                 aria-selected={isActive}
+                data-result-index={index}
               >
                 <div class="flex items-center gap-3">
                   <MessageCircle size={18} class="text-surface-500" />
