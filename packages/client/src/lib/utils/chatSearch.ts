@@ -29,7 +29,6 @@ type BuildChatSearchOptions = {
 type DesktopSearchBridge = {
   loadChatIndex?: (spaceId: string) => Promise<ChatSearchIndex | null>;
   saveChatIndex?: (spaceId: string, entries: SearchThreadEntry[]) => Promise<boolean>;
-  queryChatIndex?: (spaceId: string, query: string) => Promise<SearchResult[]>;
 };
 
 const CHAT_SEARCH_INDEX_VERSION = 1 as const;
@@ -172,11 +171,6 @@ export async function queryChatSearch(
   entries: SearchThreadEntry[],
   query: string,
 ): Promise<SearchResult[]> {
-  const desktopSearch = getDesktopSearch();
-  if (desktopSearch?.queryChatIndex) {
-    return await desktopSearch.queryChatIndex(space.getId(), query);
-  }
-
   return searchChatThreads(entries, query);
 }
 
