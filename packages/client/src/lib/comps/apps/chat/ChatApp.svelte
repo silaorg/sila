@@ -9,7 +9,7 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
-  import { ArrowDown, Images } from "lucide-svelte";
+  import { ArrowDown, Images, Search } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -311,9 +311,19 @@
     contentVersion={messages}
   />
   <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
+    {#if pageSearchEnabled}
+      <button
+        class="btn-icon btn-sm rounded-md bg-surface-50-950 text-surface-900-50 sm:hidden"
+        type="button"
+        aria-label="Find in chat"
+        onclick={() => clientState.pageSearchController?.open()}
+      >
+        <Search size={16} />
+      </button>
+    {/if}
     {#if hasFiles}
       <button
-        class="btn-icon btn-sm preset-outline flex items-center gap-2"
+        class="btn-icon btn-sm rounded-md bg-surface-50-950 text-surface-900-50 flex items-center gap-2"
         type="button"
         aria-label={i18n.texts.chat.viewFilesAria}
         onclick={openChatFiles}

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import { ChevronDown, ChevronUp, Search, X } from "lucide-svelte";
+  import { ChevronDown, ChevronUp, X } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import {
     clearActivePageSearchMatch,
@@ -199,9 +199,9 @@
     <span class="text-xs text-surface-500" data-testid="chat-page-search-count">
       {pageSearchIndex}/{pageSearchTotal}
     </span>
-    <div class="flex items-center gap-1">
+    <div class="flex items-center">
       <button
-        class="btn-icon btn-sm preset-outline"
+        class="btn-icon"
         type="button"
         aria-label="Find previous"
         onclick={goToPrevMatch}
@@ -209,7 +209,7 @@
         <ChevronUp size={16} />
       </button>
       <button
-        class="btn-icon btn-sm preset-outline"
+        class="btn-icon"
         type="button"
         aria-label="Find next"
         onclick={goToNextMatch}
@@ -218,7 +218,7 @@
       </button>
     </div>
     <button
-      class="btn-icon btn-sm preset-outline"
+      class="btn-icon"
       type="button"
       aria-label="Close find bar"
       onclick={closePageSearch}
@@ -226,15 +226,4 @@
       <X size={16} />
     </button>
   </div>
-{/if}
-
-{#if enabled}
-  <button
-    class="btn-icon btn-sm preset-outline sm:hidden absolute top-3 right-3 z-10"
-    type="button"
-    aria-label="Find in chat"
-    onclick={openPageSearch}
-  >
-    <Search size={16} />
-  </button>
 {/if}
