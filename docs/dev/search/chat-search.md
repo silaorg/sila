@@ -44,6 +44,7 @@ Format (desktop storage):
 - Match threads that contain all tokens.
 - Score by term frequency with title boost.
 - Sort by score, then updatedAt.
+Desktop queries run in the main process and read the persisted index on each query.
 
 ## Update flow
 
@@ -56,7 +57,7 @@ Format (desktop storage):
 
 - No document/file search.
 - No fuzzy match or stemming.
-- Large workspaces pay less rebuild cost on open.
+- Large workspaces still load each app tree to check `updatedAt`.
 
 ## Next iterations
 
