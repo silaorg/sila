@@ -44,7 +44,7 @@ Format (desktop storage):
 - Match threads that contain all tokens.
 - Score by term frequency with title boost.
 - Sort by score, then updatedAt.
-Queries run in the renderer using the in-memory entries.
+Desktop queries run in the main process using the cached index.
 The renderer debounces queries on typing.
 
 ## Update flow
@@ -70,12 +70,13 @@ The renderer debounces queries on typing.
 
 ## Desktop backend
 
-Electron stores the index in the main process.
-The UI loads/saves it through IPC.
+Electron stores the index in the main process and executes queries.
+The UI loads/saves and queries it through IPC.
 
 IPC handlers:
 
 - `sila:chat-search:load-index`
 - `sila:chat-search:save-index`
+- `sila:chat-search:query`
 
 Renderer bridge: `window.desktopSearch`.

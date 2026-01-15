@@ -7,6 +7,7 @@ const indexCache = new Map();
 
 /**
  * @typedef {{ threadId: string; title: string; messages: string[]; searchText?: string; updatedAt?: number }} SearchThreadEntry
+ * @typedef {{ threadId: string; title: string; snippet: string; updatedAt?: number; score: number }} SearchResult
  * @typedef {{ version: 1; updatedAt: number; entries: SearchThreadEntry[] }} ChatSearchIndex
  */
 
@@ -86,4 +87,88 @@ function normalizeEntries(entries) {
     ...entry,
     searchText: entry.searchText ?? buildSearchText(entry.title ?? 'New chat', entry.messages),
   }));
+}
+
+/**
+ * @param {SearchThreadEntry[]} entries
+ * @param {string} query
+ * @returns {SearchResult[]}
+ */
+export function searchChatThreads(entries, query) {
+  const tokens = tokenize(query);
+  if (tokens.length === 0) return [];
+
+  const results = [];
+
+  for (const entry of entries) {
+    const title = entry.title ?? 'New chat';
+    const titleLower = title.toLowerCase();
+    const combined = entry.searchText ?? buildSearchText(title, entry.messages);
+    const matchesAll = tokens.every((token) => combined.includes(token));
+
+    if (!matchesAll) continue;
+
+    let score = 0;
+    for (const token of tokens) {
+      if (titleLower.includes(token)) {
+        score += 2;
+      }
+      score += countOccurrences(combined, token);
+    }
+
+    const matchingMessage = entry.messages.find((message) =>
+      tokens.some((token) => message.toLowerCase().includes(token))
+    );
+    const snippetSource = matchingMessage ?? title;
+
+    results.push({
+      threadId: entry.threadId,
+      title,
+      snippet: truncate(snippetSource, 160),
+      updatedAt: entry.updatedAt,
+      score,
+    });
+  }
+
+  return results.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+  });
+}
+
+/**
+ * @param {string} spaceId
+ * @param {string} query
+ * @returns {Promise<SearchResult[]>}
+ */
+export async function queryChatSearch(spaceId, query) {
+  const index = await loadChatSearchIndex(spaceId);
+  if (!index) return [];
+  return searchChatThreads(index.entries, query);
+}
+
+function tokenize(input) {
+  return input
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 1);
+}
+
+function countOccurrences(haystack, needle) {
+  if (!needle) return 0;
+  let count = 0;
+  let index = 0;
+  while (true) {
+    const found = haystack.indexOf(needle, index);
+    if (found === -1) return count;
+    count += 1;
+    index = found + needle.length;
+  }
+}
+
+function truncate(value, maxLength) {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
