@@ -9,7 +9,7 @@ Desktop builds persist that index outside the workspace folder.
 ## Indexing idea
 
 We build the index from chat app trees.
-Each entry stores a thread title, messages, and updatedAt.
+Each entry stores a thread title, messages, searchText, and updatedAt.
 Tokenization is simple and runs locally.
 
 ## Storage
@@ -44,7 +44,8 @@ Format (desktop storage):
 - Match threads that contain all tokens.
 - Score by term frequency with title boost.
 - Sort by score, then updatedAt.
-Desktop queries run in the main process and read the persisted index on each query.
+Desktop queries run in the main process and use an in-memory cache.
+The renderer debounces queries on typing.
 
 ## Update flow
 
@@ -52,6 +53,7 @@ Desktop queries run in the main process and read the persisted index on each que
 - Compare app tree `updatedAt` to cached entries.
 - Rebuild only changed threads.
 - Keep cached messages when unchanged.
+- Regenerate `searchText` when needed.
 
 ## Limitations
 

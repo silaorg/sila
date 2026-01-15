@@ -3,9 +3,10 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 
 const CHAT_SEARCH_INDEX_VERSION = 1;
+const indexCache = new Map();
 
 /**
- * @typedef {{ threadId: string; title: string; messages: string[]; updatedAt?: number }} SearchThreadEntry
+ * @typedef {{ threadId: string; title: string; messages: string[]; searchText?: string; updatedAt?: number }} SearchThreadEntry
  * @typedef {{ threadId: string; title: string; snippet: string; updatedAt?: number; score: number }} SearchResult
  * @typedef {{ version: 1; updatedAt: number; entries: SearchThreadEntry[] }} ChatSearchIndex
  */
@@ -25,6 +26,7 @@ function isValidSearchEntry(value) {
   if (typeof value.title !== 'string') return false;
   if (!Array.isArray(value.messages)) return false;
   if (!value.messages.every((message) => typeof message === 'string')) return false;
+  if (value.searchText !== undefined && typeof value.searchText !== 'string') return false;
   if (value.updatedAt !== undefined && typeof value.updatedAt !== 'number') return false;
   return true;
 }
@@ -35,6 +37,8 @@ function isValidSearchEntry(value) {
  */
 export async function loadChatSearchIndex(spaceId) {
   if (!spaceId) return null;
+  const cached = indexCache.get(spaceId);
+  if (cached) return cached;
 
   try {
     const payload = await fs.readFile(getIndexPath(spaceId), 'utf8');
@@ -45,7 +49,12 @@ export async function loadChatSearchIndex(spaceId) {
     if (!parsed.entries.every(isValidSearchEntry)) {
       return null;
     }
-    return parsed;
+    const normalized = {
+      ...parsed,
+      entries: normalizeEntries(parsed.entries),
+    };
+    indexCache.set(spaceId, normalized);
+    return normalized;
   } catch {
     return null;
   }
@@ -59,12 +68,14 @@ export async function loadChatSearchIndex(spaceId) {
 export async function saveChatSearchIndex(spaceId, entries) {
   if (!spaceId) return;
   await ensureIndexDir(spaceId);
+  const normalizedEntries = normalizeEntries(entries);
   const payload = {
     version: CHAT_SEARCH_INDEX_VERSION,
     updatedAt: Date.now(),
-    entries,
+    entries: normalizedEntries,
   };
   await fs.writeFile(getIndexPath(spaceId), JSON.stringify(payload));
+  indexCache.set(spaceId, payload);
 }
 
 /**
@@ -81,7 +92,7 @@ export function searchChatThreads(entries, query) {
   for (const entry of entries) {
     const title = entry.title ?? 'New chat';
     const titleLower = title.toLowerCase();
-    const combined = `${title} ${entry.messages.join(' ')}`.toLowerCase();
+    const combined = entry.searchText ?? buildSearchText(title, entry.messages);
     const matchesAll = tokens.every((token) => combined.includes(token));
 
     if (!matchesAll) continue;
@@ -149,4 +160,15 @@ function countOccurrences(haystack, needle) {
 function truncate(value, maxLength) {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function buildSearchText(title, messages) {
+  return `${title} ${messages.join(' ')}`.toLowerCase();
+}
+
+function normalizeEntries(entries) {
+  return entries.map((entry) => ({
+    ...entry,
+    searchText: entry.searchText ?? buildSearchText(entry.title ?? 'New chat', entry.messages),
+  }));
 }

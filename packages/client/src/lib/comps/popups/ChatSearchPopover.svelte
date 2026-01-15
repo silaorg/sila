@@ -20,9 +20,11 @@
   let activeIndex = $state(0);
   let popoverElement: HTMLDivElement | null = null;
   let inputElement: HTMLInputElement | null = null;
+  let queryTimer: number | null = null;
 
   const recentWindowMs = 7 * 24 * 60 * 60 * 1000;
   const recentLimit = 8;
+  const queryDebounceMs = 180;
 
   let results = $state<SearchResult[]>([]);
 
@@ -50,42 +52,63 @@
   $effect(() => {
     if (!open) {
       results = [];
+      if (queryTimer !== null) {
+        clearTimeout(queryTimer);
+        queryTimer = null;
+      }
       return;
     }
     const trimmed = query.trim();
     if (!trimmed) {
       results = [];
+      if (queryTimer !== null) {
+        clearTimeout(queryTimer);
+        queryTimer = null;
+      }
       return;
     }
     const currentSpace = clientState.currentSpace;
     if (!currentSpace) {
       results = [];
+      if (queryTimer !== null) {
+        clearTimeout(queryTimer);
+        queryTimer = null;
+      }
       return;
     }
 
     const currentEntries = entries;
     error = null;
     let cancelled = false;
-    void (async () => {
-      try {
-        const nextResults = await queryChatSearch(
-          currentSpace,
-          currentEntries,
-          trimmed,
-        );
-        if (!cancelled) {
-          results = nextResults;
+    if (queryTimer !== null) {
+      clearTimeout(queryTimer);
+    }
+    queryTimer = setTimeout(() => {
+      void (async () => {
+        try {
+          const nextResults = await queryChatSearch(
+            currentSpace,
+            currentEntries,
+            trimmed,
+          );
+          if (!cancelled) {
+            results = nextResults;
+          }
+        } catch (err) {
+          if (!cancelled) {
+            error = err instanceof Error ? err.message : String(err);
+            results = [];
+          }
         }
-      } catch (err) {
-        if (!cancelled) {
-          error = err instanceof Error ? err.message : String(err);
-          results = [];
-        }
-      }
-    })();
+      })();
+    }, queryDebounceMs);
 
     return () => {
       cancelled = true;
+      if (queryTimer !== null) {
+        clearTimeout(queryTimer);
+        queryTimer = null;
+      }
     };
   });
 

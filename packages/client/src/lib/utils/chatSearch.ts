@@ -4,6 +4,7 @@ export type SearchThreadEntry = {
   threadId: string;
   title: string;
   messages: string[];
+  searchText?: string;
   updatedAt?: number;
 };
 
@@ -80,12 +81,14 @@ export async function buildChatSearchEntries(
     processed.add(appTreeId);
 
     if (cached && updatedAt !== undefined && cached.updatedAt === updatedAt) {
-      if (cached.title !== title) {
+      const searchText = buildSearchText(title, cached.messages);
+      if (cached.title !== title || cached.searchText !== searchText) {
         shouldPersist = true;
       }
       entries.push({
         ...cached,
         title,
+        searchText,
         updatedAt,
       });
       continue;
@@ -94,11 +97,13 @@ export async function buildChatSearchEntries(
     const messages = chatData.messageVertices
       .map((vertex) => vertex.getProperty("text"))
       .filter((text): text is string => typeof text === "string" && text.trim().length > 0);
+    const searchText = buildSearchText(title, messages);
 
     entries.push({
       threadId: appTreeId,
       title,
       messages,
+      searchText,
       updatedAt,
     });
     shouldPersist = true;
@@ -129,7 +134,7 @@ export function searchChatThreads(entries: SearchThreadEntry[], query: string): 
   for (const entry of entries) {
     const title = entry.title ?? "New chat";
     const titleLower = title.toLowerCase();
-    const combined = `${title} ${entry.messages.join(" ")}`.toLowerCase();
+    const combined = entry.searchText ?? buildSearchText(title, entry.messages);
     const matchesAll = tokens.every((token) => combined.includes(token));
 
     if (!matchesAll) continue;
@@ -201,6 +206,10 @@ function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
 }
 
+function buildSearchText(title: string, messages: string[]): string {
+  return `${title} ${messages.join(" ")}`.toLowerCase();
+}
+
 async function loadChatSearchIndex(space: Space): Promise<ChatSearchIndex | null> {
   const desktopSearch = getDesktopSearch();
   if (desktopSearch?.loadChatIndex) {
@@ -229,6 +238,7 @@ function isValidSearchEntry(value: unknown): value is SearchThreadEntry {
   if (typeof entry.title !== "string") return false;
   if (!Array.isArray(entry.messages)) return false;
   if (!entry.messages.every((message) => typeof message === "string")) return false;
+  if (entry.searchText !== undefined && typeof entry.searchText !== "string") return false;
   if (entry.updatedAt !== undefined && typeof entry.updatedAt !== "number") return false;
   return true;
 }
