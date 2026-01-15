@@ -92,14 +92,27 @@ Learn more about Sila's features in the [product documentation](https://silain.c
 
 Want to build from source? Check out the [quick start guide](https://silain.com/v1/dev/quick-start) and [development documentation](https://silain.com/v1/dev/) covering the architecture, codebase, testing, and contribution guidelines.
 
+## Tech stack
+
+- Standalone application (desktop + mobile)
+- Desktop app runs on [Electron](https://www.electronjs.org/)
+- Mobile app runs on [Capacitor](https://capacitorjs.com/)
+- [TypeScript](https://www.typescriptlang.org/) as the main language
+- Frontend uses [Svelte 5 + SvelteKit](https://svelte.dev/)
+- Everything runs locally (no server yet) plus external APIs
+- Styling via [Tailwind CSS](https://tailwindcss.com/)
+- Components from [Skeleton design system](https://github.com/skeletonlabs/skeleton)
+- Inference with AI is done through [AIWrapper](https://github.com/mitkury/aiwrapper)
+- Sync handled by [RepTree](https://github.com/mitkury/reptree)
+- Tiling tabs like in VSCode are built with [TTabs](https://github.com/mitkury/ttabs)
+- Context for AI agent generated with [Airul](https://github.com/mitkury/airul)
+
 ## Related projects
 
-Sila is built alongside several companion projects that enable its features:
+Sila is built alongside several companion projects maintained by Sila's authors:
 
 - **AI inference** - [AIWrapper](https://github.com/mitkury/aiwrapper)
 - **Info about AI models** - [AIModels](https://github.com/mitkury/aimodels)
 - **Tiling tabs** - [TTabs](https://github.com/mitkury/ttabs)
 - **Sync** - [RepTree](https://github.com/mitkury/reptree)
 - **AI context** - [Airul](https://github.com/mitkury/airul)
-
-All projects are maintained by Sila's author.
