@@ -21,8 +21,8 @@ export type PageSearchController = {
 };
 
 const BASE_MARK_CLASSES =
-  "chat-find-mark bg-primary-200-800 text-surface-900-50 rounded px-0.5";
-const ACTIVE_MARK_CLASSES = ["bg-primary-500", "text-primary-50"];
+  "chat-find-mark bg-secondary-200-800 text-surface-900-50 rounded";
+const ACTIVE_MARK_CLASSES = ["bg-secondary-500", "text-secondary-50"];
 
 export function clearPageSearchHighlights(container: HTMLElement): void {
   const marks = container.querySelectorAll("mark[data-chat-find]");
