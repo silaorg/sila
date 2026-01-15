@@ -105,20 +105,55 @@ export class SpaceManager {
     const key = spaceKey ?? spaceId;
 
     if (persistenceLayers.length > 0) {
-      // Connect all layers
-      await Promise.all(persistenceLayers.map(layer => layer.connect()));
+      const connectedLayers = (
+        await Promise.allSettled(
+          persistenceLayers.map(async (layer) => {
+            await layer.connect();
+            return layer;
+          })
+        )
+      )
+        .filter((result) => {
+          if (result.status === "rejected") {
+            console.warn("Failed to connect persistence layer:", result.reason);
+            return false;
+          }
+          return true;
+        })
+        .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+
+      if (connectedLayers.length === 0) {
+        throw new Error("No persistence layers available for new space");
+      }
 
       // Register tree loader so this space can lazily load AppTrees (incl. ones created by other peers)
-      this.registerTreeLoader(space, persistenceLayers);
+      this.registerTreeLoader(space, connectedLayers);
 
       // Save initial operations to all layers
       const initOps = space.tree.getAllOps();
-      await Promise.all(
-        persistenceLayers.map(layer => layer.saveTreeOps(spaceId, initOps))
-      );
+      const savedLayers = (
+        await Promise.allSettled(
+          connectedLayers.map(async (layer) => {
+            await layer.saveTreeOps(spaceId, initOps);
+            return layer;
+          })
+        )
+      )
+        .filter((result) => {
+          if (result.status === "rejected") {
+            console.warn("Failed to save initial ops to layer:", result.reason);
+            return false;
+          }
+          return true;
+        })
+        .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+
+      if (savedLayers.length === 0) {
+        throw new Error("Failed to initialize persistence layers for new space");
+      }
 
       // Attach FileStore provider if available on a filesystem layer
-      for (const layer of persistenceLayers) {
+      for (const layer of savedLayers) {
         if (typeof (layer as any).getFileStoreProvider === 'function') {
           const provider = (layer as any).getFileStoreProvider();
           space.setFileStoreProvider(provider);
@@ -127,10 +162,10 @@ export class SpaceManager {
       }
 
       // Set up operation tracking and sync
-      this.setupOperationTracking(space, persistenceLayers);
-      await this.setupTwoWaySync(space, persistenceLayers);
+      this.setupOperationTracking(space, savedLayers);
+      await this.setupTwoWaySync(space, savedLayers);
 
-      this.spaceLayers.set(key, persistenceLayers);
+      this.spaceLayers.set(key, savedLayers);
     }
 
     this.spaces.set(key, space);
@@ -155,17 +190,33 @@ export class SpaceManager {
 
     // Start connecting all layers in parallel and load ops
     const layerPromises = persistenceLayers.map(async (layer) => {
-      await layer.connect();
-      const ops = await layer.loadSpaceTreeOps();
-      return { layer, ops };
+      try {
+        await layer.connect();
+        const ops = await layer.loadSpaceTreeOps();
+        return { layer, ops };
+      } catch (error) {
+        console.warn("Failed to load space from layer:", error);
+        return null;
+      }
     });
 
     let space: Space;
+    const layerResults = await Promise.all(layerPromises);
+    const availableResults = layerResults.filter(
+      (result): result is { layer: PersistenceLayer; ops: VertexOperation[] } => result !== null
+    );
+    const availableLayers = availableResults.map((result) => result.layer);
+
+    if (availableResults.length === 0) {
+      throw new Error("No persistence layers available to load space");
+    }
 
     try {
+
       // Use the first layer that successfully loads
       // One layer is enough to construct the space
-      const firstResult = await Promise.race(layerPromises);
+      const firstResult =
+        availableResults.find((result) => result.ops.length > 0) ?? availableResults[0];
 
       space = new Space(new RepTree(uuid(), firstResult.ops));
 
@@ -174,104 +225,95 @@ export class SpaceManager {
         space.setFileStoreProvider((firstResult.layer as any).getFileStoreProvider());
       } else {
         // Try others as they complete
-        Promise.allSettled(layerPromises).then(results => {
-          for (const res of results) {
-            if (res.status === 'fulfilled') {
-              const l = res.value.layer as any;
-              if (typeof l.getFileStoreProvider === 'function') {
-                space.setFileStoreProvider(l.getFileStoreProvider());
-                break;
-              }
-            }
+        for (const res of availableResults) {
+          const l = res.layer as any;
+          if (typeof l.getFileStoreProvider === "function") {
+            space.setFileStoreProvider(l.getFileStoreProvider());
+            break;
           }
-        });
+        }
       }
 
       // Continue with remaining layers as they complete
-      Promise.allSettled(layerPromises).then(results => {
-        results.forEach(result => {
-          if (result.status === 'fulfilled' && result.value !== firstResult) {
-            const { ops } = result.value;
-            if (ops.length > 0) {
-              space.tree.merge(ops);
-            }
-          }
-        });
-      }).catch(error => console.error('Failed to load from additional layers:', error));
+      availableResults.forEach((result) => {
+        if (result !== firstResult && result.ops.length > 0) {
+          space.tree.merge(result.ops);
+        }
+      });
     } catch (error) {
       console.error('Failed to load space tree from any layer:', error);
       console.log('As a fallback, will try to load from all layers');
 
       // Fallback: gather all ops from all layers that managed to load
       const allOps: VertexOperation[] = [];
-      const results = await Promise.allSettled(layerPromises);
-
-      results.forEach(result => {
-        if (result.status === 'fulfilled') {
-          allOps.push(...result.value.ops);
-        }
+      availableResults.forEach(result => {
+        allOps.push(...result.ops);
       });
 
       // Create space with all available ops (RepTree handles deduplication)
       space = new Space(new RepTree(uuid(), allOps));
 
       // Attach FileStore provider if available among layers
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          const l = (r.value.layer as any);
-          if (typeof l.getFileStoreProvider === 'function') {
-            space.setFileStoreProvider(l.getFileStoreProvider());
-            break;
-          }
+      for (const r of availableResults) {
+        const l = r.layer as any;
+        if (typeof l.getFileStoreProvider === 'function') {
+          space.setFileStoreProvider(l.getFileStoreProvider());
+          break;
         }
       }
     }
 
     // Sync the space tree ops between layers in case if they have different ops
-    this.syncTreeOpsBetweenLayers(space.getId(), persistenceLayers);
+    this.syncTreeOpsBetweenLayers(space.getId(), availableLayers);
 
-    this.registerTreeLoader(space, persistenceLayers);
+    this.registerTreeLoader(space, availableLayers);
 
     // Load secrets using race-based approach
-    const secretPromises = persistenceLayers.map(async (layer) => {
-      await layer.connect();
-      const secrets = await layer.loadSecrets();
-      return { layer, secrets };
+    const secretPromises = availableLayers.map(async (layer) => {
+      try {
+        await layer.connect();
+        const secrets = await layer.loadSecrets();
+        return { layer, secrets };
+      } catch (error) {
+        console.warn("Failed to load secrets from layer:", error);
+        return null;
+      }
     });
 
     try {
       // Use the first layer that successfully loads secrets
-      const firstSecretsResult = await Promise.race(secretPromises);
-      if (firstSecretsResult.secrets && Object.keys(firstSecretsResult.secrets).length > 0) {
+      const secretResults = (await Promise.all(secretPromises)).filter(
+        (result): result is { layer: PersistenceLayer; secrets: Record<string, string> | undefined } =>
+          result !== null
+      );
+      const firstSecretsResult =
+        secretResults.find((result) => result.secrets && Object.keys(result.secrets).length > 0) ??
+        secretResults[0];
+
+      if (firstSecretsResult?.secrets && Object.keys(firstSecretsResult.secrets).length > 0) {
         space.saveAllSecrets(firstSecretsResult.secrets);
       }
 
-      // Continue with remaining layers as they complete
-      Promise.allSettled(secretPromises).then(results => {
-        const additionalSecrets: Record<string, string> = {};
-        results.forEach(result => {
-          if (result.status === 'fulfilled' && result.value !== firstSecretsResult) {
-            const { secrets } = result.value;
-            if (secrets) {
-              Object.assign(additionalSecrets, secrets);
-            }
-          }
-        });
-        if (Object.keys(additionalSecrets).length > 0) {
-          space.saveAllSecrets(additionalSecrets);
+      const additionalSecrets: Record<string, string> = {};
+      secretResults.forEach((result) => {
+        if (result !== firstSecretsResult && result.secrets) {
+          Object.assign(additionalSecrets, result.secrets);
         }
-      }).catch(error => console.error('Failed to load secrets from additional layers:', error));
+      });
+      if (Object.keys(additionalSecrets).length > 0) {
+        space.saveAllSecrets(additionalSecrets);
+      }
     } catch (error) {
       console.error('Failed to load secrets from any layer:', error);
     }
 
     // Set up operation tracking to save to all layers
-    this.setupOperationTracking(space, persistenceLayers);
+    this.setupOperationTracking(space, availableLayers);
 
     // Set up two-way sync for layers that support it
-    await this.setupTwoWaySync(space, persistenceLayers);
+    await this.setupTwoWaySync(space, availableLayers);
 
-    this.spaceLayers.set(key, persistenceLayers);
+    this.spaceLayers.set(key, availableLayers);
     this.spaces.set(key, space);
 
     return space;
