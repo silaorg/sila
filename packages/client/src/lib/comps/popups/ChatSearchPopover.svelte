@@ -21,7 +21,7 @@
   let popoverElement: HTMLDivElement | null = null;
   let inputElement: HTMLInputElement | null = null;
   let resultsElement: HTMLDivElement | null = null;
-  let queryTimer: number | null = null;
+  let queryTimer: ReturnType<typeof setTimeout> | null = null;
 
   const recentWindowMs = 7 * 24 * 60 * 60 * 1000;
   const recentLimit = 8;
@@ -245,10 +245,12 @@
     return true;
   }}
 >
-  <div
+  <button
+    type="button"
     class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80 transition-opacity"
+    aria-label="Close search"
     onclick={closePopover}
-  ></div>
+  ></button>
   <div class="relative card selectable-text rounded-lg bg-surface-50-950 border-1 border-surface-200-800 shadow-2xl w-[520px] flex flex-col overflow-hidden max-h-[calc(100vh-10rem)]">
     <div class="flex items-center gap-2 border-b border-surface-200-800 px-3 py-2.5">
       <div class="relative flex-1">
