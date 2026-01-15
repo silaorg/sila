@@ -1,13 +1,18 @@
-## `fref:` markdown conversions (what runs where)
+# How we store links to workspace files
 
-We store markdown link/image targets as stable `fref:` URIs so references survive renames/moves.
+We store markdown links in our docs as `fref:` URIs that contain IDs of files rather than their paths so references survive renames/moves.
+Example: `[Cool doc](fref:vertex123@tree456)`.
 
-### Storage format
+If we reference the file with the path `/docs/cool-doc.md` and then the user moves it to `/cool-docs/doc.md`, our chat messages that referenced the file will still reference it correctly. We would have ended up with a broken link if we saved paths.
+
+## Storage format
+
 - **Saved form**: `fref:{vertexId}@{treeId}`
   - `vertexId`: RepTree vertex id for the file vertex
   - `treeId`: the tree root id containing the vertex (space tree id or an app tree id)
 
-### Display / editing / AI rules
+## Display / editing / AI rules
+
 - **Save-time (persisting message text)**: convert `file:` → `fref:`
   - Runs when creating a message (`ChatAppData.newMessage`) and when editing (`ChatAppData.editMessage`).
   - Also runs for assistant messages created via streaming (`WrapChatAgent` on finish).
@@ -23,17 +28,20 @@ We store markdown link/image targets as stable `fref:` URIs so references surviv
   - Runs in `convertToLangMessage`.
   - This is a view transform only; it does not persist changes.
 
-### Implementation entry points
+## Implementation entry points
+
 - **Core transforms** (`packages/core/src/spaces/files/markdownFileRefs.ts`):
   - `transformPathsToFileReferences(markdown, ctx)`
   - `transformFileReferencesToPaths(markdown, ctx)`
 
 We use Marked to tokenize markdown and locate link/image targets, then rewrite the original string via a small scanner that skips fenced code blocks and inline code.
 
-### Resolution behavior (fref → file)
+## Resolution behavior (fref → file)
+
 - If `fref:@treeId` can’t be resolved in that tree, we fallback to **workspace `assets/`** (only accept vertices under `assets`).
 - If `fref:` has no `@treeId`, we try `candidateTreeIds` first, then fallback to workspace `assets/`.
 - TODO: if not found in workspace assets, later we can also search in a trashbin.
 
-### Known v1 limitations
+## Known v1 limitations
+
 - Only rewrites **inline** markdown links/images (`[text](target)` / `![alt](target)`), not reference-style links.
