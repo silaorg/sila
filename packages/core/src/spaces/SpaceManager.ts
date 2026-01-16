@@ -190,33 +190,18 @@ export class SpaceManager {
 
     // Start connecting all layers in parallel and load ops
     const layerPromises = persistenceLayers.map(async (layer) => {
-      try {
-        await layer.connect();
-        const ops = await layer.loadSpaceTreeOps();
-        return { layer, ops };
-      } catch (error) {
-        console.warn("Failed to load space from layer:", error);
-        return null;
-      }
+      await layer.connect();
+      const ops = await layer.loadSpaceTreeOps();
+      return { layer, ops };
     });
+    const layerResultsPromise = Promise.allSettled(layerPromises);
 
     let space: Space;
-    const layerResults = await Promise.all(layerPromises);
-    const availableResults = layerResults.filter(
-      (result): result is { layer: PersistenceLayer; ops: VertexOperation[] } => result !== null
-    );
-    const availableLayers = availableResults.map((result) => result.layer);
-
-    if (availableResults.length === 0) {
-      throw new Error("No persistence layers available to load space");
-    }
-
+    let availableResults: { layer: PersistenceLayer; ops: VertexOperation[] }[] = [];
     try {
-
       // Use the first layer that successfully loads
       // One layer is enough to construct the space
-      const firstResult =
-        availableResults.find((result) => result.ops.length > 0) ?? availableResults[0];
+      const firstResult = await Promise.any(layerPromises);
 
       space = new Space(new RepTree(uuid(), firstResult.ops));
 
@@ -224,25 +209,50 @@ export class SpaceManager {
       if (typeof (firstResult.layer as any).getFileStoreProvider === 'function') {
         space.setFileStoreProvider((firstResult.layer as any).getFileStoreProvider());
       } else {
-        // Try others as they complete
-        for (const res of availableResults) {
-          const l = res.layer as any;
-          if (typeof l.getFileStoreProvider === "function") {
-            space.setFileStoreProvider(l.getFileStoreProvider());
-            break;
+        layerResultsPromise.then((results) => {
+          for (const res of results) {
+            if (res.status === "fulfilled") {
+              const l = res.value.layer as any;
+              if (typeof l.getFileStoreProvider === "function") {
+                space.setFileStoreProvider(l.getFileStoreProvider());
+                break;
+              }
+            }
           }
-        }
+        }).catch(error => console.error('Failed to load from additional layers:', error));
       }
 
-      // Continue with remaining layers as they complete
-      availableResults.forEach((result) => {
-        if (result !== firstResult && result.ops.length > 0) {
-          space.tree.merge(result.ops);
-        }
-      });
+      layerResultsPromise.then((results) => {
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value !== firstResult) {
+            const { ops } = result.value;
+            if (ops.length > 0) {
+              space.tree.merge(ops);
+            }
+          }
+        });
+      }).catch(error => console.error('Failed to load from additional layers:', error));
+
+      const settledResults = await layerResultsPromise;
+      availableResults = settledResults
+        .filter((result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
+          result.status === "fulfilled"
+        )
+        .map((result) => result.value);
     } catch (error) {
       console.error('Failed to load space tree from any layer:', error);
       console.log('As a fallback, will try to load from all layers');
+
+      const settledResults = await layerResultsPromise;
+      availableResults = settledResults
+        .filter((result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
+          result.status === "fulfilled"
+        )
+        .map((result) => result.value);
+
+      if (availableResults.length === 0) {
+        throw new Error("No persistence layers available to load space");
+      }
 
       // Fallback: gather all ops from all layers that managed to load
       const allOps: VertexOperation[] = [];
@@ -263,7 +273,12 @@ export class SpaceManager {
       }
     }
 
+    if (availableResults.length === 0) {
+      throw new Error("No persistence layers available to load space");
+    }
+
     // Sync the space tree ops between layers in case if they have different ops
+    const availableLayers = availableResults.map((result) => result.layer);
     this.syncTreeOpsBetweenLayers(space.getId(), availableLayers);
 
     this.registerTreeLoader(space, availableLayers);
