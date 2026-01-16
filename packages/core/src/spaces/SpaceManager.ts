@@ -91,6 +91,26 @@ export class SpaceManager {
     });
   }
 
+  private getFulfilledResults<T>(results: PromiseSettledResult<T>[]): T[] {
+    return results
+      .filter((result): result is PromiseFulfilledResult<T> => result.status === "fulfilled")
+      .map((result) => result.value);
+  }
+
+  private attachFileStoreProvider(space: Space, layers: PersistenceLayer[]) {
+    if (space.fileStore) {
+      return;
+    }
+
+    for (const layer of layers) {
+      if (typeof (layer as any).getFileStoreProvider === "function") {
+        const provider = (layer as any).getFileStoreProvider();
+        space.setFileStoreProvider(provider);
+        return;
+      }
+    }
+  }
+
   /**
    * Add a new space to the manager. Saves the space to the persistence layers.
    * @param space - The space to add
@@ -196,89 +216,50 @@ export class SpaceManager {
     });
     const layerResultsPromise = Promise.allSettled(layerPromises);
 
-    let space: Space;
+    let space: Space | null = null;
+    let firstResult: { layer: PersistenceLayer; ops: VertexOperation[] } | null = null;
     let availableResults: { layer: PersistenceLayer; ops: VertexOperation[] }[] = [];
     try {
       // Use the first layer that successfully loads
       // One layer is enough to construct the space
-      const firstResult = await Promise.any(layerPromises);
+      firstResult = await Promise.any(layerPromises);
 
       space = new Space(new RepTree(uuid(), firstResult.ops));
-
-      // Attach FileStore provider if available
-      if (typeof (firstResult.layer as any).getFileStoreProvider === 'function') {
-        space.setFileStoreProvider((firstResult.layer as any).getFileStoreProvider());
-      } else {
-        layerResultsPromise.then((results) => {
-          for (const res of results) {
-            if (res.status === "fulfilled") {
-              const l = res.value.layer as any;
-              if (typeof l.getFileStoreProvider === "function") {
-                space.setFileStoreProvider(l.getFileStoreProvider());
-                break;
-              }
-            }
-          }
-        }).catch(error => console.error('Failed to load from additional layers:', error));
-      }
-
-      layerResultsPromise.then((results) => {
-        results.forEach((result) => {
-          if (result.status === "fulfilled" && result.value !== firstResult) {
-            const { ops } = result.value;
-            if (ops.length > 0) {
-              space.tree.merge(ops);
-            }
-          }
-        });
-      }).catch(error => console.error('Failed to load from additional layers:', error));
-
-      const settledResults = await layerResultsPromise;
-      availableResults = settledResults
-        .filter((result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
-          result.status === "fulfilled"
-        )
-        .map((result) => result.value);
     } catch (error) {
       console.error('Failed to load space tree from any layer:', error);
       console.log('As a fallback, will try to load from all layers');
-
-      const settledResults = await layerResultsPromise;
-      availableResults = settledResults
-        .filter((result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
-          result.status === "fulfilled"
-        )
-        .map((result) => result.value);
-
-      if (availableResults.length === 0) {
-        throw new Error("No persistence layers available to load space");
-      }
-
-      // Fallback: gather all ops from all layers that managed to load
-      const allOps: VertexOperation[] = [];
-      availableResults.forEach(result => {
-        allOps.push(...result.ops);
-      });
-
-      // Create space with all available ops (RepTree handles deduplication)
-      space = new Space(new RepTree(uuid(), allOps));
-
-      // Attach FileStore provider if available among layers
-      for (const r of availableResults) {
-        const l = r.layer as any;
-        if (typeof l.getFileStoreProvider === 'function') {
-          space.setFileStoreProvider(l.getFileStoreProvider());
-          break;
-        }
-      }
     }
+
+    const settledResults = await layerResultsPromise;
+    availableResults = this.getFulfilledResults(settledResults);
 
     if (availableResults.length === 0) {
       throw new Error("No persistence layers available to load space");
     }
 
-    // Sync the space tree ops between layers in case if they have different ops
     const availableLayers = availableResults.map((result) => result.layer);
+
+    if (!space) {
+      const allOps: VertexOperation[] = [];
+      availableResults.forEach(result => {
+        allOps.push(...result.ops);
+      });
+
+      space = new Space(new RepTree(uuid(), allOps));
+    }
+
+    this.attachFileStoreProvider(space, [
+      ...(firstResult ? [firstResult.layer] : []),
+      ...availableLayers
+    ]);
+
+    availableResults.forEach((result) => {
+      if (result !== firstResult && result.ops.length > 0) {
+        space!.tree.merge(result.ops);
+      }
+    });
+
+    // Sync the space tree ops between layers in case if they have different ops
     this.syncTreeOpsBetweenLayers(space.getId(), availableLayers);
 
     this.registerTreeLoader(space, availableLayers);
