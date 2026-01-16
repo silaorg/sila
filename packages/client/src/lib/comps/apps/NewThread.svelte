@@ -54,6 +54,10 @@
       clientState.currentSpace,
       targetAppConfig.id,
     );
+    clientState.currentSpaceState?.spaceTelemetry.chatStarted({
+      chat_id: newTree.tree.root!.id,
+      assistant_id: targetAppConfig.id,
+    });
     const chatAppData = new ChatAppData(clientState.currentSpace, newTree);
     
     // Pass attachments to newMessage and wait for it to complete

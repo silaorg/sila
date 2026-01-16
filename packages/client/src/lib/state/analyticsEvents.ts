@@ -14,6 +14,7 @@ export const AnalyticsEvents = {
   ChatSent: "chat_sent",
   ChatEdited: "chat_edited",
   ChatBranchCreated: "chat_branch_created",
+  ChatDeleted: "chat_deleted",
   TabOpened: "tab_opened",
   TabSplit: "tab_split",
   TabClosed: "tab_closed",
@@ -22,10 +23,7 @@ export const AnalyticsEvents = {
   ThemeChanged: "theme_changed",
   LanguageChanged: "language_changed",
   ModelSelected: "model_selected",
-  ModelRequestStarted: "model_request_started",
-  ModelResponseReceived: "model_response_received",
   SyncEnabled: "sync_enabled",
-  SyncConflictResolved: "sync_conflict_resolved",
   SettingsOpened: "settings_opened",
   SettingsSaved: "settings_saved",
   OnboardingOpened: "onboarding_opened",
@@ -34,9 +32,6 @@ export const AnalyticsEvents = {
 } as const;
 
 export const AnalyticsErrors = {
-  ModelRequestFailed: "error_model_request_failed",
-  ModelTimeout: "error_model_timeout",
-  SyncConflict: "error_sync_conflict",
   StorageWriteFailed: "error_storage_write_failed",
   SpaceLoadFailed: "error_space_load_failed",
   AssistantToolFailed: "error_assistant_tool_failed",

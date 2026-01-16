@@ -1,6 +1,6 @@
 ### Hybrid Search in Sila Workspaces (BM25 + Embeddings)
 
-Goal: Ship a simple, environment-agnostic hybrid search that runs locally in desktop/mobile and in the browser, indexing workspace content (chats, files, etc.) and storing indices inside each workspace. Start small, keep flexible, and upgradeable.
+Goal: Ship a simple, environment-agnostic hybrid search that runs locally and on servers, indexing workspace content (chats, files, etc.) and storing indices inside each workspace. Start small, keep flexible, and upgradeable.
 
 ---
 
@@ -9,7 +9,8 @@ Goal: Ship a simple, environment-agnostic hybrid search that runs locally in des
 - Keep indices local-first, per workspace.
 - Use simple, proven pieces: BM25 for lexical; embeddings for semantic; MMR for diversity; optional reranker.
 - Work in browser and Node/Electron; degrade gracefully if some models aren’t available.
-- Store indices alongside the workspace using our existing file system abstraction and, when available, SQLite per the embedded SQLite proposal.
+- Store indices alongside the workspace using our existing file system abstraction. SQLite is optional.
+- Allow a local backend on desktop/mobile so the UI only calls a search API.
 
 ---
 
@@ -53,16 +54,52 @@ Index manifest (recommended):
 
 ---
 
+## Architecture (UI + local backend)
+
+We can split search into a thin UI client and a local backend that owns indexing and storage.
+
+- Desktop: Electron main process runs the backend.
+- Mobile: a Capacitor plugin (native module) or a background JS service runs the backend.
+- Server: same API, per-workspace store.
+
+The UI calls the backend via a small RPC interface:
+
+- `search.query(workspaceId, query, filters)`
+- `search.reindex(workspaceId, { force })`
+- `search.status(workspaceId)`
+
+This keeps large indices off the UI memory while keeping local-first behavior.
+
+### Mobile notes
+
+We can support two mobile paths:
+
+1) **Capacitor native plugin**
+   - Runs in native layer.
+   - Owns the index and storage (SQLite if available).
+   - Exposes the same RPC interface to the Svelte UI.
+
+2) **Background JS service**
+   - Runs in the web layer but off the main UI thread (worker or hidden webview).
+   - Uses `AppFileSystem` + JSONL.
+   - Keeps dependencies minimal, but still bounded by mobile memory.
+
+Start with JSONL + JS service for simplicity, then add the native plugin when needed.
+
 ## Storage Layout in a Workspace
+
+For local file-based workspaces (synced via Dropbox/iCloud, etc.), store the search index outside the workspace to avoid sync conflicts. Keep it in app-local data, keyed by workspace id or path.
+
+For server workspaces, store the index with the workspace on the server.
 
 Base path: `<spaceRoot>/space-v1/search/`.
 
 - `<spaceRoot>/space-v1/search/manifest.json` – index metadata
 - `<spaceRoot>/space-v1/search/bm25.jsonl` – BM25 corpus (portable JSONL)
 - `<spaceRoot>/space-v1/search/vectors.jsonl` – `{ id, vector }` for small corpora
-- `<spaceRoot>/space-v1/search/index.sqlite` – optional SQLite index (preferred on desktop)
+- `<spaceRoot>/space-v1/search/index.sqlite` – optional SQLite index (desktop/mobile backend)
 
-Why dual formats? Simplicity and portability. JSONL is trivial and browser-friendly; SQLite gives transactional upserts, secondary indexes, and faster lookups on desktop.
+Why dual formats? Simplicity and portability. JSONL is trivial and browser-friendly; SQLite gives transactional upserts, secondary indexes, and faster lookups on desktop/mobile.
 
 ### SQLite Schema (optional but recommended)
 
@@ -172,6 +209,8 @@ function mmr(queryVec, candidates, lambda = 0.7, topK = 10) {
 
 Use `AppFileSystem` to read/write under `<spaceRoot>/space-v1/search/` so the same code works in browser (IndexedDB-backed), desktop (Electron FS), and mobile.
 
+If a local backend exists, keep the index logic there and expose a small API to the UI.
+
 - Creation: ensure `search/` dir and `manifest.json` exist
 - Writes: JSONL and SQLite writes go through FS abstraction; for SQLite, use embedded DB when available, otherwise JSONL-only mode
 - Updates: reindex can be incremental by observing chat/file ops and updating affected resources
@@ -218,7 +257,7 @@ Path conventions:
 
 ## Rollout Plan
 
-MVP (2–3 weeks):
+MVP:
 - Chats + markdown files; JSONL persistence; in-memory ANN; no reranker
 - Desktop and browser support; rebuild index on demand; incremental updates for new chats
 
@@ -237,4 +276,3 @@ Phase 3:
 - Embedding provider defaults and rate limits
 - Index size quotas per workspace; cleanup policies
 - Cross-space/global search UX and opt-in
-

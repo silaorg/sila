@@ -378,7 +378,12 @@
             initialValue={editText}
             onSave={(text) => {
               (async () => {
-                if (vertex) await data.editMessage(vertex.id, text);
+                if (vertex) {
+                  await data.editMessage(vertex.id, text);
+                  clientState.currentSpaceState?.spaceTelemetry.chatBranchCreated({
+                    chat_id: data.threadId,
+                  });
+                }
                 isEditing = false;
               })();
             }}

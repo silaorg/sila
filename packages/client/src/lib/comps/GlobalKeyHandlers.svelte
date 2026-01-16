@@ -7,11 +7,12 @@
   const clientState = useClientState();
   const isMac = typeof window !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
-  type ShortcutId = "newConversation" | "toggleSidebar";
+  type ShortcutId = "newConversation" | "toggleSidebar" | "pageSearch";
 
   const bindings: Record<ShortcutId, string> = {
     newConversation: isMac ? "meta+n" : "ctrl+n",
-    toggleSidebar: isMac ? "meta+b" : "ctrl+b"
+    toggleSidebar: isMac ? "meta+b" : "ctrl+b",
+    pageSearch: isMac ? "meta+f" : "ctrl+f"
   };
 
   const normalize = (event: KeyboardEvent): string => {
@@ -35,6 +36,9 @@
         break;
       case "toggleSidebar":
         clientState.currentSpaceState?.layout.sidebar.toggle();
+        break;
+      case "pageSearch":
+        clientState.pageSearchController?.open();
         break;
     }
   };
@@ -69,6 +73,14 @@
       if (matches(e, "toggleSidebar")) {
         e.preventDefault();
         runAction("toggleSidebar");
+        return;
+      }
+      if (matches(e, "pageSearch")) {
+        if (clientState.pageSearchConfig.useNative) return;
+        if (!clientState.pageSearchConfig.enabled) return;
+        if (!clientState.pageSearchController) return;
+        e.preventDefault();
+        runAction("pageSearch");
       }
     };
 

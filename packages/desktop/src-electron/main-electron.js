@@ -13,6 +13,7 @@ import { setupSilaProtocol } from './silaProtocol.js';
 import { getSelectedClientBuildInfo } from './silaProtocol.js';
 import { spaceManager } from './spaceManager.js';
 import { flushMainLogsToRenderer, patchMainConsole } from './mainLogBridge.js';
+import { loadChatSearchIndex, saveChatSearchIndex } from './chatSearchIndex.js';
 
 // Development mode check
 const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
@@ -76,6 +77,20 @@ function setupAppVersionIPC() {
   });
 }
 
+/**
+ * Setup IPC handlers for chat search index storage + queries
+ */
+function setupChatSearchIPC() {
+  ipcMain.handle('sila:chat-search:load-index', async (_event, spaceId) => {
+    return await loadChatSearchIndex(spaceId);
+  });
+
+  ipcMain.handle('sila:chat-search:save-index', async (_event, { spaceId, entries }) => {
+    await saveChatSearchIndex(spaceId, entries);
+    return true;
+  });
+}
+
 // Keep a global reference of the window object
 /** @type {BrowserWindow | null} */
 let mainWindow;
@@ -95,6 +110,9 @@ app.whenReady().then(async () => {
 
   // Setup IPC for app versions
   setupAppVersionIPC();
+
+  // Setup IPC for chat search (index storage + queries)
+  setupChatSearchIPC();
 
   // Setup IPC for desktop build management (GitHub releases)
   setupGitHubReleaseIPC();

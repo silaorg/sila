@@ -78,6 +78,10 @@
 
   async function openFile() {
     try {
+      const mimeType = vertex.getProperty("mimeType") as string | undefined;
+      clientState.currentSpaceState?.spaceTelemetry.filePreviewed({
+        file_type: mimeType || "unknown",
+      });
       clientState.currentSpaceState?.vertexViewer.openVertex(vertex);
     } catch (error) {
       console.error("Failed to open file:", error);

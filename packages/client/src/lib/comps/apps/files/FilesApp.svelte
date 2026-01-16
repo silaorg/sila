@@ -40,6 +40,35 @@
   let isDragOver = $state(false);
   let isUploading = $state(false);
   let fileInputEl: HTMLInputElement | null = $state(null);
+  function bytesToMb(bytes?: number): number | undefined {
+    if (typeof bytes !== "number" || Number.isNaN(bytes)) return undefined;
+    return Math.round((bytes / (1024 * 1024)) * 100) / 100;
+  }
+
+  function trackFileAttached(params: {
+    fileType?: string;
+    sizeBytes?: number;
+    source?: string;
+  }) {
+    const file_type = params.fileType || "unknown";
+    clientState.currentSpaceState?.spaceTelemetry.fileAttached({
+      file_type,
+      size_mb: bytesToMb(params.sizeBytes),
+      source: params.source,
+    });
+  }
+
+  function trackFileAttachFailed(params: {
+    fileType?: string;
+    sizeBytes?: number;
+    reason?: string;
+  }) {
+    clientState.currentSpaceState?.spaceTelemetry.fileAttachFailed({
+      file_type: params.fileType,
+      size_mb: bytesToMb(params.sizeBytes),
+      reason: params.reason,
+    });
+  }
 
   onMount(() => {
     if (!filesRoot) return;
@@ -122,13 +151,13 @@
     const files = input.files;
     if (!files || files.length === 0) return;
 
-    await uploadFiles(Array.from(files));
+    await uploadFiles(Array.from(files), "files-app-picker");
 
     // Reset input to allow re-selecting the same file
     if (fileInputEl) fileInputEl.value = "";
   }
 
-  async function uploadFiles(fileList: File[]) {
+  async function uploadFiles(fileList: File[], source: "files-app-picker" | "files-app-drop") {
     if (isUploading || !currentFolder) return;
 
     isUploading = true;
@@ -137,6 +166,7 @@
       const store = clientState.currentSpace?.fileStore;
       if (!store) {
         console.error("File store not available");
+        trackFileAttachFailed({ reason: "file_store_missing" });
         return;
       }
 
@@ -174,6 +204,11 @@
               preview,
               uuid
             );
+            trackFileAttached({
+              fileType: optimizedText.type || file.type || "text/plain",
+              sizeBytes: optimizedText.size,
+              source,
+            });
           } else {
             // Images and other non-text files: store in immutable CAS via data URL
             const processedFile = await processFileForUpload(file);
@@ -215,13 +250,26 @@
               preview,
               put.hash
             );
+            trackFileAttached({
+              fileType: optimizedFile.type || file.type,
+              sizeBytes: optimizedFile.size,
+              source,
+            });
           }
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
+          trackFileAttachFailed({
+            fileType: file.type,
+            sizeBytes: file.size,
+            reason: error instanceof Error ? error.message : "unknown_error",
+          });
         }
       }
     } catch (error) {
       console.error("Upload failed:", error);
+      trackFileAttachFailed({
+        reason: error instanceof Error ? error.message : "unknown_error",
+      });
     } finally {
       isUploading = false;
     }
@@ -247,7 +295,7 @@
 
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) {
-      uploadFiles(Array.from(files));
+      uploadFiles(Array.from(files), "files-app-drop");
     }
   }
 </script>

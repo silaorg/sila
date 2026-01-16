@@ -77,58 +77,18 @@ export class SpaceTelemetry {
     this.capture(AnalyticsEvents.ChatEdited, props);
   }
 
-  chatBranchCreated(
-    props: { chat_id: string; branch_id: string; parent_id?: string },
-  ) {
+  chatBranchCreated(props: { chat_id: string }) {
     this.capture(AnalyticsEvents.ChatBranchCreated, props);
+  }
+
+  chatDeleted(props: { chat_id: string }) {
+    this.capture(AnalyticsEvents.ChatDeleted, props);
   }
 
   modelSelected(
     props: { assistant_id?: string; provider: string; model: string },
   ) {
     this.capture(AnalyticsEvents.ModelSelected, props);
-  }
-  
-  modelRequestStarted(props: {
-    provider: string;
-    model: string;
-    temperature?: number;
-    stream?: boolean;
-  }) {
-    this.capture(AnalyticsEvents.ModelRequestStarted, props);
-  }
-
-  modelResponseReceived(props: {
-    provider: string;
-    model: string;
-    latency_ms?: number;
-    prompt_tokens?: number;
-    completion_tokens?: number;
-  }) {
-    this.capture(AnalyticsEvents.ModelResponseReceived, props);
-  }
-
-  modelRequestFailed(props: {
-    provider: string;
-    model: string;
-    status?: number;
-    code?: string;
-    message?: string;
-    latency_ms?: number;
-    network?: boolean;
-  }) {
-    this.capture(AnalyticsErrors.ModelRequestFailed, props);
-  }
-
-  modelTimeout(
-    props: {
-      provider: string;
-      model: string;
-      timeout_ms: number;
-      retry_count?: number;
-    },
-  ) {
-    this.capture(AnalyticsErrors.ModelTimeout, props);
   }
 
   fileAttached(
@@ -145,16 +105,6 @@ export class SpaceTelemetry {
     props: { file_type?: string; size_mb?: number; reason?: string },
   ) {
     this.capture(AnalyticsErrors.FileAttachFailed, props);
-  }
-
-  syncConflictResolved(
-    props: { resolution: "auto" | "manual"; conflict_count?: number },
-  ) {
-    this.capture(AnalyticsEvents.SyncConflictResolved, props);
-  }
-
-  syncConflictError(props: { conflict_count?: number; reason?: string }) {
-    this.capture(AnalyticsErrors.SyncConflict, props);
   }
 
   storageWriteFailed(

@@ -1,6 +1,7 @@
 <script lang="ts">
   import SendMessageForm from "../../forms/SendMessageForm.svelte";
   import ChatAppMessage from "./ChatAppMessage.svelte";
+  import FindInPage from "./FindInPage.svelte";
   import { onMount, tick } from "svelte";
   import { timeout } from "@sila/core";
   import { ChatAppData } from "@sila/core";
@@ -8,8 +9,7 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
-  import { ArrowDown } from "lucide-svelte";
-  import { Images } from "lucide-svelte";
+  import { ArrowDown, Images, Search } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -34,13 +34,16 @@
   let hasFiles = $state(false);
   let sendFormEl = $state<HTMLElement | null>(null);
   let sendFormHeight = $state(0);
+  let messageContainerEl = $state<HTMLElement | null>(null);
 
   let lastMessageTxt: string | null = null;
   let lastProcessMessagesExpanded = $state(false);
   let isScrollingProgrammatically = $state(false);
-
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+  let pageSearchEnabled = $derived(
+    clientState.pageSearchConfig.enabled && !clientState.pageSearchConfig.useNative
+  );
 
   const visibleMessages = $derived.by(() => {
     const messagesToShow: VisibleMessage[] = [];
@@ -302,22 +305,39 @@
   class="flex flex-col w-full h-full overflow-hidden relative"
   data-component="chat-app"
 >
-  {#if hasFiles}
-    <button
-      class="btn-icon btn-sm preset-outline absolute top-3 right-3 z-10 flex items-center gap-2"
-      type="button"
-      aria-label={i18n.texts.chat.viewFilesAria}
-      onclick={openChatFiles}
-    >
-      <Images size={16} />
-    </button>
-  {/if}
+  <FindInPage
+    containerEl={messageContainerEl}
+    enabled={pageSearchEnabled}
+    contentRevision={messages}
+  />
+  <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
+    {#if pageSearchEnabled}
+      <button
+        class="btn-icon btn-sm rounded-md bg-surface-50-950 text-surface-900-50 sm:hidden"
+        type="button"
+        aria-label="Find in chat"
+        onclick={() => clientState.pageSearchController?.open()}
+      >
+        <Search size={16} />
+      </button>
+    {/if}
+    {#if hasFiles}
+      <button
+        class="btn-icon btn-sm rounded-md bg-surface-50-950 text-surface-900-50 flex items-center gap-2"
+        type="button"
+        aria-label={i18n.texts.chat.viewFilesAria}
+        onclick={openChatFiles}
+      >
+        <Images size={16} />
+      </button>
+    {/if}
+  </div>
   <div
     class="flex-grow overflow-y-auto pt-2"
     bind:this={scrollableElement}
     onscroll={handleScroll}
   >
-    <div class="w-full max-w-4xl mx-auto">
+    <div class="w-full max-w-4xl mx-auto" bind:this={messageContainerEl}>
       {#each visibleMessages as visibleMessage, index (visibleMessage.vertex?.id ?? "in-progress")}
         <ChatAppMessage 
           {visibleMessage} 
