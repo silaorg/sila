@@ -91,6 +91,17 @@ export function setupElectronMenu(mainWindow) {
           click: () => sendAction('workspace-search')
         },
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+        {
+          label: 'New Conversation',
+          accelerator: 'CmdOrCtrl+T',
+          click: () => sendAction('new-conversation')
+        },
+        {
+          label: 'Close Tab',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => sendAction('close-tab')
+        },
+        /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'reload' }),
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'toggleDevTools' }),
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'resetZoom' }),
