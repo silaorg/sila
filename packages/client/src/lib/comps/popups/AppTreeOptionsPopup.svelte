@@ -28,6 +28,9 @@
   }
 
   async function deleteThread() {
+    clientState.currentSpaceState?.spaceTelemetry.chatDeleted({
+      chat_id: appTreeId,
+    });
     clientState.currentSpace?.deleteAppTree(appTreeId);
     popoverClose();
   }

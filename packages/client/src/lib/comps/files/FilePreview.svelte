@@ -63,6 +63,9 @@
 
   function handleClick() {
     if (showGallery && previewConfig.gallerySupport && resolvedFile && onGalleryOpen) {
+      clientState.currentSpaceState?.spaceTelemetry.filePreviewed({
+        file_type: resolvedFile.mimeType || "unknown",
+      });
       onGalleryOpen(resolvedFile);
     }
   }
@@ -71,6 +74,9 @@
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       if (showGallery && previewConfig.gallerySupport && resolvedFile && onGalleryOpen) {
+        clientState.currentSpaceState?.spaceTelemetry.filePreviewed({
+          file_type: resolvedFile.mimeType || "unknown",
+        });
         onGalleryOpen(resolvedFile);
       }
     }

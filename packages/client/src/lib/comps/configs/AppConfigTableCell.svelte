@@ -24,6 +24,9 @@
   }
 
   function deleteAppConfig() {
+    clientState.currentSpaceState?.spaceTelemetry.assistantDeleted({
+      assistant_id: config.id,
+    });
     clientState.currentSpace?.appConfigs.delete(config);
     deletePopoverOpen = false;
   }

@@ -65,6 +65,10 @@
         targetLLM: targetLLM,
         visible: true,
       });
+      clientState.currentSpaceState?.spaceTelemetry.assistantCreated({
+        assistant_id: newConfigId,
+        model: targetLLM,
+      });
 
       // Dispatch custom event to notify about new assistant creation
       const event = new CustomEvent("assistant-created", {
@@ -89,6 +93,10 @@
           targetLLM: targetLLM,
         });
       }
+      clientState.currentSpaceState?.spaceTelemetry.assistantUpdated({
+        assistant_id: configId,
+        model: targetLLM,
+      });
     }
   }
 </script>

@@ -120,6 +120,10 @@
 
     selectedModel = getPairString(selectedPair);
     onModelSelect(selectedModel);
+    clientState.currentSpaceState?.spaceTelemetry.modelSelected({
+      provider: providerId,
+      model: providerId === "auto" ? "auto" : model,
+    });
   }
 </script>
 

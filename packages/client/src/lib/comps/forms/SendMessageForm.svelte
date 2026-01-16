@@ -87,6 +87,36 @@
   let editorRef: ChatEditorRef | null = $state(null);
   type AttachmentWithLoading = AttachmentPreview & { isLoading?: boolean };
   let attachments = $state<AttachmentWithLoading[]>([]);
+  function bytesToMb(bytes?: number): number | undefined {
+    if (typeof bytes !== "number" || Number.isNaN(bytes)) return undefined;
+    return Math.round((bytes / (1024 * 1024)) * 100) / 100;
+  }
+
+  function trackFileAttached(params: {
+    fileType?: string;
+    sizeBytes?: number;
+    source?: string;
+  }) {
+    const file_type = params.fileType || "unknown";
+    clientState.currentSpaceState?.spaceTelemetry.fileAttached({
+      file_type,
+      size_mb: bytesToMb(params.sizeBytes),
+      source: params.source,
+    });
+  }
+
+  function trackFileAttachFailed(params: {
+    fileType?: string;
+    sizeBytes?: number;
+    reason?: string;
+  }) {
+    clientState.currentSpaceState?.spaceTelemetry.fileAttachFailed({
+      file_type: params.fileType,
+      size_mb: bytesToMb(params.sizeBytes),
+      reason: params.reason,
+    });
+  }
+
   function persistDraftContent(text: string) {
     if (!draftId) return;
     const trimmed = text.trim();
@@ -238,6 +268,11 @@
                 }
               : att
           );
+          trackFileAttached({
+            fileType: optimizedFile.type || file.type || "text/plain",
+            sizeBytes: optimizedFile.size,
+            source: "file-picker",
+          });
         } else {
           // Process image file
           const processedFile = await processFileForUpload(file);
@@ -247,6 +282,11 @@
           if (!optimizedFile.type.startsWith("image/")) {
             // Remove processing indicator for unsupported files
             attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
+            trackFileAttachFailed({
+              fileType: optimizedFile.type || file.type,
+              sizeBytes: optimizedFile.size || file.size,
+              reason: "unsupported_type",
+            });
             continue;
           }
 
@@ -269,11 +309,21 @@
                 }
               : att
           );
+          trackFileAttached({
+            fileType: optimizedFile.type || file.type,
+            sizeBytes: optimizedFile.size,
+            source: "file-picker",
+          });
         }
       } catch (error) {
         console.error(`Failed to process ${file.name}:`, error);
         // Remove processing indicator on error
         attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
+        trackFileAttachFailed({
+          fileType: file.type,
+          sizeBytes: file.size,
+          reason: error instanceof Error ? error.message : "unknown_error",
+        });
       }
     }
 
@@ -446,6 +496,11 @@
                   }
                 : att
             );
+            trackFileAttached({
+              fileType: optimizedFile.type || file.type || "text/plain",
+              sizeBytes: optimizedFile.size,
+              source: "paste",
+            });
           } else {
             // Process image file
             const processedFile = await processFileForUpload(file);
@@ -455,6 +510,11 @@
             if (!optimizedFile.type.startsWith("image/")) {
               // Remove processing indicator for unsupported files
               attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
+              trackFileAttachFailed({
+                fileType: optimizedFile.type || file.type,
+                sizeBytes: optimizedFile.size || file.size,
+                reason: "unsupported_type",
+              });
               continue;
             }
 
@@ -477,11 +537,21 @@
                   }
                 : att
             );
+            trackFileAttached({
+              fileType: optimizedFile.type || file.type,
+              sizeBytes: optimizedFile.size,
+              source: "paste",
+            });
           }
         } catch (error) {
           console.error(`Failed to process pasted file ${file.name}:`, error);
           // Remove processing indicator on error
           attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
+          trackFileAttachFailed({
+            fileType: file.type,
+            sizeBytes: file.size,
+            reason: error instanceof Error ? error.message : "unknown_error",
+          });
         }
       }
     }
@@ -552,6 +622,11 @@
                 }
               : att
           );
+          trackFileAttached({
+            fileType: optimizedFile.type || imageType,
+            sizeBytes: optimizedFile.size,
+            source: "paste",
+          });
         }
       } catch (error) {
         console.error(`Failed to process pasted image ${imageType}:`, error);
@@ -559,6 +634,10 @@
         if (processingId) {
           attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
         }
+        trackFileAttachFailed({
+          fileType: imageType,
+          reason: error instanceof Error ? error.message : "unknown_error",
+        });
       }
     }
 

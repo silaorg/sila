@@ -120,6 +120,9 @@ export class SpaceState {
       }
     } catch (error) {
       console.error(`Failed to connect to space ${this.pointer.id}:`, error);
+      this.spaceTelemetry.spaceLoadFailed({
+        reason: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }

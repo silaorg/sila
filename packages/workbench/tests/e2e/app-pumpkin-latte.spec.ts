@@ -24,7 +24,8 @@ test.describe('app', () => {
 
     await expect(page.getByTestId('space-root')).toBeVisible({ timeout: 5000 });
 
-    await page.keyboard.press('Control+F');
+    const findShortcut = process.platform === 'darwin' ? 'Meta+F' : 'Control+F';
+    await page.keyboard.press(findShortcut);
     const searchInput = page.getByTestId('chat-page-search-input');
     await expect(searchInput).toBeVisible();
     await searchInput.fill('cap discounting during peak hours');

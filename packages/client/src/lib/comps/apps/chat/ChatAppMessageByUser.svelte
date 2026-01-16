@@ -197,6 +197,9 @@
           chat_id: data.threadId,
           message_length: text.length,
         });
+        clientState.currentSpaceState?.spaceTelemetry.chatBranchCreated({
+          chat_id: data.threadId,
+        });
       } finally {
         // no-op
       }
