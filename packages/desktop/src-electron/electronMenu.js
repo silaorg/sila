@@ -53,8 +53,13 @@ export function setupElectronMenu(mainWindow) {
       submenu: [
         {
           label: 'New Conversation',
-          accelerator: 'CmdOrCtrl+N',
+          accelerator: 'CmdOrCtrl+T',
           click: () => sendAction('new-conversation')
+        },
+        {
+          label: 'Close Tab',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => sendAction('close-tab')
         },
         ({ type: 'separator' }),
         {
@@ -79,6 +84,11 @@ export function setupElectronMenu(mainWindow) {
           label: 'Toggle Sidebar',
           accelerator: 'CmdOrCtrl+B',
           click: () => sendAction('toggle-sidebar')
+        },
+        {
+          label: 'Search Workspace',
+          accelerator: 'CmdOrCtrl+Shift+F',
+          click: () => sendAction('workspace-search')
         },
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
         /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'reload' }),

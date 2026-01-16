@@ -7,12 +7,14 @@
   const clientState = useClientState();
   const isMac = typeof window !== "undefined" && /Mac|iPod|iPhone|iPad/.test(navigator.userAgent);
 
-  type ShortcutId = "newConversation" | "toggleSidebar" | "pageSearch";
+  type ShortcutId = "newConversation" | "toggleSidebar" | "pageSearch" | "workspaceSearch" | "closeTab";
 
   const bindings: Record<ShortcutId, string> = {
-    newConversation: isMac ? "meta+n" : "ctrl+n",
+    newConversation: isMac ? "meta+t" : "ctrl+t",
     toggleSidebar: isMac ? "meta+b" : "ctrl+b",
-    pageSearch: isMac ? "meta+f" : "ctrl+f"
+    pageSearch: isMac ? "meta+f" : "ctrl+f",
+    workspaceSearch: isMac ? "meta+shift+f" : "ctrl+shift+f",
+    closeTab: isMac ? "meta+w" : "ctrl+w"
   };
 
   const normalize = (event: KeyboardEvent): string => {
@@ -40,6 +42,17 @@
       case "pageSearch":
         clientState.pageSearchController?.open();
         break;
+      case "workspaceSearch":
+        clientState.chatSearchController?.open();
+        break;
+      case "closeTab": {
+        const ttabs = clientState.currentSpaceState?.layout.ttabs;
+        const activeTab = ttabs?.focusedActiveTab;
+        if (ttabs && activeTab) {
+          ttabs.closeTab(activeTab);
+        }
+        break;
+      }
     }
   };
 
@@ -81,12 +94,27 @@
         if (!clientState.pageSearchController) return;
         e.preventDefault();
         runAction("pageSearch");
+        return;
+      }
+      if (matches(e, "workspaceSearch")) {
+        if (!clientState.chatSearchController) return;
+        e.preventDefault();
+        runAction("workspaceSearch");
+        return;
+      }
+      if (matches(e, "closeTab")) {
+        e.preventDefault();
+        runAction("closeTab");
       }
     };
 
     const electronMenuCleanup = (window as any)?.desktopMenu?.onAction?.((actionId: string) => {
       if (actionId === "new-conversation") {
         runAction("newConversation");
+      } else if (actionId === "close-tab") {
+        runAction("closeTab");
+      } else if (actionId === "workspace-search") {
+        runAction("workspaceSearch");
       } else if (actionId === "toggle-sidebar") {
         runAction("toggleSidebar");
       }

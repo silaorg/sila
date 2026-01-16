@@ -3,6 +3,7 @@
   import { MessageCircle, Search, X } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { closeStack } from "@sila/client/utils/closeStack";
+  import type { ChatSearchController } from "@sila/client/utils/chatSearchController";
   import {
     buildChatSearchEntries,
     queryChatSearch,
@@ -188,6 +189,18 @@
     query = "";
   }
 
+  function openPopover() {
+    open = true;
+  }
+
+  function togglePopover() {
+    if (open) {
+      closePopover();
+    } else {
+      openPopover();
+    }
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -218,6 +231,22 @@
       }
     }
   }
+
+  const chatSearchController: ChatSearchController = {
+    open: openPopover,
+    close: closePopover,
+    toggle: togglePopover,
+  };
+
+  $effect(() => {
+    clientState.chatSearchController = chatSearchController;
+
+    return () => {
+      if (clientState.chatSearchController === chatSearchController) {
+        clientState.chatSearchController = null;
+      }
+    };
+  });
 </script>
 
 <button
@@ -225,7 +254,7 @@
   class="p-2 rounded hover:preset-tonal"
   data-role="open-search"
   aria-label="Search chats"
-  onclick={() => (open = !open)}
+  onclick={togglePopover}
 >
   <Search size={18} />
 </button>

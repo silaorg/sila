@@ -26,6 +26,7 @@ import { EventStacks } from "../utils/eventStacks";
 import { AnalyticsEvents, type AnalyticsName } from "./analyticsEvents";
 import { type AnalyticsConfig, AppTelemetry } from "./clientTelemetry";
 import type { PageSearchConfig, PageSearchController } from "../utils/pageSearch";
+import type { ChatSearchController } from "../utils/chatSearchController";
 
 interface AuthTokens {
   access_token: string;
@@ -85,6 +86,7 @@ export class ClientState {
     useNative: false,
   });
   pageSearchController: PageSearchController | null = $state(null);
+  chatSearchController: ChatSearchController | null = $state(null);
 
   spaceStatus: SpaceStatus = $derived.by(() => {
     if (!this.currentSpaceState) {
