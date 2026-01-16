@@ -12,7 +12,7 @@ Sila
 </p>
 <br/>
 
-Sila is like ChatGPT, but with AI superpowers you own: assistants, chats, and files. The more you use AI, the more it learns about you and your preferences. This data becomes more valuable over time. That's why it should stay yours, not OpenAI or Google.
+Sila is like ChatGPT, but you own your assistants, chats, and files. The more you use AI, the more it learns about you and your preferences. This data becomes more valuable over time. That's why you should own it, not OpenAI or Google.
 
 ![Sila](docs/screenshots/app-dark.png)
 
