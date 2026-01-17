@@ -19,6 +19,13 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: 
     // Server-synced spaces: IndexedDB + Server (future)
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
     // TODO: Add server persistence layer when implemented.
+  } else if (uri.startsWith("capacitor://")) {
+    // Mobile spaces: IndexedDB + FileSystem in app sandbox
+    layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
+    if (!fs) {
+      throw new Error("App file system is not configured");
+    }
+    layers.push(new FileSystemPersistenceLayer(uri, spaceId, fs));
   } else {
     // File system path: IndexedDB + FileSystem (dual persistence)
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));

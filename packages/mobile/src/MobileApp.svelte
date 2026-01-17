@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { SilaApp } from "@sila/client";
+  import { type ClientStateConfig, SilaApp } from "@sila/client";
+  import { createMobileConfig } from "./lib/mobileConfig";
+
+  let config: ClientStateConfig | null = $state(createMobileConfig());
 </script>
 
 <svelte:head>
   <title>Sila</title>
 </svelte:head>
 
-<SilaApp config={null} />
+<SilaApp {config} />

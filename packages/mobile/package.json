@@ -14,20 +14,24 @@
     "check": "svelte-check"
   },
   "dependencies": {
-    "@sila/client": "*",
-    "@sila/core": "*",
     "@capacitor/android": "^7.4.2",
-    "@capacitor/ios": "^7.4.2"
+    "@capacitor/core": "^7.4.5",
+    "@capacitor/dialog": "^7.0.3",
+    "@capacitor/filesystem": "^7.1.6",
+    "@capacitor/ios": "^7.4.2",
+    "@sila/client": "*",
+    "@sila/core": "*"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.2",
-    "svelte": "^5.36.16",
-    "svelte-check": "^4.2.2",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@tsconfig/svelte": "^5.0.4",
     "@types/node": "^24.1.0",
+    "concurrently": "^8.2.2",
+    "fdir": "^6.5.0",
+    "svelte": "^5.36.16",
+    "svelte-check": "^4.2.2",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "concurrently": "^8.2.2"
+    "vite": "^7.0.4"
   }
 }
