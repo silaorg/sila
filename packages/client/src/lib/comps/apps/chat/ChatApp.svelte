@@ -19,6 +19,9 @@
 
   const SCROLL_BUTTON_THRESHOLD_PX = 40;
   const BOTTOM_THRESHOLD_PX = 0;
+  const BOTTOM_SPACER_OFFSET_PX = 72;
+  const MIN_BOTTOM_SPACER_PX = 48;
+  const SPACER_FUDGE_PX = 52;
 
   let { data }: { data: ChatAppData } = $props();
   provideChatAppData(data);
@@ -35,12 +38,34 @@
   let sendFormEl = $state<HTMLElement | null>(null);
   let sendFormHeight = $state(0);
   let messageContainerEl = $state<HTMLElement | null>(null);
+  let pendingUserScroll = $state(false);
+  let suppressAutoScrollOnce = $state(false);
+  let bottomSpacerBase = $state<number | null>(null);
+  let assistantGrowTargetId = $state<string | null>(null);
+  let assistantGrowStartHeight = $state<number | null>(null);
+  let assistantGrowCurrentHeight = $state<number | null>(null);
 
-  let lastMessageTxt: string | null = null;
   let lastProcessMessagesExpanded = $state(false);
   let isScrollingProgrammatically = $state(false);
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+  let bottomSpacerHeight = $derived(
+    Math.max(clientHeight - BOTTOM_SPACER_OFFSET_PX, MIN_BOTTOM_SPACER_PX)
+  );
+  let dynamicBottomSpacerHeight = $derived.by(() => {
+    if (bottomSpacerBase === null) {
+      return 0;
+    }
+    const base = bottomSpacerBase;
+    if (assistantGrowStartHeight !== null && assistantGrowCurrentHeight !== null) {
+      const delta = Math.max(
+        assistantGrowCurrentHeight - assistantGrowStartHeight,
+        0
+      );
+      return Math.max(base - delta, 0);
+    }
+    return base;
+  });
   let pageSearchEnabled = $derived(
     clientState.pageSearchConfig.enabled && !clientState.pageSearchConfig.useNative
   );
@@ -130,9 +155,81 @@
   let lastScrollHeight = $state(0);
   $effect(() => {
     if (shouldAutoScroll && scrollHeight > 0 && scrollHeight !== lastScrollHeight) {
+      if (suppressAutoScrollOnce) {
+        lastScrollHeight = scrollHeight;
+        suppressAutoScrollOnce = false;
+        return;
+      }
+      if (dynamicBottomSpacerHeight > 0) {
+        lastScrollHeight = scrollHeight;
+        return;
+      }
       lastScrollHeight = scrollHeight;
       scrollToBottom();
     }
+  });
+
+  $effect(() => {
+    if (
+      !shouldAutoScroll ||
+      bottomSpacerBase === null ||
+      !assistantGrowTargetId ||
+      dynamicBottomSpacerHeight > 0
+    ) {
+      return;
+    }
+    scrollToBottom();
+  });
+
+  $effect(() => {
+    if (!assistantGrowTargetId) return;
+    if (!data.isMessageInProgress(assistantGrowTargetId)) {
+      assistantGrowTargetId = null;
+      assistantGrowStartHeight = null;
+      assistantGrowCurrentHeight = null;
+      bottomSpacerBase = null;
+    }
+  });
+
+  $effect(() => {
+    if (
+      assistantGrowTargetId ||
+      !lastMessageId ||
+      !data.isMessageInProgress(lastMessageId) ||
+      data.getMessageRole(lastMessageId) !== "assistant"
+    ) {
+      return;
+    }
+    assistantGrowTargetId = lastMessageId;
+    assistantGrowStartHeight = null;
+    assistantGrowCurrentHeight = null;
+  });
+
+  $effect(() => {
+    if (
+      !assistantGrowTargetId ||
+      !scrollableElement ||
+      typeof ResizeObserver === "undefined"
+    ) {
+      return;
+    }
+    const messageEl = scrollableElement.querySelector(
+      `[data-vertex-id="${assistantGrowTargetId}"]`
+    ) as HTMLElement | null;
+    if (!messageEl) return;
+    const updateHeights = () => {
+      const height = messageEl.getBoundingClientRect().height;
+      assistantGrowCurrentHeight = height;
+      if (assistantGrowStartHeight === null) {
+        assistantGrowStartHeight = height;
+      }
+    };
+    updateHeights();
+    const resizeObserver = new ResizeObserver(updateHeights);
+    resizeObserver.observe(messageEl);
+    return () => {
+      resizeObserver.disconnect();
+    };
   });
 
   $effect(() => {
@@ -140,13 +237,6 @@
 
     const msgObs = data.observeMessage(lastMessageId, (msg) => {
       updateFormStatus(msg);
-      if (msg.text !== lastMessageTxt) {
-        lastMessageTxt = msg.text;
-        // Scroll when message content updates if auto-scroll is enabled
-        if (shouldAutoScroll) {
-          scrollToBottom();
-        }
-      }
     });
 
     return () => {
@@ -188,10 +278,40 @@
     const msgsObs = data.observeNewMessages((vertices) => {
       // When new messages arrive, enable auto-scroll and scroll to bottom
       shouldAutoScroll = true;
-      scrollToBottom();
       messages = vertices;
       refreshHasFiles();
-      tick().then(updateScrollMetrics);
+      tick().then(() => {
+        updateScrollMetrics();
+        if (pendingUserScroll) {
+          const lastUserVertex = [...vertices]
+            .reverse()
+            .find((vertex) => vertex.getProperty("role") === "user");
+          if (lastUserVertex && scrollableElement) {
+            const userEl = scrollableElement.querySelector(
+              `[data-vertex-id="${lastUserVertex.id}"]`
+            ) as HTMLElement | null;
+            if (userEl) {
+              const paddingTop = getScrollPaddingTop();
+              const paddingBottom = getScrollPaddingBottom();
+              const scrollMarginTop = getScrollMarginTop(userEl);
+              const availableHeight =
+                clientHeight -
+                paddingTop -
+                paddingBottom -
+                scrollMarginTop -
+                SPACER_FUDGE_PX;
+              bottomSpacerBase = Math.max(
+                availableHeight - userEl.getBoundingClientRect().height,
+                0
+              );
+            } else {
+              bottomSpacerBase = bottomSpacerHeight;
+            }
+            scrollToMessage(lastUserVertex.id);
+          }
+          pendingUserScroll = false;
+        }
+      });
     });
     // @TODO temporary: subscribe to message updates for edits/branch switching
     const updateObs = data.onUpdate((vertices) => {
@@ -246,12 +366,58 @@
     }
   }
 
+  function getScrollPaddingTop(): number {
+    if (!scrollableElement) return 0;
+    const paddingTop = Number.parseFloat(
+      getComputedStyle(scrollableElement).paddingTop
+    );
+    return Number.isFinite(paddingTop) ? paddingTop : 0;
+  }
+
+  function getScrollPaddingBottom(): number {
+    if (!scrollableElement) return 0;
+    const paddingBottom = Number.parseFloat(
+      getComputedStyle(scrollableElement).paddingBottom
+    );
+    return Number.isFinite(paddingBottom) ? paddingBottom : 0;
+  }
+
+  function getScrollMarginTop(el: HTMLElement): number {
+    const marginTop = Number.parseFloat(getComputedStyle(el).scrollMarginTop);
+    return Number.isFinite(marginTop) ? marginTop : 0;
+  }
+
+  function scrollToMessageTop(messageId: string) {
+    if (!scrollableElement) return;
+    const el = scrollableElement.querySelector(
+      `[data-vertex-id="${messageId}"]`
+    ) as HTMLElement | null;
+    if (!el) return;
+    isScrollingProgrammatically = true;
+    el.scrollIntoView({ block: "start" });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        isScrollingProgrammatically = false;
+      });
+    });
+  }
+
 
   // Using shared AttachmentPreview from core
 
   async function sendMsg(query: string, attachments?: AttachmentPreview[]) {
+    suppressAutoScrollOnce = true;
+    pendingUserScroll = true;
+    bottomSpacerBase = bottomSpacerHeight;
+    assistantGrowTargetId = null;
+    assistantGrowStartHeight = null;
+    assistantGrowCurrentHeight = null;
     // Wait for the message to be created and attachments to be saved
-    await data.newMessage({ role: "user", text: query, attachments });
+    await data.newMessage({
+      role: "user",
+      text: query,
+      attachments,
+    });
     spaceTelemetry?.chatSent({
       thread_id: data.threadId,
       config_id: data.configId,
@@ -261,7 +427,6 @@
     });
     // Always scroll to bottom when sending a message, and enable auto-scroll
     shouldAutoScroll = true;
-    timeout(scrollToBottom, 100);
   }
 
   async function stopMsg() {
@@ -288,16 +453,15 @@
       return;
     }
     await tick();
-    const el = scrollableElement.querySelector(
-      `[data-vertex-id="${messageId}"]`
-    );
-    if (!el) {
+    if (
+      !scrollableElement.querySelector(`[data-vertex-id="${messageId}"]`)
+    ) {
       console.warn(
         `scrollToMessage: element with vertex id "${messageId}" not found`
       );
       return;
     }
-    (el as HTMLElement).scrollIntoView({ block: "start" });
+    scrollToMessageTop(messageId);
   }
 </script>
 
@@ -351,6 +515,13 @@
       {/each}
       {#if lastMessageIsByUser}
         <ChatAppPendingAssistantMessage {data} />
+      {/if}
+      {#if bottomSpacerBase !== null}
+        <div
+          class="pointer-events-none"
+          aria-hidden="true"
+          style={`height: ${dynamicBottomSpacerHeight}px`}
+        />
       {/if}
     </div>
   </div>

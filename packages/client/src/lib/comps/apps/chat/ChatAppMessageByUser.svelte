@@ -208,7 +208,10 @@
   }
 </script>
 
-<div class="flex gap-3 px-4 py-2 justify-end">
+<div
+  class="flex gap-3 px-4 py-2 justify-end scroll-mt-2"
+  data-vertex-id={vertex?.id}
+>
   <div class="min-w-0 max-w-[85%] ml-auto" class:w-full={isEditing}>
     <div>
       {#if isEditing}

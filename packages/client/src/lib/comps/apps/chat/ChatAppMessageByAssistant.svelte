@@ -327,7 +327,10 @@
   }
 </script>
 
-<div class="flex gap-3 px-4 py-2">
+<div
+  class="flex gap-3 px-4 py-2 scroll-mt-2"
+  data-vertex-id={vertex?.id}
+>
   <div class="flex-shrink-0 mt-1">
     <div class="w-8 h-8 rounded-full flex items-center justify-center">
       <Sparkles size={18} />
@@ -439,7 +442,10 @@
             onpointerenter={beginHover}
             onpointerleave={endHover}
           >
-            {#if showEditAndCopyControls}
+            <div
+              class:invisible={!showEditAndCopyControls}
+              class:pointer-events-none={!showEditAndCopyControls}
+            >
               <FloatingPopover
                 placement="top"
                 openDelay={200}
@@ -468,7 +474,7 @@
                   {/if}
                 {/snippet}
               </FloatingPopover>
-            {/if}
+            </div>
             <div
               class:invisible={!showEditAndCopyControls}
               class:pointer-events-none={!showEditAndCopyControls}
