@@ -15,12 +15,12 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@sveltejs/adapter-auto": "^3.3.1",
-    "@sveltejs/kit": "^2.8.4",
+    "@sveltejs/kit": "^2.49.5",
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
     "@tsconfig/svelte": "^5.0.4",
     "@types/node": "^24.1.0",
     "fdir": "^6.5.0",
-    "svelte": "^5.36.16",
+    "svelte": "^5.46.4",
     "svelte-check": "^4.2.2",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"

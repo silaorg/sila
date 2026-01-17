@@ -8,6 +8,13 @@
   "devDependencies": {
     "airul": "^0.1.37"
   },
+  "overrides": {
+    "preact": "^10.28.2",
+    "tar": "^7.5.3",
+    "@sveltejs/kit": "^2.49.5",
+    "svelte": "^5.46.4",
+    "cookie": "^0.7.2"
+  },
   "scripts": {
     "prepare": "npx airul gen",
     "dev": "concurrently \"npm -w packages/core run watch\" \"npm -w packages/client run watch\" \"npm -w packages/desktop run dev\"",
