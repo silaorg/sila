@@ -21,6 +21,7 @@
   const BOTTOM_THRESHOLD_PX = 0;
   const BOTTOM_SPACER_OFFSET_PX = 72;
   const MIN_BOTTOM_SPACER_PX = 48;
+  // Small fixed trim to avoid tiny leftover scroll after a send.
   const SPACER_FUDGE_PX = 52;
 
   let { data }: { data: ChatAppData } = $props();
@@ -39,20 +40,22 @@
   let sendFormHeight = $state(0);
   let messageContainerEl = $state<HTMLElement | null>(null);
   let pendingUserScroll = $state(false);
-  let suppressAutoScrollOnce = $state(false);
   let bottomSpacerBase = $state<number | null>(null);
   let assistantGrowTargetId = $state<string | null>(null);
   let assistantGrowStartHeight = $state<number | null>(null);
   let assistantGrowCurrentHeight = $state<number | null>(null);
+  let userSpacerObserver = $state<ResizeObserver | null>(null);
 
   let lastProcessMessagesExpanded = $state(false);
   let isScrollingProgrammatically = $state(false);
   let distFromBottom = $derived(scrollHeight - scrollTop - clientHeight);
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
+  // Base spacer keeps the composer from crowding the last message after send.
   let bottomSpacerHeight = $derived(
     Math.max(clientHeight - BOTTOM_SPACER_OFFSET_PX, MIN_BOTTOM_SPACER_PX)
   );
   let dynamicBottomSpacerHeight = $derived.by(() => {
+    // Spacer collapses as the assistant reply grows, then we follow normally.
     if (bottomSpacerBase === null) {
       return 0;
     }
@@ -144,40 +147,32 @@
   }
 
   function handleScroll() {
+    const previousScrollTop = scrollTop;
     updateScrollMetrics();
     // Only update auto-scroll if this is a user scroll (not programmatic)
     if (!isScrollingProgrammatically) {
-      shouldAutoScroll = isAtBottom;
+      if (dynamicBottomSpacerHeight > 0) {
+        return;
+      }
+      if (scrollTop < previousScrollTop) {
+        shouldAutoScroll = false;
+        return;
+      }
+      if (assistantGrowTargetId && scrollTop > previousScrollTop) {
+        shouldAutoScroll = true;
+        return;
+      }
+      if (isAtBottom) {
+        shouldAutoScroll = true;
+      }
     }
   }
 
-  // Auto-scroll when content updates and auto-scroll is enabled
-  let lastScrollHeight = $state(0);
+  // Auto-scroll when enabled and there's space to scroll.
   $effect(() => {
-    if (shouldAutoScroll && scrollHeight > 0 && scrollHeight !== lastScrollHeight) {
-      if (suppressAutoScrollOnce) {
-        lastScrollHeight = scrollHeight;
-        suppressAutoScrollOnce = false;
-        return;
-      }
-      if (dynamicBottomSpacerHeight > 0) {
-        lastScrollHeight = scrollHeight;
-        return;
-      }
-      lastScrollHeight = scrollHeight;
-      scrollToBottom();
-    }
-  });
-
-  $effect(() => {
-    if (
-      !shouldAutoScroll ||
-      bottomSpacerBase === null ||
-      !assistantGrowTargetId ||
-      dynamicBottomSpacerHeight > 0
-    ) {
-      return;
-    }
+    if (!shouldAutoScroll) return;
+    if (dynamicBottomSpacerHeight > 0) return;
+    if (distFromBottom <= BOTTOM_THRESHOLD_PX) return;
     scrollToBottom();
   });
 
@@ -189,6 +184,12 @@
       assistantGrowCurrentHeight = null;
       bottomSpacerBase = null;
     }
+  });
+
+  $effect(() => {
+    if (!assistantGrowTargetId) return;
+    userSpacerObserver?.disconnect();
+    userSpacerObserver = null;
   });
 
   $effect(() => {
@@ -276,13 +277,16 @@
     });
 
     const msgsObs = data.observeNewMessages((vertices) => {
-      // When new messages arrive, enable auto-scroll and scroll to bottom
-      shouldAutoScroll = true;
+      // Only enable auto-scroll after a local send.
+      if (pendingUserScroll) {
+        shouldAutoScroll = true;
+      }
       messages = vertices;
       refreshHasFiles();
       tick().then(() => {
         updateScrollMetrics();
         if (pendingUserScroll) {
+          // After a user send, pin their message to the top and size spacer accordingly.
           const lastUserVertex = [...vertices]
             .reverse()
             .find((vertex) => vertex.getProperty("role") === "user");
@@ -291,19 +295,16 @@
               `[data-vertex-id="${lastUserVertex.id}"]`
             ) as HTMLElement | null;
             if (userEl) {
-              const paddingTop = getScrollPaddingTop();
-              const paddingBottom = getScrollPaddingBottom();
-              const scrollMarginTop = getScrollMarginTop(userEl);
-              const availableHeight =
-                clientHeight -
-                paddingTop -
-                paddingBottom -
-                scrollMarginTop -
-                SPACER_FUDGE_PX;
-              bottomSpacerBase = Math.max(
-                availableHeight - userEl.getBoundingClientRect().height,
-                0
-              );
+              updateUserSpacerHeight(userEl);
+              if (typeof ResizeObserver !== "undefined") {
+                userSpacerObserver?.disconnect();
+                const resizeObserver = new ResizeObserver(() => {
+                  updateUserSpacerHeight(userEl);
+                  scrollToMessageTop(lastUserVertex.id);
+                });
+                resizeObserver.observe(userEl);
+                userSpacerObserver = resizeObserver;
+              }
             } else {
               bottomSpacerBase = bottomSpacerHeight;
             }
@@ -332,6 +333,7 @@
       msgsObs();
       updateObs();
       window.removeEventListener("resize", onResize);
+      userSpacerObserver?.disconnect();
     };
   });
 
@@ -387,6 +389,22 @@
     return Number.isFinite(marginTop) ? marginTop : 0;
   }
 
+  function updateUserSpacerHeight(userEl: HTMLElement) {
+    const paddingTop = getScrollPaddingTop();
+    const paddingBottom = getScrollPaddingBottom();
+    const scrollMarginTop = getScrollMarginTop(userEl);
+    const availableHeight =
+      clientHeight -
+      paddingTop -
+      paddingBottom -
+      scrollMarginTop -
+      SPACER_FUDGE_PX;
+    bottomSpacerBase = Math.max(
+      availableHeight - userEl.getBoundingClientRect().height,
+      0
+    );
+  }
+
   function scrollToMessageTop(messageId: string) {
     if (!scrollableElement) return;
     const el = scrollableElement.querySelector(
@@ -406,7 +424,6 @@
   // Using shared AttachmentPreview from core
 
   async function sendMsg(query: string, attachments?: AttachmentPreview[]) {
-    suppressAutoScrollOnce = true;
     pendingUserScroll = true;
     bottomSpacerBase = bottomSpacerHeight;
     assistantGrowTargetId = null;
@@ -521,7 +538,7 @@
           class="pointer-events-none"
           aria-hidden="true"
           style={`height: ${dynamicBottomSpacerHeight}px`}
-        />
+        ></div>
       {/if}
     </div>
   </div>
