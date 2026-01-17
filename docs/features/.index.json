@@ -54,11 +54,6 @@
       "name": "themes",
       "type": "page",
       "label": "Themes"
-    },
-    {
-      "name": "import-from-chatgpt",
-      "type": "page",
-      "label": "Import from ChatGPT"
     }
   ]
 }
