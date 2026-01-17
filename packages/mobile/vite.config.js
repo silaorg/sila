@@ -11,8 +11,8 @@ export default defineConfig({
 	build: {
 		outDir: 'build',
 		emptyOutDir: true,
-		// Ensure compatibility with mobile browsers
-		target: 'chrome120',
+		// Ensure compatibility with iOS WebKit
+		target: ['es2020', 'safari13'],
 		sourcemap: true,
 		cssMinify: false,
 		// Copy static assets to build output
