@@ -14,8 +14,8 @@
 <div class="flex flex-col h-full w-full items-center justify-center relative">
   {#if !sidebarIsOpen}
     <div class="absolute top-2 left-2 flex gap-1">
-      <SidebarToggle />
       <SidebarCollapsedSettings />
+      <SidebarToggle />
     </div>
   {/if}
   <CenteredPage>

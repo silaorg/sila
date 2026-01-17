@@ -407,7 +407,7 @@ export class LayoutStore {
 
     allPanels.forEach(panel => {
       if (panel.id === firstPanelId && !this.sidebar.isOpen) {
-        panel.leftComponents = [{ componentId: 'sidebarToggle' }, { componentId: 'sidebarSettings' }];
+        panel.leftComponents = [{ componentId: 'sidebarSettings' }, { componentId: 'sidebarToggle' }];
       } else {
         panel.leftComponents = [];
       }
