@@ -6,6 +6,8 @@
   import type { AppConfig } from "@sila/core";
   import { onMount } from "svelte";
   import type { AttachmentPreview } from "@sila/core";
+  import { FileUp } from "lucide-svelte";
+  import { i18n } from "@sila/client";
 
   let {
     appConfig,
@@ -14,6 +16,9 @@
   }: { appConfig?: AppConfig; onSend?: () => void; targetPanelId?: string } =
     $props();
   let targetAppConfig: AppConfig | undefined = $state(undefined);
+  let isDraggingFiles = $state(false);
+  let dragCounter = 0;
+  let sendMessageFormRef = $state<any>(null);
 
   onMount(() => {
     if (!appConfig) {
@@ -70,13 +75,74 @@
 
     onSend?.();
   }
+
+  function dragEventHasFiles(event: DragEvent): boolean {
+    if (!event.dataTransfer) return false;
+    return Array.from(event.dataTransfer.types).includes("Files");
+  }
+
+  function handleDragEnter(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    isDraggingFiles = true;
+  }
+
+  function handleDragOver(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      isDraggingFiles = false;
+      dragCounter = 0;
+    }
+  }
+
+  function handleDrop(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    isDraggingFiles = false;
+
+    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+      sendMessageFormRef?.handleFiles(e.dataTransfer.files);
+    }
+  }
 </script>
 
-<div class="space-y-4 max-w-screen-md min-w-[600px]">
+<div
+  class="space-y-4 max-w-screen-md min-w-[600px] relative"
+  ondragenter={handleDragEnter}
+  ondragover={handleDragOver}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
+  role="region"
+  aria-label={i18n.texts.chat.dropFilesAria}
+>
+  {#if isDraggingFiles}
+    <div
+      class="absolute inset-0 z-50 flex items-center justify-center bg-surface-50/80 dark:bg-surface-950/80 backdrop-blur-sm pointer-events-none rounded-xl"
+    >
+      <div
+        class="flex flex-col items-center gap-4 p-8 border-2 border-dashed border-primary-500 rounded-xl bg-surface-50 dark:bg-surface-900 shadow-lg animate-pulse"
+      >
+        <FileUp size={48} class="text-primary-500" />
+        <p class="text-xl font-medium text-surface-900 dark:text-surface-50">
+          {i18n.texts.chat.dropFilesTitle}
+        </p>
+      </div>
+    </div>
+  {/if}
   {#if targetAppConfig}
     <h3 class="h3">{targetAppConfig.name}</h3>
     <p>{targetAppConfig.description}</p>
     <SendMessageForm
+      bind:this={sendMessageFormRef}
       onSend={handleSend}
       onConfigChange={handleConfigChange}
       draftId="new-thread"
