@@ -455,7 +455,9 @@ export const turkishTexts: Partial<Texts> = {
     errorLoadingAppTree: "Uygulama ağacı yüklenirken hata",
     viewFilesAria: "Sohbet dosyalarını görüntüle",
     scrollToBottomAria: "En alta kaydır",
-    chatFilesTitle: "Sohbet dosyaları"
+    chatFilesTitle: "Sohbet dosyaları",
+    dropFilesAria: "Eklemek için dosyaları buraya bırakın",
+    dropFilesTitle: "Eklemek için dosyaları buraya bırakın"
   },
 
   chatControls: {

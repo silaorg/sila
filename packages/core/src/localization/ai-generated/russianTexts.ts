@@ -479,7 +479,9 @@ export const russianTexts: Partial<Texts> = {
     errorLoadingAppTree: "Ошибка загрузки дерева приложения",
     viewFilesAria: "Показать файлы чата",
     scrollToBottomAria: "Прокрутить вниз",
-    chatFilesTitle: "Файлы чата"
+    chatFilesTitle: "Файлы чата",
+    dropFilesAria: "Перетащите файлы для вложения",
+    dropFilesTitle: "Перетащите файлы для вложения"
   },
 
   chatControls: {

@@ -455,7 +455,9 @@ export const chineseTexts: Partial<Texts> = {
     errorLoadingAppTree: "加载应用树出错",
     viewFilesAria: "查看聊天文件",
     scrollToBottomAria: "滚动到底部",
-    chatFilesTitle: "聊天文件"
+    chatFilesTitle: "聊天文件",
+    dropFilesAria: "拖放文件以附加",
+    dropFilesTitle: "拖放文件以附加"
   },
 
   chatControls: {

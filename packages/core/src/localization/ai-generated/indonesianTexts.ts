@@ -455,7 +455,9 @@ export const indonesianTexts: Partial<Texts> = {
     errorLoadingAppTree: "Gagal memuat app tree",
     viewFilesAria: "Lihat file chat",
     scrollToBottomAria: "Gulir ke bawah",
-    chatFilesTitle: "File chat"
+    chatFilesTitle: "File chat",
+    dropFilesAria: "Tarik file ke sini untuk melampirkan",
+    dropFilesTitle: "Tarik file ke sini untuk melampirkan"
   },
 
   chatControls: {

@@ -455,7 +455,9 @@ export const malayTexts: Partial<Texts> = {
     errorLoadingAppTree: "Ralat memuat app tree",
     viewFilesAria: "Lihat fail sembang",
     scrollToBottomAria: "Skrol ke bawah",
-    chatFilesTitle: "Fail sembang"
+    chatFilesTitle: "Fail sembang",
+    dropFilesAria: "Lepaskan fail untuk lampirkan",
+    dropFilesTitle: "Lepaskan fail untuk lampirkan"
   },
 
   chatControls: {

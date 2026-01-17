@@ -455,7 +455,9 @@ export const thaiTexts: Partial<Texts> = {
     errorLoadingAppTree: "เกิดข้อผิดพลาดในการโหลด app tree",
     viewFilesAria: "ดูไฟล์ในแชต",
     scrollToBottomAria: "เลื่อนไปด้านล่าง",
-    chatFilesTitle: "ไฟล์แชต"
+    chatFilesTitle: "ไฟล์แชต",
+    dropFilesAria: "ลากไฟล์มาวางเพื่อแนบ",
+    dropFilesTitle: "ลากไฟล์มาวางเพื่อแนบ"
   },
 
   chatControls: {

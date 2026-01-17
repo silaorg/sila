@@ -455,7 +455,9 @@ export const spanishTexts: Partial<Texts> = {
     errorLoadingAppTree: "Error al cargar el árbol de la app",
     viewFilesAria: "Ver archivos del chat",
     scrollToBottomAria: "Desplazar al final",
-    chatFilesTitle: "Archivos del chat"
+    chatFilesTitle: "Archivos del chat",
+    dropFilesAria: "Arrastra archivos para adjuntar",
+    dropFilesTitle: "Arrastra archivos para adjuntar"
   },
 
   chatControls: {
