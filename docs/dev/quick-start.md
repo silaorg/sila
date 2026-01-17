@@ -1,11 +1,14 @@
 # Quick start for devs
 
-## Start in in 3 steps:
 1. Clone the repository `git clone git@github.com:silaorg/sila.git`
 2. Run in your terminal at the root of the repository - `cd sila && npm install && npm run dev` to install all the necessary npm packages and launch a desktop build.
 3. To build for production - `npm run build`
 
-### Linux: Electron sandbox fix
+## Building for macOS
+
+If you want to build and package for internal tests without signing a certificate, run `npm run -w packages/desktop package:mac:unsigned`.
+
+## Linux: Electron sandbox fix
 
 If the desktop dev build fails with a `chrome-sandbox` SUID error, run:
 
