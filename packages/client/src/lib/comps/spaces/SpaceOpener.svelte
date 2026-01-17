@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { i18n } from "@sila/client";
   import { useClientState } from "@sila/client/state/clientStateContext";
 import { swinsLayout } from "@sila/client/state/swinsLayout";
@@ -14,7 +15,32 @@ import {
 
   let { onSpaceSetup }: { onSpaceSetup?: (spaceId: string) => void } = $props();
 
+  const mobileSpaceRoot = "capacitor://spaces";
+
+  function isCapacitorNative(): boolean {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const capacitor = (window as any).Capacitor;
+    if (!capacitor) {
+      return false;
+    }
+
+    if (typeof capacitor.isNativePlatform === "function") {
+      return capacitor.isNativePlatform();
+    }
+
+    return Boolean(capacitor.platform);
+  }
+
   let selectedParentPath = $state<string | null>(null);
+
+  onMount(() => {
+    if (isCapacitorNative()) {
+      selectedParentPath = mobileSpaceRoot;
+    }
+  });
 
   async function promptForLocation(): Promise<string | null> {
     const selection = await clientState.dialog.openDialog({
@@ -23,7 +49,12 @@ import {
       defaultPath: selectedParentPath ?? undefined,
     });
 
-    return normalizePathSelection(selection ?? null);
+    const normalized = normalizePathSelection(selection ?? null);
+    if (normalized) {
+      return normalized;
+    }
+
+    return selectedParentPath;
   }
 
   async function startCreateFlow() {
