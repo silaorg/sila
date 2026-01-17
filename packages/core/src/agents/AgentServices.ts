@@ -1,4 +1,5 @@
 import { Lang, LanguageProvider } from 'aiwrapper';
+import { MockLanguageProvider } from "./MockLanguageProvider";
 import { Space } from '../spaces/Space';
 import { splitModelString } from '../utils/modelUtils';
 import { resolveAutoModelIdForProvider, resolveMostCapableLanguageModel } from '../utils/autoModel';
@@ -140,10 +141,15 @@ export class AgentServices {
   async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
     // Common configuration for API-based providers
     const options: Record<string, any> = { model };
+    const providerConfig = this.space.getModelProviderConfig(provider);
 
-    // Add API key for providers that require it (all except ollama)
-    if (provider !== "ollama") {
+    // Add API key only for cloud providers.
+    if (provider !== "ollama" && provider !== "mock" && providerConfig?.type !== "local") {
       options.apiKey = await this.getKey(provider);
+    }
+
+    if (provider === "mock") {
+      return new MockLanguageProvider({ model });
     }
 
     // Handle custom OpenAI-like providers
