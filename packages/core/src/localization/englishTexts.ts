@@ -455,7 +455,9 @@ export const englishTexts: Texts = {
     errorLoadingAppTree: "Error loading app tree",
     viewFilesAria: "View chat files",
     scrollToBottomAria: "Scroll to bottom",
-    chatFilesTitle: "Chat files"
+    chatFilesTitle: "Chat files",
+    dropFilesAria: "Drop files to attach",
+    dropFilesTitle: "Drop files to attach"
   },
 
   chatControls: {

@@ -105,7 +105,10 @@
   });
 </script>
 
-<div class="flex gap-3 px-4 py-2">
+<div
+  class="flex gap-3 px-4 py-2 scroll-mt-2"
+  data-vertex-id={vertex?.id}
+>
   <div class="flex-shrink-0 mt-1">
     <div class="w-8 h-8 rounded-full flex items-center justify-center">
       <CircleAlert size={18} />

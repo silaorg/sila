@@ -47,34 +47,55 @@ packages/mobile/
 
 ## Build Process
 
-### 1. Web Build
-The mobile app starts with a standard Vite build that creates web assets in the `build/` directory.
+### 1. Install dependencies
+Run this from the repo root:
 
-### 2. Capacitor Sync
-Capacitor copies web assets to native projects and updates native dependencies using `npx cap sync`.
+```
+npm install
+```
 
-### 3. Platform-Specific Builds
+### 2. Build web assets
+Run this from the repo root:
 
-#### iOS Build
-- Open iOS project in Xcode with `npx cap open ios`
-- Bundle ID: `com.silain.mobile`
-- Deployment Target: iOS 13.0+
+```
+npm -w packages/mobile run build
+```
 
-#### Android Build
-- Open Android project in Android Studio with `npx cap open android`
-- Package name: `com.silain.mobile`
-- Target SDK: 33+, Minimum SDK: 24
+This runs:
+- `npm -w @sila/client run build`
+- `vite build`
+- `npx cap sync`
+
+### 3. iOS build
+Run these from the repo root:
+
+```
+npx cap sync ios
+npx cap open ios
+```
+
+Build and run in Xcode.
+
+### 4. Android build
+Run these from the repo root:
+
+```
+npx cap sync android
+npx cap open android
+```
+
+Build and run in Android Studio.
 
 ## Development Workflow
 
 ### Local Development
-1. Start development server with `npm run dev`
-2. Run on device with `npx cap run ios` or `npx cap run android`
+1. Start the dev servers from the repo root: `npm -w packages/mobile run dev`
+2. Run on device: `npx cap run ios` or `npx cap run android`
 3. Use live reload for faster development
 
 ### Native Plugin Integration
-- Current plugins: `@capacitor/core`, `@capacitor/ios`, `@capacitor/android`
-- Future plugins: Filesystem, Dialogs, Device info, Share, Camera
+- Current plugins: `@capacitor/core`, `@capacitor/ios`, `@capacitor/android`, `@capacitor/filesystem`, `@capacitor/dialog`
+- Future plugins: Device info, Share, Camera
 
 ### Debug Commands
 - `npx cap doctor` - Check Capacitor installation

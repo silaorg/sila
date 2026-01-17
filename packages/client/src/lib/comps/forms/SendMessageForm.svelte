@@ -208,13 +208,14 @@
     }
   }
 
-  async function onFilesSelected(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) return;
-    const selected = Array.from(files);
+  export async function handleFiles(files: FileList | File[]) {
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+    if (fileArray.length === 0) return;
+    await processAndAddFiles(fileArray, "drag-and-drop");
+  }
 
-    for (const file of selected) {
+  async function processAndAddFiles(files: File[], source: string = "file-picker") {
+    for (const file of files) {
       const processingId = crypto.randomUUID();
       const isText =
         file.type.startsWith("text/") ||
@@ -271,7 +272,7 @@
           trackFileAttached({
             fileType: optimizedFile.type || file.type || "text/plain",
             sizeBytes: optimizedFile.size,
-            source: "file-picker",
+            source,
           });
         } else {
           // Process image file
@@ -312,7 +313,7 @@
           trackFileAttached({
             fileType: optimizedFile.type || file.type,
             sizeBytes: optimizedFile.size,
-            source: "file-picker",
+            source,
           });
         }
       } catch (error) {
@@ -326,6 +327,15 @@
         });
       }
     }
+  }
+
+  async function onFilesSelected(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const files = input.files;
+    if (!files || files.length === 0) return;
+    const selected = Array.from(files);
+
+    await processAndAddFiles(selected, "file-picker");
 
     // reset input to allow re-selecting the same file
     if (fileInputEl) fileInputEl.value = "";
@@ -441,119 +451,7 @@
     // Check for files in clipboard
     if (files.length > 0) {
       hasProcessedContent = true;
-
-      for (const file of files) {
-        const processingId = crypto.randomUUID();
-        const isText =
-          file.type.startsWith("text/") ||
-          file.name.match(
-            /\.(txt|md|json|csv|js|ts|py|java|c|cpp|cs|php|rb|go|rs|swift|kt|scala|sh|bat|ps1|yml|yaml|toml|ini|cfg|conf|xml|html|css|log|tsv)$/i
-          );
-
-        // Add processing indicator immediately
-        attachments = [
-          ...attachments,
-          {
-            id: processingId,
-            kind: isText ? "text" : "image",
-            name: file.name,
-            mimeType: file.type,
-            size: file.size,
-            isLoading: true,
-          },
-        ];
-
-        try {
-          // Check if it's a text file first
-          const isTextFile = await processTextFileForUpload(file)
-            .then(() => true)
-            .catch(() => false);
-
-          if (isTextFile) {
-            // Process text file
-            const processedFile = await processTextFileForUpload(file);
-            const optimizedFile = await optimizeTextFile(processedFile);
-
-            // Read text content
-            const content = await readFileAsText(optimizedFile);
-            const metadata = extractTextFileMetadata(optimizedFile, content);
-
-            // Replace processing indicator with completed attachment
-            attachments = attachments.map((att: AttachmentWithLoading) =>
-              att.id === processingId
-                ? {
-                    id: processingId,
-                    kind: "text",
-                    name: optimizedFile.name,
-                    mimeType: optimizedFile.type,
-                    size: optimizedFile.size,
-                    content,
-                    metadata,
-                    width: metadata.charCount,
-                    height: metadata.lineCount,
-                    alt: metadata.language,
-                    isLoading: false,
-                  }
-                : att
-            );
-            trackFileAttached({
-              fileType: optimizedFile.type || file.type || "text/plain",
-              sizeBytes: optimizedFile.size,
-              source: "paste",
-            });
-          } else {
-            // Process image file
-            const processedFile = await processFileForUpload(file);
-            const optimizedFile = await optimizeImageSize(processedFile);
-
-            // Only images for now
-            if (!optimizedFile.type.startsWith("image/")) {
-              // Remove processing indicator for unsupported files
-              attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
-              trackFileAttachFailed({
-                fileType: optimizedFile.type || file.type,
-                sizeBytes: optimizedFile.size || file.size,
-                reason: "unsupported_type",
-              });
-              continue;
-            }
-
-            const dataUrl = await toDataUrl(optimizedFile);
-            const dims = await getImageDimensions(dataUrl);
-
-            // Replace processing indicator with completed attachment
-            attachments = attachments.map((att: AttachmentWithLoading) =>
-              att.id === processingId
-                ? {
-                    id: processingId,
-                    kind: "image",
-                    name: optimizedFile.name,
-                    mimeType: optimizedFile.type,
-                    size: optimizedFile.size,
-                    dataUrl,
-                    width: dims?.width,
-                    height: dims?.height,
-                    isLoading: false,
-                  }
-                : att
-            );
-            trackFileAttached({
-              fileType: optimizedFile.type || file.type,
-              sizeBytes: optimizedFile.size,
-              source: "paste",
-            });
-          }
-        } catch (error) {
-          console.error(`Failed to process pasted file ${file.name}:`, error);
-          // Remove processing indicator on error
-          attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
-          trackFileAttachFailed({
-            fileType: file.type,
-            sizeBytes: file.size,
-            reason: error instanceof Error ? error.message : "unknown_error",
-          });
-        }
-      }
+      await processAndAddFiles(files, "paste");
     }
 
     // Check for images in clipboard (e.g., screenshots)
@@ -563,27 +461,12 @@
       hasProcessedContent = true;
     }
 
+    const imageFiles: File[] = [];
     for (const imageType of imageTypes) {
-      let processingId: string | undefined;
       try {
         const dataUrl = clipboardData.getData(imageType);
         if (dataUrl && dataUrl.startsWith("data:")) {
           hasProcessedContent = true;
-
-          processingId = crypto.randomUUID();
-
-          // Add processing indicator immediately
-          attachments = [
-            ...attachments,
-            {
-              id: processingId,
-              kind: "image",
-              name: `pasted-image-${Date.now()}.${imageType.split("/")[1] || "png"}`,
-              mimeType: imageType,
-              size: 0,
-              isLoading: true,
-            },
-          ];
 
           // Convert data URL to blob
           const response = await fetch(dataUrl);
@@ -598,47 +481,19 @@
               lastModified: Date.now(),
             }
           );
-
-          // Process image file
-          const processedFile = await processFileForUpload(file);
-          const optimizedFile = await optimizeImageSize(processedFile);
-
-          const optimizedDataUrl = await toDataUrl(optimizedFile);
-          const dims = await getImageDimensions(optimizedDataUrl);
-
-          // Replace processing indicator with completed attachment
-          attachments = attachments.map((att: AttachmentWithLoading) =>
-            att.id === processingId
-              ? {
-                  id: processingId,
-                  kind: "image",
-                  name: optimizedFile.name,
-                  mimeType: optimizedFile.type,
-                  size: optimizedFile.size,
-                  dataUrl: optimizedDataUrl,
-                  width: dims?.width,
-                  height: dims?.height,
-                  isLoading: false,
-                }
-              : att
-          );
-          trackFileAttached({
-            fileType: optimizedFile.type || imageType,
-            sizeBytes: optimizedFile.size,
-            source: "paste",
-          });
+          imageFiles.push(file);
         }
       } catch (error) {
         console.error(`Failed to process pasted image ${imageType}:`, error);
-        // Remove processing indicator on error
-        if (processingId) {
-          attachments = attachments.filter((a: AttachmentWithLoading) => a.id !== processingId);
-        }
         trackFileAttachFailed({
           fileType: imageType,
           reason: error instanceof Error ? error.message : "unknown_error",
         });
       }
+    }
+
+    if (imageFiles.length > 0) {
+      await processAndAddFiles(imageFiles, "paste");
     }
 
     // Check for other clipboard types that might contain filenames
