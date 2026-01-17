@@ -4,7 +4,6 @@
   import AppTrees from "./AppTrees.svelte";
   import SpaceSelectorPopup from "../popups/SpaceSelectorPopup.svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
-  import ChatSearchPopover from "../popups/ChatSearchPopover.svelte";
   import SidebarToggle from "./SidebarToggle.svelte";
 </script>
 
@@ -15,7 +14,6 @@
         <SpaceSelectorPopup />
       </div>
       <div class="flex items-center">
-        <ChatSearchPopover />
         <SwinsNavButton
           component="settingsWorkspacePreferences"
           title="Preferences"

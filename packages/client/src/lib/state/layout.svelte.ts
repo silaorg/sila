@@ -2,6 +2,7 @@ import ChatAppLoader from "@sila/client/comps/apps/chat/ChatAppLoader.svelte";
 import FilesAppLoader from "@sila/client/comps/apps/files/FilesAppLoader.svelte";
 import Sidebar from "@sila/client/comps/sidebar/Sidebar.svelte";
 import SidebarToggle from "@sila/client/comps/sidebar/SidebarToggle.svelte";
+import SidebarCollapsedSettings from "@sila/client/comps/sidebar/SidebarCollapsedSettings.svelte";
 import FileViewerTab from "@sila/client/comps/vertex-viewer/FileViewerTab.svelte";
 import {
   createTtabs,
@@ -155,6 +156,7 @@ export class LayoutStore {
     this.ttabs.registerComponent('files', FilesAppLoader);
     this.ttabs.registerComponent('fileViewer', FileViewerTab);
     this.ttabs.registerComponent('sidebarToggle', SidebarToggle);
+    this.ttabs.registerComponent('sidebarSettings', SidebarCollapsedSettings);
     this.ttabs.registerComponent('noTabsContent', DefaultAppPage);
     this.ttabs.registerComponent('tabBarNewThreadButton', TabBarNewThreadButton);
 
@@ -405,7 +407,7 @@ export class LayoutStore {
 
     allPanels.forEach(panel => {
       if (panel.id === firstPanelId && !this.sidebar.isOpen) {
-        panel.leftComponents = [{ componentId: 'sidebarToggle' }];
+        panel.leftComponents = [{ componentId: 'sidebarToggle' }, { componentId: 'sidebarSettings' }];
       } else {
         panel.leftComponents = [];
       }

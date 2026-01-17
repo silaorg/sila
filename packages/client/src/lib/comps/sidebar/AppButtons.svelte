@@ -4,6 +4,7 @@
   import type { AppConfig } from "@sila/core";
   import { Images, SquarePen } from "lucide-svelte";
   import SwinsNavButton from "@sila/client/swins/SwinsNavButton.svelte";
+  import ChatSearchPopover from "../popups/ChatSearchPopover.svelte";
   import { i18n } from "@sila/client";
   import { untrack } from "svelte";
 
@@ -50,6 +51,9 @@
       </li>
     {/if}
   {/each}
+  <li>
+    <ChatSearchPopover />
+  </li>
   <li>
     <SwinsNavButton
     component="files"

@@ -251,12 +251,17 @@
 
 <button
   type="button"
-  class="p-2 rounded hover:preset-tonal"
+  class="w-full flex gap-2 flex-grow py-1 px-1 truncate rounded hover:preset-tonal"
   data-role="open-search"
   aria-label="Search chats"
   onclick={togglePopover}
 >
-  <Search size={18} />
+  <span class="w-6 h-6 flex-shrink-0">
+    <span class="relative flex h-full items-center justify-center">
+      <Search size={18} />
+    </span>
+  </span>
+  <span class="flex-grow text-left">Search chats</span>
 </button>
 
 <div
