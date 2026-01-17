@@ -22,6 +22,7 @@ The Sila mobile app is built using:
 - macOS with Xcode 14+
 - iOS 13+ deployment target
 - Apple Developer account (for device testing and App Store)
+- Run `xcodebuild -runFirstLaunch` once after installing or updating Xcode
 
 #### Android
 - Android Studio with SDK 33+
