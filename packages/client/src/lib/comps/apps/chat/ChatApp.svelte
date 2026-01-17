@@ -9,7 +9,7 @@
   import type { ThreadMessage } from "@sila/core";
   import type { AttachmentPreview } from "@sila/core";
   import type { MessageFormStatus } from "../../forms/messageFormStatus";
-  import { ArrowDown, Images, Search } from "lucide-svelte";
+  import { ArrowDown, Images, Search, FileUp } from "lucide-svelte";
   import type { VisibleMessage } from "./chatTypes";
   import ChatAppPendingAssistantMessage from "./ChatAppPendingAssistantMessage.svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
@@ -45,6 +45,9 @@
   let assistantGrowStartHeight = $state<number | null>(null);
   let assistantGrowCurrentHeight = $state<number | null>(null);
   let userSpacerObserver = $state<ResizeObserver | null>(null);
+  let sendMessageFormRef = $state<any>(null);
+  let isDraggingFiles = $state(false);
+  let dragCounter = 0;
 
   let lastProcessMessagesExpanded = $state(false);
   let isScrollingProgrammatically = $state(false);
@@ -480,12 +483,70 @@
     }
     scrollToMessageTop(messageId);
   }
+
+  function dragEventHasFiles(event: DragEvent): boolean {
+    if (!event.dataTransfer) return false;
+    return Array.from(event.dataTransfer.types).includes("Files");
+  }
+
+  function handleDragEnter(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    isDraggingFiles = true;
+  }
+
+  function handleDragOver(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      isDraggingFiles = false;
+      dragCounter = 0;
+    }
+  }
+
+  function handleDrop(e: DragEvent) {
+    if (!dragEventHasFiles(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    isDraggingFiles = false;
+
+    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+      sendMessageFormRef?.handleFiles(e.dataTransfer.files);
+    }
+  }
 </script>
 
 <div
   class="flex flex-col w-full h-full overflow-hidden relative"
   data-component="chat-app"
+  ondragenter={handleDragEnter}
+  ondragover={handleDragOver}
+  ondragleave={handleDragLeave}
+  ondrop={handleDrop}
+  role="region"
+  aria-label={i18n.texts.chat.dropFilesAria}
 >
+  {#if isDraggingFiles}
+    <div
+      class="absolute inset-0 z-50 flex items-center justify-center bg-surface-50/80 dark:bg-surface-950/80 backdrop-blur-sm pointer-events-none"
+    >
+      <div
+        class="flex flex-col items-center gap-4 p-8 border-2 border-dashed border-primary-500 rounded-xl bg-surface-50 dark:bg-surface-900 shadow-lg animate-pulse"
+      >
+        <FileUp size={48} class="text-primary-500" />
+        <p class="text-xl font-medium text-surface-900 dark:text-surface-50">
+          {i18n.texts.chat.dropFilesTitle}
+        </p>
+      </div>
+    </div>
+  {/if}
   <FindInPage
     containerEl={messageContainerEl}
     enabled={pageSearchEnabled}
@@ -555,6 +616,7 @@
   <div class="min-h-min" bind:this={sendFormEl}>
     <section class="max-w-4xl mx-auto py-2 px-2">
       <SendMessageForm
+        bind:this={sendMessageFormRef}
         onSend={sendMsg}
         onStop={stopMsg}
         status={formStatus}

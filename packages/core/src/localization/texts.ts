@@ -452,6 +452,8 @@ export interface Texts {
     viewFilesAria: string;
     scrollToBottomAria: string;
     chatFilesTitle: string;
+    dropFilesAria: string;
+    dropFilesTitle: string;
   };
 
   chatControls: {
