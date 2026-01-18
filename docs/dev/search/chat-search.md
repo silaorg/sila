@@ -1,4 +1,4 @@
-# Chat search (dev notes)
+# Chat search
 
 ## Purpose
 

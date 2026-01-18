@@ -16,6 +16,26 @@
       "label": "Releases"
     },
     {
+      "name": "versions",
+      "type": "page",
+      "label": "Versioning"
+    },
+    {
+      "name": "components-workbench",
+      "type": "page",
+      "label": "Components Workbench"
+    },
+    {
+      "name": "aiwrapper-linking",
+      "type": "page",
+      "label": "AIWrapper Linking"
+    },
+    {
+      "name": "persistence-layers",
+      "type": "page",
+      "label": "Persistence Layers"
+    },
+    {
       "name": "files",
       "type": "section",
       "label": "Files"
@@ -29,6 +49,11 @@
       "name": "spaces",
       "type": "section",
       "label": "Spaces"
+    },
+    {
+      "name": "search",
+      "type": "section",
+      "label": "Search"
     }
   ]
 }

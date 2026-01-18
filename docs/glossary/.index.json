@@ -1,6 +1,11 @@
 {
   "items": [
     {
+      "name": "README",
+      "type": "page",
+      "label": "Overview"
+    },
+    {
       "name": "agent",
       "type": "page",
       "label": "Agent"
@@ -16,9 +21,19 @@
       "label": "AI Model"
     },
     {
+      "name": "chat",
+      "type": "page",
+      "label": "Chat"
+    },
+    {
       "name": "space",
       "type": "page",
       "label": "Space"
+    },
+    {
+      "name": "tool",
+      "type": "page",
+      "label": "Tool"
     },
     {
       "name": "workspace",
