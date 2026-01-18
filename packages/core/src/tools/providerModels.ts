@@ -7,6 +7,10 @@ export function getProviderModels(
   signal?: AbortSignal,
 ): Promise<string[]> {
   console.log('Get models for ' + provider);
+
+  if (provider === "mock") {
+    return Promise.resolve(["mock-1"]);
+  }
   
   // For cloud providers, try to use Lang.models if available
   if (provider !== "ollama") {
