@@ -455,7 +455,9 @@ export const hindiTexts: Partial<Texts> = {
     errorLoadingAppTree: "ऐप ट्री लोड करने में त्रुटि",
     viewFilesAria: "चैट फ़ाइलें देखें",
     scrollToBottomAria: "नीचे तक स्क्रॉल करें",
-    chatFilesTitle: "चैट फ़ाइलें"
+    chatFilesTitle: "चैट फ़ाइलें",
+    dropFilesAria: "संलग्न करने के लिए फ़ाइलें यहाँ छोड़ें",
+    dropFilesTitle: "संलग्न करने के लिए फ़ाइलें यहाँ छोड़ें"
   },
 
   chatControls: {

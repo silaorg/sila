@@ -455,7 +455,9 @@ export const japaneseTexts: Partial<Texts> = {
     errorLoadingAppTree: "アプリツリーの読み込みエラー",
     viewFilesAria: "チャットファイルを見る",
     scrollToBottomAria: "一番下へスクロール",
-    chatFilesTitle: "チャットファイル"
+    chatFilesTitle: "チャットファイル",
+    dropFilesAria: "ファイルをドロップして添付",
+    dropFilesTitle: "ファイルをドロップして添付"
   },
 
   chatControls: {

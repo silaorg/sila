@@ -455,7 +455,9 @@ export const arabicTexts: Partial<Texts> = {
     errorLoadingAppTree: "خطأ في تحميل شجرة التطبيق",
     viewFilesAria: "عرض ملفات الدردشة",
     scrollToBottomAria: "التمرير إلى الأسفل",
-    chatFilesTitle: "ملفات الدردشة"
+    chatFilesTitle: "ملفات الدردشة",
+    dropFilesAria: "أفلت الملفات لإرفاقها",
+    dropFilesTitle: "أفلت الملفات لإرفاقها"
   },
 
   chatControls: {

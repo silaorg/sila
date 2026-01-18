@@ -455,7 +455,9 @@ export const vietnameseTexts: Partial<Texts> = {
     errorLoadingAppTree: "Lỗi khi tải app tree",
     viewFilesAria: "Xem tệp trong chat",
     scrollToBottomAria: "Cuộn xuống cuối",
-    chatFilesTitle: "Tệp trong chat"
+    chatFilesTitle: "Tệp trong chat",
+    dropFilesAria: "Kéo thả tệp để đính kèm",
+    dropFilesTitle: "Kéo thả tệp để đính kèm"
   },
 
   chatControls: {

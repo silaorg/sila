@@ -455,7 +455,9 @@ export const koreanTexts: Partial<Texts> = {
     errorLoadingAppTree: "앱 트리 로딩 오류",
     viewFilesAria: "채팅 파일 보기",
     scrollToBottomAria: "맨 아래로 스크롤",
-    chatFilesTitle: "채팅 파일"
+    chatFilesTitle: "채팅 파일",
+    dropFilesAria: "파일을 드롭하여 첨부",
+    dropFilesTitle: "파일을 드롭하여 첨부"
   },
 
   chatControls: {
