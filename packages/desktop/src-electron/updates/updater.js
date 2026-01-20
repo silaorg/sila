@@ -2,7 +2,7 @@ import { dialog, BrowserWindow, autoUpdater, ipcMain, app } from 'electron';
 import { ElectronUpdater } from './electronUpdater.js';
 import { DesktopBuildUpdater } from './desktopBuildUpdater.js';
 import { githubReleaseManager } from './githubReleaseManager.js';
-import { diff as semverDiff, coerce as semverCoerce } from 'semver';
+import { diff as semverDiff, coerce as semverCoerce, gt as semverGt } from 'semver';
 
 let electronUpdater = new ElectronUpdater();
 let desktopBuildUpdater = new DesktopBuildUpdater();
@@ -178,10 +178,13 @@ export async function checkForUpdates() {
     if (desktopBuilds && desktopBuilds.length > 0) {
       const currentVersion = semverCoerce(app.getVersion());
       const latestDesktopVersion = semverCoerce(desktopBuilds[0].version);
-      const diff = currentVersion && latestDesktopVersion ? semverDiff(currentVersion, latestDesktopVersion) : null;
+      const isNewer = currentVersion && latestDesktopVersion && semverGt(latestDesktopVersion, currentVersion);
 
-      if (!diff) {
-        console.log('Updater / Latest desktop build is same as current version; skipping.', { version: desktopBuilds[0].version });
+      if (!isNewer) {
+        console.log('Updater / Latest desktop build is not newer than current version; skipping.', {
+          current: app.getVersion(),
+          latest: desktopBuilds[0].version
+        });
         emitUpdateProgress({ stage: 'idle', percent: null });
         return;
       }
