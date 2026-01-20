@@ -181,12 +181,29 @@
 
   $effect(() => {
     if (!assistantGrowTargetId) return;
+
+    // Check immediately if the message is already done.
     if (!data.isMessageInProgress(assistantGrowTargetId)) {
       assistantGrowTargetId = null;
       assistantGrowStartHeight = null;
       assistantGrowCurrentHeight = null;
       bottomSpacerBase = null;
+      return;
     }
+
+    // Otherwise, subscribe to updates so we know when it finishes.
+    const cleanup = data.observeMessage(assistantGrowTargetId, (msg) => {
+      if (!msg.inProgress) {
+        assistantGrowTargetId = null;
+        assistantGrowStartHeight = null;
+        assistantGrowCurrentHeight = null;
+        bottomSpacerBase = null;
+      }
+    });
+
+    return () => {
+      cleanup();
+    };
   });
 
   $effect(() => {
