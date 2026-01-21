@@ -182,6 +182,10 @@
   $effect(() => {
     if (!assistantGrowTargetId) return;
 
+    // Clean up user spacer observer immediately when entering assistant growth mode
+    userSpacerObserver?.disconnect();
+    userSpacerObserver = null;
+
     // Check immediately if the message is already done.
     if (!data.isMessageInProgress(assistantGrowTargetId)) {
       assistantGrowTargetId = null;
@@ -191,8 +195,8 @@
       return;
     }
 
-    // Otherwise, subscribe to updates so we know when it finishes.
-    const cleanup = data.observeMessage(assistantGrowTargetId, (msg) => {
+    // Subscribe to message updates to know when it finishes
+    const msgCleanup = data.observeMessage(assistantGrowTargetId, (msg) => {
       if (!msg.inProgress) {
         assistantGrowTargetId = null;
         assistantGrowStartHeight = null;
@@ -201,15 +205,31 @@
       }
     });
 
-    return () => {
-      cleanup();
-    };
-  });
+    // Also observe the DOM element for height changes if available
+    let resizeObserver: ResizeObserver | null = null;
+    if (scrollableElement && typeof ResizeObserver !== "undefined") {
+      const messageEl = scrollableElement.querySelector(
+        `[data-vertex-id="${assistantGrowTargetId}"]`
+      ) as HTMLElement | null;
 
-  $effect(() => {
-    if (!assistantGrowTargetId) return;
-    userSpacerObserver?.disconnect();
-    userSpacerObserver = null;
+      if (messageEl) {
+        const updateHeights = () => {
+          const height = messageEl.getBoundingClientRect().height;
+          assistantGrowCurrentHeight = height;
+          if (assistantGrowStartHeight === null) {
+            assistantGrowStartHeight = height;
+          }
+        };
+        updateHeights();
+        resizeObserver = new ResizeObserver(updateHeights);
+        resizeObserver.observe(messageEl);
+      }
+    }
+
+    return () => {
+      msgCleanup();
+      resizeObserver?.disconnect();
+    };
   });
 
   $effect(() => {
@@ -224,33 +244,6 @@
     assistantGrowTargetId = lastMessageId;
     assistantGrowStartHeight = null;
     assistantGrowCurrentHeight = null;
-  });
-
-  $effect(() => {
-    if (
-      !assistantGrowTargetId ||
-      !scrollableElement ||
-      typeof ResizeObserver === "undefined"
-    ) {
-      return;
-    }
-    const messageEl = scrollableElement.querySelector(
-      `[data-vertex-id="${assistantGrowTargetId}"]`
-    ) as HTMLElement | null;
-    if (!messageEl) return;
-    const updateHeights = () => {
-      const height = messageEl.getBoundingClientRect().height;
-      assistantGrowCurrentHeight = height;
-      if (assistantGrowStartHeight === null) {
-        assistantGrowStartHeight = height;
-      }
-    };
-    updateHeights();
-    const resizeObserver = new ResizeObserver(updateHeights);
-    resizeObserver.observe(messageEl);
-    return () => {
-      resizeObserver.disconnect();
-    };
   });
 
   $effect(() => {
