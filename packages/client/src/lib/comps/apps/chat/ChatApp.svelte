@@ -198,10 +198,17 @@
     // Subscribe to message updates to know when it finishes
     const msgCleanup = data.observeMessage(assistantGrowTargetId, (msg) => {
       if (!msg.inProgress) {
+        // Freeze the spacer at its current calculated height to avoid jumps
+        const currentSpacer = dynamicBottomSpacerHeight;
+        if (currentSpacer > 0) {
+          bottomSpacerBase = currentSpacer;
+        } else {
+          bottomSpacerBase = null;
+        }
+
         assistantGrowTargetId = null;
         assistantGrowStartHeight = null;
         assistantGrowCurrentHeight = null;
-        bottomSpacerBase = null;
       }
     });
 
