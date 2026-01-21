@@ -1,6 +1,6 @@
 # Why did we make Sila
 
-There are thousands of AI chat apps and many of them are open source. But none of them focus on several important things at the same time: data ownership, ease of use without hosting a server, and portable workspaces that can be stored in different places (servers) while supporting multiple users.
+There are thousands of AI chat apps and many of them are open source. But none of them focus on several important things at the same time: data ownership, ease of use without hosting a server, and portable workspaces that can be stored in different places.
 
 ChatGPT, Claude, Gemini and similar products own your data and try to hook you into being a lifetime user (subscriber, ads consumer, etc).
 
