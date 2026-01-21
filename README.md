@@ -18,6 +18,8 @@ Sila is like ChatGPT, but you own your assistants, chats, and files. The more yo
 
 Unlike most similar projects, you don't need to host a server or register an account to use Sila. Even though your data is stored locally as plain files, it can be synced effectively across multiple devices. Later, you can even host your workspace on a server and invite team members. Sila combines the power of local-first with collaborative capabilities.
 
+[Watch how to get started in Sila](https://youtu.be/S-CgZbHXXOw)
+
 ## Features
 
 ### Workspaces
