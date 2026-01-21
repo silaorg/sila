@@ -10,7 +10,7 @@
   },
   "overrides": {
     "preact": "^10.28.2",
-    "tar": "^7.5.3",
+    "tar": "^7.5.4",
     "@sveltejs/kit": "^2.49.5",
     "svelte": "^5.46.4",
     "cookie": "^0.7.2"
