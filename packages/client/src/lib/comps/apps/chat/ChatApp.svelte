@@ -226,6 +226,12 @@
           if (assistantGrowStartHeight === null) {
             assistantGrowStartHeight = height;
           }
+
+          // If the spacer has collapsed to zero, we need to manually ensure we stay at the bottom
+          // as the content continues to grow.
+          if (dynamicBottomSpacerHeight === 0) {
+            scrollToBottom();
+          }
         };
         updateHeights();
         resizeObserver = new ResizeObserver(updateHeights);
