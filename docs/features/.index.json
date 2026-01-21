@@ -11,9 +11,9 @@
       "label": "Files"
     },
     {
-      "name": "new-documents",
+      "name": "documents",
       "type": "page",
-      "label": "New documents"
+      "label": "Documents"
     },
     {
       "name": "assistants",

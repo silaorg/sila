@@ -1,14 +1,14 @@
 {
   "items": [
     {
-      "name": "the-problem-with-chatgpt",
-      "type": "page",
-      "label": "What is wrong with ChatGPT?"
-    },
-    {
       "name": "why",
       "type": "page",
       "label": "Why Sila?"
+    },
+    {
+      "name": "the-problem-with-chatgpt",
+      "type": "page",
+      "label": "What is wrong with ChatGPT?"
     },
     {
       "name": "own",
