@@ -1,6 +1,8 @@
-# Workspaces
+# Portable workspaces
 
 Sila organizes everything you do into workspaces. A workspace holds your conversations, files, and assistants for a project or interest. Unlike ChatGPT, you choose where your workspace is stored. You can create as many workspaces as you want and switch between them with a click.
+
+Workspaces in Sila are portable - it means that you can have multiple workspaces stored in different places - one on your laptop, another synced in iCloud between multiple devices and your company workspace hosted on a server that multiple colleagues can access.
 
 <Screenshot name="workspaces" alt="Workspaces in Sila" />
 

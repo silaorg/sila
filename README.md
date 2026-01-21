@@ -8,7 +8,7 @@ Sila
   <br />
   <a href="https://silain.com/download">Download</a>
   ·
-  <a href="https://silain.com/v1/features">Features</a>
+  <a href="https://silain.com/v1/why">Why did we make it</a>
 </p>
 <br/>
 
