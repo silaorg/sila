@@ -7,7 +7,5 @@ You can start with
 - [Why owning stuff matters](own.md)
 - [Why Sila](why.md)
 
-And if you're a developer and want to understand how Sila works, check
-- [For developers](dev/README.md)
-Or this one to get run build and run from the source:
-- [Quick start for developers](dev/quick-start.md)
+### For developers
+Follow [For developers](dev/README.md) and the quick-start guide to build and run from source: [Quick start for developers](dev/quick-start.md)
