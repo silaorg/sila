@@ -1,15 +1,6 @@
 # Getting started in Sila
 
-<div style="position: relative; width: 100%; padding-bottom: 56.25%;">
-  <iframe
-    style="position: absolute; inset: 0; width: 100%; height: 100%;"
-    src="https://www.youtube.com/embed/S-CgZbHXXOw"
-    title="YouTube video player"
-    frameborder="0"
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-    allowfullscreen
-  ></iframe>
-</div>
+<VideoEmbed src="https://www.youtube.com/embed/S-CgZbHXXOw" title="How to get started in Sila" />
 
 - [Download](https://silain.com/download) and open Sila.
 - Create a new [workspace](./features/workspaces.md).
