@@ -1,11 +1,14 @@
 # The problem with ChatGPT
 
-OpenAI, the creator of ChatGPT, owns your data. They want to create a super assistant that people depend on over time. That can make it hard to switch, because they hold your data and workflows. Sila is a counterbalance: a ChatGPT-like experience where you (or your team) own the data and can use any AI models.
+OpenAI, the creator of ChatGPT, owns your data and serves only their AI models to you. They want to create a super assistant and hook as many people on it while upselling and showing ads. They are building a huge business and will extract profits from anyone who uses ChatGPT. They will try to make it hard to switch from ChatGPT because they hold your data and workflows while improving ChatGPT to make it more personalized.
 
-## How Sila solves this
+Same goes for Gemini, Claude, and any major AI player.
 
-- **[Own your data](own.md)**: Keep your conversations, assistants, and files under your control with local-first storage
-- **[Workspaces](features/workspaces.md)**: Separate work and personal AI conversations into different workspaces stored in different locations
-<!--
-- **[Import from ChatGPT](features/import-from-chatgpt.md)**: Migrate your existing conversations and memory about you to maintain continuity
--->
+## How about Sila
+
+We build Sila as a counterbalance: a ChatGPT-like experience where you (or your team) own the data and can use any AI models.
+
+More:
+- [Why Sila](why.md)
+- [Own your data](own.md)
+- [Portable workspaces](features/workspaces.md)

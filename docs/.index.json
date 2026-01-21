@@ -6,6 +6,11 @@
       "label": "What is wrong with ChatGPT?"
     },
     {
+      "name": "why",
+      "type": "page",
+      "label": "Why Sila?"
+    },
+    {
       "name": "own",
       "type": "page",
       "label": "Own your AI"

@@ -74,11 +74,11 @@ Managing workspaces and data:
 
 ## AI Development Guidelines
 
-Everything in [For AI Agents](./for-ai/) is addressed to AI agents - basic rules for commiting, using particular tools, documenting, etc.
+Everything in the `dev/for-ai` folder is addressed to AI agents—basic rules for committing, using particular tools, documenting, etc.
 
 ## Proposals
 
-See [proposals](./proposals/) for feature proposals. We delete proposals when we complete them  (in production and tested).
+Feature proposals live in the `dev/proposals` folder and are deleted from production once completed and tested.
 
 ## Related Projects
 
