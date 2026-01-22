@@ -206,6 +206,11 @@ export class Space {
     if (!vertex || vertex.name === name) return;
 
     vertex.name = name;
+
+    const appTree = this.appTrees.get(appTreeId);
+    if (appTree?.tree.root && appTree.tree.root.name !== name) {
+      appTree.tree.root.name = name;
+    }
   }
 
   getVertex(vertexId: string): Vertex | undefined {

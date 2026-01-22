@@ -2,7 +2,7 @@
   import { useClientState } from "@sila/client/state/clientStateContext";
   import type { VertexChangeEvent } from "@sila/core";
   const clientState = useClientState();
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import AppTreeOptionsPopup from "../popups/AppTreeOptionsPopup.svelte";
 
   let { id }: { id: string } = $props();
@@ -10,6 +10,9 @@
   let appTreeId = $state<string | undefined>(undefined);
   let name = $state<string | undefined>(undefined);
   let appId = $state<string | undefined>(undefined);
+  let isEditing = $state(false);
+  let draftName = $state("");
+  let inputEl = $state<HTMLInputElement | null>(null);
 
   let ttabs = $derived(clientState.currentSpaceState?.layout.ttabs);
 
@@ -94,6 +97,7 @@
     if (!ttabs) return;
 
     if (events.some((e) => e.type === "property")) {
+      if (isEditing) return;
       const vertex = clientState.currentSpace?.getVertex(id);
       name = vertex?.name;
 
@@ -118,6 +122,54 @@
       }
     }
   }
+
+  async function startEditing() {
+    if (isEditing) return;
+
+    isEditing = true;
+    draftName = name ?? "New chat";
+    await tick();
+    inputEl?.focus();
+    inputEl?.select();
+  }
+
+  function commitEditing() {
+    const nextName = draftName.trim();
+
+    if (nextName === name) {
+      isEditing = false;
+      return;
+    }
+
+    if (nextName && appTreeId) {
+      clientState.currentSpace?.setAppTreeName(appTreeId, nextName);
+    }
+    name = nextName || name || "New chat";
+    if (appTreeId && ttabs) {
+      const tabId = findTabByTreeId(appTreeId);
+      if (tabId) {
+        ttabs.updateTile(tabId, { name });
+      }
+    }
+    isEditing = false;
+  }
+
+  function cancelEditing() {
+    isEditing = false;
+    draftName = name ?? "New chat";
+  }
+
+  function handleEditorKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      commitEditing();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      cancelEditing();
+    }
+  }
 </script>
 
 {#if appTreeId}
@@ -127,11 +179,26 @@
       ${isActive ? "bg-surface-100-900" : ""} 
       ${!isOpen ? "hover:bg-surface-100-900/50" : ""}`}
   >
-    <button class="flex-grow py-1 px-2 truncate text-left ph-no-capture" data-role="open-conversation" onclick={openApp}>
-      <span>{name ?? "New chat"}</span>
+    <button
+      class="flex-grow truncate text-left ph-no-capture py-1 px-2"
+      data-role="open-conversation"
+      onclick={openApp}
+      ondblclick={startEditing}
+    >
+      {#if isEditing}
+        <input
+          class="w-full h-full bg-transparent outline-none text-sm leading-5 py-0 px-0"
+          bind:value={draftName}
+          bind:this={inputEl}
+          onkeydown={handleEditorKeydown}
+          onblur={commitEditing}
+        />
+      {:else}
+        <span>{name ?? "New chat"}</span>
+      {/if}
     </button>
     {#if isActive}
-      <AppTreeOptionsPopup {appTreeId} />
+      <AppTreeOptionsPopup {appTreeId} onRename={startEditing} />
     {/if}
   </span>
 {/if}

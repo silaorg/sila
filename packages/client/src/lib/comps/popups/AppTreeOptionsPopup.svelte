@@ -5,7 +5,7 @@
   import { i18n } from "@sila/client";
   const clientState = useClientState();
 
-  let { appTreeId }: { appTreeId: string } = $props();
+  let { appTreeId, onRename }: { appTreeId: string; onRename?: () => void } = $props();
   let openState = $state(false);
 
   function popoverClose() {
@@ -13,8 +13,8 @@
   }
 
   function startRenamingThread() {
-    // @TODO: implement renaming
     popoverClose();
+    setTimeout(() => onRename?.(), 0);
   }
 
   function openInNewTab() {

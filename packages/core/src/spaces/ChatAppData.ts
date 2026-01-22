@@ -82,13 +82,6 @@ export class ChatAppData {
     this.referenceInSpace.name = title;
   }
 
-  rename(newTitle: string) {
-    if (newTitle.trim() === "") return;
-
-    this.title = newTitle;
-    this.space.setAppTreeName(this.threadId, newTitle);
-  }
-
   /**
    * Get all messages from the main branches
    */
