@@ -58,10 +58,7 @@
   async function deleteThread() {
     const layout = clientState.currentSpaceState?.layout;
     if (layout) {
-      const tabId = layout.findTabByTreeId(appTreeId);
-      if (tabId) {
-        layout.ttabs.closeTab(tabId);
-      }
+      layout.closeTabsByTreeId(appTreeId);
     }
     clientState.currentSpaceState?.spaceTelemetry.chatDeleted({
       chat_id: appTreeId,

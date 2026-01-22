@@ -413,6 +413,13 @@ export class LayoutStore {
     this.ttabs.setFocusedActiveTab(tab);
   }
 
+  closeTabsByTreeId(treeId: string): void {
+    const tabIds = this._findTabsByTreeId(treeId);
+    for (const tabId of tabIds) {
+      this.ttabs.closeTab(tabId);
+    }
+  }
+
   private _updateHoverSidebarState(): void {
     try {
       if (this.layoutRefs.sidebarColumn) {
@@ -571,7 +578,11 @@ export class LayoutStore {
   }
 
   private _findTabByTreeId(treeId: string): string | undefined {
-    // Search through all content tiles to find one with the matching treeId
+    return this._findTabsByTreeId(treeId)[0];
+  }
+
+  private _findTabsByTreeId(treeId: string): string[] {
+    const results: string[] = [];
     for (const tileId in this.ttabs.tiles) {
       const tile = this.ttabs.tiles[tileId];
       if (tile.type === 'tab') {
@@ -580,11 +591,11 @@ export class LayoutStore {
           (content?.componentId === 'chat' || content?.componentId === 'files') &&
           content?.data?.componentProps?.treeId === treeId
         ) {
-          return tile.id;
+          results.push(tile.id);
         }
       }
     }
-    return undefined;
+    return results;
   }
 
   private _findTabByFileRef(treeId: string, vertexId: string): string | undefined {
