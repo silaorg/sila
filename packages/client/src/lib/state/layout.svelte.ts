@@ -264,6 +264,49 @@ export class LayoutStore {
     this.ttabs.setFocusedActiveTab(tab);
   }
 
+  openChatTabInNewTab(treeId: string, name: string, targetPanelId?: string): void {
+    const existingTabId = this._findTabByTreeId(treeId);
+    if (existingTabId) {
+      this.ttabs.updateTile(existingTabId, { isLazy: false });
+    }
+
+    this._pinFocusedLazyTab();
+
+    const resolvedPanelId = targetPanelId && this._isPanel(targetPanelId) ? targetPanelId : undefined;
+
+    if (!resolvedPanelId && !this.layoutRefs.contentGrid) {
+      const grids = Object.values(this.ttabs.getTiles()).filter(tile => tile.type === 'grid' && !tile.parent);
+      if (grids.length === 0) {
+        console.error("No non root grid found");
+        return;
+      }
+      this.layoutRefs.contentGrid = grids[0].id;
+    }
+
+    const parentContainerId = resolvedPanelId ?? this.layoutRefs.contentGrid;
+    if (!parentContainerId) {
+      console.error("No parent container for new chat tab");
+      return;
+    }
+
+    let tab: string;
+    const lazyTabs = this.ttabs.getLazyTabs(parentContainerId);
+
+    if (lazyTabs.length > 0) {
+      const lazyTab = lazyTabs[0];
+      tab = lazyTab.id;
+      this.ttabs.updateTile(tab, {
+        name,
+        isLazy: false
+      });
+    } else {
+      tab = this.ttabs.addTab(parentContainerId, name, true, false);
+    }
+
+    this.ttabs.setComponent(tab, 'chat', { treeId });
+    this.ttabs.setFocusedActiveTab(tab);
+  }
+
   openFilesTab(treeId: string, name: string): void {
     // First, check if a tab with this treeId already exists
     const existingTabId = this._findTabByTreeId(treeId);
@@ -304,6 +347,43 @@ export class LayoutStore {
     }
 
     // Set the component for the tab
+    this.ttabs.setComponent(tab, 'files', { treeId });
+    this.ttabs.setFocusedActiveTab(tab);
+  }
+
+  openFilesTabInNewTab(treeId: string, name: string): void {
+    const existingTabId = this._findTabByTreeId(treeId);
+    if (existingTabId) {
+      this.ttabs.updateTile(existingTabId, { isLazy: false });
+    }
+
+    this._pinFocusedLazyTab();
+
+    if (!this.layoutRefs.contentGrid) {
+      const grids = Object.values(this.ttabs.getTiles()).filter(tile => tile.type === 'grid' && !tile.parent);
+      if (grids.length === 0) {
+        console.error("No non root grid found");
+        return;
+      }
+      this.layoutRefs.contentGrid = grids[0].id;
+    }
+
+    const grid = this.ttabs.getGrid(this.layoutRefs.contentGrid);
+    let tab: string;
+
+    const lazyTabs = this.ttabs.getLazyTabs(grid.id);
+
+    if (lazyTabs.length > 0) {
+      const lazyTab = lazyTabs[0];
+      tab = lazyTab.id;
+      this.ttabs.updateTile(tab, {
+        name,
+        isLazy: false
+      });
+    } else {
+      tab = this.ttabs.addTab(grid.id, name, true, false);
+    }
+
     this.ttabs.setComponent(tab, 'files', { treeId });
     this.ttabs.setFocusedActiveTab(tab);
   }
@@ -497,7 +577,7 @@ export class LayoutStore {
       if (tile.type === 'tab') {
         const content = this.ttabs.getTabContent(tile.id);
         if (
-          content?.componentId === 'chat' &&
+          (content?.componentId === 'chat' || content?.componentId === 'files') &&
           content?.data?.componentProps?.treeId === treeId
         ) {
           return tile.id;
@@ -527,5 +607,12 @@ export class LayoutStore {
   private _isPanel(tileId: string): boolean {
     const tile = this.ttabs.getTile(tileId);
     return Boolean(tile && tile.type === 'panel');
+  }
+
+  private _pinFocusedLazyTab(): void {
+    const focusedTab = this.ttabs.getFocusedActiveTabTile();
+    if (focusedTab?.isLazy) {
+      this.ttabs.updateTile(focusedTab.id, { isLazy: false });
+    }
   }
 }

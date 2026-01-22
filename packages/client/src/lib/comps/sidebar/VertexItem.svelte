@@ -174,7 +174,7 @@
 
 {#if appTreeId}
   <span
-    class={`flex rounded text-sm
+    class={`group flex rounded text-sm
       ${isOpen && !isActive ? "bg-surface-100-900/50" : ""} 
       ${isActive ? "bg-surface-100-900" : ""} 
       ${!isOpen ? "hover:bg-surface-100-900/50" : ""}`}
@@ -197,8 +197,6 @@
         <span>{name ?? "New chat"}</span>
       {/if}
     </button>
-    {#if isActive}
-      <AppTreeOptionsPopup {appTreeId} onRename={startEditing} />
-    {/if}
+    <AppTreeOptionsPopup {appTreeId} onRename={startEditing} />
   </span>
 {/if}

@@ -17,9 +17,34 @@
     setTimeout(() => onRename?.(), 0);
   }
 
-  function openInNewTab() {
-    // @TODO: implement opening in new tab
-    popoverClose();
+  async function openInNewTab() {
+    const layout = clientState.currentSpaceState?.layout;
+    const space = clientState.currentSpace;
+    if (!layout || !space) {
+      popoverClose();
+      return;
+    }
+
+    try {
+      const refVertex = space.getVertexReferencingAppTree(appTreeId);
+      const appTree = await space.loadAppTree(appTreeId);
+      const appId = appTree?.getAppId();
+      const appTreeName =
+        (appTree?.tree.root?.getProperty("name") as string | undefined) ??
+        appTree?.tree.root?.name;
+      const resolvedName =
+        appTreeName ?? refVertex?.name ?? (appId === "files" ? "Files" : "New chat");
+
+      if (appId === "files") {
+        layout.openFilesTabInNewTab(appTreeId, resolvedName);
+      } else {
+        layout.openChatTabInNewTab(appTreeId, resolvedName);
+      }
+    } catch (error) {
+      console.warn("Failed to open in new tab:", error);
+    } finally {
+      popoverClose();
+    }
   }
 
   function duplicateThread() {
@@ -36,7 +61,13 @@
   }
 </script>
 
-<div class="flex justify-center items-center mt-1 mr-2">
+<div
+  class={`flex justify-center items-center mt-1 mr-2 transition-opacity ${
+    openState
+      ? "opacity-100 pointer-events-auto"
+      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+  }`}
+>
   <ContextMenu
     open={openState}
     onOpenChange={(e) => (openState = e.open)}
