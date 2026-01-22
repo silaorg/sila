@@ -5,7 +5,8 @@
   import { i18n } from "@sila/client";
   const clientState = useClientState();
 
-  let { appTreeId, onRename }: { appTreeId: string; onRename?: () => void } = $props();
+  let { appTreeId, onRename }: { appTreeId: string; onRename?: () => void } =
+    $props();
   let openState = $state(false);
 
   function popoverClose() {
@@ -33,7 +34,9 @@
         (appTree?.tree.root?.getProperty("name") as string | undefined) ??
         appTree?.tree.root?.name;
       const resolvedName =
-        appTreeName ?? refVertex?.name ?? (appId === "files" ? "Files" : "New chat");
+        appTreeName ??
+        refVertex?.name ??
+        (appId === "files" ? "Files" : "New chat");
 
       if (appId === "files") {
         layout.openFilesTabInNewTab(appTreeId, resolvedName);
@@ -53,6 +56,13 @@
   }
 
   async function deleteThread() {
+    const layout = clientState.currentSpaceState?.layout;
+    if (layout) {
+      const tabId = layout.findTabByTreeId(appTreeId);
+      if (tabId) {
+        layout.ttabs.closeTab(tabId);
+      }
+    }
     clientState.currentSpaceState?.spaceTelemetry.chatDeleted({
       chat_id: appTreeId,
     });
@@ -88,10 +98,11 @@
         >
 
         <div class="border-t border-surface-200-800 my-2"></div>
-
+        <!--
         <button class="btn btn-sm text-left" onclick={duplicateThread}
           >{i18n.texts.actions.duplicate}</button
         >
+        -->
         <button
           class="btn btn-sm preset-filled-error-500 text-left"
           onclick={deleteThread}>{i18n.texts.actions.delete}</button
