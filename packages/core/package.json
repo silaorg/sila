@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@fal-ai/client": "^1.7.2",
-    "aiwrapper": "3.0.1",
+    "aiwrapper": "3.0.2",
     "defuddle": "github:mitkury/defuddle#cd8c7f1d39dbd4800918472b880f96724c0a2441",
     "marked": "^15.0.6",
     "pdfjs-dist": "^4.10.38",
