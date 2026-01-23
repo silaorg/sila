@@ -171,12 +171,16 @@ export const convertToLangMessage = async ({
   maxTextCharacters = MAX_TEXT_CHARACTERS,
 }: ConvertToLangMessageParams): Promise<LangMessage> => {
   const normalizedRole =
-    (message.role === "assistant" ? "assistant" : "user") as
-    | "assistant"
-    | "user";
+    (message.role === "tool-results"
+      ? "tool-results"
+      : message.role === "assistant"
+        ? "assistant"
+        : "user") as "assistant" | "user" | "tool-results";
   const fileRefs = Array.isArray(message.files)
     ? (message.files as FileReference[])
     : [];
+  const toolRequests = message.toolRequests ?? [];
+  const toolResults = message.toolResults ?? [];
 
   const resolved: ThreadMessageWithResolvedFiles = await data
     .resolveMessageFiles(message);
@@ -203,31 +207,34 @@ export const convertToLangMessage = async ({
     console.error(`Failed to transform file references in a message, error:`, error);
   }
 
-  if (resolvedFiles.length === 0) {
-    return new LangMessage(
-      normalizedRole,
-      messageText,
-      message.meta ?? {},
-    );
-  }
-
-  const fileInfos = fileRefs.length > 0
+  const hasFiles = resolvedFiles.length > 0;
+  const fileInfos = hasFiles && fileRefs.length > 0
     ? await fileResolver.getFilesInfo(fileRefs)
     : [];
   const infoMap = new Map<string, ResolvedFileInfo>(
     fileInfos.map((info) => [info.id, info]),
   );
 
-  const images = resolvedFiles.filter((f) => f?.kind === "image");
-  const textFiles = resolvedFiles.filter((f) => f?.kind === "text");
+  const images = hasFiles
+    ? resolvedFiles.filter((f) => f?.kind === "image")
+    : [];
+  const textFiles = hasFiles
+    ? resolvedFiles.filter((f) => f?.kind === "text")
+    : [];
 
-  const attachmentsSummary = buildAttachmentsSummary(resolvedFiles, infoMap);
-  const textBlocks = buildTextFileBlocks(textFiles, infoMap, maxTextCharacters);
+  let combinedText = messageText;
+  if (hasFiles) {
+    const attachmentsSummary = buildAttachmentsSummary(resolvedFiles, infoMap);
+    const textBlocks = buildTextFileBlocks(
+      textFiles,
+      infoMap,
+      maxTextCharacters,
+    );
 
-  const attachements = "<attachments>\n" +
-    [attachmentsSummary, ...textBlocks].join("\n\n") + "\n</attachments>";
-
-  const combinedText = [messageText, attachements].join("\n\n");
+    const attachements = "<attachments>\n" +
+      [attachmentsSummary, ...textBlocks].join("\n\n") + "\n</attachments>";
+    combinedText = [messageText, attachements].join("\n\n");
+  }
 
   if (supportsVision && images.length > 0) {
     const items: Array<
@@ -240,6 +247,13 @@ export const convertToLangMessage = async ({
         height?: number;
         metadata?: Record<string, any>;
       }
+      | {
+        type: "tool";
+        name: string;
+        callId: string;
+        arguments: Record<string, any>;
+      }
+      | { type: "tool-result"; name: string; callId: string; result: any }
     > = [];
 
     if (combinedText.trim().length > 0) {
@@ -276,6 +290,28 @@ export const convertToLangMessage = async ({
       });
     }
 
+    if (toolRequests.length > 0) {
+      items.push(
+        ...toolRequests.map((request) => ({
+          type: "tool" as const,
+          name: request.name,
+          callId: request.callId,
+          arguments: request.arguments,
+        })),
+      );
+    }
+
+    if (toolResults.length > 0) {
+      items.push(
+        ...toolResults.map((result) => ({
+          type: "tool-result" as const,
+          name: result.name,
+          callId: (result as any).toolId ?? "",
+          result: result.result,
+        })),
+      );
+    }
+
     // If we have valid images, return the multi-part message
     // Otherwise fall through to text-only message
     if (items.some(item => item.type === "image")) {
@@ -283,7 +319,42 @@ export const convertToLangMessage = async ({
     }
   }
 
-  let content = combinedText;
+  if (toolRequests.length > 0 || toolResults.length > 0) {
+    const items: Array<
+      | { type: "text"; text: string }
+      | {
+        type: "tool";
+        name: string;
+        callId: string;
+        arguments: Record<string, any>;
+      }
+      | { type: "tool-result"; name: string; callId: string; result: any }
+    > = [];
+    if (combinedText.trim().length > 0) {
+      items.push({ type: "text", text: combinedText });
+    }
+    if (toolRequests.length > 0) {
+      items.push(
+        ...toolRequests.map((request) => ({
+          type: "tool" as const,
+          name: request.name,
+          callId: request.callId,
+          arguments: request.arguments,
+        })),
+      );
+    }
+    if (toolResults.length > 0) {
+      items.push(
+        ...toolResults.map((result) => ({
+          type: "tool-result" as const,
+          name: result.name,
+          callId: (result as any).toolId ?? "",
+          result: result.result,
+        })),
+      );
+    }
+    return new LangMessage(normalizedRole, items, message.meta ?? {});
+  }
 
-  return new LangMessage(normalizedRole, content || "", message.meta ?? {});
+  return new LangMessage(normalizedRole, combinedText || "", message.meta ?? {});
 };
