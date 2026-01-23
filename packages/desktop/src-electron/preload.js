@@ -55,6 +55,17 @@ contextBridge.exposeInMainWorld('desktopNet', {
   proxyFetch: async (url, init) => {
     // Return a plain serializable object across the context bridge
     return await ipcRenderer.invoke('sila:proxyFetch', url, init);
+  },
+  /**
+   * @param {string} streamId
+   * @param {(type: 'data'|'end'|'error', data?: any) => void} callback
+   */
+  onStreamEvent: (streamId, callback) => {
+    /** @param {any} _e @param {'data'|'end'|'error'} type @param {any} [data] */
+    const listener = (_e, type, data) => callback(type, data);
+    const channel = `sila:stream:${streamId}`;
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   }
 });
 
