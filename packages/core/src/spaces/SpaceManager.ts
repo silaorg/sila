@@ -1,4 +1,4 @@
-import { RepTree } from "reptree";
+import { RepTree, isAnyPropertyOp } from "reptree";
 import type { VertexOperation } from "reptree";
 import { Space } from "./Space";
 import { AppTree } from "./AppTree";
@@ -339,8 +339,23 @@ export class SpaceManager {
       for (const { layer, ops } of allOpsFromLayers) {
         // Set of all ops from this layer. We will use it to find missing ops quickly
         const opsIdSet = new Set<string>();
+        // Optimized: Map of latest property ops for this layer
+        const latestPropOps = new Map<string, VertexOperation>();
+
         for (const op of ops) {
           opsIdSet.add(`${op.id.counter}@${op.id.peerId}`);
+
+          if (isAnyPropertyOp(op)) {
+            const key = `${op.targetId}:${op.key}`;
+            const existing = latestPropOps.get(key);
+
+            // Keep the "winner" (LWW: higher counter, or same counter + higher peerId)
+            if (!existing ||
+                op.id.counter > existing.id.counter ||
+                (op.id.counter === existing.id.counter && op.id.peerId > existing.id.peerId)) {
+              latestPropOps.set(key, op);
+            }
+          }
         }
 
         const missingOps: VertexOperation[] = [];
@@ -353,6 +368,21 @@ export class SpaceManager {
           for (const opB of opsB) {
             const opBId = `${opB.id.counter}@${opB.id.peerId}`;
             if (!opsIdSet.has(opBId)) {
+              // Check if we should skip this op because it's a property op and we already have a newer version
+              if (isAnyPropertyOp(opB)) {
+                const key = `${opB.targetId}:${opB.key}`;
+                const existingOp = latestPropOps.get(key);
+
+                if (existingOp) {
+                  // existingOp is the latest we have.
+                  // If existingOp >= opB, then opB is redundant (it's older or "smaller").
+                  if (existingOp.id.counter > opB.id.counter ||
+                      (existingOp.id.counter === opB.id.counter && existingOp.id.peerId > opB.id.peerId)) {
+                    continue;
+                  }
+                }
+              }
+
               missingOps.push(opB);
               opsIdSet.add(opBId);
             }
