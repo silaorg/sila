@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@sila/client": "*",
-    "@sila/core": "*"
+    "@sila/core": "*",
+    "aiwrapper": "3.0.2"
   }
 }
