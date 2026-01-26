@@ -282,93 +282,25 @@ export const chineseTexts: Partial<Texts> = {
     buttonUpdate: "更新提供商",
     buttonAddProvider: "添加提供商"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `如何设置 ${providerName}`,
-    openai: {
-      intro: "需要输入密钥才能使用 OpenAI 模型。",
-      steps: {
-        signup: "注册或登录 OpenAI：",
-        addCredits: "在此为账户充值",
-        createKey: "在这里创建新的密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    anthropic: {
-      intro: "需要输入密钥才能使用 Anthropic 模型。",
-      steps: {
-        signup: "注册或登录 Anthropic：",
-        createKey: "在这里创建新密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    groq: {
-      intro: "需要输入密钥才能使用 Groq 模型。",
-      steps: {
-        signup: "注册或登录 Groq：",
-        createKey: "在这里创建 API 密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    deepseek: {
-      intro: "需要输入密钥才能使用 DeepSeek 模型。",
-      steps: {
-        signup: "注册或登录 DeepSeek：",
-        createKey: "在这里创建 API 密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    google: {
-      intro: "需要输入密钥才能使用 Google Gemini 模型。",
-      steps: {
-        signup: "注册或登录 Google AI Studio：",
-        createKey: "在这里创建 API 密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    xai: {
-      intro: "需要输入密钥才能使用 xAI 模型。",
-      steps: {
-        signup: "注册或登录 xAI：",
-        createTeam: "创建团队并进入 API keys 页面。",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    cohere: {
-      intro: "需要输入密钥才能使用 Cohere 模型。",
-      steps: {
-        signup: "注册或登录 Cohere：",
-        createKey: "在这里创建 API 密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    mistral: {
-      intro: "需要输入密钥才能使用 Mistral 模型。",
-      steps: {
-        signup: "注册或登录 Mistral AI：",
-        createKey: "在这里创建 API 密钥",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    ollama: {
-      intro: "需要安装并运行 Ollama 才能使用其模型。可在本地运行，Sila 会连接到它。",
-      steps: {
-        download: "从这里下载 Ollama",
-        install: "安装 Ollama 并配置想用的模型。",
-        returnAfterStart: "启动后回到这里。"
-      }
-    },
-    openrouter: {
-      intro: "需要输入密钥才能使用 OpenRouter 的统一 API 来访问数百种模型。",
-      steps: {
-        signup: "注册或登录 OpenRouter：",
-        createKey: "在账号设置中进入 API keys 并创建新的 API 密钥。",
-        pasteKey: "粘贴密钥并等待验证。"
-      }
-    },
-    noInstructions: "暂无该提供商的设置说明。",
-    okButton: "好的"
+    openai: "你需要输入一个密钥来使用 OpenAI 的模型。\n\n1. 在 [platform.openai.com](https://platform.openai.com) 注册或登录。\n2. 在 [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview) 充值余额。\n3. 在 [platform.openai.com/api-keys](https://platform.openai.com/api-keys) 创建新的密钥。\n4. 将密钥粘贴到这里并等待验证。",
+    anthropic: "你需要输入一个密钥来使用 Anthropic 的模型。\n\n1. 在 [console.anthropic.com](https://console.anthropic.com/) 注册或登录。\n2. 在 [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) 创建新密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    groq: "你需要输入一个密钥来使用 Groq 的模型。\n\n1. 在 [console.groq.com](https://console.groq.com/) 注册或登录。\n2. 在 [console.groq.com/keys](https://console.groq.com/keys) 创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    deepseek: "你需要输入一个密钥来使用 DeepSeek 的模型。\n\n1. 在 [platform.deepseek.com](https://platform.deepseek.com/) 注册或登录。\n2. 在 [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) 创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    google: "你需要输入一个密钥来使用 Google Gemini 模型。\n\n1. 在 [aistudio.google.com](https://aistudio.google.com/) 注册或登录。\n2. 在 [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys) 创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    xai: "你需要输入一个密钥来使用 xAI 的模型。\n\n1. 在 [console.x.ai](https://console.x.ai/) 注册或登录。\n2. 创建团队并进入 API 密钥页面。\n3. 将密钥粘贴到这里并等待验证。",
+    cohere: "你需要输入一个密钥来使用 Cohere 的模型。\n\n1. 在 [dashboard.cohere.com](https://dashboard.cohere.com/) 注册或登录。\n2. 在 [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys) 创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    mistral: "你需要输入一个密钥来使用 Mistral 的模型。\n\n1. 在 [console.mistral.ai](https://console.mistral.ai/) 注册或登录。\n2. 在 [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/) 创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    ollama: "你需要安装并运行 Ollama 才能使用其模型。你可以在本地运行，Sila 会连接到它。\n\n1. 从 [ollama.com](https://ollama.com/) 下载 Ollama。\n2. 安装 Ollama 并设置你想使用的模型。\n3. 启动后回到这里。",
+    openrouter: "你需要输入一个密钥来使用 OpenRouter 的统一 API 访问数百个 AI 模型。\n\n1. 在 [openrouter.ai](https://openrouter.ai/) 注册或登录。\n2. 在账户设置中创建新的 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    exa: "你需要输入一个密钥来使用 Exa 的搜索 API。\n\n1. 在 [exa.ai](https://exa.ai/) 注册或登录。\n2. 在 Exa 控制台创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    falai: "你需要输入一个密钥来使用 Fal.ai 的 API。\n\n1. 在 [fal.ai](https://fal.ai/) 注册或登录。\n2. 在 Fal.ai 控制台创建 API 密钥。\n3. 将密钥粘贴到这里并等待验证。",
+    noInstructions: "此提供商没有可用的设置说明。",
+    okButton: "确定"
   },
+
+
 
   sidebar: {
     newConversationTitle: "新对话",

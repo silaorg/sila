@@ -282,93 +282,25 @@ export const hindiTexts: Partial<Texts> = {
     buttonUpdate: "प्रदाता अपडेट करें",
     buttonAddProvider: "प्रदाता जोड़ें"
   },
-
   modelProviderSetup: {
-    title: (providerName: string) => `${providerName} कैसे सेटअप करें`,
-    openai: {
-      intro: "OpenAI मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "OpenAI में साइन अप करें या लॉगिन करें:",
-        addCredits: "यहाँ अपने बैलेंस में क्रेडिट जोड़ें",
-        createKey: "यहाँ नया सीक्रेट key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    anthropic: {
-      intro: "Anthropic मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "Anthropic में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ नया key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    groq: {
-      intro: "Groq मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "Groq में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ API key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    deepseek: {
-      intro: "DeepSeek मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "DeepSeek में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ API key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    google: {
-      intro: "Google Gemini मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "Google AI Studio में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ API key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    xai: {
-      intro: "xAI मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "xAI में साइन अप करें या लॉगिन करें:",
-        createTeam: "एक टीम बनाएं और API keys पेज पर जाएँ।",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    cohere: {
-      intro: "Cohere मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "Cohere में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ API key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    mistral: {
-      intro: "Mistral मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "Mistral AI में साइन अप करें या लॉगिन करें:",
-        createKey: "यहाँ API key बनाएं",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    ollama: {
-      intro: "Ollama मॉडल उपयोग करने के लिए Ollama इंस्टॉल और रन करना होगा। इसे लोकल चलाएँ और Sila उससे कनेक्ट करेगा।",
-      steps: {
-        download: "यहाँ से Ollama डाउनलोड करें",
-        install: "Ollama इंस्टॉल करें और जिस मॉडल का उपयोग करना है उसे सेटअप करें।",
-        returnAfterStart: "स्टार्ट करने के बाद यहाँ वापस आएँ।"
-      }
-    },
-    openrouter: {
-      intro: "OpenRouter के यूनिफाइड API से सैकड़ों मॉडल उपयोग करने के लिए आपको एक key दर्ज करनी होगी।",
-      steps: {
-        signup: "OpenRouter में साइन अप करें या लॉगिन करें:",
-        createKey: "अकाउंट सेटिंग्स में API keys सेक्शन में जाकर नई key बनाएं।",
-        pasteKey: "key यहाँ पेस्ट करें और वैलिडेशन का इंतज़ार करें।"
-      }
-    },
-    noInstructions: "इस प्रदाता के लिए सेटअप निर्देश उपलब्ध नहीं हैं।",
+    title: (providerName: string) => `${providerName} सेटअप कैसे करें`,
+    openai: "OpenAI के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [platform.openai.com](https://platform.openai.com) पर साइन अप या लॉग इन करें।\n2. [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview) पर अपने बैलेंस में क्रेडिट जोड़ें।\n3. [platform.openai.com/api-keys](https://platform.openai.com/api-keys) पर नई सीक्रेट कुंजी बनाएँ।\n4. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    anthropic: "Anthropic के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [console.anthropic.com](https://console.anthropic.com/) पर साइन अप या लॉग इन करें।\n2. [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) पर नई कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    groq: "Groq के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [console.groq.com](https://console.groq.com/) पर साइन अप या लॉग इन करें।\n2. [console.groq.com/keys](https://console.groq.com/keys) पर API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    deepseek: "DeepSeek के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [platform.deepseek.com](https://platform.deepseek.com/) पर साइन अप या लॉग इन करें।\n2. [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) पर API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    google: "Google Gemini मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [aistudio.google.com](https://aistudio.google.com/) पर साइन अप या लॉग इन करें।\n2. [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys) पर API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    xai: "xAI के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [console.x.ai](https://console.x.ai/) पर साइन अप या लॉग इन करें।\n2. एक टीम बनाएँ और API कुंजियों के पेज पर जाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    cohere: "Cohere के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [dashboard.cohere.com](https://dashboard.cohere.com/) पर साइन अप या लॉग इन करें।\n2. [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys) पर API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    mistral: "Mistral के मॉडल इस्तेमाल करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [console.mistral.ai](https://console.mistral.ai/) पर साइन अप या लॉग इन करें।\n2. [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/) पर API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    ollama: "Ollama के मॉडल इस्तेमाल करने के लिए आपको Ollama इंस्टॉल और चलाना होगा। आप इसे लोकल चलाकर Sila से कनेक्ट कर सकते हैं।\n\n1. [ollama.com](https://ollama.com/) से Ollama डाउनलोड करें।\n2. Ollama इंस्टॉल करें और जिस मॉडल का उपयोग करना है उसे सेटअप करें।\n3. शुरू करने के बाद यहाँ वापस आएँ।",
+    openrouter: "सैकड़ों AI मॉडलों तक पहुँचने के लिए OpenRouter के यूनिफाइड API का उपयोग करने हेतु आपको एक कुंजी दर्ज करनी होगी।\n\n1. [openrouter.ai](https://openrouter.ai/) पर साइन अप या लॉग इन करें।\n2. अपने अकाउंट सेटिंग्स में जाकर नई API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    exa: "Exa के सर्च API का उपयोग करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [exa.ai](https://exa.ai/) पर साइन अप या लॉग इन करें।\n2. अपने Exa डैशबोर्ड में API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    falai: "Fal.ai के API का उपयोग करने के लिए आपको एक कुंजी दर्ज करनी होगी।\n\n1. [fal.ai](https://fal.ai/) पर साइन अप या लॉग इन करें।\n2. अपने Fal.ai डैशबोर्ड में API कुंजी बनाएँ।\n3. कुंजी यहाँ पेस्ट करें और उसके सत्यापन का इंतज़ार करें।",
+    noInstructions: "इस प्रदाता के लिए कोई सेटअप निर्देश उपलब्ध नहीं हैं।",
     okButton: "ठीक है"
   },
+
+
 
   sidebar: {
     newConversationTitle: "नई बातचीत",

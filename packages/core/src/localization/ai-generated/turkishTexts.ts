@@ -282,93 +282,25 @@ export const turkishTexts: Partial<Texts> = {
     buttonUpdate: "Sağlayıcıyı güncelle",
     buttonAddProvider: "Sağlayıcı ekle"
   },
-
   modelProviderSetup: {
-    title: (providerName: string) => `${providerName} nasıl kurulur`,
-    openai: {
-      intro: "OpenAI modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "OpenAI’ye kayıt olun veya giriş yapın:",
-        addCredits: "Bakiyenize buradan kredi ekleyin",
-        createKey: "Buradan yeni bir gizli anahtar oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    anthropic: {
-      intro: "Anthropic modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "Anthropic’e kayıt olun veya giriş yapın:",
-        createKey: "Buradan yeni bir anahtar oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    groq: {
-      intro: "Groq modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "Groq’a kayıt olun veya giriş yapın:",
-        createKey: "Buradan bir API anahtarı oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    deepseek: {
-      intro: "DeepSeek modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "DeepSeek’e kayıt olun veya giriş yapın:",
-        createKey: "Buradan bir API anahtarı oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    google: {
-      intro: "Google Gemini modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "Google AI Studio’ya kayıt olun veya giriş yapın:",
-        createKey: "Buradan bir API anahtarı oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    xai: {
-      intro: "xAI modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "xAI’ye kayıt olun veya giriş yapın:",
-        createTeam: "Bir ekip oluşturup API keys sayfasına gidin.",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    cohere: {
-      intro: "Cohere modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "Cohere’e kayıt olun veya giriş yapın:",
-        createKey: "Buradan bir API anahtarı oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    mistral: {
-      intro: "Mistral modellerini kullanmak için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "Mistral AI’ye kayıt olun veya giriş yapın:",
-        createKey: "Buradan bir API anahtarı oluşturun",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
-    ollama: {
-      intro: "Ollama modellerini kullanmak için Ollama’yı kurup çalıştırmanız gerekir. Yerelde çalıştırın, Sila bağlanacaktır.",
-      steps: {
-        download: "Ollama’yı buradan indirin",
-        install: "Ollama’yı kurun ve kullanmak istediğiniz modeli ayarlayın.",
-        returnAfterStart: "Başlattıktan sonra buraya dönün."
-      }
-    },
-    openrouter: {
-      intro: "OpenRouter’ın birleşik API’sine erişmek için bir anahtar girmelisiniz.",
-      steps: {
-        signup: "OpenRouter’a kayıt olun veya giriş yapın:",
-        createKey: "Hesap ayarlarında API keys bölümüne gidip yeni bir API anahtarı oluşturun.",
-        pasteKey: "Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin."
-      }
-    },
+    title: (providerName: string) => `${providerName} nasıl ayarlanır`,
+    openai: "OpenAI modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [platform.openai.com](https://platform.openai.com) adresinde kaydolun veya giriş yapın.\n2. [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview) adresinden bakiyenize kredi ekleyin.\n3. [platform.openai.com/api-keys](https://platform.openai.com/api-keys) adresinde yeni bir gizli anahtar oluşturun.\n4. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    anthropic: "Anthropic modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [console.anthropic.com](https://console.anthropic.com/) adresinde kaydolun veya giriş yapın.\n2. [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) adresinde yeni bir anahtar oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    groq: "Groq modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [console.groq.com](https://console.groq.com/) adresinde kaydolun veya giriş yapın.\n2. [console.groq.com/keys](https://console.groq.com/keys) adresinde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    deepseek: "DeepSeek modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [platform.deepseek.com](https://platform.deepseek.com/) adresinde kaydolun veya giriş yapın.\n2. [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) adresinde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    google: "Google Gemini modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [aistudio.google.com](https://aistudio.google.com/) adresinde kaydolun veya giriş yapın.\n2. [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys) adresinde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    xai: "xAI modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [console.x.ai](https://console.x.ai/) adresinde kaydolun veya giriş yapın.\n2. Bir ekip oluşturun ve API anahtarları sayfasına gidin.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    cohere: "Cohere modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [dashboard.cohere.com](https://dashboard.cohere.com/) adresinde kaydolun veya giriş yapın.\n2. [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys) adresinde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    mistral: "Mistral modellerini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [console.mistral.ai](https://console.mistral.ai/) adresinde kaydolun veya giriş yapın.\n2. [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/) adresinde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    ollama: "Ollama modellerini kullanmak için Ollama'yı kurup çalıştırmanız gerekir. Yerel olarak çalıştırabilir ve Sila bağlanır.\n\n1. [ollama.com](https://ollama.com/) adresinden Ollama'yı indirin.\n2. Ollama'yı kurun ve kullanmak istediğiniz bir modeli ayarlayın.\n3. Başlattıktan sonra buraya dönün.",
+    openrouter: "Yüzlerce AI modeline erişmek için OpenRouter'ın birleşik API'sini kullanmak üzere bir anahtar girmeniz gerekir.\n\n1. [openrouter.ai](https://openrouter.ai/) adresinde kaydolun veya giriş yapın.\n2. Hesap ayarlarında yeni bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    exa: "Exa arama API'sini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [exa.ai](https://exa.ai/) adresinde kaydolun veya giriş yapın.\n2. Exa panelinizde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
+    falai: "Fal.ai API'sini kullanmak için bir anahtar girmeniz gerekir.\n\n1. [fal.ai](https://fal.ai/) adresinde kaydolun veya giriş yapın.\n2. Fal.ai panelinizde bir API anahtarı oluşturun.\n3. Anahtarı buraya yapıştırın ve doğrulanmasını bekleyin.",
     noInstructions: "Bu sağlayıcı için kurulum talimatı yok.",
     okButton: "Tamam"
   },
+
+
 
   sidebar: {
     newConversationTitle: "Yeni konuşma",

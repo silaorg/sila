@@ -282,93 +282,25 @@ export const koreanTexts: Partial<Texts> = {
     buttonUpdate: "제공자 업데이트",
     buttonAddProvider: "제공자 추가"
   },
-
   modelProviderSetup: {
-    title: (providerName: string) => `${providerName} 설정 방법` ,
-    openai: {
-      intro: "OpenAI 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "OpenAI에 가입하거나 로그인하세요:",
-        addCredits: "여기서 잔액을 충전하세요",
-        createKey: "여기서 새 비밀 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    anthropic: {
-      intro: "Anthropic 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "Anthropic에 가입하거나 로그인하세요:",
-        createKey: "여기서 새 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    groq: {
-      intro: "Groq 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "Groq에 가입하거나 로그인하세요:",
-        createKey: "여기서 API 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    deepseek: {
-      intro: "DeepSeek 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "DeepSeek에 가입하거나 로그인하세요:",
-        createKey: "여기서 API 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    google: {
-      intro: "Google Gemini 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "Google AI Studio에 가입하거나 로그인하세요:",
-        createKey: "여기서 API 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    xai: {
-      intro: "xAI 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "xAI에 가입하거나 로그인하세요:",
-        createTeam: "팀을 만들고 API keys 페이지로 이동하세요.",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    cohere: {
-      intro: "Cohere 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "Cohere에 가입하거나 로그인하세요:",
-        createKey: "여기서 API 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    mistral: {
-      intro: "Mistral 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "Mistral AI에 가입하거나 로그인하세요:",
-        createKey: "여기서 API 키를 만드세요",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    ollama: {
-      intro: "Ollama 모델을 사용하려면 Ollama를 설치하고 실행해야 합니다. 로컬에서 실행하면 Sila가 연결합니다.",
-      steps: {
-        download: "여기에서 Ollama를 다운로드하세요",
-        install: "Ollama를 설치하고 사용하려는 모델을 설정하세요.",
-        returnAfterStart: "실행 후 여기로 돌아오세요."
-      }
-    },
-    openrouter: {
-      intro: "OpenRouter의 통합 API로 수백 개 모델을 사용하려면 키가 필요합니다.",
-      steps: {
-        signup: "OpenRouter에 가입하거나 로그인하세요:",
-        createKey: "계정 설정에서 API keys로 이동해 새 키를 만드세요.",
-        pasteKey: "키를 붙여넣고 검증을 기다리세요."
-      }
-    },
-    noInstructions: "이 제공자에 대한 설정 안내가 없습니다.",
+    title: (providerName: string) => `${providerName} 설정 방법`,
+    openai: "OpenAI 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [platform.openai.com](https://platform.openai.com)에서 가입하거나 로그인하세요.\n2. [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview)에서 잔액에 크레딧을 추가하세요.\n3. [platform.openai.com/api-keys](https://platform.openai.com/api-keys)에서 새 비밀 키를 만드세요.\n4. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    anthropic: "Anthropic 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [console.anthropic.com](https://console.anthropic.com/)에서 가입하거나 로그인하세요.\n2. [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)에서 새 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    groq: "Groq 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [console.groq.com](https://console.groq.com/)에서 가입하거나 로그인하세요.\n2. [console.groq.com/keys](https://console.groq.com/keys)에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    deepseek: "DeepSeek 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [platform.deepseek.com](https://platform.deepseek.com/)에서 가입하거나 로그인하세요.\n2. [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys)에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    google: "Google Gemini 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [aistudio.google.com](https://aistudio.google.com/)에서 가입하거나 로그인하세요.\n2. [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys)에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    xai: "xAI 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [console.x.ai](https://console.x.ai/)에서 가입하거나 로그인하세요.\n2. 팀을 만들고 API 키 페이지로 이동하세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    cohere: "Cohere 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [dashboard.cohere.com](https://dashboard.cohere.com/)에서 가입하거나 로그인하세요.\n2. [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys)에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    mistral: "Mistral 모델을 사용하려면 키를 입력해야 합니다.\n\n1. [console.mistral.ai](https://console.mistral.ai/)에서 가입하거나 로그인하세요.\n2. [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/)에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    ollama: "Ollama 모델을 사용하려면 Ollama를 설치하고 실행해야 합니다. 로컬에서 실행하면 Sila가 연결합니다.\n\n1. [ollama.com](https://ollama.com/)에서 Ollama를 다운로드하세요.\n2. Ollama를 설치하고 사용할 모델을 설정하세요.\n3. 실행한 뒤 여기로 돌아오세요.",
+    openrouter: "OpenRouter의 통합 API로 수백 개의 AI 모델에 접근하려면 키를 입력해야 합니다.\n\n1. [openrouter.ai](https://openrouter.ai/)에서 가입하거나 로그인하세요.\n2. 계정 설정에서 새 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    exa: "Exa 검색 API를 사용하려면 키를 입력해야 합니다.\n\n1. [exa.ai](https://exa.ai/)에서 가입하거나 로그인하세요.\n2. Exa 대시보드에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    falai: "Fal.ai API를 사용하려면 키를 입력해야 합니다.\n\n1. [fal.ai](https://fal.ai/)에서 가입하거나 로그인하세요.\n2. Fal.ai 대시보드에서 API 키를 만드세요.\n3. 여기에서 키를 붙여넣고 검증될 때까지 기다리세요.",
+    noInstructions: "이 제공업체에 대한 설정 안내가 없습니다.",
     okButton: "확인"
   },
+
+
 
   sidebar: {
     newConversationTitle: "새 대화",

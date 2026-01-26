@@ -282,93 +282,25 @@ export const vietnameseTexts: Partial<Texts> = {
     buttonUpdate: "Cập nhật nhà cung cấp",
     buttonAddProvider: "Thêm nhà cung cấp"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `Cách thiết lập ${providerName}`,
-    openai: {
-      intro: "Bạn cần nhập key để dùng các mô hình của OpenAI.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập OpenAI:",
-        addCredits: "Nạp tiền vào tài khoản tại đây",
-        createKey: "Tạo một secret key mới tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    anthropic: {
-      intro: "Bạn cần nhập key để dùng các mô hình của Anthropic.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập Anthropic:",
-        createKey: "Tạo key mới tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    groq: {
-      intro: "Bạn cần nhập key để dùng các mô hình của Groq.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập Groq:",
-        createKey: "Tạo API key tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    deepseek: {
-      intro: "Bạn cần nhập key để dùng các mô hình của DeepSeek.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập DeepSeek:",
-        createKey: "Tạo API key tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    google: {
-      intro: "Bạn cần nhập key để dùng các mô hình Google Gemini.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập Google AI Studio:",
-        createKey: "Tạo API key tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    xai: {
-      intro: "Bạn cần nhập key để dùng các mô hình của xAI.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập xAI:",
-        createTeam: "Tạo một team và mở trang API keys.",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    cohere: {
-      intro: "Bạn cần nhập key để dùng các mô hình của Cohere.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập Cohere:",
-        createKey: "Tạo API key tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    mistral: {
-      intro: "Bạn cần nhập key để dùng các mô hình của Mistral.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập Mistral AI:",
-        createKey: "Tạo API key tại",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
-    ollama: {
-      intro: "Bạn cần cài và chạy Ollama để dùng các mô hình của họ. Bạn có thể chạy cục bộ và Sila sẽ kết nối.",
-      steps: {
-        download: "Tải Ollama từ",
-        install: "Cài Ollama và thiết lập mô hình bạn muốn dùng.",
-        returnAfterStart: "Quay lại đây sau khi bạn đã chạy."
-      }
-    },
-    openrouter: {
-      intro: "Bạn cần nhập key để dùng API hợp nhất của OpenRouter, cho phép truy cập hàng trăm mô hình AI.",
-      steps: {
-        signup: "Đăng ký hoặc đăng nhập OpenRouter:",
-        createKey: "Vào cài đặt tài khoản và mục API keys để tạo key mới.",
-        pasteKey: "Dán key vào đây và chờ xác thực."
-      }
-    },
+    openai: "Bạn cần nhập khóa để sử dụng các mô hình OpenAI.\n\n1. Đăng ký hoặc đăng nhập tại [platform.openai.com](https://platform.openai.com).\n2. Nạp tiền vào số dư tại [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview).\n3. Tạo khóa bí mật mới tại [platform.openai.com/api-keys](https://platform.openai.com/api-keys).\n4. Dán khóa ở đây và chờ xác thực.",
+    anthropic: "Bạn cần nhập khóa để sử dụng các mô hình Anthropic.\n\n1. Đăng ký hoặc đăng nhập tại [console.anthropic.com](https://console.anthropic.com/).\n2. Tạo khóa mới tại [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).\n3. Dán khóa ở đây và chờ xác thực.",
+    groq: "Bạn cần nhập khóa để sử dụng các mô hình Groq.\n\n1. Đăng ký hoặc đăng nhập tại [console.groq.com](https://console.groq.com/).\n2. Tạo khóa API tại [console.groq.com/keys](https://console.groq.com/keys).\n3. Dán khóa ở đây và chờ xác thực.",
+    deepseek: "Bạn cần nhập khóa để sử dụng các mô hình DeepSeek.\n\n1. Đăng ký hoặc đăng nhập tại [platform.deepseek.com](https://platform.deepseek.com/).\n2. Tạo khóa API tại [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).\n3. Dán khóa ở đây và chờ xác thực.",
+    google: "Bạn cần nhập khóa để sử dụng các mô hình Google Gemini.\n\n1. Đăng ký hoặc đăng nhập tại [aistudio.google.com](https://aistudio.google.com/).\n2. Tạo khóa API tại [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys).\n3. Dán khóa ở đây và chờ xác thực.",
+    xai: "Bạn cần nhập khóa để sử dụng các mô hình xAI.\n\n1. Đăng ký hoặc đăng nhập tại [console.x.ai](https://console.x.ai/).\n2. Tạo nhóm và vào trang khóa API.\n3. Dán khóa ở đây và chờ xác thực.",
+    cohere: "Bạn cần nhập khóa để sử dụng các mô hình Cohere.\n\n1. Đăng ký hoặc đăng nhập tại [dashboard.cohere.com](https://dashboard.cohere.com/).\n2. Tạo khóa API tại [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys).\n3. Dán khóa ở đây và chờ xác thực.",
+    mistral: "Bạn cần nhập khóa để sử dụng các mô hình Mistral.\n\n1. Đăng ký hoặc đăng nhập tại [console.mistral.ai](https://console.mistral.ai/).\n2. Tạo khóa API tại [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/).\n3. Dán khóa ở đây và chờ xác thực.",
+    ollama: "Bạn cần cài đặt và chạy Ollama để dùng các mô hình của nó. Bạn có thể chạy cục bộ và Sila sẽ kết nối.\n\n1. Tải Ollama từ [ollama.com](https://ollama.com/).\n2. Cài Ollama và thiết lập mô hình bạn muốn dùng.\n3. Quay lại đây sau khi khởi chạy.",
+    openrouter: "Bạn cần nhập khóa để dùng API hợp nhất của OpenRouter nhằm truy cập hàng trăm mô hình AI.\n\n1. Đăng ký hoặc đăng nhập tại [openrouter.ai](https://openrouter.ai/).\n2. Vào cài đặt tài khoản và tạo khóa API mới.\n3. Dán khóa ở đây và chờ xác thực.",
+    exa: "Bạn cần nhập khóa để dùng API tìm kiếm của Exa.\n\n1. Đăng ký hoặc đăng nhập tại [exa.ai](https://exa.ai/).\n2. Tạo khóa API trong bảng điều khiển Exa.\n3. Dán khóa ở đây và chờ xác thực.",
+    falai: "Bạn cần nhập khóa để dùng API của Fal.ai.\n\n1. Đăng ký hoặc đăng nhập tại [fal.ai](https://fal.ai/).\n2. Tạo khóa API trong bảng điều khiển Fal.ai.\n3. Dán khóa ở đây và chờ xác thực.",
     noInstructions: "Không có hướng dẫn thiết lập cho nhà cung cấp này.",
     okButton: "OK"
   },
+
+
 
   sidebar: {
     newConversationTitle: "Cuộc trò chuyện mới",

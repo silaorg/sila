@@ -306,93 +306,25 @@ export const russianTexts: Partial<Texts> = {
     buttonUpdate: "Обновить провайдера",
     buttonAddProvider: "Добавить провайдера"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `Как настроить ${providerName}`,
-    openai: {
-      intro: "Нужен ключ, чтобы использовать модели OpenAI.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в OpenAI:",
-        addCredits: "Пополните баланс здесь",
-        createKey: "Создайте новый секретный ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    anthropic: {
-      intro: "Нужен ключ, чтобы использовать модели Anthropic.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в Anthropic:",
-        createKey: "Создайте новый ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    groq: {
-      intro: "Нужен ключ, чтобы использовать модели Groq.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в Groq:",
-        createKey: "Создайте API-ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    deepseek: {
-      intro: "Нужен ключ, чтобы использовать модели DeepSeek.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в DeepSeek:",
-        createKey: "Создайте API-ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    google: {
-      intro: "Нужен ключ, чтобы использовать модели Google Gemini.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в Google AI Studio:",
-        createKey: "Создайте API-ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    xai: {
-      intro: "Нужен ключ, чтобы использовать модели xAI.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в xAI:",
-        createTeam: "Создайте команду и перейдите к странице API keys.",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    cohere: {
-      intro: "Нужен ключ, чтобы использовать модели Cohere.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в Cohere:",
-        createKey: "Создайте API-ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    mistral: {
-      intro: "Нужен ключ, чтобы использовать модели Mistral.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в Mistral AI:",
-        createKey: "Создайте API-ключ здесь",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    ollama: {
-      intro: "Нужно установить и запустить Ollama, чтобы использовать его модели. Запустите локально, Sila подключится к нему.",
-      steps: {
-        download: "Скачайте Ollama отсюда",
-        install: "Установите Ollama и настройте нужную модель.",
-        returnAfterStart: "Вернитесь сюда после запуска."
-      }
-    },
-    openrouter: {
-      intro: "Нужен ключ, чтобы использовать единый API OpenRouter для доступа к сотням моделей.",
-      steps: {
-        signup: "Зарегистрируйтесь или войдите в OpenRouter:",
-        createKey: "В настройках аккаунта перейдите в API keys и создайте новый ключ.",
-        pasteKey: "Вставьте ключ и дождитесь проверки."
-      }
-    },
-    noInstructions: "Нет инструкций для этого провайдера.",
-    okButton: "ОК"
+    openai: "Нужно ввести ключ, который позволит использовать модели OpenAI.\n\n1. Зарегистрируйтесь или войдите на [platform.openai.com](https://platform.openai.com).\n2. Пополните баланс на [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview).\n3. Создайте новый секретный ключ на [platform.openai.com/api-keys](https://platform.openai.com/api-keys).\n4. Вставьте ключ сюда и дождитесь проверки.",
+    anthropic: "Нужно ввести ключ, который позволит использовать модели Anthropic.\n\n1. Зарегистрируйтесь или войдите на [console.anthropic.com](https://console.anthropic.com/).\n2. Создайте новый ключ на [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    groq: "Нужно ввести ключ, который позволит использовать модели Groq.\n\n1. Зарегистрируйтесь или войдите на [console.groq.com](https://console.groq.com/).\n2. Создайте API‑ключ на [console.groq.com/keys](https://console.groq.com/keys).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    deepseek: "Нужно ввести ключ, который позволит использовать модели DeepSeek.\n\n1. Зарегистрируйтесь или войдите на [platform.deepseek.com](https://platform.deepseek.com/).\n2. Создайте API‑ключ на [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    google: "Нужно ввести ключ, который позволит использовать модели Google Gemini.\n\n1. Зарегистрируйтесь или войдите на [aistudio.google.com](https://aistudio.google.com/).\n2. Создайте API‑ключ на [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    xai: "Нужно ввести ключ, который позволит использовать модели xAI.\n\n1. Зарегистрируйтесь или войдите на [console.x.ai](https://console.x.ai/).\n2. Создайте команду и перейдите на страницу API‑ключей.\n3. Вставьте ключ сюда и дождитесь проверки.",
+    cohere: "Нужно ввести ключ, который позволит использовать модели Cohere.\n\n1. Зарегистрируйтесь или войдите на [dashboard.cohere.com](https://dashboard.cohere.com/).\n2. Создайте API‑ключ на [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    mistral: "Нужно ввести ключ, который позволит использовать модели Mistral.\n\n1. Зарегистрируйтесь или войдите на [console.mistral.ai](https://console.mistral.ai/).\n2. Создайте API‑ключ на [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/).\n3. Вставьте ключ сюда и дождитесь проверки.",
+    ollama: "Нужно установить и запустить Ollama, чтобы использовать его модели. Можно запускать локально, и Sila подключится.\n\n1. Скачайте Ollama с [ollama.com](https://ollama.com/).\n2. Установите Ollama и настройте модель, которую хотите использовать.\n3. Вернитесь сюда после запуска.",
+    openrouter: "Нужно ввести ключ, который позволит использовать единый API OpenRouter для доступа к сотням моделей ИИ.\n\n1. Зарегистрируйтесь или войдите на [openrouter.ai](https://openrouter.ai/).\n2. В настройках аккаунта создайте новый API‑ключ.\n3. Вставьте ключ сюда и дождитесь проверки.",
+    exa: "Нужно ввести ключ, который позволит использовать поисковый API Exa.\n\n1. Зарегистрируйтесь или войдите на [exa.ai](https://exa.ai/).\n2. Создайте API‑ключ в панели Exa.\n3. Вставьте ключ сюда и дождитесь проверки.",
+    falai: "Нужно ввести ключ, который позволит использовать API Fal.ai.\n\n1. Зарегистрируйтесь или войдите на [fal.ai](https://fal.ai/).\n2. Создайте API‑ключ в панели Fal.ai.\n3. Вставьте ключ сюда и дождитесь проверки.",
+    noInstructions: "Инструкции по настройке для этого провайдера отсутствуют.",
+    okButton: "Ок"
   },
+
+
 
   sidebar: {
     newConversationTitle: "Новый разговор",

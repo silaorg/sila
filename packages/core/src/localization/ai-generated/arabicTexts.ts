@@ -282,93 +282,25 @@ export const arabicTexts: Partial<Texts> = {
     buttonUpdate: "تحديث المزود",
     buttonAddProvider: "إضافة مزود"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `كيفية إعداد ${providerName}`,
-    openai: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج OpenAI.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى OpenAI:",
-        addCredits: "أضف رصيدًا إلى حسابك هنا",
-        createKey: "أنشئ مفتاحًا سريًا جديدًا هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    anthropic: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج Anthropic.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى Anthropic:",
-        createKey: "أنشئ مفتاحًا جديدًا هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    groq: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج Groq.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى Groq:",
-        createKey: "أنشئ مفتاح API هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    deepseek: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج DeepSeek.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى DeepSeek:",
-        createKey: "أنشئ مفتاح API هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    google: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج Google Gemini.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى Google AI Studio:",
-        createKey: "أنشئ مفتاح API هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    xai: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج xAI.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى xAI:",
-        createTeam: "أنشئ فريقًا وانتقل إلى صفحة مفاتيح API.",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    cohere: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج Cohere.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى Cohere:",
-        createKey: "أنشئ مفتاح API هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    mistral: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام نماذج Mistral.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى Mistral AI:",
-        createKey: "أنشئ مفتاح API هنا",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    ollama: {
-      intro: "تحتاج إلى تثبيت وتشغيل Ollama لاستخدام نماذجه. يمكن تشغيله محليًا وسيتصل به Sila.",
-      steps: {
-        download: "حمّل Ollama من",
-        install: "ثبّت Ollama واضبط النموذج الذي تريد استخدامه.",
-        returnAfterStart: "عد إلى هنا بعد تشغيله."
-      }
-    },
-    openrouter: {
-      intro: "ستحتاج إلى إدخال مفتاح لاستخدام واجهة OpenRouter الموحدة للوصول إلى مئات النماذج.",
-      steps: {
-        signup: "سجّل أو سجّل الدخول إلى OpenRouter:",
-        createKey: "اذهب إلى إعدادات الحساب ثم قسم API keys لإنشاء مفتاح جديد.",
-        pasteKey: "الصق المفتاح هنا وانتظر التحقق."
-      }
-    },
-    noInstructions: "لا توجد تعليمات إعداد لهذا المزود.",
+    openai: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج OpenAI.\n\n1. سجّل أو سجّل الدخول في [platform.openai.com](https://platform.openai.com).\n2. أضف رصيدًا إلى حسابك في [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview).\n3. أنشئ مفتاحًا سريًا جديدًا في [platform.openai.com/api-keys](https://platform.openai.com/api-keys).\n4. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    anthropic: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج Anthropic.\n\n1. سجّل أو سجّل الدخول في [console.anthropic.com](https://console.anthropic.com/).\n2. أنشئ مفتاحًا جديدًا في [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    groq: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج Groq.\n\n1. سجّل أو سجّل الدخول في [console.groq.com](https://console.groq.com/).\n2. أنشئ مفتاح API في [console.groq.com/keys](https://console.groq.com/keys).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    deepseek: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج DeepSeek.\n\n1. سجّل أو سجّل الدخول في [platform.deepseek.com](https://platform.deepseek.com/).\n2. أنشئ مفتاح API في [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    google: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج Google Gemini.\n\n1. سجّل أو سجّل الدخول في [aistudio.google.com](https://aistudio.google.com/).\n2. أنشئ مفتاح API في [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    xai: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج xAI.\n\n1. سجّل أو سجّل الدخول في [console.x.ai](https://console.x.ai/).\n2. أنشئ فريقًا وانتقل إلى صفحة مفاتيح API.\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    cohere: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج Cohere.\n\n1. سجّل أو سجّل الدخول في [dashboard.cohere.com](https://dashboard.cohere.com/).\n2. أنشئ مفتاح API في [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    mistral: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام نماذج Mistral.\n\n1. سجّل أو سجّل الدخول في [console.mistral.ai](https://console.mistral.ai/).\n2. أنشئ مفتاح API في [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/).\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    ollama: "ستحتاج إلى تثبيت وتشغيل Ollama لاستخدام نماذجه. يمكنك تشغيله محليًا وستتصل به Sila.\n\n1. نزّل Ollama من [ollama.com](https://ollama.com/).\n2. ثبّت Ollama وجهّز نموذجًا تريد استخدامه.\n3. عد إلى هنا بعد تشغيله.",
+    openrouter: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام واجهة OpenRouter الموحدة للوصول إلى مئات نماذج الذكاء الاصطناعي.\n\n1. سجّل أو سجّل الدخول في [openrouter.ai](https://openrouter.ai/).\n2. انتقل إلى إعدادات حسابك وأنشئ مفتاح API جديدًا.\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    exa: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام واجهة البحث من Exa.\n\n1. سجّل أو سجّل الدخول في [exa.ai](https://exa.ai/).\n2. أنشئ مفتاح API في لوحة Exa.\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    falai: "ستحتاج إلى إدخال مفتاح يسمح لك باستخدام واجهة Fal.ai.\n\n1. سجّل أو سجّل الدخول في [fal.ai](https://fal.ai/).\n2. أنشئ مفتاح API في لوحة Fal.ai.\n3. الصق المفتاح هنا وانتظر حتى يتم التحقق منه.",
+    noInstructions: "لا توجد تعليمات إعداد لهذا المزوّد.",
     okButton: "حسنًا"
   },
+
+
 
   sidebar: {
     newConversationTitle: "محادثة جديدة",

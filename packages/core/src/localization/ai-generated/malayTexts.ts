@@ -282,93 +282,25 @@ export const malayTexts: Partial<Texts> = {
     buttonUpdate: "Kemas kini penyedia",
     buttonAddProvider: "Tambah penyedia"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `Cara menyediakan ${providerName}`,
-    openai: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model OpenAI.",
-      steps: {
-        signup: "Daftar atau log masuk ke OpenAI:",
-        addCredits: "Tambah kredit ke baki anda di sini",
-        createKey: "Cipta secret key baharu di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    anthropic: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model Anthropic.",
-      steps: {
-        signup: "Daftar atau log masuk ke Anthropic:",
-        createKey: "Cipta key baharu di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    groq: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model Groq.",
-      steps: {
-        signup: "Daftar atau log masuk ke Groq:",
-        createKey: "Cipta API key di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    deepseek: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model DeepSeek.",
-      steps: {
-        signup: "Daftar atau log masuk ke DeepSeek:",
-        createKey: "Cipta API key di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    google: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model Google Gemini.",
-      steps: {
-        signup: "Daftar atau log masuk ke Google AI Studio:",
-        createKey: "Cipta API key di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    xai: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model xAI.",
-      steps: {
-        signup: "Daftar atau log masuk ke xAI:",
-        createTeam: "Cipta pasukan dan pergi ke halaman API keys.",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    cohere: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model Cohere.",
-      steps: {
-        signup: "Daftar atau log masuk ke Cohere:",
-        createKey: "Cipta API key di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    mistral: {
-      intro: "Anda perlu memasukkan key untuk menggunakan model Mistral.",
-      steps: {
-        signup: "Daftar atau log masuk ke Mistral AI:",
-        createKey: "Cipta API key di",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
-    ollama: {
-      intro: "Anda perlu memasang dan menjalankan Ollama untuk menggunakan modelnya. Anda boleh jalankan secara tempatan dan Sila akan menyambung.",
-      steps: {
-        download: "Muat turun Ollama dari",
-        install: "Pasang Ollama dan sediakan model yang anda mahu guna.",
-        returnAfterStart: "Kembali ke sini selepas anda memulakannya."
-      }
-    },
-    openrouter: {
-      intro: "Anda perlu memasukkan key untuk menggunakan API bersepadu OpenRouter yang memberi akses kepada ratusan model AI.",
-      steps: {
-        signup: "Daftar atau log masuk ke OpenRouter:",
-        createKey: "Buka tetapan akaun dan pergi ke bahagian API keys untuk mencipta key baharu.",
-        pasteKey: "Tampal key di sini dan tunggu pengesahan."
-      }
-    },
+    openai: "Anda perlu memasukkan kunci untuk menggunakan model OpenAI.\n\n1. Daftar atau log masuk di [platform.openai.com](https://platform.openai.com).\n2. Tambah kredit pada baki di [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview).\n3. Cipta kunci rahsia baharu di [platform.openai.com/api-keys](https://platform.openai.com/api-keys).\n4. Tampal kunci di sini dan tunggu pengesahan.",
+    anthropic: "Anda perlu memasukkan kunci untuk menggunakan model Anthropic.\n\n1. Daftar atau log masuk di [console.anthropic.com](https://console.anthropic.com/).\n2. Cipta kunci baharu di [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    groq: "Anda perlu memasukkan kunci untuk menggunakan model Groq.\n\n1. Daftar atau log masuk di [console.groq.com](https://console.groq.com/).\n2. Cipta kunci API di [console.groq.com/keys](https://console.groq.com/keys).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    deepseek: "Anda perlu memasukkan kunci untuk menggunakan model DeepSeek.\n\n1. Daftar atau log masuk di [platform.deepseek.com](https://platform.deepseek.com/).\n2. Cipta kunci API di [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    google: "Anda perlu memasukkan kunci untuk menggunakan model Google Gemini.\n\n1. Daftar atau log masuk di [aistudio.google.com](https://aistudio.google.com/).\n2. Cipta kunci API di [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    xai: "Anda perlu memasukkan kunci untuk menggunakan model xAI.\n\n1. Daftar atau log masuk di [console.x.ai](https://console.x.ai/).\n2. Cipta pasukan dan pergi ke halaman kunci API.\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    cohere: "Anda perlu memasukkan kunci untuk menggunakan model Cohere.\n\n1. Daftar atau log masuk di [dashboard.cohere.com](https://dashboard.cohere.com/).\n2. Cipta kunci API di [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    mistral: "Anda perlu memasukkan kunci untuk menggunakan model Mistral.\n\n1. Daftar atau log masuk di [console.mistral.ai](https://console.mistral.ai/).\n2. Cipta kunci API di [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/).\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    ollama: "Anda perlu memasang dan menjalankan Ollama untuk menggunakan modelnya. Anda boleh menjalankannya secara tempatan dan Sila akan menyambung.\n\n1. Muat turun Ollama dari [ollama.com](https://ollama.com/).\n2. Pasang Ollama dan sediakan model yang ingin anda gunakan.\n3. Kembali ke sini selepas menjalankannya.",
+    openrouter: "Anda perlu memasukkan kunci untuk menggunakan API bersatu OpenRouter bagi mengakses ratusan model AI.\n\n1. Daftar atau log masuk di [openrouter.ai](https://openrouter.ai/).\n2. Pergi ke tetapan akaun anda dan cipta kunci API baharu.\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    exa: "Anda perlu memasukkan kunci untuk menggunakan API carian Exa.\n\n1. Daftar atau log masuk di [exa.ai](https://exa.ai/).\n2. Cipta kunci API dalam papan pemuka Exa anda.\n3. Tampal kunci di sini dan tunggu pengesahan.",
+    falai: "Anda perlu memasukkan kunci untuk menggunakan API Fal.ai.\n\n1. Daftar atau log masuk di [fal.ai](https://fal.ai/).\n2. Cipta kunci API dalam papan pemuka Fal.ai anda.\n3. Tampal kunci di sini dan tunggu pengesahan.",
     noInstructions: "Tiada arahan penyediaan untuk penyedia ini.",
     okButton: "OK"
   },
+
+
 
   sidebar: {
     newConversationTitle: "Perbualan baharu",

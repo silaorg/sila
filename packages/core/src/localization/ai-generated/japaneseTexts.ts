@@ -282,93 +282,25 @@ export const japaneseTexts: Partial<Texts> = {
     buttonUpdate: "提供元を更新",
     buttonAddProvider: "提供元を追加"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `${providerName} の設定方法`,
-    openai: {
-      intro: "OpenAI のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "OpenAI に登録またはログイン:",
-        addCredits: "ここで残高にチャージ",
-        createKey: "ここで新しいシークレットキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    anthropic: {
-      intro: "Anthropic のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "Anthropic に登録またはログイン:",
-        createKey: "ここで新しいキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    groq: {
-      intro: "Groq のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "Groq に登録またはログイン:",
-        createKey: "ここでAPIキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    deepseek: {
-      intro: "DeepSeek のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "DeepSeek に登録またはログイン:",
-        createKey: "ここでAPIキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    google: {
-      intro: "Google Gemini のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "Google AI Studio に登録またはログイン:",
-        createKey: "ここでAPIキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    xai: {
-      intro: "xAI のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "xAI に登録またはログイン:",
-        createTeam: "チームを作成し、API keys ページへ移動します。",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    cohere: {
-      intro: "Cohere のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "Cohere に登録またはログイン:",
-        createKey: "ここでAPIキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    mistral: {
-      intro: "Mistral のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "Mistral AI に登録またはログイン:",
-        createKey: "ここでAPIキーを作成",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    ollama: {
-      intro: "Ollama のモデルを使うには Ollama をインストールして起動する必要があります。ローカルで動かせば Sila が接続します。",
-      steps: {
-        download: "Ollama をダウンロード",
-        install: "Ollama をインストールし、使いたいモデルを設定します。",
-        returnAfterStart: "起動したらここに戻ってください。"
-      }
-    },
-    openrouter: {
-      intro: "OpenRouter の統一APIで数百のモデルを使うにはキーが必要です。",
-      steps: {
-        signup: "OpenRouter に登録またはログイン:",
-        createKey: "アカウント設定の API keys で新しいキーを作成します。",
-        pasteKey: "キーを貼り付けて検証を待ちます。"
-      }
-    },
-    noInstructions: "この提供元の設定手順はありません。",
+    openai: "OpenAI のモデルを使うにはキーの入力が必要です。\n\n1. [platform.openai.com](https://platform.openai.com) でサインアップまたはログインします。\n2. [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview) でクレジットを追加します。\n3. [platform.openai.com/api-keys](https://platform.openai.com/api-keys) で新しいシークレットキーを作成します。\n4. ここにキーを貼り付けて検証を待ちます。",
+    anthropic: "Anthropic のモデルを使うにはキーの入力が必要です。\n\n1. [console.anthropic.com](https://console.anthropic.com/) でサインアップまたはログインします。\n2. [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys) で新しいキーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    groq: "Groq のモデルを使うにはキーの入力が必要です。\n\n1. [console.groq.com](https://console.groq.com/) でサインアップまたはログインします。\n2. [console.groq.com/keys](https://console.groq.com/keys) で API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    deepseek: "DeepSeek のモデルを使うにはキーの入力が必要です。\n\n1. [platform.deepseek.com](https://platform.deepseek.com/) でサインアップまたはログインします。\n2. [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) で API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    google: "Google Gemini のモデルを使うにはキーの入力が必要です。\n\n1. [aistudio.google.com](https://aistudio.google.com/) でサインアップまたはログインします。\n2. [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys) で API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    xai: "xAI のモデルを使うにはキーの入力が必要です。\n\n1. [console.x.ai](https://console.x.ai/) でサインアップまたはログインします。\n2. チームを作成して API キーページに移動します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    cohere: "Cohere のモデルを使うにはキーの入力が必要です。\n\n1. [dashboard.cohere.com](https://dashboard.cohere.com/) でサインアップまたはログインします。\n2. [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys) で API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    mistral: "Mistral のモデルを使うにはキーの入力が必要です。\n\n1. [console.mistral.ai](https://console.mistral.ai/) でサインアップまたはログインします。\n2. [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/) で API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    ollama: "Ollama のモデルを使うには Ollama をインストールして起動する必要があります。ローカルで起動すると Sila が接続します。\n\n1. [ollama.com](https://ollama.com/) から Ollama をダウンロードします。\n2. Ollama をインストールし、使いたいモデルを設定します。\n3. 起動したらここに戻ります。",
+    openrouter: "OpenRouter の統一 API を使って数百の AI モデルにアクセスするにはキーの入力が必要です。\n\n1. [openrouter.ai](https://openrouter.ai/) でサインアップまたはログインします。\n2. アカウント設定で新しい API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    exa: "Exa の検索 API を使うにはキーの入力が必要です。\n\n1. [exa.ai](https://exa.ai/) でサインアップまたはログインします。\n2. Exa のダッシュボードで API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    falai: "Fal.ai の API を使うにはキーの入力が必要です。\n\n1. [fal.ai](https://fal.ai/) でサインアップまたはログインします。\n2. Fal.ai のダッシュボードで API キーを作成します。\n3. ここにキーを貼り付けて検証を待ちます。",
+    noInstructions: "このプロバイダーの設定手順はありません。",
     okButton: "OK"
   },
+
+
 
   sidebar: {
     newConversationTitle: "新しい会話",

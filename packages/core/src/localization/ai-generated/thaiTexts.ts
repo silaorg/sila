@@ -282,93 +282,25 @@ export const thaiTexts: Partial<Texts> = {
     buttonUpdate: "อัปเดตผู้ให้บริการ",
     buttonAddProvider: "เพิ่มผู้ให้บริการ"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `วิธีตั้งค่า ${providerName}`,
-    openai: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ OpenAI.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ OpenAI:",
-        addCredits: "เติมเครดิตในบัญชีได้ที่นี่",
-        createKey: "สร้าง secret key ใหม่ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    anthropic: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ Anthropic.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ Anthropic:",
-        createKey: "สร้างคีย์ใหม่ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    groq: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ Groq.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ Groq:",
-        createKey: "สร้าง API key ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    deepseek: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ DeepSeek.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ DeepSeek:",
-        createKey: "สร้าง API key ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    google: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดล Google Gemini.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ Google AI Studio:",
-        createKey: "สร้าง API key ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    xai: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ xAI.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ xAI:",
-        createTeam: "สร้างทีมและไปที่หน้า API keys.",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    cohere: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ Cohere.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ Cohere:",
-        createKey: "สร้าง API key ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    mistral: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งานโมเดลของ Mistral.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ Mistral AI:",
-        createKey: "สร้าง API key ที่",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    ollama: {
-      intro: "คุณต้องติดตั้งและรัน Ollama เพื่อใช้โมเดลของมัน คุณสามารถรันในเครื่องและ Sila จะเชื่อมต่อให้.",
-      steps: {
-        download: "ดาวน์โหลด Ollama จาก",
-        install: "ติดตั้ง Ollama และตั้งค่าโมเดลที่ต้องการใช้.",
-        returnAfterStart: "กลับมาที่นี่หลังจากเริ่มใช้งานแล้ว."
-      }
-    },
-    openrouter: {
-      intro: "คุณต้องใส่คีย์เพื่อใช้งาน API รวมของ OpenRouter ที่เข้าถึงโมเดล AI ได้หลายร้อยตัว.",
-      steps: {
-        signup: "สมัครหรือเข้าสู่ระบบ OpenRouter:",
-        createKey: "ไปที่การตั้งค่าบัญชีแล้วสร้าง API key ใหม่ในส่วน API keys.",
-        pasteKey: "วางคีย์ที่นี่และรอการตรวจสอบ."
-      }
-    },
-    noInstructions: "ไม่มีคำแนะนำสำหรับผู้ให้บริการนี้.",
+    openai: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ OpenAI\n\n1. สมัครหรือเข้าสู่ระบบที่ [platform.openai.com](https://platform.openai.com)\n2. เติมเครดิตที่ [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview)\n3. สร้างคีย์ลับใหม่ที่ [platform.openai.com/api-keys](https://platform.openai.com/api-keys)\n4. วางคีย์ที่นี่และรอการตรวจสอบ",
+    anthropic: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ Anthropic\n\n1. สมัครหรือเข้าสู่ระบบที่ [console.anthropic.com](https://console.anthropic.com/)\n2. สร้างคีย์ใหม่ที่ [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    groq: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ Groq\n\n1. สมัครหรือเข้าสู่ระบบที่ [console.groq.com](https://console.groq.com/)\n2. สร้างคีย์ API ที่ [console.groq.com/keys](https://console.groq.com/keys)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    deepseek: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ DeepSeek\n\n1. สมัครหรือเข้าสู่ระบบที่ [platform.deepseek.com](https://platform.deepseek.com/)\n2. สร้างคีย์ API ที่ [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    google: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดล Google Gemini\n\n1. สมัครหรือเข้าสู่ระบบที่ [aistudio.google.com](https://aistudio.google.com/)\n2. สร้างคีย์ API ที่ [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    xai: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ xAI\n\n1. สมัครหรือเข้าสู่ระบบที่ [console.x.ai](https://console.x.ai/)\n2. สร้างทีมและไปที่หน้า API keys\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    cohere: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ Cohere\n\n1. สมัครหรือเข้าสู่ระบบที่ [dashboard.cohere.com](https://dashboard.cohere.com/)\n2. สร้างคีย์ API ที่ [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    mistral: "คุณต้องกรอกคีย์เพื่อใช้งานโมเดลของ Mistral\n\n1. สมัครหรือเข้าสู่ระบบที่ [console.mistral.ai](https://console.mistral.ai/)\n2. สร้างคีย์ API ที่ [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/)\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    ollama: "คุณต้องติดตั้งและเรียกใช้ Ollama เพื่อใช้งานโมเดลของมัน คุณสามารถรันแบบโลคัลและ Sila จะเชื่อมต่อ\n\n1. ดาวน์โหลด Ollama จาก [ollama.com](https://ollama.com/)\n2. ติดตั้ง Ollama และตั้งค่าโมเดลที่ต้องการใช้\n3. กลับมาที่นี่หลังจากเริ่มรัน",
+    openrouter: "คุณต้องกรอกคีย์เพื่อใช้ API แบบรวมของ OpenRouter เพื่อเข้าถึงโมเดล AI หลายร้อยรายการ\n\n1. สมัครหรือเข้าสู่ระบบที่ [openrouter.ai](https://openrouter.ai/)\n2. ไปที่การตั้งค่าบัญชีและสร้างคีย์ API ใหม่\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    exa: "คุณต้องกรอกคีย์เพื่อใช้ API ค้นหาของ Exa\n\n1. สมัครหรือเข้าสู่ระบบที่ [exa.ai](https://exa.ai/)\n2. สร้างคีย์ API ในแดชบอร์ดของ Exa\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    falai: "คุณต้องกรอกคีย์เพื่อใช้ API ของ Fal.ai\n\n1. สมัครหรือเข้าสู่ระบบที่ [fal.ai](https://fal.ai/)\n2. สร้างคีย์ API ในแดชบอร์ดของ Fal.ai\n3. วางคีย์ที่นี่และรอการตรวจสอบ",
+    noInstructions: "ไม่มีคำแนะนำการตั้งค่าสำหรับผู้ให้บริการนี้",
     okButton: "ตกลง"
   },
+
+
 
   sidebar: {
     newConversationTitle: "การสนทนาใหม่",

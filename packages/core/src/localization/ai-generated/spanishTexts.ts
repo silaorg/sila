@@ -282,93 +282,25 @@ export const spanishTexts: Partial<Texts> = {
     buttonUpdate: "Actualizar proveedor",
     buttonAddProvider: "Añadir proveedor"
   },
-
   modelProviderSetup: {
     title: (providerName: string) => `Cómo configurar ${providerName}`,
-    openai: {
-      intro: "Necesitas una clave para usar los modelos de OpenAI.",
-      steps: {
-        signup: "Regístrate o inicia sesión en OpenAI:",
-        addCredits: "Añade saldo aquí",
-        createKey: "Crea una nueva clave secreta aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    anthropic: {
-      intro: "Necesitas una clave para usar los modelos de Anthropic.",
-      steps: {
-        signup: "Regístrate o inicia sesión en Anthropic:",
-        createKey: "Crea una nueva clave aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    groq: {
-      intro: "Necesitas una clave para usar los modelos de Groq.",
-      steps: {
-        signup: "Regístrate o inicia sesión en Groq:",
-        createKey: "Crea una API key aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    deepseek: {
-      intro: "Necesitas una clave para usar los modelos de DeepSeek.",
-      steps: {
-        signup: "Regístrate o inicia sesión en DeepSeek:",
-        createKey: "Crea una API key aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    google: {
-      intro: "Necesitas una clave para usar los modelos de Google Gemini.",
-      steps: {
-        signup: "Regístrate o inicia sesión en Google AI Studio:",
-        createKey: "Crea una API key aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    xai: {
-      intro: "Necesitas una clave para usar los modelos de xAI.",
-      steps: {
-        signup: "Regístrate o inicia sesión en xAI:",
-        createTeam: "Crea un equipo y ve a la página de API keys.",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    cohere: {
-      intro: "Necesitas una clave para usar los modelos de Cohere.",
-      steps: {
-        signup: "Regístrate o inicia sesión en Cohere:",
-        createKey: "Crea una API key aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    mistral: {
-      intro: "Necesitas una clave para usar los modelos de Mistral.",
-      steps: {
-        signup: "Regístrate o inicia sesión en Mistral AI:",
-        createKey: "Crea una API key aquí",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    ollama: {
-      intro: "Debes instalar y ejecutar Ollama para usar sus modelos. Puedes ejecutarlo localmente y Sila se conectará.",
-      steps: {
-        download: "Descarga Ollama desde",
-        install: "Instala Ollama y configura el modelo que quieras usar.",
-        returnAfterStart: "Vuelve aquí después de iniciarlo."
-      }
-    },
-    openrouter: {
-      intro: "Necesitas una clave para usar la API unificada de OpenRouter y acceder a cientos de modelos.",
-      steps: {
-        signup: "Regístrate o inicia sesión en OpenRouter:",
-        createKey: "En la configuración de tu cuenta, ve a API keys y crea una nueva clave.",
-        pasteKey: "Pega la clave y espera la validación."
-      }
-    },
-    noInstructions: "No hay instrucciones disponibles para este proveedor.",
-    okButton: "OK"
+    openai: "Necesitas introducir una clave que te permita usar los modelos de OpenAI.\n\n1. Regístrate o inicia sesión en [platform.openai.com](https://platform.openai.com).\n2. Añade créditos a tu saldo en [platform.openai.com/settings/organization/billing/overview](https://platform.openai.com/settings/organization/billing/overview).\n3. Crea una nueva clave secreta en [platform.openai.com/api-keys](https://platform.openai.com/api-keys).\n4. Pega la clave aquí y espera a que se valide.",
+    anthropic: "Necesitas introducir una clave que te permita usar los modelos de Anthropic.\n\n1. Regístrate o inicia sesión en [console.anthropic.com](https://console.anthropic.com/).\n2. Crea una nueva clave en [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).\n3. Pega la clave aquí y espera a que se valide.",
+    groq: "Necesitas introducir una clave que te permita usar los modelos de Groq.\n\n1. Regístrate o inicia sesión en [console.groq.com](https://console.groq.com/).\n2. Crea una clave API en [console.groq.com/keys](https://console.groq.com/keys).\n3. Pega la clave aquí y espera a que se valide.",
+    deepseek: "Necesitas introducir una clave que te permita usar los modelos de DeepSeek.\n\n1. Regístrate o inicia sesión en [platform.deepseek.com](https://platform.deepseek.com/).\n2. Crea una clave API en [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).\n3. Pega la clave aquí y espera a que se valide.",
+    google: "Necesitas introducir una clave que te permita usar los modelos de Google Gemini.\n\n1. Regístrate o inicia sesión en [aistudio.google.com](https://aistudio.google.com/).\n2. Crea una clave API en [aistudio.google.com/app/api-keys](https://aistudio.google.com/app/api-keys).\n3. Pega la clave aquí y espera a que se valide.",
+    xai: "Necesitas introducir una clave que te permita usar los modelos de xAI.\n\n1. Regístrate o inicia sesión en [console.x.ai](https://console.x.ai/).\n2. Crea un equipo y ve a la página de claves API.\n3. Pega la clave aquí y espera a que se valide.",
+    cohere: "Necesitas introducir una clave que te permita usar los modelos de Cohere.\n\n1. Regístrate o inicia sesión en [dashboard.cohere.com](https://dashboard.cohere.com/).\n2. Crea una clave API en [dashboard.cohere.com/api-keys](https://dashboard.cohere.com/api-keys).\n3. Pega la clave aquí y espera a que se valide.",
+    mistral: "Necesitas introducir una clave que te permita usar los modelos de Mistral.\n\n1. Regístrate o inicia sesión en [console.mistral.ai](https://console.mistral.ai/).\n2. Crea una clave API en [console.mistral.ai/api-keys](https://console.mistral.ai/api-keys/).\n3. Pega la clave aquí y espera a que se valide.",
+    ollama: "Necesitas instalar y ejecutar Ollama para usar sus modelos. Puedes ejecutarlo localmente y Sila se conectará.\n\n1. Descarga Ollama desde [ollama.com](https://ollama.com/).\n2. Instala Ollama y configura un modelo que quieras usar.\n3. Vuelve aquí después de iniciarlo.",
+    openrouter: "Necesitas introducir una clave que te permita usar la API unificada de OpenRouter para acceder a cientos de modelos de IA.\n\n1. Regístrate o inicia sesión en [openrouter.ai](https://openrouter.ai/).\n2. Ve a la configuración de tu cuenta y crea una nueva clave API.\n3. Pega la clave aquí y espera a que se valide.",
+    exa: "Necesitas introducir una clave que te permita usar la API de búsqueda de Exa.\n\n1. Regístrate o inicia sesión en [exa.ai](https://exa.ai/).\n2. Crea una clave API en tu panel de Exa.\n3. Pega la clave aquí y espera a que se valide.",
+    falai: "Necesitas introducir una clave que te permita usar la API de Fal.ai.\n\n1. Regístrate o inicia sesión en [fal.ai](https://fal.ai/).\n2. Crea una clave API en tu panel de Fal.ai.\n3. Pega la clave aquí y espera a que se valide.",
+    noInstructions: "No hay instrucciones de configuración para este proveedor.",
+    okButton: "Aceptar"
   },
+
+
 
   sidebar: {
     newConversationTitle: "Nueva conversación",

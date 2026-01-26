@@ -281,87 +281,18 @@ export interface Texts {
 
   modelProviderSetup: {
     title: (providerName: string) => string;
-    openai: {
-      intro: string;
-      steps: {
-        signup: string;
-        addCredits: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    anthropic: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    groq: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    deepseek: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    google: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    xai: {
-      intro: string;
-      steps: {
-        signup: string;
-        createTeam: string;
-        pasteKey: string;
-      };
-    };
-    cohere: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    mistral: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
-    ollama: {
-      intro: string;
-      steps: {
-        download: string;
-        install: string;
-        returnAfterStart: string;
-      };
-    };
-    openrouter: {
-      intro: string;
-      steps: {
-        signup: string;
-        createKey: string;
-        pasteKey: string;
-      };
-    };
+    openai: string;
+    anthropic: string;
+    groq: string;
+    deepseek: string;
+    google: string;
+    xai: string;
+    cohere: string;
+    mistral: string;
+    ollama: string;
+    openrouter: string;
+    exa: string;
+    falai: string;
     noInstructions: string;
     okButton: string;
   };
