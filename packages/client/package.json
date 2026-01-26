@@ -16,6 +16,7 @@
     "check": "svelte-check"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.0.0",
     "@floating-ui/dom": "1.6.11",
     "@markpage/svelte": "^0.1.1",
     "@sila/core": "*",

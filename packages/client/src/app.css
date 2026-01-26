@@ -27,6 +27,17 @@
 @import '@skeletonlabs/skeleton/themes/vox';
 @import '@skeletonlabs/skeleton/themes/wintry';
 
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+
+:root {
+  --base-font-family: "Inter", system-ui, sans-serif;
+  --heading-font-family: "Inter", system-ui, sans-serif;
+  --default-font-family: "Inter", system-ui, sans-serif;
+}
+
 
 /* KaTeX for math rendering is imported from JS (see `SilaApp.svelte`) so Vite can bundle fonts. */
 
