@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { randomUUID } from 'node:crypto';
 
 app.setName('Sila');
 
@@ -128,15 +129,40 @@ app.whenReady().then(async () => {
   
   // IPC: cors-less fetch for renderer
   ipcMain.handle('sila:proxyFetch', async (event, url, init) => {
-    const res = await fetch(url, init);
-    // Return raw bytes so the renderer can reconstruct a proper Response.
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    return {
-      status: res.status,
-      statusText: res.statusText,
-      headers: Array.from(res.headers.entries()),
-      body: bytes,
-    };
+    try {
+      const res = await fetch(url, init);
+      const streamId = randomUUID();
+      const channel = `sila:stream:${streamId}`;
+
+      // Start streaming response body to renderer
+      (async () => {
+        try {
+          if (res.body) {
+            for await (const chunk of res.body) {
+              if (event.sender.isDestroyed()) break;
+              event.sender.send(channel, 'data', new Uint8Array(chunk));
+            }
+          }
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(channel, 'end');
+          }
+        } catch (err) {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(channel, 'error', err instanceof Error ? err.message : String(err));
+          }
+        }
+      })();
+
+      return {
+        streamId,
+        status: res.status,
+        statusText: res.statusText,
+        headers: Array.from(res.headers.entries()),
+      };
+    } catch (e) {
+      console.error('Proxy fetch error:', e);
+      throw e;
+    }
   });
 
   // IPC: reveal a path in the OS file explorer (Finder/Explorer/etc.)

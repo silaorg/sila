@@ -80,6 +80,7 @@ Electron Builder packages the web assets with the Electron runtime for each plat
 - **Dialogs**: Native platform dialogs for file operations
 - **Auto-updater**: Built-in update mechanism for production apps
 - **Menu System**: Native application menus and shortcuts
+- **Network Proxy**: [Streaming Proxy](./electron-proxy.md) for bypassing CORS and handling AI streams
 
 ## Automated Builds
 
