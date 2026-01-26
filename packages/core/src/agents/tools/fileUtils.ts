@@ -20,6 +20,8 @@ export function inferTextMimeFromPath(path: string): string | undefined {
   if (lower.endsWith(".css")) return "text/css";
   if (lower.endsWith(".html")) return "text/html";
   if (lower.endsWith(".svelte")) return "text/html"; // Treat as text
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   
   // Detect common binary formats to reject them
   if (lower.endsWith(".png")) return "image/png";

@@ -15,6 +15,7 @@ import { toolGenerateImage } from "./tools/toolGenerateImage";
 import { toolGenerateVideo } from "./tools/toolGenerateVideo";
 import { toolLook } from "./tools/toolLook";
 import { toolWebSearch } from "./tools/toolWebSearch";
+import { toolSpreadsheet } from "./tools/toolSpreadsheet";
 import type { AgentTool } from "./tools/AgentTool";
 
 export class AgentServices {
@@ -121,6 +122,7 @@ export class AgentServices {
       useApplyPatch ? toolApplyPatch : toolSearchReplacePatch,
       toolGenerateImage,
       toolGenerateVideo,
+      toolSpreadsheet,
     ];
 
     const enabledTools = toolDefs.filter((tool) =>
