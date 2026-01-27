@@ -1,10 +1,19 @@
-# How to set up AI model providers
+# How to setup AI model providers
 
-This is the main setup step in Sila. Sila does not include its own built-in AI model ([because](../../features/local-first.md)). Instead, it connects to the models you choose.
+AI models are like brains for Sila, and you can choose which to use and switch between them quickly (see [Any AI](../../features/any-ai.md)). As new models come out, Sila will support them automatically.
 
-You need at least one provider to use Sila. We recommend starting with [OpenRouter](./openrouter.md) because it gives you access to many top models in one place. Create an account, generate an API key, and paste it into Sila.
+If you want the simplest setup, start with [OpenRouter](./openrouter.md). It gives you one API key that works with lots of models.
 
-Providers:
+AI Providers:
 - [OpenRouter](./openrouter.md) (recommended first)
 - [OpenAI](./openai.md)
-<TODO>Other providers</TODO>
+- [Anthropic](./anthropic.md)
+- [DeepSeek](./deepseek.md)
+- [Google Gemini](./google.md)
+- [Groq](./groq.md)
+- [xAI](./xai.md)
+- [Cohere](./cohere.md)
+- [Mistral](./mistral.md)
+- [Ollama](./ollama.md)
+- [Exa](./exa.md)
+- [Fal.ai](./falai.md)

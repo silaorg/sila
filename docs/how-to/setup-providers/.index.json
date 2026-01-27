@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "name": "openrouter",
+      "type": "page",
+      "label": "OpenRouter"
+    },
+    {
+      "name": "openai",
+      "type": "page",
+      "label": "OpenAI"
+    },
+    {
+      "name": "anthropic",
+      "type": "page",
+      "label": "Anthropic"
+    },
+    {
+      "name": "deepseek",
+      "type": "page",
+      "label": "DeepSeek"
+    },
+    {
+      "name": "google",
+      "type": "page",
+      "label": "Google Gemini"
+    },
+    {
+      "name": "groq",
+      "type": "page",
+      "label": "Groq"
+    },
+    {
+      "name": "xai",
+      "type": "page",
+      "label": "xAI"
+    },
+    {
+      "name": "cohere",
+      "type": "page",
+      "label": "Cohere"
+    },
+    {
+      "name": "mistral",
+      "type": "page",
+      "label": "Mistral"
+    },
+    {
+      "name": "ollama",
+      "type": "page",
+      "label": "Ollama"
+    },
+    {
+      "name": "exa",
+      "type": "page",
+      "label": "Exa"
+    },
+    {
+      "name": "falai",
+      "type": "page",
+      "label": "Fal.ai"
+    }
+  ]
+}
