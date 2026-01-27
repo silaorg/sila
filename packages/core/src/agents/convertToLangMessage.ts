@@ -290,14 +290,32 @@ export const convertToLangMessage = async ({
       });
     }
 
-    if (toolRequests.length > 0) {
+    if (toolRequests.length > 0 && normalizedRole === "assistant") {
       items.push(
-        ...toolRequests.map((request) => ({
-          type: "tool" as const,
-          name: request.name,
-          callId: request.callId,
-          arguments: request.arguments,
-        })),
+        ...toolRequests.map((request) => {
+          let args = request.arguments;
+          if (typeof args === "string") {
+            try {
+              args = JSON.parse(args);
+            } catch {
+              args = {};
+            }
+          }
+          if (typeof args !== "object" || args === null) {
+            args = {};
+          }
+
+          return {
+            type: "tool" as const,
+            name: request.name,
+            callId:
+              request.callId ||
+              (globalThis.crypto?.randomUUID
+                ? globalThis.crypto.randomUUID()
+                : Math.random().toString(36).slice(2)),
+            arguments: args,
+          };
+        }),
       );
     }
 
@@ -333,14 +351,32 @@ export const convertToLangMessage = async ({
     if (combinedText.trim().length > 0) {
       items.push({ type: "text", text: combinedText });
     }
-    if (toolRequests.length > 0) {
+    if (toolRequests.length > 0 && normalizedRole === "assistant") {
       items.push(
-        ...toolRequests.map((request) => ({
-          type: "tool" as const,
-          name: request.name,
-          callId: request.callId,
-          arguments: request.arguments,
-        })),
+        ...toolRequests.map((request) => {
+          let args = request.arguments;
+          if (typeof args === "string") {
+            try {
+              args = JSON.parse(args);
+            } catch {
+              args = {};
+            }
+          }
+          if (typeof args !== "object" || args === null) {
+            args = {};
+          }
+
+          return {
+            type: "tool" as const,
+            name: request.name,
+            callId:
+              request.callId ||
+              (globalThis.crypto?.randomUUID
+                ? globalThis.crypto.randomUUID()
+                : Math.random().toString(36).slice(2)),
+            arguments: args,
+          };
+        }),
       );
     }
     if (toolResults.length > 0) {
