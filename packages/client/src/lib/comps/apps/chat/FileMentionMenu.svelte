@@ -178,7 +178,7 @@
   <!-- File list -->
   <div class="min-w-[240px] p-2 border-surface-100-900">
     <p class="mb-2 text-xs font-semibold uppercase tracking-wide">
-      Mention a file
+      {i18n.texts.fileMention.mentionAFile}
     </p>
     <div class="flex flex-col gap-1">
       {#each files as file, index}

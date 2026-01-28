@@ -410,6 +410,7 @@ export const vietnameseTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Nhắc đến một tệp",
     noFilesFound: "Không tìm thấy tệp",
     loading: "Đang tải...",
     previewNotFound: "Không tìm thấy tệp",

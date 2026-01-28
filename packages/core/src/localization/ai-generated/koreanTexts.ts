@@ -410,6 +410,7 @@ export const koreanTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "파일 언급",
     noFilesFound: "파일을 찾을 수 없습니다",
     loading: "로딩 중...",
     previewNotFound: "파일을 찾을 수 없습니다",

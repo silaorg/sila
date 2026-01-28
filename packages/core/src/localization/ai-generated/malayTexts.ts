@@ -410,6 +410,7 @@ export const malayTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Sebutkan fail",
     noFilesFound: "Tiada fail ditemui",
     loading: "Memuatkan...",
     previewNotFound: "Fail tidak ditemui",

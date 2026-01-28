@@ -410,6 +410,7 @@ export const japaneseTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "ファイルをメンション",
     noFilesFound: "ファイルが見つかりません",
     loading: "読み込み中...",
     previewNotFound: "ファイルが見つかりません",

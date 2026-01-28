@@ -410,6 +410,7 @@ export const chineseTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "提及文件",
     noFilesFound: "未找到文件",
     loading: "加载中...",
     previewNotFound: "未找到文件",

@@ -410,6 +410,7 @@ export const thaiTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "กล่าวถึงไฟล์",
     noFilesFound: "ไม่พบไฟล์",
     loading: "กำลังโหลด...",
     previewNotFound: "ไม่พบไฟล์",
