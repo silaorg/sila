@@ -434,6 +434,7 @@ export const russianTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Упомянуть файл",
     noFilesFound: "Файлы не найдены",
     loading: "Загрузка...",
     previewNotFound: "Файл не найден",

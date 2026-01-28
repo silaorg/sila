@@ -410,6 +410,7 @@ export const indonesianTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Sebutkan file",
     noFilesFound: "File tidak ditemukan",
     loading: "Memuat...",
     previewNotFound: "File tidak ditemukan",

@@ -410,6 +410,7 @@ export const spanishTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Menciona un archivo",
     noFilesFound: "No se encontraron archivos",
     loading: "Cargando...",
     previewNotFound: "Archivo no encontrado",

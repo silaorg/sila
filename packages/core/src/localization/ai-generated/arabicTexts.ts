@@ -410,6 +410,7 @@ export const arabicTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "اذكر ملفًا",
     noFilesFound: "لم يتم العثور على ملفات",
     loading: "جارٍ التحميل...",
     previewNotFound: "الملف غير موجود",

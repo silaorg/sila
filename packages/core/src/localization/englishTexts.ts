@@ -409,6 +409,7 @@ export const englishTexts: Texts = {
   },
 
   fileMention: {
+    mentionAFile: "Mention a file",
     noFilesFound: "No files found",
     loading: "Loading...",
     previewNotFound: "File not found",

@@ -405,6 +405,7 @@ export interface Texts {
   };
 
   fileMention: {
+    mentionAFile: string;
     noFilesFound: string;
     loading: string;
     previewNotFound: string;

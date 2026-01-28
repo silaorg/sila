@@ -410,6 +410,7 @@ export const turkishTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "Bir dosyadan bahset",
     noFilesFound: "Dosya bulunamadı",
     loading: "Yükleniyor...",
     previewNotFound: "Dosya bulunamadı",

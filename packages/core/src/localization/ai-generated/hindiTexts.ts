@@ -410,6 +410,7 @@ export const hindiTexts: Partial<Texts> = {
   },
 
   fileMention: {
+    mentionAFile: "एक फ़ाइल का उल्लेख करें",
     noFilesFound: "कोई फ़ाइल नहीं मिली",
     loading: "लोड हो रहा है...",
     previewNotFound: "फ़ाइल नहीं मिली",
