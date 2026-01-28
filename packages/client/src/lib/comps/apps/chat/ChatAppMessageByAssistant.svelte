@@ -1,14 +1,9 @@
 <script module lang="ts">
   import { chatMarkdownOptions } from "../../markdown/chatMarkdownOptions";
-  import type { ToolRequest } from "aiwrapper";
 </script>
 
 <script lang="ts">
-  import {
-    Sparkles,
-    ChevronDown,
-    ChevronRight,
-  } from "lucide-svelte";
+  import { Sparkles, ChevronDown, ChevronRight } from "lucide-svelte";
   import type { FileReference, ThreadMessage } from "@sila/core";
   import type { ChatAppData } from "@sila/core";
   import { transformFileReferencesToPaths } from "@sila/core";
@@ -23,9 +18,11 @@
   import ChatAppMessageControls from "./ChatAppMessageControls.svelte";
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
-  import type { ToolPair, VisibleMessage } from "./chatTypes";
+  import { getToolUsagePairs } from "./chatTypes";
+  import type { VisibleMessage } from "./chatTypes";
   import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
   import type { FileMention } from "./chatMentionPlugin";
+  import ChatAppToolUsageItem from "./ChatAppToolUsageItem.svelte";
 
   let {
     visibleMessage,
@@ -64,6 +61,25 @@
 
   const isProcessMessagesExpanded = $derived(
     isLastMessage ? lastProcessMessagesExpanded : localProcessMessagesExpanded
+  );
+
+  const toolUsagePairs = $derived.by(() =>
+    getToolUsagePairs(visibleMessage.progressVertices)
+  );
+
+  const lastToolUsagePairs = $derived(
+    toolUsagePairs.length > 5
+      ? toolUsagePairs.slice(toolUsagePairs.length - 5)
+      : toolUsagePairs
+  );
+
+  const hasAssistantReply = $derived.by(() => {
+    const text = message?.text || "";
+    return text.trim().length > 0;
+  });
+
+  const shouldShowToolPreview = $derived.by(
+    () => !isProcessMessagesExpanded && !hasAssistantReply && lastToolUsagePairs.length > 0
   );
 
   function toggleProcessMessagesExpanded() {
@@ -417,6 +433,13 @@
                   vertices={visibleMessage.progressVertices}
                 />
               {/if}
+            </div>
+          {/if}
+          {#if shouldShowToolPreview}
+            <div class="flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80">
+              {#each lastToolUsagePairs as toolMessage}
+                <ChatAppToolUsageItem message={toolMessage} />
+              {/each}
             </div>
           {/if}
           <Markdown source={renderedText} options={chatMarkdownOptions} />

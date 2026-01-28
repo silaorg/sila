@@ -23,8 +23,70 @@
         toolRequests: [
           {
             callId: "1",
-            name: "read",
-            arguments: { url: "https://example.com" },
+            name: "search",
+            arguments: { query: "When did Rijani erupt" },
+          },
+          {
+            callId: "2",
+            name: "search",
+            arguments: { query: "What was the effect of Rijani eruption" },
+          },
+          {
+            callId: "3",
+            name: "edit_document",
+            arguments: {
+              title: "Rijani eruption.md",
+              changes: "Summarize the eruption timeline and key impacts.",
+            },
+          },
+          {
+            callId: "4",
+            name: "generate_image",
+            arguments: {
+              prompt:
+                "Eruption of Rijani at dusk, ash plume towering over a coastal village, dramatic light, cinematic composition, long descriptive sentence that fades into the distance",
+            },
+          },
+        ],
+      },
+      {
+        role: "tool-results",
+        toolResults: [
+          {
+            toolId: "1",
+            name: "search",
+            result: {
+              results: [
+                {
+                  title: "Rijani (Rinjani) eruption timeline",
+                  snippet:
+                    "Historical activity reports note multiple eruptive periods in the 19th and 20th centuries.",
+                },
+                {
+                  title: "Mount Rinjani eruptions overview",
+                  snippet:
+                    "Key eruptions reshaped the summit caldera and affected nearby settlements.",
+                },
+              ],
+            },
+          },
+          {
+            toolId: "2",
+            name: "search",
+            result: {
+              results: [
+                {
+                  title: "Environmental impacts of the Rijani eruption",
+                  snippet:
+                    "Ashfall disrupted agriculture and caused short-term air quality issues.",
+                },
+                {
+                  title: "Societal effects of major eruptions",
+                  snippet:
+                    "Transport delays and temporary evacuations were reported in nearby regions.",
+                },
+              ],
+            },
           },
         ],
       },
