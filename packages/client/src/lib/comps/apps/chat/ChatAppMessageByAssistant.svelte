@@ -19,7 +19,7 @@
   import ChatAppMessageEditForm from "./ChatAppMessageEditForm.svelte";
   import FilePreview from "../../files/FilePreview.svelte";
   import { getToolUsagePairs } from "./chatTypes";
-  import type { VisibleMessage } from "./chatTypes";
+  import type { ToolUsageMessagePair, VisibleMessage } from "./chatTypes";
   import ChatAppProcessMessages from "./ChatAppProcessMessages.svelte";
   import type { FileMention } from "./chatMentionPlugin";
   import ChatAppToolUsageItem from "./ChatAppToolUsageItem.svelte";
@@ -44,7 +44,7 @@
   let configName = $state<string | undefined>(undefined);
   let localProcessMessagesExpanded = $state(false);
   let fileRefs = $derived(
-    ((message as any)?.files as Array<FileReference>) || []
+    ((message as any)?.files as Array<FileReference>) || [],
   );
   let isEditing = $state(false);
   let editText = $state("");
@@ -56,24 +56,26 @@
   let hideControlsTimeout: ReturnType<typeof setTimeout> | null = null;
 
   const canExpandMessage = $derived.by(
-    () => visibleMessage.progressVertices.length > 0 || message?.thinking
+    () => visibleMessage.progressVertices.length > 0 || message?.thinking,
   );
 
   const isProcessMessagesExpanded = $derived(
-    isLastMessage ? lastProcessMessagesExpanded : localProcessMessagesExpanded
+    isLastMessage ? lastProcessMessagesExpanded : localProcessMessagesExpanded,
   );
 
-  const toolUsagePairs = $derived.by(() =>
-    getToolUsagePairs(visibleMessage.progressVertices)
-  );
+  let toolUsagePairs = $state<ToolUsageMessagePair[]>([]);
+
+  $effect(() => {
+    toolUsagePairs = getToolUsagePairs(visibleMessage.progressVertices);
+  });
 
   const lastToolUsagePairs = $derived(
     toolUsagePairs.length > 5
       ? toolUsagePairs.slice(toolUsagePairs.length - 5)
-      : toolUsagePairs
+      : toolUsagePairs,
   );
   const hasMoreToolUsage = $derived(
-    toolUsagePairs.length > lastToolUsagePairs.length
+    toolUsagePairs.length > lastToolUsagePairs.length,
   );
 
   const hasAssistantReply = $derived.by(() => {
@@ -82,7 +84,10 @@
   });
 
   const shouldShowToolPreview = $derived.by(
-    () => !isProcessMessagesExpanded && !hasAssistantReply && lastToolUsagePairs.length > 0
+    () =>
+      !isProcessMessagesExpanded &&
+      !hasAssistantReply &&
+      lastToolUsagePairs.length > 0,
   );
 
   function toggleProcessMessagesExpanded() {
@@ -319,7 +324,7 @@
 
     return clientState.currentSpaceState?.fileResolver.searchFileMentions(
       query,
-      chatFilesRoot
+      chatFilesRoot,
     );
   }
 
@@ -346,10 +351,7 @@
   }
 </script>
 
-<div
-  class="flex gap-3 px-4 py-2 scroll-mt-2"
-  data-vertex-id={vertex?.id}
->
+<div class="flex gap-3 px-4 py-2 scroll-mt-2" data-vertex-id={vertex?.id}>
   <div class="flex-shrink-0 mt-1">
     <div class="w-8 h-8 rounded-full flex items-center justify-center">
       <Sparkles size={18} />
@@ -402,9 +404,11 @@
               (async () => {
                 if (vertex) {
                   await data.editMessage(vertex.id, text);
-                  clientState.currentSpaceState?.spaceTelemetry.chatBranchCreated({
-                    chat_id: data.threadId,
-                  });
+                  clientState.currentSpaceState?.spaceTelemetry.chatBranchCreated(
+                    {
+                      chat_id: data.threadId,
+                    },
+                  );
                 }
                 isEditing = false;
               })();
@@ -439,18 +443,24 @@
             </div>
           {/if}
           {#if shouldShowToolPreview}
-            <div class="relative flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80">
-              {#each lastToolUsagePairs as toolMessage, index}
-                <ChatAppToolUsageItem
-                  message={toolMessage}
-                  messages={lastToolUsagePairs}
-                  {index}
-                />
+            <div
+              class="relative flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80"
+            >
+              {#each lastToolUsagePairs as toolMessage, index (toolMessage.id)}
+                <div
+                  class:tool-preview-item-new={index === lastToolUsagePairs.length - 1}
+                >
+                  <ChatAppToolUsageItem
+                    message={toolMessage}
+                    messages={lastToolUsagePairs}
+                    {index}
+                  />
+                </div>
               {/each}
               {#if hasMoreToolUsage}
                 <div
                   class="pointer-events-none absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-surface-50-950 to-transparent opacity-95"
-                />
+                ></div>
               {/if}
             </div>
           {/if}
@@ -463,7 +473,7 @@
                   showGallery={true}
                   onGalleryOpen={(fileInfo) => {
                     clientState.currentSpaceState?.vertexViewer.openFileRef(
-                      att
+                      att,
                     );
                   }}
                 />
@@ -568,6 +578,21 @@
       font-size: 0.875rem !important;
       font-weight: 500;
       margin: 0.5rem 0;
+    }
+  }
+
+  .tool-preview-item-new {
+    animation: tool-preview-in 240ms ease-out;
+  }
+
+  @keyframes tool-preview-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>
