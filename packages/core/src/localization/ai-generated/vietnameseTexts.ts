@@ -400,7 +400,14 @@ export const vietnameseTexts: Partial<Texts> = {
     scrollToBottomAria: "Cuộn xuống cuối",
     chatFilesTitle: "Tệp trong chat",
     dropFilesAria: "Kéo thả tệp để đính kèm",
-    dropFilesTitle: "Kéo thả tệp để đính kèm"
+    dropFilesTitle: "Kéo thả tệp để đính kèm",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

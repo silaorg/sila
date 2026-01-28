@@ -1,11 +1,16 @@
 <script lang="ts">
   import ChatAppToolUsageItem from "../../comps/apps/chat/ChatAppToolUsageItem.svelte";
   import type { ToolUsageMessagePair } from "../../comps/apps/chat/chatTypes";
+  import { i18n } from "@sila/client";
 
   let { messages, index = 0 }: { messages: ToolUsageMessagePair[]; index?: number } =
     $props();
 
   let currentIndex = $state(index);
+
+  $effect(() => {
+    currentIndex = index;
+  });
 
   const current = $derived.by(() => messages[currentIndex]);
   const hasPrev = $derived(currentIndex > 0);
@@ -44,9 +49,13 @@
         <ChatAppToolUsageItem message={current} interactive={false} />
 
         <div class="space-y-3">
-          <div class="text-xs uppercase tracking-wide opacity-60">Arguments</div>
+          <div class="text-xs uppercase tracking-wide opacity-60">
+            {i18n.texts.chat.toolUsageArgumentsLabel}
+          </div>
           {#if argsEntries.length === 0}
-            <div class="text-sm opacity-60">No arguments</div>
+            <div class="text-sm opacity-60">
+              {i18n.texts.chat.toolUsageNoArguments}
+            </div>
           {:else}
             <div class="text-sm space-y-1">
               {#each argsEntries as [key, value]}
@@ -64,11 +73,17 @@
         </div>
 
         <div class="space-y-3">
-          <div class="text-xs uppercase tracking-wide opacity-60">Result</div>
+          <div class="text-xs uppercase tracking-wide opacity-60">
+            {i18n.texts.chat.toolUsageResultLabel}
+          </div>
           {#if current.toolPair.result === null}
-            <div class="text-sm opacity-60">In progress</div>
+            <div class="text-sm opacity-60">
+              {i18n.texts.chat.toolUsageInProgress}
+            </div>
           {:else if !resultString}
-            <div class="text-sm opacity-60">No result</div>
+            <div class="text-sm opacity-60">
+              {i18n.texts.chat.toolUsageNoResult}
+            </div>
           {:else}
             <pre class="text-xs whitespace-pre-wrap rounded-md border border-surface-100-900 p-3">
 {resultString}
@@ -85,23 +100,25 @@
           type="button"
           onclick={prev}
           disabled={!hasPrev}
-      >
-        Prev
-      </button>
-      <div class="text-xs opacity-60">
-        {currentIndex + 1} / {messages.length}
-      </div>
+        >
+          {i18n.texts.actions.back}
+        </button>
+        <div class="text-xs opacity-60">
+          {currentIndex + 1} / {messages.length}
+        </div>
         <button
           class="btn btn-sm preset-tonal"
           type="button"
           onclick={next}
           disabled={!hasNext}
         >
-          Next
+          {i18n.texts.actions.next}
         </button>
       </div>
     </div>
   {:else}
-    <div class="text-sm opacity-60">No tool usage selected.</div>
+    <div class="text-sm opacity-60">
+      {i18n.texts.chat.toolUsageNoSelection}
+    </div>
   {/if}
 </div>

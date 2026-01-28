@@ -11,6 +11,7 @@
   import type { ToolUsageMessagePair } from "./chatTypes";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { swinsLayout } from "@sila/client/state/swinsLayout";
+  import { i18n } from "@sila/client";
 
   const {
     message,
@@ -74,7 +75,7 @@
     clientState.layout.swins.open(
       swinsLayout.toolUsageDetails.key,
       { messages, index },
-      "Tool usage"
+      i18n.texts.chat.toolUsageTitle
     );
   }
 </script>

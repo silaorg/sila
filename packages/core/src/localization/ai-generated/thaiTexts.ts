@@ -400,7 +400,14 @@ export const thaiTexts: Partial<Texts> = {
     scrollToBottomAria: "เลื่อนไปด้านล่าง",
     chatFilesTitle: "ไฟล์แชต",
     dropFilesAria: "ลากไฟล์มาวางเพื่อแนบ",
-    dropFilesTitle: "ลากไฟล์มาวางเพื่อแนบ"
+    dropFilesTitle: "ลากไฟล์มาวางเพื่อแนบ",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

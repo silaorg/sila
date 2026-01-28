@@ -396,6 +396,13 @@ export interface Texts {
     chatFilesTitle: string;
     dropFilesAria: string;
     dropFilesTitle: string;
+    toolUsageTitle: string;
+    toolUsageArgumentsLabel: string;
+    toolUsageResultLabel: string;
+    toolUsageNoArguments: string;
+    toolUsageInProgress: string;
+    toolUsageNoResult: string;
+    toolUsageNoSelection: string;
   };
 
   chatControls: {

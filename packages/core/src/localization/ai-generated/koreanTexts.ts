@@ -400,7 +400,14 @@ export const koreanTexts: Partial<Texts> = {
     scrollToBottomAria: "맨 아래로 스크롤",
     chatFilesTitle: "채팅 파일",
     dropFilesAria: "파일을 드롭하여 첨부",
-    dropFilesTitle: "파일을 드롭하여 첨부"
+    dropFilesTitle: "파일을 드롭하여 첨부",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

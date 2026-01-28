@@ -400,7 +400,14 @@ export const indonesianTexts: Partial<Texts> = {
     scrollToBottomAria: "Gulir ke bawah",
     chatFilesTitle: "File chat",
     dropFilesAria: "Tarik file ke sini untuk melampirkan",
-    dropFilesTitle: "Tarik file ke sini untuk melampirkan"
+    dropFilesTitle: "Tarik file ke sini untuk melampirkan",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

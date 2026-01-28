@@ -400,7 +400,14 @@ export const spanishTexts: Partial<Texts> = {
     scrollToBottomAria: "Desplazar al final",
     chatFilesTitle: "Archivos del chat",
     dropFilesAria: "Arrastra archivos para adjuntar",
-    dropFilesTitle: "Arrastra archivos para adjuntar"
+    dropFilesTitle: "Arrastra archivos para adjuntar",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

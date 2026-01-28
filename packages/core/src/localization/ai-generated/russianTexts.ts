@@ -424,7 +424,14 @@ export const russianTexts: Partial<Texts> = {
     scrollToBottomAria: "Прокрутить вниз",
     chatFilesTitle: "Файлы чата",
     dropFilesAria: "Перетащите файлы для вложения",
-    dropFilesTitle: "Перетащите файлы для вложения"
+    dropFilesTitle: "Перетащите файлы для вложения",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

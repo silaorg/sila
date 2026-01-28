@@ -399,7 +399,14 @@ export const englishTexts: Texts = {
     scrollToBottomAria: "Scroll to bottom",
     chatFilesTitle: "Chat files",
     dropFilesAria: "Drop files to attach",
-    dropFilesTitle: "Drop files to attach"
+    dropFilesTitle: "Drop files to attach",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

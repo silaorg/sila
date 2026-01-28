@@ -400,7 +400,14 @@ export const arabicTexts: Partial<Texts> = {
     scrollToBottomAria: "التمرير إلى الأسفل",
     chatFilesTitle: "ملفات الدردشة",
     dropFilesAria: "أفلت الملفات لإرفاقها",
-    dropFilesTitle: "أفلت الملفات لإرفاقها"
+    dropFilesTitle: "أفلت الملفات لإرفاقها",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

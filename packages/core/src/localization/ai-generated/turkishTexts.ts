@@ -400,7 +400,14 @@ export const turkishTexts: Partial<Texts> = {
     scrollToBottomAria: "En alta kaydır",
     chatFilesTitle: "Sohbet dosyaları",
     dropFilesAria: "Eklemek için dosyaları buraya bırakın",
-    dropFilesTitle: "Eklemek için dosyaları buraya bırakın"
+    dropFilesTitle: "Eklemek için dosyaları buraya bırakın",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

@@ -400,7 +400,14 @@ export const hindiTexts: Partial<Texts> = {
     scrollToBottomAria: "नीचे तक स्क्रॉल करें",
     chatFilesTitle: "चैट फ़ाइलें",
     dropFilesAria: "संलग्न करने के लिए फ़ाइलें यहाँ छोड़ें",
-    dropFilesTitle: "संलग्न करने के लिए फ़ाइलें यहाँ छोड़ें"
+    dropFilesTitle: "संलग्न करने के लिए फ़ाइलें यहाँ छोड़ें",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

@@ -400,7 +400,14 @@ export const japaneseTexts: Partial<Texts> = {
     scrollToBottomAria: "一番下へスクロール",
     chatFilesTitle: "チャットファイル",
     dropFilesAria: "ファイルをドロップして添付",
-    dropFilesTitle: "ファイルをドロップして添付"
+    dropFilesTitle: "ファイルをドロップして添付",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

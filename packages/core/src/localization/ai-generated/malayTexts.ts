@@ -400,7 +400,14 @@ export const malayTexts: Partial<Texts> = {
     scrollToBottomAria: "Skrol ke bawah",
     chatFilesTitle: "Fail sembang",
     dropFilesAria: "Lepaskan fail untuk lampirkan",
-    dropFilesTitle: "Lepaskan fail untuk lampirkan"
+    dropFilesTitle: "Lepaskan fail untuk lampirkan",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {

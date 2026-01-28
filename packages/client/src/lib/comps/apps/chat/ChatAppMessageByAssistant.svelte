@@ -72,6 +72,9 @@
       ? toolUsagePairs.slice(toolUsagePairs.length - 5)
       : toolUsagePairs
   );
+  const hasMoreToolUsage = $derived(
+    toolUsagePairs.length > lastToolUsagePairs.length
+  );
 
   const hasAssistantReply = $derived.by(() => {
     const text = message?.text || "";
@@ -436,7 +439,7 @@
             </div>
           {/if}
           {#if shouldShowToolPreview}
-            <div class="flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80">
+            <div class="relative flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80">
               {#each lastToolUsagePairs as toolMessage, index}
                 <ChatAppToolUsageItem
                   message={toolMessage}
@@ -444,6 +447,11 @@
                   {index}
                 />
               {/each}
+              {#if hasMoreToolUsage}
+                <div
+                  class="pointer-events-none absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-surface-50-950 to-transparent opacity-95"
+                />
+              {/if}
             </div>
           {/if}
           <Markdown source={renderedText} options={chatMarkdownOptions} />

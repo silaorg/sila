@@ -33,6 +33,11 @@
           },
           {
             callId: "3",
+            name: "read",
+            arguments: { url: "https://example.com/rijani-eruption-report" },
+          },
+          {
+            callId: "4",
             name: "edit_document",
             arguments: {
               title: "Rijani eruption.md",
@@ -40,11 +45,39 @@
             },
           },
           {
-            callId: "4",
+            callId: "5",
             name: "generate_image",
             arguments: {
               prompt:
                 "Eruption of Rijani at dusk, ash plume towering over a coastal village, dramatic light, cinematic composition, long descriptive sentence that fades into the distance",
+            },
+          },
+          {
+            callId: "6",
+            name: "search",
+            arguments: { query: "Rijani ashfall health effects guidance" },
+          },
+          {
+            callId: "7",
+            name: "read",
+            arguments: { url: "https://example.com/volcano-alerts/rijani" },
+          },
+          {
+            callId: "8",
+            name: "summarize",
+            arguments: { title: "Rijani field notes", maxPoints: 5 },
+          },
+          {
+            callId: "9",
+            name: "write_document",
+            arguments: { title: "Rijani FAQ.md", outline: true },
+          },
+          {
+            callId: "10",
+            name: "generate_image",
+            arguments: {
+              prompt:
+                "Aerial view of volcanic caldera, wide-angle, misty atmosphere, subtle color palette, documentary style",
             },
           },
         ],

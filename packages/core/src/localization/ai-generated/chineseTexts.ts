@@ -400,7 +400,14 @@ export const chineseTexts: Partial<Texts> = {
     scrollToBottomAria: "滚动到底部",
     chatFilesTitle: "聊天文件",
     dropFilesAria: "拖放文件以附加",
-    dropFilesTitle: "拖放文件以附加"
+    dropFilesTitle: "拖放文件以附加",
+    toolUsageTitle: "Tool usage",
+    toolUsageArgumentsLabel: "Arguments",
+    toolUsageResultLabel: "Result",
+    toolUsageNoArguments: "No arguments",
+    toolUsageInProgress: "In progress",
+    toolUsageNoResult: "No result",
+    toolUsageNoSelection: "No tool usage selected."
   },
 
   chatControls: {
