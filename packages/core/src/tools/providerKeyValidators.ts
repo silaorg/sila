@@ -83,22 +83,16 @@ async function validateKey_anthropic(
 ): Promise<boolean> {
   try {
     const res = await fetch("https://api.anthropic.com/v1/models", {
-      method: "POST",
+      method: "GET",
       headers: {
         "x-api-key": key,
+        "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
       },
-      body: JSON.stringify({
-        "anthropic-dangerous-direct-browser-access": "true",
-      }),
-      signal
+      signal,
     });
 
-    if (res.status !== 401) {
-      return true;
-    }
-
-    return false;
+    return res.ok;
   } catch (_) {
     return false;
   }
