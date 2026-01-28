@@ -4,19 +4,12 @@ import type { Space } from "../../spaces/Space";
 import { ensureFileParent, inferTextMimeFromPath, validateTextMimeType } from "./fileUtils";
 import type { AgentTool } from "./AgentTool";
 
+import { parseFilePatches } from "./searchReplacePatchUtils";
+import type { SearchReplaceBlock } from "./searchReplacePatchUtils";
+
 interface SearchReplacePatchResult {
   status: "completed" | "failed";
   output: string;
-}
-
-interface SearchReplaceBlock {
-  search: string;
-  replace: string;
-}
-
-interface FilePatch {
-  path: string;
-  blocks: SearchReplaceBlock[];
 }
 
 export const searchReplacePatchInstruction = `Use the patch tool by sending one patch string that embeds file paths and SEARCH/REPLACE blocks. For each file: put the path on its own line, then:
@@ -100,35 +93,6 @@ export const toolSearchReplacePatch: AgentTool = {
   },
 };
 
-function stripCodeFence(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed.startsWith("```") || trimmed === "```") {
-    return trimmed;
-  }
-
-  const withoutFirstLine = trimmed.replace(/^```[^\n]*\n/, "");
-  const closingIndex = withoutFirstLine.lastIndexOf("\n```");
-  if (closingIndex !== -1) {
-    return withoutFirstLine.slice(0, closingIndex).trim();
-  }
-  return withoutFirstLine.trim();
-}
-
-function parseSearchReplaceBlocks(patch: string): SearchReplaceBlock[] {
-  const blocks: SearchReplaceBlock[] = [];
-  const regex = /<<<<<<< SEARCH\r?\n([\s\S]*?)\r?\n?=======\r?\n([\s\S]*?)\r?\n>>>>>>> REPLACE/g;
-
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(patch)) !== null) {
-    blocks.push({ search: match[1], replace: match[2] });
-  }
-
-  if (blocks.length === 0) {
-    throw new Error("No SEARCH/REPLACE blocks found in patch");
-  }
-
-  return blocks;
-}
 
 function normalizeUri(path: string): string {
   let uri = path;
@@ -246,30 +210,4 @@ async function handlePatch(
   return { changes: info.length, info };
 }
 
-function parseFilePatches(rawPatch: string): FilePatch[] {
-  const cleaned = stripCodeFence(rawPatch);
-  const fileBlockRegex =
-    /^([^\n`][^\n]*)\n\s*(?:```[^\n]*\n)?(<<<<<<< SEARCH[\s\S]*?>>>>>>> REPLACE)(?:\n```)?/gm;
-
-  const grouped = new Map<string, SearchReplaceBlock[]>();
-  let match: RegExpExecArray | null;
-
-  while ((match = fileBlockRegex.exec(cleaned)) !== null) {
-    const path = match[1].trim();
-    const blockText = match[2];
-
-    if (!path) {
-      continue;
-    }
-
-    const blocks = parseSearchReplaceBlocks(blockText);
-    const existing = grouped.get(path) ?? [];
-    grouped.set(path, [...existing, ...blocks]);
-  }
-
-  if (grouped.size === 0) {
-    throw new Error("No file paths found in patch");
-  }
-
-  return Array.from(grouped.entries()).map(([path, blocks]) => ({ path, blocks }));
-}
+type FilePatch = ReturnType<typeof parseFilePatches>[number];

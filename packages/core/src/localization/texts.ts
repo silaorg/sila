@@ -403,6 +403,7 @@ export interface Texts {
     toolUsageInProgress: string;
     toolUsageNoResult: string;
     toolUsageNoSelection: string;
+    toolNames: Record<string, string>;
   };
 
   chatControls: {

@@ -431,7 +431,16 @@ export const russianTexts: Partial<Texts> = {
     toolUsageNoArguments: "No arguments",
     toolUsageInProgress: "In progress",
     toolUsageNoResult: "No result",
-    toolUsageNoSelection: "No tool usage selected."
+    toolUsageNoSelection: "No tool usage selected.",
+    toolNames: {
+      apply_search_replace_patch: "Edit",
+      edit_document: "Edit",
+      write_document: "Write document",
+      ls: "List files",
+      search: "Search",
+      read: "Read",
+      generate_image: "Generate image"
+    }
   },
 
   chatControls: {
