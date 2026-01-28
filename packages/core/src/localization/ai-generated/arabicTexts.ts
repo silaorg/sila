@@ -308,6 +308,17 @@ export const arabicTexts: Partial<Texts> = {
     assetsLabel: "الأصول"
   },
 
+  chatSearch: {
+    openButtonLabel: "ابحث في المحادثات",
+    openButtonAria: "ابحث في المحادثات",
+    inputPlaceholder: "ابحث في المحادثات...",
+    closeAriaLabel: "إغلاق البحث",
+    indexingLabel: "جارٍ فهرسة المحادثات…",
+    recentTitle: "آخر 7 أيام",
+    noRecentConversations: "لا توجد محادثات حديثة.",
+    noResults: "لا توجد نتائج."
+  },
+
   renamingPopup: {
     newNameLabel: "اسم جديد",
     newNamePlaceholder: "أدخل اسمًا جديدًا"

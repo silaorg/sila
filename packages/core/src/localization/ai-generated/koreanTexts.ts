@@ -308,6 +308,17 @@ export const koreanTexts: Partial<Texts> = {
     assetsLabel: "자산"
   },
 
+  chatSearch: {
+    openButtonLabel: "채팅 검색",
+    openButtonAria: "채팅 검색",
+    inputPlaceholder: "채팅 검색...",
+    closeAriaLabel: "검색 닫기",
+    indexingLabel: "채팅을 인덱싱하는 중…",
+    recentTitle: "지난 7일",
+    noRecentConversations: "최근 대화가 없습니다.",
+    noResults: "결과가 없습니다."
+  },
+
   renamingPopup: {
     newNameLabel: "새 이름",
     newNamePlaceholder: "새 이름을 입력"

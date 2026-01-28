@@ -308,6 +308,17 @@ export const japaneseTexts: Partial<Texts> = {
     assetsLabel: "アセット"
   },
 
+  chatSearch: {
+    openButtonLabel: "チャットを検索",
+    openButtonAria: "チャットを検索",
+    inputPlaceholder: "チャットを検索...",
+    closeAriaLabel: "検索を閉じる",
+    indexingLabel: "チャットをインデックス中…",
+    recentTitle: "過去7日間",
+    noRecentConversations: "最近の会話はありません。",
+    noResults: "結果はありません。"
+  },
+
   renamingPopup: {
     newNameLabel: "新しい名前",
     newNamePlaceholder: "新しい名前を入力"

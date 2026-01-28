@@ -308,6 +308,17 @@ export const hindiTexts: Partial<Texts> = {
     assetsLabel: "एसेट्स"
   },
 
+  chatSearch: {
+    openButtonLabel: "चैट खोजें",
+    openButtonAria: "चैट खोजें",
+    inputPlaceholder: "चैट खोजें...",
+    closeAriaLabel: "खोज बंद करें",
+    indexingLabel: "चैट इंडेक्स हो रहे हैं…",
+    recentTitle: "पिछले 7 दिन",
+    noRecentConversations: "कोई हाल की बातचीत नहीं।",
+    noResults: "कोई परिणाम नहीं।"
+  },
+
   renamingPopup: {
     newNameLabel: "नया नाम",
     newNamePlaceholder: "नया नाम दर्ज करें"

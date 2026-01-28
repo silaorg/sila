@@ -308,6 +308,17 @@ export const thaiTexts: Partial<Texts> = {
     assetsLabel: "ทรัพย์สิน"
   },
 
+  chatSearch: {
+    openButtonLabel: "ค้นหาการสนทนา",
+    openButtonAria: "ค้นหาการสนทนา",
+    inputPlaceholder: "ค้นหาการสนทนา...",
+    closeAriaLabel: "ปิดการค้นหา",
+    indexingLabel: "กำลังจัดทำดัชนีการสนทนา…",
+    recentTitle: "7 วันที่ผ่านมา",
+    noRecentConversations: "ไม่มีการสนทนาล่าสุด",
+    noResults: "ไม่พบผลลัพธ์"
+  },
+
   renamingPopup: {
     newNameLabel: "ชื่อใหม่",
     newNamePlaceholder: "กรอกชื่อใหม่"

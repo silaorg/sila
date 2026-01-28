@@ -307,6 +307,17 @@ export const englishTexts: Texts = {
     assetsLabel: "Assets"
   },
 
+  chatSearch: {
+    openButtonLabel: "Search chats",
+    openButtonAria: "Search chats",
+    inputPlaceholder: "Search chats...",
+    closeAriaLabel: "Close search",
+    indexingLabel: "Indexing chats…",
+    recentTitle: "Previous 7 days",
+    noRecentConversations: "No recent conversations.",
+    noResults: "No results."
+  },
+
   renamingPopup: {
     newNameLabel: "New name",
     newNamePlaceholder: "Enter new name"
