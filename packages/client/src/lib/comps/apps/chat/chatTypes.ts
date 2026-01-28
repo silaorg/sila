@@ -27,6 +27,7 @@ export type ToolPair = {
 export type ToolUsageMessagePair = {
   id: string;
   role: string;
+  vertex: Vertex;
   toolPair: ToolPair;
 };
 
@@ -68,6 +69,7 @@ export function getToolUsagePairs(vertices: Vertex[]): ToolUsageMessagePair[] {
       return {
         id: request.callId,
         role: "tool",
+        vertex,
         toolPair: {
           name: request.name,
           request,

@@ -437,8 +437,12 @@
           {/if}
           {#if shouldShowToolPreview}
             <div class="flex flex-col gap-2 mt-2 mb-2 text-sm opacity-80">
-              {#each lastToolUsagePairs as toolMessage}
-                <ChatAppToolUsageItem message={toolMessage} />
+              {#each lastToolUsagePairs as toolMessage, index}
+                <ChatAppToolUsageItem
+                  message={toolMessage}
+                  messages={lastToolUsagePairs}
+                  {index}
+                />
               {/each}
             </div>
           {/if}

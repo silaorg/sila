@@ -9,6 +9,6 @@
   const messages = $derived.by(() => getToolUsagePairs(vertices));
 </script>
 
-{#each messages as message}
-  <ChatAppToolUsageItem {message} />
+{#each messages as message, index}
+  <ChatAppToolUsageItem {message} {messages} {index} />
 {/each}

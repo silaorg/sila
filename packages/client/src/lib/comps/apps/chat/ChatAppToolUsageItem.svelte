@@ -9,8 +9,22 @@
   } from "lucide-svelte";
   import Spinner from "../../ui/Spinner.svelte";
   import type { ToolUsageMessagePair } from "./chatTypes";
+  import { useClientState } from "@sila/client/state/clientStateContext";
+  import { swinsLayout } from "@sila/client/state/swinsLayout";
 
-  const { message }: { message: ToolUsageMessagePair } = $props();
+  const {
+    message,
+    messages,
+    index,
+    interactive = true,
+  }: {
+    message: ToolUsageMessagePair;
+    messages?: ToolUsageMessagePair[];
+    index?: number;
+    interactive?: boolean;
+  } = $props();
+
+  const clientState = useClientState();
 
   const toolName = $derived(message.toolPair.request.name);
   const displayName = $derived.by(() => {
@@ -50,9 +64,29 @@
     }
     return Wrench;
   });
+
+  const isClickable = $derived(
+    interactive && Array.isArray(messages) && typeof index === "number"
+  );
+
+  function openDetails() {
+    if (!isClickable) return;
+    clientState.layout.swins.open(
+      swinsLayout.toolUsageDetails.key,
+      { messages, index },
+      "Tool usage"
+    );
+  }
 </script>
 
-<div class="border border-surface-100-900 p-2 rounded-md">
+<div
+  class="border border-surface-100-900 p-2 rounded-md"
+  class:cursor-pointer={isClickable}
+  class:hover:border-surface-200-800={isClickable}
+  role={isClickable ? "button" : undefined}
+  tabindex={isClickable ? 0 : undefined}
+  onclick={openDetails}
+>
   <span class="inline-flex items-center gap-2 min-w-0">
     {#if inProgress}
       <Spinner />
