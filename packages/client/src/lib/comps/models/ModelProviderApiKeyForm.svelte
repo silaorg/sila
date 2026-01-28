@@ -15,6 +15,7 @@
     onValidKey,
     onBlur = () => {},
     onClose = () => {},
+    onCheckingKeyChange = () => {},
     autofocus = true,
     showCloseButton = true,
   } = $props<{
@@ -22,6 +23,7 @@
     onValidKey: (key: string) => void;
     onBlur?: (key: string) => void;
     onClose?: () => void;
+    onCheckingKeyChange?: (checking: boolean) => void;
     autofocus?: boolean;
     showCloseButton?: boolean;
   }>();
@@ -36,6 +38,10 @@
   let showWarning = $derived(
     !checkingKey && !apiKeyIsValid && apiKey.length > 6,
   );
+
+  $effect(() => {
+    onCheckingKeyChange(checkingKey);
+  });
 
   function saveCloudProviderWithApiKey(apiKey: string) {
     if (!clientState.currentSpace) return false;

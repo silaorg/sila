@@ -13,7 +13,7 @@ import Spaces from "../swins/routes/Spaces.svelte";
 import Apps from "../swins/routes/Apps.svelte";
 import AppConfigEditing from "@sila/client/comps/configs/AppConfigEditing.svelte";
 import NewThreadSwins from "../swins/routes/NewThreadSwins.svelte";
-import HowToSetupModelProider from "@sila/client/comps/models/HowToSetupModelProider.svelte";
+import HowToSetupModelProvider from "@sila/client/comps/models/HowToSetupModelProvider.svelte";
 import SelectModelPopup from "@sila/client/comps/popups/SelectModelPopup.svelte";
 import CustomProviderSetup from "@sila/client/comps/models/CustomProviderSetup.svelte";
 import ModelProviders from "@sila/client/comps/models/ModelProviders.svelte";
@@ -98,7 +98,7 @@ export const swinsLayout = {
   },
   howToSetupModelProvider: {
     key: 'how-to-setup-model-provider',
-    target: HowToSetupModelProider,
+    target: HowToSetupModelProvider,
   },
   selectModel: {
     key: 'select-model',

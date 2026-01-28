@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { XCircle } from "lucide-svelte";
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
   import ModelProviderApiKeyForm from "./ModelProviderApiKeyForm.svelte";
@@ -9,6 +8,7 @@
   const clientState = useClientState();
 
   let { provider }: { provider: ModelProvider } = $props();
+  let isValidatingKey = $state(false);
 
   $effect(() => {
     console.log("provider: ", provider);
@@ -56,6 +56,9 @@
       id={provider.id}
       autofocus={false}
       showCloseButton={false}
+      onCheckingKeyChange={(checking) => {
+        isValidatingKey = checking;
+      }}
       onValidKey={() => {
         clientState.layout.swins.pop();
       }}
@@ -63,10 +66,13 @@
   {/if}
   <button
     class="btn preset-outlined-surface-500 mt-4"
+    class:opacity-50={isValidatingKey}
     onclick={(e) => {
       e.preventDefault();
       e.stopPropagation();
       clientState.layout.swins.pop();
-    }}>{i18n.texts.modelProviderSetup.okButton}</button
+    }}
+    disabled={isValidatingKey}
+    >{i18n.texts.modelProviderSetup.okButton}</button
   >
 </div>
