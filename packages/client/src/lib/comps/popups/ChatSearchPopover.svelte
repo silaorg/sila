@@ -3,6 +3,7 @@
   import { MessageCircle, Search, X } from "lucide-svelte";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { closeStack } from "@sila/client/utils/closeStack";
+  import { i18n } from "@sila/client";
   import type { ChatSearchController } from "@sila/client/utils/chatSearchController";
   import {
     buildChatSearchEntries,
@@ -253,7 +254,7 @@
   type="button"
   class="w-full flex gap-2 flex-grow py-1 px-1 truncate rounded hover:preset-tonal"
   data-role="open-search"
-  aria-label="Search chats"
+  aria-label={i18n.texts.chatSearch.openButtonAria}
   onclick={togglePopover}
 >
   <span class="w-6 h-6 flex-shrink-0">
@@ -261,7 +262,7 @@
       <Search size={18} />
     </span>
   </span>
-  <span class="flex-grow text-left">Search chats</span>
+  <span class="flex-grow text-left">{i18n.texts.chatSearch.openButtonLabel}</span>
 </button>
 
 <div
@@ -282,7 +283,7 @@
   <button
     type="button"
     class="absolute left-0 top-0 w-full h-full cursor-auto bg-surface-50/80 dark:bg-surface-950/80 transition-opacity"
-    aria-label="Close search"
+    aria-label={i18n.texts.chatSearch.closeAriaLabel}
     onclick={closePopover}
   ></button>
   <div class="relative card selectable-text rounded-lg bg-surface-50-950 border-1 border-surface-200-800 shadow-2xl w-[520px] flex flex-col overflow-hidden max-h-[calc(100vh-10rem)]">
@@ -291,7 +292,7 @@
         <input
           class="input w-full pl-10 pr-3 py-2 text-base border-0 rounded-xl outline-none ring-0 ring-offset-0 shadow-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:shadow-none focus-visible:shadow-none"
           type="text"
-          placeholder="Search chats..."
+          placeholder={i18n.texts.chatSearch.inputPlaceholder}
           bind:value={query}
           bind:this={inputElement}
         />
@@ -303,7 +304,7 @@
         type="button"
         class="btn-icon hover:preset-tonal"
         onclick={closePopover}
-        aria-label="Close search"
+        aria-label={i18n.texts.chatSearch.closeAriaLabel}
       >
         <X size={18} />
       </button>
@@ -318,14 +319,14 @@
       {/if}
 
       {#if isIndexing}
-        <p class="text-sm text-surface-500">Indexing chats…</p>
+        <p class="text-sm text-surface-500">{i18n.texts.chatSearch.indexingLabel}</p>
       {/if}
 
       {#if !hasQuery}
         <div class="space-y-3">
-          <p class="text-xs uppercase tracking-wide text-surface-500">Previous 7 days</p>
+          <p class="text-xs uppercase tracking-wide text-surface-500">{i18n.texts.chatSearch.recentTitle}</p>
           {#if recentThreads.length === 0}
-            <p class="text-sm text-surface-500">No recent conversations.</p>
+            <p class="text-sm text-surface-500">{i18n.texts.chatSearch.noRecentConversations}</p>
           {:else}
             <ul class="space-y-1" role="listbox">
               {#each recentThreads as entry, index (entry.threadId)}
@@ -349,7 +350,7 @@
           {/if}
         </div>
       {:else if results.length === 0}
-        <p class="text-sm text-surface-500">No results.</p>
+        <p class="text-sm text-surface-500">{i18n.texts.chatSearch.noResults}</p>
       {:else}
         <ul class="space-y-1" role="listbox">
           {#each results as result, index (result.threadId)}

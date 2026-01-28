@@ -308,6 +308,17 @@ export const spanishTexts: Partial<Texts> = {
     assetsLabel: "Recursos"
   },
 
+  chatSearch: {
+    openButtonLabel: "Buscar chats",
+    openButtonAria: "Buscar chats",
+    inputPlaceholder: "Buscar chats...",
+    closeAriaLabel: "Cerrar búsqueda",
+    indexingLabel: "Indexando chats…",
+    recentTitle: "Últimos 7 días",
+    noRecentConversations: "No hay conversaciones recientes.",
+    noResults: "Sin resultados."
+  },
+
   renamingPopup: {
     newNameLabel: "Nuevo nombre",
     newNamePlaceholder: "Introduce un nuevo nombre"

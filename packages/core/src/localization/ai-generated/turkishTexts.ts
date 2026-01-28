@@ -308,6 +308,17 @@ export const turkishTexts: Partial<Texts> = {
     assetsLabel: "Varlıklar"
   },
 
+  chatSearch: {
+    openButtonLabel: "Sohbetleri ara",
+    openButtonAria: "Sohbetleri ara",
+    inputPlaceholder: "Sohbetleri ara...",
+    closeAriaLabel: "Aramayı kapat",
+    indexingLabel: "Sohbetler dizine ekleniyor…",
+    recentTitle: "Son 7 gün",
+    noRecentConversations: "Yakın zamanda konuşma yok.",
+    noResults: "Sonuç yok."
+  },
+
   renamingPopup: {
     newNameLabel: "Yeni ad",
     newNamePlaceholder: "Yeni adı gir"

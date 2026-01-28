@@ -308,6 +308,17 @@ export const chineseTexts: Partial<Texts> = {
     assetsLabel: "资源"
   },
 
+  chatSearch: {
+    openButtonLabel: "搜索聊天",
+    openButtonAria: "搜索聊天",
+    inputPlaceholder: "搜索聊天...",
+    closeAriaLabel: "关闭搜索",
+    indexingLabel: "正在索引聊天…",
+    recentTitle: "过去 7 天",
+    noRecentConversations: "没有最近的对话。",
+    noResults: "没有结果。"
+  },
+
   renamingPopup: {
     newNameLabel: "新名称",
     newNamePlaceholder: "输入新名称"

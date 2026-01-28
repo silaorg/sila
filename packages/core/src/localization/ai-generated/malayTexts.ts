@@ -308,6 +308,17 @@ export const malayTexts: Partial<Texts> = {
     assetsLabel: "Aset"
   },
 
+  chatSearch: {
+    openButtonLabel: "Cari sembang",
+    openButtonAria: "Cari sembang",
+    inputPlaceholder: "Cari sembang...",
+    closeAriaLabel: "Tutup carian",
+    indexingLabel: "Mengindeks sembang…",
+    recentTitle: "7 hari lepas",
+    noRecentConversations: "Tiada perbualan terkini.",
+    noResults: "Tiada hasil."
+  },
+
   renamingPopup: {
     newNameLabel: "Nama baharu",
     newNamePlaceholder: "Masukkan nama baharu"

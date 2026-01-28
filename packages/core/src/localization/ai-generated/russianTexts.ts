@@ -332,6 +332,17 @@ export const russianTexts: Partial<Texts> = {
     assetsLabel: "Ресурсы"
   },
 
+  chatSearch: {
+    openButtonLabel: "Поиск чатов",
+    openButtonAria: "Поиск чатов",
+    inputPlaceholder: "Поиск чатов...",
+    closeAriaLabel: "Закрыть поиск",
+    indexingLabel: "Индексируем чаты…",
+    recentTitle: "Последние 7 дней",
+    noRecentConversations: "Недавних разговоров нет.",
+    noResults: "Нет результатов."
+  },
+
   renamingPopup: {
     newNameLabel: "Новое имя",
     newNamePlaceholder: "Введите новое имя"

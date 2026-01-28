@@ -303,6 +303,17 @@ export interface Texts {
     assetsLabel: string;
   };
 
+  chatSearch: {
+    openButtonLabel: string;
+    openButtonAria: string;
+    inputPlaceholder: string;
+    closeAriaLabel: string;
+    indexingLabel: string;
+    recentTitle: string;
+    noRecentConversations: string;
+    noResults: string;
+  };
+
   renamingPopup: {
     newNameLabel: string;
     newNamePlaceholder: string;

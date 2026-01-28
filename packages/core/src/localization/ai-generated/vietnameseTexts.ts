@@ -308,6 +308,17 @@ export const vietnameseTexts: Partial<Texts> = {
     assetsLabel: "Tài nguyên"
   },
 
+  chatSearch: {
+    openButtonLabel: "Tìm kiếm cuộc trò chuyện",
+    openButtonAria: "Tìm kiếm cuộc trò chuyện",
+    inputPlaceholder: "Tìm kiếm cuộc trò chuyện...",
+    closeAriaLabel: "Đóng tìm kiếm",
+    indexingLabel: "Đang lập chỉ mục cuộc trò chuyện…",
+    recentTitle: "7 ngày trước",
+    noRecentConversations: "Không có cuộc trò chuyện gần đây.",
+    noResults: "Không có kết quả."
+  },
+
   renamingPopup: {
     newNameLabel: "Tên mới",
     newNamePlaceholder: "Nhập tên mới"

@@ -308,6 +308,17 @@ export const indonesianTexts: Partial<Texts> = {
     assetsLabel: "Aset"
   },
 
+  chatSearch: {
+    openButtonLabel: "Cari chat",
+    openButtonAria: "Cari chat",
+    inputPlaceholder: "Cari chat...",
+    closeAriaLabel: "Tutup pencarian",
+    indexingLabel: "Mengindeks chat…",
+    recentTitle: "7 hari terakhir",
+    noRecentConversations: "Tidak ada percakapan terbaru.",
+    noResults: "Tidak ada hasil."
+  },
+
   renamingPopup: {
     newNameLabel: "Nama baru",
     newNamePlaceholder: "Masukkan nama baru"
