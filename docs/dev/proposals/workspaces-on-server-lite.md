@@ -34,12 +34,13 @@ Auth flows through a platform service that hosts many workspaces.
 - One server can host many workspaces.
 - User must sign in on the platform to access a workspace.
 - Platform issues a JWT for workspace read/write.
+- JWT uses platform database data (user, space id).
 - Client prompts sign-in if no JWT is available.
 
 **Endpoints**
 
 - `api.silain.com/auth` issues JWTs for workspace access.
-- `api.silain.com/w/{workspace-id}/` is the Socket.IO entry point.
+- `api.silain.com/space/{workspace-id}/` is the Socket.IO entry point.
 
 ### Ops Validation Layer
 
@@ -88,6 +89,12 @@ Keep the existing format. Store it on server disk.
 4. Server validates each batch, then writes to `ops/`.
 5. Server emits accepted ops to other clients.
 6. File uploads use a separate HTTP endpoint or Socket.IO binary messages.
+
+## Client Behavior Notes
+
+- Client keeps local ops when connecting to a server workspace.
+- Client stores ops locally (IndexedDB-like persistence).
+- Client does not use backend logic for server workspaces (no AI agents).
 
 ## Open Questions
 
