@@ -24,6 +24,20 @@ curl -H "Authorization: Bearer demo-token" http://localhost:6001/spaces/space-1
 curl -X POST -H "Authorization: Bearer demo-token" http://localhost:6001/spaces/space-1/connect
 ```
 
+## Dev-only endpoints
+
+Use these to seed users and spaces for local testing.
+
+```sh
+curl -X POST http://localhost:6001/dev-only/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"dev@example.com"}'
+
+curl -X POST http://localhost:6001/dev-only/spaces \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Dev Space","ownerId":"<user-id-from-previous-call>"}'
+```
+
 ## Socket.IO
 
 Connect to namespace `/spaces/{spaceId}` with `auth.token`.

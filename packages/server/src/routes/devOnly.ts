@@ -4,7 +4,7 @@ import { uuid } from "@sila/core";
 import type { AppVariables } from "../types";
 import {
   addSpaceMember,
-  createSpace,
+  createServerSpace,
   createUser,
   getUserById,
   listSpaceMembers,
@@ -69,7 +69,10 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
     const owner = getUserById(ownerId);
     if (!owner) return c.json({ ok: false, error: "owner not found" }, 404);
 
-    const space = createSpace({ id: uuid(), name, createdAt: new Date().toISOString() });
+    const space = await createServerSpace({
+      name,
+      createdAt: new Date().toISOString(),
+    });
     addSpaceMember(space.id, ownerId, "owner");
     return c.json({ ok: true, space });
   });

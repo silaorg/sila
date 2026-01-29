@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { FileSystemPersistenceLayer, Space as CoreSpace, SpaceManager, uuid } from "@sila/core";
+import { NodeFileSystem } from "./utils/nodeFileSystem";
 
 export type User = {
   id: string;
@@ -21,6 +23,9 @@ export type SpaceMember = {
 };
 
 let db: Database.Database | null = null;
+let dataDir: string | null = null;
+const spaceManager = new SpaceManager();
+const serverFs = new NodeFileSystem();
 
 function ensureDbPath(dbPath: string): void {
   const dir = path.dirname(dbPath);
@@ -30,6 +35,7 @@ function ensureDbPath(dbPath: string): void {
 export function initDb(dbPath: string): Database.Database {
   if (db) return db;
   ensureDbPath(dbPath);
+  dataDir = path.dirname(dbPath);
   db = new Database(dbPath);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
@@ -94,6 +100,17 @@ function getDb(): Database.Database {
   return db;
 }
 
+function getDataDir(): string {
+  if (!dataDir) {
+    throw new Error("Database not initialized");
+  }
+  return dataDir;
+}
+
+function getSpacePath(spaceId: string): string {
+  return path.join(getDataDir(), "spaces", spaceId);
+}
+
 export function getUserById(userId: string): User | null {
   const row = getDb()
     .prepare("SELECT id, email, created_at as createdAt FROM users WHERE id = ?")
@@ -125,6 +142,23 @@ export function createSpace(space: Space): Space {
     .prepare("INSERT INTO spaces (id, name, created_at) VALUES (?, ?, ?)")
     .run(space.id, space.name, space.createdAt);
   return space;
+}
+
+export async function createServerSpace(input: {
+  name: string;
+  createdAt: string;
+}): Promise<Space> {
+  const space = CoreSpace.newSpace(uuid());
+  space.name = input.name;
+  const created = createSpace({
+    id: space.getId(),
+    name: input.name,
+    createdAt: input.createdAt,
+  });
+  const spacePath = getSpacePath(created.id);
+  const persistence = new FileSystemPersistenceLayer(spacePath, created.id, serverFs);
+  await spaceManager.addNewSpace(space, [persistence], created.id);
+  return created;
 }
 
 export function addSpaceMember(
