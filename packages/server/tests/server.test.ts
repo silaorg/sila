@@ -83,6 +83,58 @@ describe("server integration", () => {
     expect(payload.spaces.some((space) => space.id === spaceId)).toBe(true);
   });
 
+  it("rejects spaces without auth", async () => {
+    const response = await fetch(`${baseUrl}/spaces`);
+    const payload = (await response.json()) as { ok: boolean; error: string };
+
+    expect(response.status).toBe(401);
+    expect(payload.ok).toBe(false);
+  });
+
+  it("creates a space", async () => {
+    const createResponse = await fetch(`${baseUrl}/spaces`, {
+      method: "POST",
+      headers: {
+        ...jsonHeaders,
+        authorization: `Bearer ${user.id}`,
+      },
+      body: JSON.stringify({ name: "Another Space" }),
+    });
+    const createPayload = (await createResponse.json()) as {
+      ok: boolean;
+      space?: { id: string };
+    };
+
+    expect(createResponse.status).toBe(200);
+    expect(createPayload.ok).toBe(true);
+    expect(createPayload.space?.id).toBeTruthy();
+  });
+
+  it("returns 400 on invalid space create payload", async () => {
+    const response = await fetch(`${baseUrl}/spaces`, {
+      method: "POST",
+      headers: {
+        ...jsonHeaders,
+        authorization: `Bearer ${user.id}`,
+      },
+      body: JSON.stringify({}),
+    });
+    const payload = (await response.json()) as { ok: boolean; error: string };
+
+    expect(response.status).toBe(400);
+    expect(payload.ok).toBe(false);
+  });
+
+  it("returns 404 for unknown space", async () => {
+    const response = await fetch(`${baseUrl}/spaces/unknown-space`, {
+      headers: { authorization: `Bearer ${user.id}` },
+    });
+    const payload = (await response.json()) as { ok: boolean; error: string };
+
+    expect(response.status).toBe(404);
+    expect(payload.ok).toBe(false);
+  });
+
   it("connects to spaces namespace over socket.io", async () => {
     const socket = createClient(`${baseUrl}/spaces/${spaceId}`, {
       path: "/socket.io",
@@ -162,6 +214,27 @@ describe("server integration", () => {
 
     const reconstructed = Space.existingSpaceFromOps(spaceOps ?? []);
     expect(reconstructed.getId()).toBe(spaceId);
+
+    socket.close();
+  });
+
+  it("rejects socket connections without auth", async () => {
+    const socket = createClient(`${baseUrl}/spaces/${spaceId}`, {
+      path: "/socket.io",
+    });
+
+    const error = await new Promise<Error>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("connect_error timeout"));
+      }, 5000);
+
+      socket.once("connect_error", (err) => {
+        clearTimeout(timeout);
+        resolve(err as Error);
+      });
+    });
+
+    expect(error).toBeTruthy();
 
     socket.close();
   });
