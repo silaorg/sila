@@ -117,6 +117,8 @@
         runAction("workspaceSearch");
       } else if (actionId === "toggle-sidebar") {
         runAction("toggleSidebar");
+      } else if (actionId === "open-settings") {
+        clientState.layout.openSettings();
       }
     });
 
