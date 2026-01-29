@@ -1,20 +1,12 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { Server } from "socket.io";
-import jwt from "jsonwebtoken";
-import { uuid } from "@sila/core";
-import {
-  addSpaceMember,
-  createSpace,
-  createUser,
-  getSpacesForUserId,
-  getUserById,
-  initDb,
-  listUsers,
-  listSpaces,
-  listSpaceMembers,
-  type User,
-} from "./db";
+import { getUserById, initDb } from "./db";
+import { createAuthMiddleware } from "./middleware/auth";
+import { createDevOnlyRouter } from "./routes/devOnly";
+import health from "./routes/health";
+import spaces from "./routes/spaces";
+import type { AppVariables } from "./types";
 
 const port = Number(process.env.PORT) || 6001;
 
@@ -22,149 +14,12 @@ const dbPath = process.env.DB_PATH || "data/server.sqlite";
 initDb(dbPath);
 const jwtSecret = process.env.JWT_SECRET || "dev-secret-change-me";
 
-function extractBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader) return null;
-  const match = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (!match) return null;
-  const token = match[1]?.trim();
-  if (!token) return null;
-  return token;
-}
-
-function issueUserToken(user: User): string {
-  return jwt.sign({ sub: user.id, email: user.email }, jwtSecret, {
-    expiresIn: "7d",
-  });
-}
-
-type AppVariables = {
-  user: User | null;
-};
-
 const app = new Hono<{ Variables: AppVariables }>();
+app.use("*", createAuthMiddleware());
 
-app.use("*", async (c, next) => {
-  const token = extractBearerToken(c.req.header("authorization"));
-  const user = token ? getUserById(token) : null;
-  c.set("user", user ?? null);
-  await next();
-});
-
-app.get("/health", (c) => {
-  return c.json({ ok: true, id: uuid(), at: new Date().toISOString() });
-});
-
-app.get("/spaces", (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
-  return c.json({ ok: true, spaces: getSpacesForUserId(user.id) });
-});
-
-app.get("/spaces/:spaceId", (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
-  const spaceId = c.req.param("spaceId");
-  const space = getSpacesForUserId(user.id).find((s) => s.id === spaceId);
-  if (!space) return c.json({ ok: false, error: "not found" }, 404);
-  return c.json({ ok: true, space });
-});
-
-app.post("/spaces/:spaceId/connect", (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
-  const spaceId = c.req.param("spaceId");
-  const space = getSpacesForUserId(user.id).find((s) => s.id === spaceId);
-  if (!space) return c.json({ ok: false, error: "not found" }, 404);
-  return c.json({
-    ok: true,
-    connect: {
-      namespace: `/spaces/${spaceId}`,
-      path: "/socket.io",
-    },
-  });
-});
-
-app.get("/dev-only/users", (c) => {
-  return c.json({ ok: true, users: listUsers() });
-});
-
-app.post("/dev-only/users", async (c) => {
-  let body: { email?: string };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, error: "invalid json" }, 400);
-  }
-
-  const email = body.email?.trim();
-  if (!email) {
-    return c.json({ ok: false, error: "email is required" }, 400);
-  }
-
-  const user = createUser({ id: uuid(), email });
-  return c.json({ ok: true, user });
-});
-
-app.get("/dev-only/users/:userId", (c) => {
-  const userId = c.req.param("userId");
-  const user = getUserById(userId);
-  if (!user) return c.json({ ok: false, error: "not found" }, 404);
-  const token = issueUserToken(user);
-  return c.json({ ok: true, user, token });
-});
-
-app.get("/dev-only/spaces", (c) => {
-  return c.json({ ok: true, spaces: listSpaces() });
-});
-
-app.post("/dev-only/spaces", async (c) => {
-  let body: { name?: string; ownerId?: string };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, error: "invalid json" }, 400);
-  }
-
-  const name = body.name?.trim();
-  const ownerId = body.ownerId?.trim();
-  if (!name || !ownerId) {
-    return c.json({ ok: false, error: "name and ownerId are required" }, 400);
-  }
-
-  const owner = getUserById(ownerId);
-  if (!owner) return c.json({ ok: false, error: "owner not found" }, 404);
-
-  const space = createSpace({ id: uuid(), name });
-  addSpaceMember(space.id, ownerId, "owner");
-  return c.json({ ok: true, space });
-});
-
-app.get("/dev-only/space-members/:spaceId", (c) => {
-  const spaceId = c.req.param("spaceId");
-  return c.json({ ok: true, members: listSpaceMembers(spaceId) });
-});
-
-app.post("/dev-only/space-members/:spaceId", async (c) => {
-  const spaceId = c.req.param("spaceId");
-  let body: { userId?: string; role?: string };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, error: "invalid json" }, 400);
-  }
-
-  const userId = body.userId?.trim();
-  const role = body.role?.trim() || "member";
-  if (!userId) {
-    return c.json({ ok: false, error: "userId is required" }, 400);
-  }
-
-  const user = getUserById(userId);
-  if (!user) return c.json({ ok: false, error: "user not found" }, 404);
-
-  addSpaceMember(spaceId, userId, role);
-  return c.json({ ok: true, spaceId, userId, role });
-});
+app.route("/", health);
+app.route("/", spaces);
+app.route("/dev-only", createDevOnlyRouter(jwtSecret));
 
 const server = serve({
   fetch: app.fetch,
