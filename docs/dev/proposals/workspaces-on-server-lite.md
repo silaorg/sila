@@ -95,7 +95,3 @@ Keep the existing format. Store it on server disk.
 - Client keeps local ops when connecting to a server workspace.
 - Client stores ops locally (IndexedDB-like persistence).
 - Client does not use backend logic for server workspaces (no AI agents).
-
-## Open Questions
-
-- Whether the server should accept and queue ops for offline clients that reconnect later.
