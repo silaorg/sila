@@ -98,4 +98,4 @@ Keep the existing format. Store it on server disk.
 
 ## Open Questions
 
-- Whether to allow offline queueing on the server.
+- Whether the server should accept and queue ops for offline clients that reconnect later.
