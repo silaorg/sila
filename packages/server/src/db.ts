@@ -5,11 +5,13 @@ import Database from "better-sqlite3";
 export type User = {
   id: string;
   email: string;
+  createdAt: string;
 };
 
 export type Space = {
   id: string;
   name: string;
+  createdAt: string;
 };
 
 export type SpaceMember = {
@@ -35,12 +37,14 @@ export function initDb(dbPath: string): Database.Database {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE
+      email TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS spaces (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS space_access (
@@ -62,19 +66,20 @@ export function initDb(dbPath: string): Database.Database {
   };
 
   if (count.count === 0) {
+    const now = new Date().toISOString();
     const insertUser = db.prepare(
-      "INSERT INTO users (id, email) VALUES (@id, @email)"
+      "INSERT INTO users (id, email, created_at) VALUES (@id, @email, @createdAt)"
     );
     const insertSpace = db.prepare(
-      "INSERT INTO spaces (id, name) VALUES (@id, @name)"
+      "INSERT INTO spaces (id, name, created_at) VALUES (@id, @name, @createdAt)"
     );
     const insertAccess = db.prepare(
       "INSERT INTO space_access (user_id, space_id, role) VALUES (@userId, @spaceId, @role)"
     );
 
-    insertUser.run({ id: "demo-token", email: "demo@example.com" });
-    insertSpace.run({ id: "space-1", name: "Demo Space" });
-    insertSpace.run({ id: "space-2", name: "Team Space" });
+    insertUser.run({ id: "demo-token", email: "demo@example.com", createdAt: now });
+    insertSpace.run({ id: "space-1", name: "Demo Space", createdAt: now });
+    insertSpace.run({ id: "space-2", name: "Team Space", createdAt: now });
     insertAccess.run({ userId: "demo-token", spaceId: "space-1", role: "owner" });
     insertAccess.run({ userId: "demo-token", spaceId: "space-2", role: "member" });
   }
@@ -91,34 +96,34 @@ function getDb(): Database.Database {
 
 export function getUserById(userId: string): User | null {
   const row = getDb()
-    .prepare("SELECT id, email FROM users WHERE id = ?")
+    .prepare("SELECT id, email, created_at as createdAt FROM users WHERE id = ?")
     .get(userId) as User | undefined;
   return row ?? null;
 }
 
 export function listUsers(): User[] {
   return getDb()
-    .prepare("SELECT id, email FROM users ORDER BY email ASC")
+    .prepare("SELECT id, email, created_at as createdAt FROM users ORDER BY email ASC")
     .all() as User[];
 }
 
 export function createUser(user: User): User {
   getDb()
-    .prepare("INSERT INTO users (id, email) VALUES (?, ?)")
-    .run(user.id, user.email);
+    .prepare("INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)")
+    .run(user.id, user.email, user.createdAt);
   return user;
 }
 
 export function listSpaces(): Space[] {
   return getDb()
-    .prepare("SELECT id, name FROM spaces ORDER BY name ASC")
+    .prepare("SELECT id, name, created_at as createdAt FROM spaces ORDER BY name ASC")
     .all() as Space[];
 }
 
 export function createSpace(space: Space): Space {
   getDb()
-    .prepare("INSERT INTO spaces (id, name) VALUES (?, ?)")
-    .run(space.id, space.name);
+    .prepare("INSERT INTO spaces (id, name, created_at) VALUES (?, ?, ?)")
+    .run(space.id, space.name, space.createdAt);
   return space;
 }
 
@@ -152,7 +157,7 @@ export function getSpacesForUserId(userId: string): Space[] {
   return getDb()
     .prepare(
       `
-        SELECT s.id, s.name
+        SELECT s.id, s.name, s.created_at as createdAt
         FROM spaces s
         INNER JOIN space_access sa ON sa.space_id = s.id
         WHERE sa.user_id = ?

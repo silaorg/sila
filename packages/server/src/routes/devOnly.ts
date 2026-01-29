@@ -36,7 +36,7 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
       return c.json({ ok: false, error: "email is required" }, 400);
     }
 
-    const user = createUser({ id: uuid(), email });
+    const user = createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
     return c.json({ ok: true, user });
   });
 
@@ -69,7 +69,7 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
     const owner = getUserById(ownerId);
     if (!owner) return c.json({ ok: false, error: "owner not found" }, 404);
 
-    const space = createSpace({ id: uuid(), name });
+    const space = createSpace({ id: uuid(), name, createdAt: new Date().toISOString() });
     addSpaceMember(space.id, ownerId, "owner");
     return c.json({ ok: true, space });
   });
