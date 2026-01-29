@@ -2,6 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Web: Chrome (Server + Web)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:7001",
+      "webRoot": "${workspaceFolder}/packages/web",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "vite:///*": "${webRoot}/*",
+        "vite:///*/src/*": "${webRoot}/src/*",
+        "http://localhost:7001/*": "${webRoot}/*",
+        "http://localhost:7001/src/*": "${webRoot}/src/*",
+        "/@fs/*": "${workspaceFolder}/*",
+        "webpack:///*": "${webRoot}/*"
+      },
+      "preLaunchTask": "dev-web-server"
+    },
+    {
       "name": "Launch Chrome against localhost",
       "type": "chrome",
       "request": "launch",

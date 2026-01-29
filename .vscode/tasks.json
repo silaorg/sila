@@ -2,6 +2,53 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "dev-server",
+      "type": "shell",
+      "command": "npm -w packages/server run dev",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "server",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^[>].*$",
+          "endsPattern": "^\\[server\\] listening on http://localhost:6001$"
+        }
+      }
+    },
+    {
+      "label": "dev-web",
+      "type": "shell",
+      "command": "npm -w packages/web run dev",
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "file": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Local:.*$",
+          "endsPattern": "^.*Local:.*$"
+        }
+      }
+    },
+    {
+      "label": "dev-web-server",
+      "dependsOn": [
+        "dev-server",
+        "dev-web"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
       "type": "npm",
       "script": "dev:without-starting-electron",
       "path": "packages/desktop/",
