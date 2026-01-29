@@ -98,5 +98,4 @@ Keep the existing format. Store it on server disk.
 
 ## Open Questions
 
-- Where to store token metadata.
 - Whether to allow offline queueing on the server.
