@@ -16,7 +16,7 @@ curl http://localhost:6001/health
 
 ## Spaces (demo auth)
 
-Use a bearer token. Try `demo-token`.
+Use a bearer token. Try `demo-token`. The demo user is seeded into the SQLite DB on first run.
 
 ```sh
 curl -H "Authorization: Bearer demo-token" http://localhost:6001/spaces
