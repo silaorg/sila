@@ -209,6 +209,7 @@ export class ClientState {
           spaceManager: this._spaceManager,
           analytics: this.appTelemetry,
           getAppFs: () => this._fs,
+          getAuthToken: () => this.auth.getAccessToken(),
         })
       );
 
@@ -283,6 +284,7 @@ export class ClientState {
       spaceId,
       pointer.uri,
       this._fs,
+      () => this.auth.getAccessToken(),
     );
 
     await this._spaceManager.addNewSpace(space, persistenceLayers, pointer.uri);
@@ -304,6 +306,7 @@ export class ClientState {
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
       getAppFs: () => this._fs,
+      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -350,6 +353,7 @@ export class ClientState {
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
       getAppFs: () => this._fs,
+      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -603,6 +607,7 @@ export class ClientState {
       spaceId,
       spaceRootPath,
       this._fs,
+      () => this.auth.getAccessToken(),
     );
 
     // Load the space using SpaceManager
@@ -629,6 +634,7 @@ export class ClientState {
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
       getAppFs: () => this._fs,
+      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 

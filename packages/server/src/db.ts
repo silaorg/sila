@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { FileSystemPersistenceLayer, Space as CoreSpace, SpaceManager, uuid } from "@sila/core";
+import type { SpacePointer } from "@sila/core";
+import {
+  FileSystemPersistenceLayer,
+  Space as CoreSpace,
+  SpaceManager,
+  uuid,
+} from "@sila/core";
 import { NodeFileSystem } from "./utils/nodeFileSystem";
 
 export type User = {
@@ -26,6 +32,7 @@ let db: Database.Database | null = null;
 let dataDir: string | null = null;
 const spaceManager = new SpaceManager();
 const serverFs = new NodeFileSystem();
+const spaceLayers = new Map<string, FileSystemPersistenceLayer>();
 
 function ensureDbPath(dbPath: string): void {
   const dir = path.dirname(dbPath);
@@ -137,11 +144,53 @@ export function listSpaces(): Space[] {
     .all() as Space[];
 }
 
+export function getSpaceById(spaceId: string): Space | null {
+  const row = getDb()
+    .prepare("SELECT id, name, created_at as createdAt FROM spaces WHERE id = ?")
+    .get(spaceId) as Space | undefined;
+  return row ?? null;
+}
+
 export function createSpace(space: Space): Space {
   getDb()
     .prepare("INSERT INTO spaces (id, name, created_at) VALUES (?, ?, ?)")
     .run(space.id, space.name, space.createdAt);
   return space;
+}
+
+export async function getServerSpaceLayer(spaceId: string): Promise<FileSystemPersistenceLayer> {
+  let layer = spaceLayers.get(spaceId);
+  if (!layer) {
+    layer = new FileSystemPersistenceLayer(getSpacePath(spaceId), spaceId, serverFs);
+    await layer.connect();
+    spaceLayers.set(spaceId, layer);
+    return layer;
+  }
+
+  if (!layer.isConnected()) {
+    await layer.connect();
+  }
+
+  return layer;
+}
+
+export async function getOrLoadServerSpace(spaceId: string): Promise<CoreSpace> {
+  const existing = spaceManager.getSpace(spaceId);
+  if (existing) {
+    return existing;
+  }
+
+  const layer = await getServerSpaceLayer(spaceId);
+  const row = getSpaceById(spaceId);
+  const pointer: SpacePointer = {
+    id: spaceId,
+    uri: spaceId,
+    name: row?.name ?? null,
+    createdAt: row ? new Date(row.createdAt) : new Date(),
+    userId: null,
+  };
+
+  return await spaceManager.loadSpace(pointer, [layer]);
 }
 
 export async function createServerSpace(input: {
@@ -155,9 +204,8 @@ export async function createServerSpace(input: {
     name: input.name,
     createdAt: input.createdAt,
   });
-  const spacePath = getSpacePath(created.id);
-  const persistence = new FileSystemPersistenceLayer(spacePath, created.id, serverFs);
-  await spaceManager.addNewSpace(space, [persistence], created.id);
+  const layer = await getServerSpaceLayer(created.id);
+  await spaceManager.addNewSpace(space, [layer], created.id);
   return created;
 }
 

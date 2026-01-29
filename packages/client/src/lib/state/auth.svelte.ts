@@ -29,6 +29,10 @@ export class AuthStore {
   public user: User | null = $state(null);
   public isAuthenticated = $state(false);
 
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
   constructor() {
     // Load auth state from cookies on initialization
     this.loadFromStorage();

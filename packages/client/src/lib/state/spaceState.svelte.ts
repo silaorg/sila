@@ -27,6 +27,7 @@ export type SpaceStateConfig = {
   spaceManager: SpaceManager;
   analytics: AppTelemetry;
   getAppFs?: () => AppFileSystem | null;
+  getAuthToken?: () => string | null;
 };
 
 export class SpaceState {
@@ -40,6 +41,7 @@ export class SpaceState {
   isConnected: boolean = $state(false);
   private persistenceLayers: PersistenceLayer[] = [];
   private getAppFs: () => AppFileSystem | null;
+  private getAuthToken: () => string | null;
 
   private backend: Backend | null = null;
   spaceTelemetry: SpaceTelemetry;
@@ -48,6 +50,7 @@ export class SpaceState {
     this.pointer = config.pointer;
     this.spaceManager = config.spaceManager;
     this.getAppFs = config.getAppFs ? config.getAppFs : () => null;
+    this.getAuthToken = config.getAuthToken ? config.getAuthToken : () => null;
     // IMPORTANT: we key UI layout (tabs/tiling) by pointer URI so multiple pointers
     // with the same underlying space id do NOT share open tabs/layout state.
     this.layout.spaceUri = this.pointer.uri;
@@ -159,7 +162,13 @@ export class SpaceState {
     try {
       // Create appropriate persistence layers based on URI
       // Prefer existing layers from SpaceManager; otherwise construct using app FS provider
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || createPersistenceLayersForURI(this.pointer.id, this.pointer.uri, this.getAppFs());
+      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri)
+        || createPersistenceLayersForURI(
+          this.pointer.id,
+          this.pointer.uri,
+          this.getAppFs(),
+          this.getAuthToken,
+        );
 
       // Load the space using SpaceManager
       space = await this.spaceManager.loadSpace(this.pointer, this.persistenceLayers);

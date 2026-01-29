@@ -1,5 +1,6 @@
 import type { PersistenceLayer } from "@sila/core";
 import { IndexedDBPersistenceLayer } from "./IndexedDBPersistenceLayer";
+import { RemoteSpacePersistenceLayer } from "./RemoteSpacePersistenceLayer";
 import { FileSystemPersistenceLayer } from "@sila/core";
 import type { AppFileSystem } from "../../appFs";
 
@@ -9,7 +10,12 @@ import type { AppFileSystem } from "../../appFs";
  * @param uri The space pointer URI (UI/reference identity; local://, file path, http(s)://, etc.)
  * @returns Array of persistence layers to use
  */
-export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: AppFileSystem | null): PersistenceLayer[] {
+export function createPersistenceLayersForURI(
+  spaceId: string,
+  uri: string,
+  fs: AppFileSystem | null,
+  getRemoteAuthToken?: () => string | null,
+): PersistenceLayer[] {
   const layers: PersistenceLayer[] = [];
 
   if (uri.startsWith("local://")) {
@@ -18,7 +24,7 @@ export function createPersistenceLayersForURI(spaceId: string, uri: string, fs: 
   } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
     // Server-synced spaces: IndexedDB + Server (future)
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
-    // TODO: Add server persistence layer when implemented.
+    layers.push(new RemoteSpacePersistenceLayer(uri, spaceId, getRemoteAuthToken));
   } else if (uri.startsWith("capacitor://")) {
     // Mobile spaces: IndexedDB + FileSystem in app sandbox
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));

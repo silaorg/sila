@@ -41,3 +41,19 @@ curl -X POST http://localhost:6001/dev-only/spaces \
 ## Socket.IO
 
 Connect to namespace `/spaces/{spaceId}` with `auth.token`.
+
+### Quick test
+
+Create a user + space, then run the socket test with that space id + token.
+
+```sh
+curl -X POST http://localhost:6001/dev-only/users \
+  -H "Content-Type: application/json" \
+  -d '{"email":"socket-test@example.com"}'
+
+curl -X POST http://localhost:6001/dev-only/spaces \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Socket Space","ownerId":"<user-id-from-previous-call>"}'
+
+npm -w packages/server run socket:test -- <space-id> <user-id>
+```
