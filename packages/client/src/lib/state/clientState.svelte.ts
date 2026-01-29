@@ -257,6 +257,30 @@ export class ClientState {
     await this._saveState();
   }
 
+  addSpacePointer(pointer: SpacePointer): void {
+    const exists = this.pointers.some((p) => p.uri === pointer.uri || p.id === pointer.id);
+    if (exists) return;
+
+    this.pointers = [...this.pointers, pointer];
+    const newSpaceState = new SpaceState({
+      pointer,
+      spaceManager: this._spaceManager,
+      analytics: this.appTelemetry,
+      getAppFs: () => this._fs,
+      getAuthToken: () => this.auth.getAccessToken(),
+    });
+    this._spaceStates = [...this._spaceStates, newSpaceState];
+
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
+      (window as any).electronFileSystem.registerSpace(
+        pointer.id,
+        pointer.uri,
+        pointer.name,
+        pointer.createdAt,
+      );
+    }
+  }
+
   /**
    * Create a new local space using SpaceManager with URI-based persistence
    */

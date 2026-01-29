@@ -157,7 +157,9 @@ export async function fetchSpaces(client: ClientState) {
 
       const existingIds = new Set(client.pointers.map(p => p.id));
       const newSpaces = spaces.filter(space => !existingIds.has(space.id));
-      client.pointers = [...client.pointers, ...newSpaces];
+      for (const space of newSpaces) {
+        client.addSpacePointer(space);
+      }
     }
   } catch (error) {
     console.error("Failed to fetch spaces:", error);
