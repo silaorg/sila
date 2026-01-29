@@ -28,9 +28,18 @@ Add a small server-side sync option for workspaces. Clients sync RepTree operati
 
 ### Auth
 
-- Token-based auth on connection.
-- Validate token before joining a space.
-- Rotate tokens server-side as needed.
+Auth flows through a platform service that hosts many workspaces.
+
+- Platform service keeps a users database with workspace associations.
+- One server can host many workspaces.
+- User must sign in on the platform to access a workspace.
+- Platform issues a JWT for workspace read/write.
+- Client prompts sign-in if no JWT is available.
+
+**Endpoints**
+
+- `api.silain.com/auth` issues JWTs for workspace access.
+- `api.silain.com/w/{workspace-id}/` is the Socket.IO entry point.
 
 ### Ops Validation Layer
 
@@ -82,6 +91,5 @@ Keep the existing format. Store it on server disk.
 
 ## Open Questions
 
-- Token format: JWT vs opaque token.
 - Where to store token metadata.
 - Whether to allow offline queueing on the server.
