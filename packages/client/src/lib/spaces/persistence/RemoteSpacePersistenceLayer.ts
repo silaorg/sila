@@ -26,6 +26,7 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
   private syncChain: Promise<void> = Promise.resolve();
   private cachedSyncOps = new Map<string, VertexOperation[]>();
   private onIncomingOps: ((treeId: string, ops: VertexOperation[]) => void) | null = null;
+  private serverBaseUrl: string;
 
   constructor(
     private spaceUrl: string,
@@ -33,12 +34,13 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     private getAuthToken?: () => string | null,
   ) {
     this.id = `remote-${spaceUrl}::${spaceId}`;
+    this.serverBaseUrl = this.resolveServerBaseUrl(spaceUrl, spaceId);
   }
 
   async connect(): Promise<void> {
     if (this._connected) return;
 
-    const namespaceUrl = `${this.spaceUrl.replace(/\/+$/, "")}/spaces/${this.spaceId}`;
+    const namespaceUrl = `${this.serverBaseUrl.replace(/\/+$/, "")}/spaces/${this.spaceId}`;
     const socket = io(namespaceUrl, {
       path: "/socket.io",
       autoConnect: false,
@@ -224,5 +226,14 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     const ops = await getTreeOps(this.spaceUrl, this.spaceId, treeId);
     const vector = StateVector.fromOperations(ops) as unknown as { getState?: () => StateVectorMap };
     return vector.getState ? vector.getState() : {};
+  }
+
+  private resolveServerBaseUrl(spaceUrl: string, spaceId: string): string {
+    const normalized = spaceUrl.replace(/\/+$/, "");
+    const suffix = `/spaces/${spaceId}`;
+    if (normalized.endsWith(suffix)) {
+      return normalized.slice(0, -suffix.length);
+    }
+    return normalized;
   }
 }

@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { Server } from "socket.io";
 import type { VertexOperation } from "reptree";
 import { getOrLoadServerSpace, getServerSpaceLayer, getSpacesForUserId, getUserById, initDb } from "./db";
@@ -16,6 +17,7 @@ initDb(dbPath);
 const jwtSecret = process.env.JWT_SECRET || "dev-secret-change-me";
 
 const app = new Hono<{ Variables: AppVariables }>();
+app.use("*", cors({ origin: "*" }));
 app.use("*", createAuthMiddleware());
 
 app.route("/", health);
