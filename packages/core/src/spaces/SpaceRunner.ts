@@ -22,6 +22,7 @@ export type SpaceRunnerPointer = {
 };
 
 export class SpaceRunner {
+  private pointer: SpaceRunnerPointer;
   private backend: Backend | null = null;
   private agentServices: AgentServices | null = null;
   private started = false;
@@ -30,7 +31,13 @@ export class SpaceRunner {
     private space: Space,
     private persistenceLayers: PersistenceLayer[],
     private options: SpaceRunnerOptions = {},
-  ) {}
+    pointer?: SpaceRunnerPointer,
+  ) {
+    this.pointer = pointer ?? {
+      id: space.getId(),
+      uri: space.getId(),
+    };
+  }
 
   static async createForNewSpace(
     space: Space,
@@ -83,10 +90,10 @@ export class SpaceRunner {
         throw new Error("Failed to initialize persistence layers for new space");
       }
 
-      const runner = new SpaceRunner(space, savedLayers, options);
-      await runner.start();
-      return runner;
-    }
+    const runner = new SpaceRunner(space, savedLayers, options, pointer);
+    await runner.start();
+    return runner;
+  }
 
     const runner = new SpaceRunner(space, [], options);
     await runner.start();
@@ -146,7 +153,7 @@ export class SpaceRunner {
       }
     });
 
-    const runner = new SpaceRunner(space, availableLayers, options);
+    const runner = new SpaceRunner(space, availableLayers, options, pointer);
     await runner.loadSecrets();
     await runner.start();
     return { space, runner };
@@ -180,12 +187,13 @@ export class SpaceRunner {
   }
 
   getBackend(): Backend {
-    if (this.options.enableBackend === false) {
+    if (!this.shouldEnableBackend()) {
       throw new Error("Backend creation is disabled for this SpaceRunner");
     }
 
     if (!this.backend) {
-      this.backend = new Backend(this.space, this.options.isLocal ?? false);
+      const isLocal = this.options.isLocal ?? this.pointer.uri.startsWith("local://");
+      this.backend = new Backend(this.space, isLocal);
     }
     return this.backend;
   }
@@ -203,6 +211,7 @@ export class SpaceRunner {
     this.attachFileStoreProvider();
     this.registerTreeLoader();
     this.setupOperationTracking();
+    this.initBackendIfEnabled();
     await this.setupTwoWaySync();
     if (this.persistenceLayers.length > 0) {
       await this.syncTreeOpsBetweenLayers(this.space.getId());
@@ -300,6 +309,28 @@ export class SpaceRunner {
 
       return appTree;
     });
+  }
+
+  private shouldEnableBackend(): boolean {
+    if (this.options.enableBackend !== undefined) {
+      return this.options.enableBackend;
+    }
+
+    if (this.options.hostType === "web") {
+      if (this.pointer.uri.startsWith("http://") || this.pointer.uri.startsWith("https://")) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private initBackendIfEnabled(): void {
+    if (!this.shouldEnableBackend()) {
+      return;
+    }
+
+    this.getBackend();
   }
 
   private attachFileStoreProvider(): void {

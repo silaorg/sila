@@ -17,6 +17,7 @@ import {
   saveCurrentSpaceUri,
   savePointers,
 } from "@sila/client/localDb";
+import type { SpaceRunnerHostType } from "@sila/core";
 import { Space, SpaceManager } from "@sila/core";
 import { AppFileSystem } from "../appFs";
 import type { AppDialogs } from "../appDialogs";
@@ -59,7 +60,7 @@ export type AppVersions = {
 export class ClientState {
   private _init: boolean = $state(false);
   private _initializationError: string | null = $state(null);
-  private _spaceManager = new SpaceManager();
+  private _spaceManager: SpaceManager = new SpaceManager();
   private _defaultTheme: ThemeStore = $state(new ThemeStore());
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
@@ -175,6 +176,7 @@ export class ClientState {
 
     this._fs = initState?.fs || null;
     this._dialog = initState?.dialog || null;
+    this._spaceManager = this.createSpaceManager();
     this.appVersions = initState?.appVersions ?? null;
     this.appTelemetry.init(initState?.telemetryConfig ?? null);
     if (initState?.pageSearch) {
@@ -188,6 +190,99 @@ export class ClientState {
     this.appTelemetry.capture(AnalyticsEvents.AppOpened, { spaces: this.pointers.length });
 
     this._init = true;
+  }
+
+  private createSpaceManager(): SpaceManager {
+    const hostType = this.getHostType();
+    return new SpaceManager({
+      hostType,
+      resolvePersistenceLayers: (pointer, resolvedHostType) =>
+        this.resolvePersistenceLayers(pointer, resolvedHostType ?? hostType),
+      shouldEnableBackend: (pointer, resolvedHostType) =>
+        this.shouldEnableBackend(pointer, resolvedHostType ?? hostType),
+    });
+  }
+
+  private getHostType(): SpaceRunnerHostType {
+    if (typeof window === "undefined") {
+      return "web";
+    }
+
+    const capacitor = (window as any).Capacitor;
+    if (capacitor) {
+      if (typeof capacitor.isNativePlatform === "function") {
+        if (capacitor.isNativePlatform()) {
+          return "mobile";
+        }
+      } else if (capacitor.platform) {
+        return "mobile";
+      }
+    }
+
+    if ((window as any).electronFileSystem) {
+      return "desktop";
+    }
+
+    return "web";
+  }
+
+  private resolvePersistenceLayers(
+    pointer: SpacePointer,
+    hostType: SpaceRunnerHostType,
+  ): ReturnType<typeof createPersistenceLayersForURI> {
+    this.assertHostSupportsSpace(pointer, hostType);
+
+    if (pointer.uri.startsWith("memory://")) {
+      return [];
+    }
+
+    return createPersistenceLayersForURI(
+      pointer.id,
+      pointer.uri,
+      this._fs,
+      () => this.auth.getAccessToken(),
+    );
+  }
+
+  private shouldEnableBackend(
+    pointer: SpacePointer,
+    hostType: SpaceRunnerHostType,
+  ): boolean {
+    if (hostType === "web") {
+      if (pointer.uri.startsWith("http://") || pointer.uri.startsWith("https://")) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private assertHostSupportsSpace(pointer: SpacePointer, hostType: SpaceRunnerHostType): void {
+    const uri = pointer.uri;
+    if (uri.startsWith("memory://")) {
+      return;
+    }
+
+    if (hostType === "web") {
+      const isWebSupported =
+        uri.startsWith("local://") ||
+        uri.startsWith("http://") ||
+        uri.startsWith("https://");
+      if (!isWebSupported) {
+        throw new Error(`Space ${uri} is not supported in web host type`);
+      }
+    }
+
+    if (hostType === "mobile") {
+      const isMobileSupported =
+        uri.startsWith("local://") ||
+        uri.startsWith("http://") ||
+        uri.startsWith("https://") ||
+        uri.startsWith("capacitor://");
+      if (!isMobileSupported) {
+        throw new Error(`Space ${uri} is not supported in mobile host type`);
+      }
+    }
   }
 
   /**
@@ -208,8 +303,6 @@ export class ClientState {
           pointer,
           spaceManager: this._spaceManager,
           analytics: this.appTelemetry,
-          getAppFs: () => this._fs,
-          getAuthToken: () => this.auth.getAccessToken(),
         })
       );
 
@@ -266,8 +359,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
-      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -303,15 +394,7 @@ export class ClientState {
       userId: this.auth.user?.id || null,
     };
 
-    // Create persistence layers based on URI
-    const persistenceLayers = createPersistenceLayersForURI(
-      spaceId,
-      pointer.uri,
-      this._fs,
-      () => this.auth.getAccessToken(),
-    );
-
-    await this._spaceManager.addNewSpace(space, persistenceLayers, pointer.uri);
+    await this._spaceManager.addNewSpace(space, [], pointer.uri);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -329,8 +412,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
-      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -376,8 +457,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
-      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -626,16 +705,8 @@ export class ClientState {
       userId: this.auth.user?.id || null,
     };
 
-    // Create persistence layers based on URI (will be IndexedDB + FileSystem)
-    const persistenceLayers = createPersistenceLayersForURI(
-      spaceId,
-      spaceRootPath,
-      this._fs,
-      () => this.auth.getAccessToken(),
-    );
-
     // Load the space using SpaceManager
-    const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
+    const space = await this._spaceManager.loadSpace(pointer);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -657,8 +728,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
-      getAuthToken: () => this.auth.getAccessToken(),
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
