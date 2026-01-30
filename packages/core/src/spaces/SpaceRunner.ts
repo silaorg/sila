@@ -11,6 +11,11 @@ export type SpaceRunnerOptions = {
   isLocal?: boolean;
 };
 
+export type SpaceRunnerPointer = {
+  id: string;
+  uri: string;
+};
+
 export class SpaceRunner {
   private backend: Backend | null = null;
   private agentServices: AgentServices | null = null;
@@ -21,6 +26,123 @@ export class SpaceRunner {
     private persistenceLayers: PersistenceLayer[],
     private options: SpaceRunnerOptions = {},
   ) {}
+
+  static async createForNewSpace(
+    space: Space,
+    layers: PersistenceLayer[],
+    options: SpaceRunnerOptions = {},
+  ): Promise<SpaceRunner> {
+    const connectedLayers = (
+      await Promise.allSettled(
+        layers.map(async (layer) => {
+          await layer.connect();
+          return layer;
+        }),
+      )
+    )
+      .filter((result) => {
+        if (result.status === "rejected") {
+          console.warn("Failed to connect persistence layer:", result.reason);
+          return false;
+        }
+        return true;
+      })
+      .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+
+    if (layers.length > 0 && connectedLayers.length === 0) {
+      throw new Error("No persistence layers available for new space");
+    }
+
+    if (connectedLayers.length > 0) {
+      const initOps = space.tree.getAllOps();
+      const savedLayers = (
+        await Promise.allSettled(
+          connectedLayers.map(async (layer) => {
+            await layer.saveTreeOps(space.getId(), initOps);
+            return layer;
+          }),
+        )
+      )
+        .filter((result) => {
+          if (result.status === "rejected") {
+            console.warn("Failed to save initial ops to layer:", result.reason);
+            return false;
+          }
+          return true;
+        })
+        .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+
+      if (savedLayers.length === 0) {
+        throw new Error("Failed to initialize persistence layers for new space");
+      }
+
+      const runner = new SpaceRunner(space, savedLayers, options);
+      await runner.start();
+      return runner;
+    }
+
+    const runner = new SpaceRunner(space, [], options);
+    await runner.start();
+    return runner;
+  }
+
+  static async loadFromLayers(
+    pointer: SpaceRunnerPointer,
+    layers: PersistenceLayer[],
+    options: SpaceRunnerOptions = {},
+  ): Promise<{ space: Space; runner: SpaceRunner }> {
+    const layerPromises = layers.map(async (layer) => {
+      await layer.connect();
+      const ops = await layer.loadSpaceTreeOps();
+      return { layer, ops };
+    });
+    const layerResultsPromise = Promise.allSettled(layerPromises);
+
+    let space: Space | null = null;
+    let firstResult: { layer: PersistenceLayer; ops: VertexOperation[] } | null = null;
+    let availableResults: { layer: PersistenceLayer; ops: VertexOperation[] }[] = [];
+    try {
+      firstResult = await Promise.any(layerPromises);
+      space = new Space(new RepTree(uuid(), firstResult.ops));
+    } catch (error) {
+      console.error("Failed to load space tree from any layer:", error);
+      console.log("As a fallback, will try to load from all layers");
+    }
+
+    const settledResults = await layerResultsPromise;
+    availableResults = settledResults
+      .filter(
+        (result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
+          result.status === "fulfilled",
+      )
+      .map((result) => result.value);
+
+    if (availableResults.length === 0) {
+      throw new Error("No persistence layers available to load space");
+    }
+
+    const availableLayers = availableResults.map((result) => result.layer);
+
+    if (!space) {
+      const allOps: VertexOperation[] = [];
+      availableResults.forEach(result => {
+        allOps.push(...result.ops);
+      });
+
+      space = new Space(new RepTree(uuid(), allOps));
+    }
+
+    availableResults.forEach((result) => {
+      if (result !== firstResult && result.ops.length > 0) {
+        space!.tree.merge(result.ops);
+      }
+    });
+
+    const runner = new SpaceRunner(space, availableLayers, options);
+    await runner.loadSecrets();
+    await runner.start();
+    return { space, runner };
+  }
 
   getSpace(): Space {
     return this.space;
@@ -51,7 +173,9 @@ export class SpaceRunner {
     this.registerTreeLoader();
     this.setupOperationTracking();
     await this.setupTwoWaySync();
-    await this.syncTreeOpsBetweenLayers(this.space.getId());
+    if (this.persistenceLayers.length > 0) {
+      await this.syncTreeOpsBetweenLayers(this.space.getId());
+    }
     this.started = true;
   }
 
@@ -291,5 +415,48 @@ export class SpaceRunner {
       Promise.all(layers.map(layer => layer.saveSecrets(secrets)))
         .catch(error => console.error("Failed to save secrets:", error));
     };
+  }
+
+  private async loadSecrets(): Promise<void> {
+    if (this.persistenceLayers.length === 0) {
+      return;
+    }
+
+    const secretPromises = this.persistenceLayers.map(async (layer) => {
+      try {
+        await layer.connect();
+        const secrets = await layer.loadSecrets();
+        return { layer, secrets };
+      } catch (error) {
+        console.warn("Failed to load secrets from layer:", error);
+        return null;
+      }
+    });
+
+    try {
+      const secretResults = (await Promise.all(secretPromises)).filter(
+        (result): result is { layer: PersistenceLayer; secrets: Record<string, string> | undefined } =>
+          result !== null,
+      );
+      const firstSecretsResult =
+        secretResults.find((result) => result.secrets && Object.keys(result.secrets).length > 0) ??
+        secretResults[0];
+
+      if (firstSecretsResult?.secrets && Object.keys(firstSecretsResult.secrets).length > 0) {
+        this.space.saveAllSecrets(firstSecretsResult.secrets);
+      }
+
+      const additionalSecrets: Record<string, string> = {};
+      secretResults.forEach((result) => {
+        if (result !== firstSecretsResult && result.secrets) {
+          Object.assign(additionalSecrets, result.secrets);
+        }
+      });
+      if (Object.keys(additionalSecrets).length > 0) {
+        this.space.saveAllSecrets(additionalSecrets);
+      }
+    } catch (error) {
+      console.error("Failed to load secrets from any layer:", error);
+    }
   }
 }

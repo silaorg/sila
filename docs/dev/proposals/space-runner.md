@@ -41,6 +41,7 @@ Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `Spa
 ### Responsibilities
 
 - Build and wire dependencies in one place.
+- Load space data and secrets from persistence layers.
 - Start and stop lifecycle for all space services.
 - Expose a small API for common tasks.
 - Provide a `dispose()` for cleanup.
