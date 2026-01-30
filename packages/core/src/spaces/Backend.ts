@@ -9,13 +9,7 @@ import { AppTree } from "./AppTree";
 export class Backend {
   private appBackends: ChatAppBackend[] = [];
 
-  constructor(private space: Space, private inLocalMode: boolean = false) {
-    /*
-    if (!inLocalMode) {
-      throw new Error("Backend is not supported for remote spaces yet");
-    }
-    */
-
+  constructor(private space: Space) {
     const loadedTrees = space.getLoadedAppTrees();
 
     for (const appTree of loadedTrees) {

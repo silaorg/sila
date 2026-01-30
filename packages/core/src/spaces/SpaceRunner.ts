@@ -10,10 +10,12 @@ import { AgentServices } from "../agents/AgentServices";
 export type SpaceRunnerHostType = "web" | "server" | "desktop" | "mobile";
 
 export type SpaceRunnerOptions = {
-  isLocal?: boolean;
   enableBackend?: boolean;
   hostType?: SpaceRunnerHostType;
-  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, hostType: SpaceRunnerHostType | undefined) => PersistenceLayer[];
+  resolvePersistenceLayers?: (
+    pointer: SpaceRunnerPointer,
+    hostType: SpaceRunnerHostType | undefined,
+  ) => PersistenceLayer[];
 };
 
 export type SpaceRunnerPointer = {
@@ -61,7 +63,9 @@ export class SpaceRunner {
         }
         return true;
       })
-      .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+      .map((result) =>
+        (result as PromiseFulfilledResult<PersistenceLayer>).value
+      );
 
     if (resolvedLayers.length > 0 && connectedLayers.length === 0) {
       throw new Error("No persistence layers available for new space");
@@ -84,16 +88,20 @@ export class SpaceRunner {
           }
           return true;
         })
-        .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
+        .map((result) =>
+          (result as PromiseFulfilledResult<PersistenceLayer>).value
+        );
 
       if (savedLayers.length === 0) {
-        throw new Error("Failed to initialize persistence layers for new space");
+        throw new Error(
+          "Failed to initialize persistence layers for new space",
+        );
       }
 
-    const runner = new SpaceRunner(space, savedLayers, options, pointer);
-    await runner.start();
-    return runner;
-  }
+      const runner = new SpaceRunner(space, savedLayers, options, pointer);
+      await runner.start();
+      return runner;
+    }
 
     const runner = new SpaceRunner(space, [], options);
     await runner.start();
@@ -114,8 +122,13 @@ export class SpaceRunner {
     const layerResultsPromise = Promise.allSettled(layerPromises);
 
     let space: Space | null = null;
-    let firstResult: { layer: PersistenceLayer; ops: VertexOperation[] } | null = null;
-    let availableResults: { layer: PersistenceLayer; ops: VertexOperation[] }[] = [];
+    let firstResult:
+      | { layer: PersistenceLayer; ops: VertexOperation[] }
+      | null = null;
+    let availableResults: {
+      layer: PersistenceLayer;
+      ops: VertexOperation[];
+    }[] = [];
     try {
       firstResult = await Promise.any(layerPromises);
       space = new Space(new RepTree(uuid(), firstResult.ops));
@@ -127,8 +140,11 @@ export class SpaceRunner {
     const settledResults = await layerResultsPromise;
     availableResults = settledResults
       .filter(
-        (result): result is PromiseFulfilledResult<{ layer: PersistenceLayer; ops: VertexOperation[] }> =>
-          result.status === "fulfilled",
+        (
+          result,
+        ): result is PromiseFulfilledResult<
+          { layer: PersistenceLayer; ops: VertexOperation[] }
+        > => result.status === "fulfilled",
       )
       .map((result) => result.value);
 
@@ -140,7 +156,7 @@ export class SpaceRunner {
 
     if (!space) {
       const allOps: VertexOperation[] = [];
-      availableResults.forEach(result => {
+      availableResults.forEach((result) => {
         allOps.push(...result.ops);
       });
 
@@ -192,8 +208,7 @@ export class SpaceRunner {
     }
 
     if (!this.backend) {
-      const isLocal = this.options.isLocal ?? this.pointer.uri.startsWith("local://");
-      this.backend = new Backend(this.space, isLocal);
+      this.backend = new Backend(this.space);
     }
     return this.backend;
   }
@@ -224,11 +239,13 @@ export class SpaceRunner {
 
     await Promise.all(
       this.persistenceLayers
-        .filter(layer => layer.stopListening)
-        .map(layer => layer.stopListening!()),
+        .filter((layer) => layer.stopListening)
+        .map((layer) => layer.stopListening!()),
     );
 
-    await Promise.all(this.persistenceLayers.map(layer => layer.disconnect()));
+    await Promise.all(
+      this.persistenceLayers.map((layer) => layer.disconnect()),
+    );
     this.started = false;
   }
 
@@ -245,8 +262,12 @@ export class SpaceRunner {
   }
 
   removePersistenceLayer(layerId: string): void {
-    const removedLayer = this.persistenceLayers.find(layer => layer.id === layerId);
-    this.persistenceLayers = this.persistenceLayers.filter(layer => layer.id !== layerId);
+    const removedLayer = this.persistenceLayers.find((layer) =>
+      layer.id === layerId
+    );
+    this.persistenceLayers = this.persistenceLayers.filter((layer) =>
+      layer.id !== layerId
+    );
     if (removedLayer) {
       removedLayer.disconnect().catch(console.error);
     }
@@ -277,21 +298,28 @@ export class SpaceRunner {
 
         appTree = new AppTree(tree);
 
-        Promise.allSettled(treeLoadPromises).then(results => {
-          results.forEach(result => {
-            if (result.status === "fulfilled" && result.value !== firstTreeResult) {
+        Promise.allSettled(treeLoadPromises).then((results) => {
+          results.forEach((result) => {
+            if (
+              result.status === "fulfilled" && result.value !== firstTreeResult
+            ) {
               const { ops } = result.value;
               if (ops.length > 0) {
                 appTree!.tree.merge(ops);
               }
             }
           });
-        }).catch(error => console.error("Failed to load app tree from additional layers:", error));
+        }).catch((error) =>
+          console.error(
+            "Failed to load app tree from additional layers:",
+            error,
+          )
+        );
       } catch {
         const allOps: VertexOperation[] = [];
         const results = await Promise.allSettled(treeLoadPromises);
 
-        results.forEach(result => {
+        results.forEach((result) => {
           if (result.status === "fulfilled") {
             allOps.push(...result.value.ops);
           }
@@ -317,7 +345,10 @@ export class SpaceRunner {
     }
 
     if (this.options.hostType === "web") {
-      if (this.pointer.uri.startsWith("http://") || this.pointer.uri.startsWith("https://")) {
+      if (
+        this.pointer.uri.startsWith("http://") ||
+        this.pointer.uri.startsWith("https://")
+      ) {
         return false;
       }
     }
@@ -390,24 +421,43 @@ export class SpaceRunner {
         if (missingOps.length > 0) {
           const isSpaceTree = this.space.getId() === treeId;
           if (isSpaceTree) {
-            console.log(`Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`, missingOps);
+            console.log(
+              `Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`,
+              missingOps,
+            );
           } else {
-            console.log(`Saving missing ops for tree ${treeId} to layer: ${layer.id}`, missingOps);
+            console.log(
+              `Saving missing ops for tree ${treeId} to layer: ${layer.id}`,
+              missingOps,
+            );
           }
 
           await layer.saveTreeOps(treeId, missingOps);
         }
       }
     } catch (error) {
-      console.error(`Failed to sync tree operations for treeId ${treeId}:`, error);
+      console.error(
+        `Failed to sync tree operations for treeId ${treeId}:`,
+        error,
+      );
     }
   }
 
-  private setupOperationTracking(space: Space = this.space, layers: PersistenceLayer[] = this.persistenceLayers) {
+  private setupOperationTracking(
+    space: Space = this.space,
+    layers: PersistenceLayer[] = this.persistenceLayers,
+  ) {
     space.tree.observeOpApplied((op) => {
-      if (op.id.peerId === space.tree.peerId && !("transient" in op && op.transient)) {
-        Promise.all(layers.map(layer => layer.saveTreeOps(space.getId(), [op])))
-          .catch(error => console.error("Failed to save space tree operation:", error));
+      if (
+        op.id.peerId === space.tree.peerId &&
+        !("transient" in op && op.transient)
+      ) {
+        Promise.all(
+          layers.map((layer) => layer.saveTreeOps(space.getId(), [op])),
+        )
+          .catch((error) =>
+            console.error("Failed to save space tree operation:", error)
+          );
       }
     });
 
@@ -415,13 +465,20 @@ export class SpaceRunner {
       const appTree = space.getAppTree(appTreeId)!;
       const ops = appTree.tree.getAllOps();
 
-      Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, ops)))
-        .catch(error => console.error("Failed to save new app tree ops:", error));
+      Promise.all(layers.map((layer) => layer.saveTreeOps(appTreeId, ops)))
+        .catch((error) =>
+          console.error("Failed to save new app tree ops:", error)
+        );
 
       appTree.tree.observeOpApplied((op) => {
-        if (op.id.peerId === appTree.tree.peerId && !("transient" in op && op.transient)) {
-          Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, [op])))
-            .catch(error => console.error("Failed to save app tree operation:", error));
+        if (
+          op.id.peerId === appTree.tree.peerId &&
+          !("transient" in op && op.transient)
+        ) {
+          Promise.all(layers.map((layer) => layer.saveTreeOps(appTreeId, [op])))
+            .catch((error) =>
+              console.error("Failed to save app tree operation:", error)
+            );
         }
       });
     });
@@ -429,9 +486,14 @@ export class SpaceRunner {
     space.observeTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId)!;
       appTree.tree.observeOpApplied((op) => {
-        if (op.id.peerId === appTree.tree.peerId && !("transient" in op && op.transient)) {
-          Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, [op])))
-            .catch(error => console.error("Failed to save loaded app tree operation:", error));
+        if (
+          op.id.peerId === appTree.tree.peerId &&
+          !("transient" in op && op.transient)
+        ) {
+          Promise.all(layers.map((layer) => layer.saveTreeOps(appTreeId, [op])))
+            .catch((error) =>
+              console.error("Failed to save loaded app tree operation:", error)
+            );
         }
       });
     });
@@ -443,7 +505,10 @@ export class SpaceRunner {
     this.setupOperationTracking(this.space, [layer]);
   }
 
-  private async setupTwoWaySync(space: Space = this.space, layers: PersistenceLayer[] = this.persistenceLayers) {
+  private async setupTwoWaySync(
+    space: Space = this.space,
+    layers: PersistenceLayer[] = this.persistenceLayers,
+  ) {
     const spaceId = space.getId();
 
     for (const layer of layers) {
@@ -468,14 +533,14 @@ export class SpaceRunner {
 
     space.setSecret = (key: string, value: string) => {
       originalSetSecret(key, value);
-      Promise.all(layers.map(layer => layer.saveSecrets({ [key]: value })))
-        .catch(error => console.error("Failed to save secret:", error));
+      Promise.all(layers.map((layer) => layer.saveSecrets({ [key]: value })))
+        .catch((error) => console.error("Failed to save secret:", error));
     };
 
     space.saveAllSecrets = (secrets: Record<string, string>) => {
       originalSaveAllSecrets(secrets);
-      Promise.all(layers.map(layer => layer.saveSecrets(secrets)))
-        .catch(error => console.error("Failed to save secrets:", error));
+      Promise.all(layers.map((layer) => layer.saveSecrets(secrets)))
+        .catch((error) => console.error("Failed to save secrets:", error));
     };
   }
 
@@ -497,14 +562,22 @@ export class SpaceRunner {
 
     try {
       const secretResults = (await Promise.all(secretPromises)).filter(
-        (result): result is { layer: PersistenceLayer; secrets: Record<string, string> | undefined } =>
-          result !== null,
+        (
+          result,
+        ): result is {
+          layer: PersistenceLayer;
+          secrets: Record<string, string> | undefined;
+        } => result !== null,
       );
-      const firstSecretsResult =
-        secretResults.find((result) => result.secrets && Object.keys(result.secrets).length > 0) ??
+      const firstSecretsResult = secretResults.find((result) =>
+        result.secrets && Object.keys(result.secrets).length > 0
+      ) ??
         secretResults[0];
 
-      if (firstSecretsResult?.secrets && Object.keys(firstSecretsResult.secrets).length > 0) {
+      if (
+        firstSecretsResult?.secrets &&
+        Object.keys(firstSecretsResult.secrets).length > 0
+      ) {
         this.space.saveAllSecrets(firstSecretsResult.secrets);
       }
 
