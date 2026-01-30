@@ -83,18 +83,7 @@ export function initDb(dbPath: string): Database.Database {
     const insertUser = db.prepare(
       "INSERT INTO users (id, email, created_at) VALUES (@id, @email, @createdAt)"
     );
-    const insertSpace = db.prepare(
-      "INSERT INTO spaces (id, name, created_at) VALUES (@id, @name, @createdAt)"
-    );
-    const insertAccess = db.prepare(
-      "INSERT INTO space_access (user_id, space_id, role) VALUES (@userId, @spaceId, @role)"
-    );
-
-    insertUser.run({ id: "demo-token", email: "demo@example.com", createdAt: now });
-    insertSpace.run({ id: "space-1", name: "Demo Space", createdAt: now });
-    insertSpace.run({ id: "space-2", name: "Team Space", createdAt: now });
-    insertAccess.run({ userId: "demo-token", spaceId: "space-1", role: "owner" });
-    insertAccess.run({ userId: "demo-token", spaceId: "space-2", role: "member" });
+    insertUser.run({ id: "demo-user-id", email: "demo@example.com", createdAt: now });
   }
 
   return db;
@@ -122,6 +111,13 @@ export function getUserById(userId: string): User | null {
   const row = getDb()
     .prepare("SELECT id, email, created_at as createdAt FROM users WHERE id = ?")
     .get(userId) as User | undefined;
+  return row ?? null;
+}
+
+export function getUserByEmail(email: string): User | null {
+  const row = getDb()
+    .prepare("SELECT id, email, created_at as createdAt FROM users WHERE email = ?")
+    .get(email) as User | undefined;
   return row ?? null;
 }
 

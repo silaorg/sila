@@ -7,10 +7,10 @@ import {
   getOrLoadServerSpace,
   getServerSpaceLayer,
   getSpacesForUserId,
-  getUserById,
   initDb,
 } from "./db";
-import { createAuthMiddleware } from "./middleware/auth";
+import { createAuthMiddleware, getUserFromToken } from "./middleware/auth";
+import { createAuthRouter } from "./routes/auth";
 import { createDevOnlyRouter } from "./routes/devOnly";
 import health from "./routes/health";
 import spaces from "./routes/spaces";
@@ -80,9 +80,10 @@ export async function startServer(options: ServerStartOptions = {}): Promise<Ser
 
   const app = new Hono<{ Variables: AppVariables }>();
   app.use("*", cors({ origin: "*" }));
-  app.use("*", createAuthMiddleware());
+  app.use("*", createAuthMiddleware(jwtSecret));
 
   app.route("/", health);
+  app.route("/", createAuthRouter(jwtSecret));
   app.route("/", spaces);
   app.route("/dev-only", createDevOnlyRouter(jwtSecret));
 
@@ -106,7 +107,7 @@ export async function startServer(options: ServerStartOptions = {}): Promise<Ser
       next(new Error("unauthorized"));
       return;
     }
-    const user = getUserById(token);
+    const user = getUserFromToken(token, jwtSecret);
     if (!user) {
       next(new Error("unauthorized"));
       return;

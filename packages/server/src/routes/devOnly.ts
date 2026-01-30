@@ -6,6 +6,7 @@ import {
   addSpaceMember,
   createServerSpace,
   createUser,
+  getUserByEmail,
   getUserById,
   listSpaceMembers,
   listSpaces,
@@ -44,6 +45,18 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
     const userId = c.req.param("userId");
     const user = getUserById(userId);
     if (!user) return c.json({ ok: false, error: "not found" }, 404);
+    const token = issueUserToken(user.id, user.email, jwtSecret);
+    return c.json({ ok: true, user, token });
+  });
+
+  devOnly.get("/users/by-email/:email", (c) => {
+    const emailParam = c.req.param("email");
+    const email = emailParam?.trim();
+    if (!email) return c.json({ ok: false, error: "email is required" }, 400);
+
+    const user = getUserByEmail(email);
+    if (!user) return c.json({ ok: false, error: "not found" }, 404);
+
     const token = issueUserToken(user.id, user.email, jwtSecret);
     return c.json({ ok: true, user, token });
   });

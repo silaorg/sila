@@ -199,7 +199,6 @@ export class SpaceManager {
    * @param persistenceLayers - The persistence layers to use for the space
    */
   async loadSpace(pointer: SpacePointer, persistenceLayers: PersistenceLayer[]): Promise<Space> {
-    const spaceId = pointer.id;
     const key = pointer.uri;
 
     // Check if already loaded

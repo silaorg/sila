@@ -1,8 +1,14 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { addSpaceMember, createServerSpace, getSpacesForUserId } from "../db";
 import type { AppVariables } from "../types";
 
 const spaces = new Hono<{ Variables: AppVariables }>();
+
+const createSpaceSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+});
 
 spaces.get("/spaces", (c) => {
   const user = c.get("user");
@@ -19,21 +25,12 @@ spaces.get("/spaces/:spaceId", (c) => {
   return c.json({ ok: true, space });
 });
 
-spaces.post("/spaces", async (c) => {
+spaces.post("/spaces", zValidator("json", createSpaceSchema), async (c) => {
   const user = c.get("user");
   if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
 
-  let body: { name?: string };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ ok: false, error: "invalid json" }, 400);
-  }
-
-  const name = body.name?.trim();
-  if (!name) {
-    return c.json({ ok: false, error: "name is required" }, 400);
-  }
+  const body = c.req.valid("json");
+  const name = body.name ?? "New space";
 
   const space = await createServerSpace({
     name,
@@ -41,6 +38,16 @@ spaces.post("/spaces", async (c) => {
   });
   addSpaceMember(space.id, user.id, "owner");
   return c.json({ ok: true, space });
+});
+
+spaces.delete("/spaces/:spaceId", (c) => {
+  const user = c.get("user");
+  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const spaceId = c.req.param("spaceId");
+
+  console.log(`User ${user.id} requested deletion of space ${spaceId}`);
+  
+  throw new Error("Not implemented");
 });
 
 spaces.post("/spaces/:spaceId/connect", (c) => {
