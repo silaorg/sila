@@ -115,6 +115,20 @@ export class SpaceState {
     }
   }
 
+  initBackend(): void {
+    if (!this.space) {
+      throw new Error("Space is not loaded");
+    }
+
+    const isRemote = this.pointer.uri.startsWith("http://") || this.pointer.uri.startsWith("https://");
+    if (isRemote) {
+      this.backend = null;
+      return;
+    }
+
+    this.backend = new Backend(this.space);
+  }
+
   /**
    * Disconnect from this space - keeps theme/layout but clears space data
    */

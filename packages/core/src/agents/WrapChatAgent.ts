@@ -61,6 +61,7 @@ export class WrapChatAgent
     private data: ChatAppData,
     private agentServices: AgentServices,
     private appTree: AppTree,
+    private options: { disablePeerDelay?: boolean } = {},
   ) {
     super();
     this.chatAgent = new ChatAgent();
@@ -126,7 +127,7 @@ export class WrapChatAgent
     // @TODO: Find a way of activating that logic only for non-server spaces
     // If the last message was created by someone else in the last 3 minutes, we don't reply.
     // But if it's older than 3 minutes, we do reply assuming that the peer that supposed to reply exited before replying.
-    if (false && peerIdCreatedLast !== ourPeerId && minutesSinceLast < 3) {
+    if (!this.options.disablePeerDelay && peerIdCreatedLast !== ourPeerId && minutesSinceLast < 3) {
       return;
     }
 

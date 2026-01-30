@@ -6,6 +6,10 @@ import { WrapChatAgent } from "../agents/WrapChatAgent";
 import { ThreadTitleAgent } from "../agents/ThreadTitleAgent";
 import { ThreadMessage } from "../models";
 
+type ChatBackendOptions = {
+  disablePeerDelay?: boolean;
+};
+
 export default class ChatAppBackend {
   private data: ChatAppData;
   private agentServices: AgentServices;
@@ -15,10 +19,19 @@ export default class ChatAppBackend {
     return this.appTree.tree.root!.id;
   }
 
-  constructor(private space: Space, private appTree: AppTree) {
+  constructor(
+    private space: Space,
+    private appTree: AppTree,
+    options: ChatBackendOptions = {},
+  ) {
     this.data = new ChatAppData(this.space, appTree);
     this.agentServices = new AgentServices(this.space);
-    this.defaultChatAgent = new WrapChatAgent(this.data, this.agentServices, this.appTree);
+    this.defaultChatAgent = new WrapChatAgent(
+      this.data,
+      this.agentServices,
+      this.appTree,
+      { disablePeerDelay: options.disablePeerDelay },
+    );
 
     this.defaultChatAgent.subscribe((e) => {  
       if (e.type === "messageGenerated") {
