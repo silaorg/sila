@@ -46,6 +46,7 @@ Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `Spa
 - Expose a small API for common tasks.
 - Provide a `dispose()` for cleanup.
 - Allow environment-specific layer resolution and backend enablement.
+- Error when a space URI is not supported in the current environment.
 
 ### Non-goals
 

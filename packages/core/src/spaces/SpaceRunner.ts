@@ -10,6 +10,8 @@ import { AgentServices } from "../agents/AgentServices";
 export type SpaceRunnerOptions = {
   isLocal?: boolean;
   enableBackend?: boolean;
+  environment?: "web" | "server" | "desktop" | "mobile";
+  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, environment: SpaceRunnerOptions["environment"]) => PersistenceLayer[];
 };
 
 export type SpaceRunnerPointer = {
@@ -30,12 +32,14 @@ export class SpaceRunner {
 
   static async createForNewSpace(
     space: Space,
+    pointer: SpaceRunnerPointer,
     layers: PersistenceLayer[],
     options: SpaceRunnerOptions = {},
   ): Promise<SpaceRunner> {
+    const resolvedLayers = this.resolveLayers(pointer, layers, options);
     const connectedLayers = (
       await Promise.allSettled(
-        layers.map(async (layer) => {
+        resolvedLayers.map(async (layer) => {
           await layer.connect();
           return layer;
         }),
@@ -50,7 +54,7 @@ export class SpaceRunner {
       })
       .map((result) => (result as PromiseFulfilledResult<PersistenceLayer>).value);
 
-    if (layers.length > 0 && connectedLayers.length === 0) {
+    if (resolvedLayers.length > 0 && connectedLayers.length === 0) {
       throw new Error("No persistence layers available for new space");
     }
 
@@ -92,7 +96,8 @@ export class SpaceRunner {
     layers: PersistenceLayer[],
     options: SpaceRunnerOptions = {},
   ): Promise<{ space: Space; runner: SpaceRunner }> {
-    const layerPromises = layers.map(async (layer) => {
+    const resolvedLayers = this.resolveLayers(pointer, layers, options);
+    const layerPromises = resolvedLayers.map(async (layer) => {
       await layer.connect();
       const ops = await layer.loadSpaceTreeOps();
       return { layer, ops };
@@ -143,6 +148,25 @@ export class SpaceRunner {
     await runner.loadSecrets();
     await runner.start();
     return { space, runner };
+  }
+
+  private static resolveLayers(
+    pointer: SpaceRunnerPointer,
+    layers: PersistenceLayer[],
+    options: SpaceRunnerOptions,
+  ): PersistenceLayer[] {
+    if (layers.length > 0) {
+      return layers;
+    }
+
+    if (options.resolvePersistenceLayers) {
+      return options.resolvePersistenceLayers(pointer, options.environment);
+    }
+
+    const envLabel = options.environment ?? "unknown";
+    throw new Error(
+      `No persistence layers provided for ${pointer.uri} in ${envLabel} environment`,
+    );
   }
 
   getSpace(): Space {
