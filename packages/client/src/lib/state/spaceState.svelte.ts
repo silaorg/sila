@@ -135,7 +135,13 @@ export class SpaceState {
       throw new Error("Space is not loaded");
     }
 
-    this.backend = new Backend(this.space, this.pointer.uri.startsWith("local://"));
+    const isRemote = this.pointer.uri.startsWith("http://") || this.pointer.uri.startsWith("https://");
+    if (isRemote) {
+      this.backend = null;
+      return;
+    }
+
+    this.backend = new Backend(this.space);
   }
 
   /**
