@@ -65,7 +65,7 @@ describe('Simplified File Previews (Core)', () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-simplified-previews-core-test-'));
     
     // Create space manager and test space
-    spaceManager = new SpaceManager();
+    spaceManager = new SpaceManager({ disableBackend: true });
     testSpace = Space.newSpace(crypto.randomUUID());
     testSpace.name = 'Simplified File Previews Core Test Space';
 

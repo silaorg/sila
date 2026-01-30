@@ -31,7 +31,7 @@ export type SpaceMember = {
 
 let db: Database.Database | null = null;
 let dataDir: string | null = null;
-const spaceManager = new SpaceManager();
+const spaceManager = new SpaceManager({ hostType: "server" });
 const serverFs = new NodeFileSystem();
 const spaceLayers = new Map<string, FileSystemPersistenceLayer>();
 const spaceBackends = new Map<string, Backend>();

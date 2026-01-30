@@ -31,7 +31,7 @@ describe('OpenRouter Auto Model Resolution (Unit Tests)', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenRouter provider (without API key for unit test)
@@ -71,7 +71,7 @@ describe('OpenRouter Auto Model Resolution (Unit Tests)', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenRouter provider
@@ -108,7 +108,7 @@ describe('OpenRouter Auto Model Resolution (Unit Tests)', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add multiple providers (current priority order favors OpenAI over OpenRouter)

@@ -35,7 +35,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'Files Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -115,7 +115,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'File Resolution Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -312,7 +312,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'Mutable Storage Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -371,7 +371,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'Dual Storage Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -431,7 +431,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'Mutable Edge Cases Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -478,7 +478,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'URL Format Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -533,7 +533,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'SHA Protection Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -570,7 +570,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'Document Editing Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk
@@ -634,7 +634,7 @@ describe('Workspace file store (desktop, CAS) saving and loading', () => {
 		space.name = 'UUID Validation Test Space';
 
 		const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-		const manager = new SpaceManager();
+		const manager = new SpaceManager({ disableBackend: true });
 		await manager.addNewSpace(space, [layer]);
 
 		// Give time to ensure base structure is on disk

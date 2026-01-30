@@ -47,7 +47,7 @@ describe('Chat app tree creation and persistence', () => {
     await chatData.newMessage({ role: 'user', text: 'How are you?' });
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Allow time for batched ops to flush
@@ -83,7 +83,7 @@ describe('Chat app tree creation and persistence', () => {
     const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Create a user message with one image attachment

@@ -113,7 +113,7 @@ describe('Simplified File Previews (Svelte)', () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-simplified-previews-svelte-test-'));
     
     // Create space manager and test space
-    spaceManager = new SpaceManager();
+    spaceManager = new SpaceManager({ disableBackend: true });
     testSpace = Space.newSpace(crypto.randomUUID());
     testSpace.name = 'Simplified File Previews Svelte Test Space';
 

@@ -34,7 +34,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     space.name = 'Chat Attachments Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Connect file store to space (desktop CAS)
@@ -113,7 +113,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     space.name = 'Chat Attachments Only Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Connect file store to space (desktop CAS)
@@ -174,7 +174,7 @@ describe('Chat attachments via ChatAppData.newMessage', () => {
     space.name = 'Chat Attachments Observation Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Connect file store to space (desktop CAS)

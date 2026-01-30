@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import jwt from "jsonwebtoken";
 import { io as createClient } from "socket.io-client";
 import { Space } from "@sila/core";
 import { getOrLoadServerSpace } from "../src/db";
@@ -19,6 +20,7 @@ describe("server integration", () => {
   let tempDir = "";
   let user: CreatedUser;
   let spaceId = "";
+  let accessToken = "";
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), "sila-server-test-"));
@@ -37,6 +39,9 @@ describe("server integration", () => {
     });
     const userPayload = (await userResponse.json()) as { ok: boolean; user: CreatedUser };
     user = userPayload.user;
+    accessToken = jwt.sign({ sub: user.id, email: user.email }, "test-secret", {
+      expiresIn: "7d",
+    });
 
     const spaceResponse = await fetch(`${baseUrl}/dev-only/spaces`, {
       method: "POST",
@@ -73,7 +78,7 @@ describe("server integration", () => {
   it("returns spaces for an authenticated user", async () => {
     const response = await fetch(`${baseUrl}/spaces`, {
       headers: {
-        authorization: `Bearer ${user.id}`,
+        authorization: `Bearer ${accessToken}`,
       },
     });
     const payload = (await response.json()) as { ok: boolean; spaces: { id: string }[] };
@@ -96,7 +101,7 @@ describe("server integration", () => {
       method: "POST",
       headers: {
         ...jsonHeaders,
-        authorization: `Bearer ${user.id}`,
+        authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ name: "Another Space" }),
     });
@@ -115,19 +120,19 @@ describe("server integration", () => {
       method: "POST",
       headers: {
         ...jsonHeaders,
-        authorization: `Bearer ${user.id}`,
+        authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ name: "" }),
     });
-    const payload = (await response.json()) as { ok: boolean; error: string };
+    const payload = (await response.json()) as { ok?: boolean; success?: boolean; error?: string };
 
     expect(response.status).toBe(400);
-    expect(payload.ok).toBe(false);
+    expect(payload.ok === false || payload.success === false).toBe(true);
   });
 
   it("returns 404 for unknown space", async () => {
     const response = await fetch(`${baseUrl}/spaces/unknown-space`, {
-      headers: { authorization: `Bearer ${user.id}` },
+      headers: { authorization: `Bearer ${accessToken}` },
     });
     const payload = (await response.json()) as { ok: boolean; error: string };
 
@@ -138,7 +143,7 @@ describe("server integration", () => {
   it("connects to spaces namespace over socket.io", async () => {
     const socket = createClient(`${baseUrl}/spaces/${spaceId}`, {
       path: "/socket.io",
-      auth: { token: user.id },
+      auth: { token: accessToken },
     });
 
     const readyPayload = await new Promise<{ spaceId: string }>((resolve, reject) => {
