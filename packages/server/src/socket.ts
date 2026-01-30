@@ -76,6 +76,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     },
   });
 
+  // Namespace per space: /spaces/:spaceId
   const spacesNamespace = io.of(/^\/spaces\/.+$/);
   const observedSpaces = new Map<string, { appTrees: Set<string> }>();
 
@@ -88,6 +89,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     const observed = { appTrees: new Set<string>() };
     observedSpaces.set(spaceId, observed);
 
+    // Forward local ops to all clients in the space room.
     const emitOps = (treeId: string, ops: VertexOperation[]) => {
       if (ops.length === 0) return;
       spacesNamespace.to(spaceId).emit("ops:receive", { treeId, ops });
@@ -98,6 +100,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
       emitOps(space.getId(), [op]);
     });
 
+    // Attach listeners for each app tree once.
     const registerAppTree = async (appTreeId: string) => {
       if (observed.appTrees.has(appTreeId)) return;
       observed.appTrees.add(appTreeId);
@@ -124,6 +127,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     });
   };
 
+  // Auth + space access gate for namespace connections.
   const authenticateSocket = (socket: SpaceSocket, next: (err?: Error) => void) => {
     const token = socket.handshake.auth?.token;
     if (!token || typeof token !== "string") {
@@ -156,6 +160,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
 
   spacesNamespace.use(authenticateSocket);
 
+  // Send missing ops for the requested trees based on state vectors.
   const handleOpsState = async (socket: SpaceSocket, payload: OpsStatePayload) => {
     const { spaceId } = socket.data;
     const space = await getOrLoadServerSpace(spaceId);
@@ -172,6 +177,7 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     socket.emit("ops:sync:done", { treeIds });
   };
 
+  // Persist and merge incoming ops, then broadcast to other clients.
   const handleOpsSend = async (socket: SpaceSocket, payload: OpsSendPayload) => {
     const { spaceId } = socket.data;
     const treeId = payload?.treeId;
@@ -179,6 +185,8 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     if (!treeId || !Array.isArray(ops) || ops.length === 0) {
       return;
     }
+
+    // @TODO: Validate ops before saving/merging
 
     const layer = await getServerSpaceLayer(spaceId);
     await layer.saveTreeOps(treeId, ops);
@@ -199,8 +207,9 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
   spacesNamespace.on("connection", (socket: SpaceSocket) => {
     const { spaceId } = socket.data;
     socket.join(spaceId);
-    void ensureServerOpsBroadcast(spaceId);
+    ensureServerOpsBroadcast(spaceId);
 
+    // Initial handshake for space sockets.
     socket.emit("ready", { spaceId });
 
     socket.on("ops:state", async (payload: OpsStatePayload) => {
