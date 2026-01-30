@@ -1,6 +1,6 @@
 import { Space } from "./Space";
 import type { PersistenceLayer } from "./persistence/PersistenceLayer";
-import type { SpaceRunnerOptions } from "./SpaceRunner";
+import type { SpaceRunnerEnvironment, SpaceRunnerOptions, SpaceRunnerPointer } from "./SpaceRunner";
 import { SpaceRunner } from "./SpaceRunner";
 
 export interface SpacePointer {
@@ -16,9 +16,9 @@ export interface SpaceConfig {
 }
 
 export type SpaceManagerOptions = {
-  resolvePersistenceLayers?: (pointer: SpacePointer, environment: SpaceRunnerOptions["environment"]) => PersistenceLayer[];
+  resolvePersistenceLayers?: (pointer: SpacePointer, environment: SpaceRunnerEnvironment | undefined) => PersistenceLayer[];
   shouldEnableBackend?: (pointer: SpacePointer) => boolean;
-  environment?: SpaceRunnerOptions["environment"];
+  environment?: SpaceRunnerEnvironment;
 };
 
 /**
@@ -27,9 +27,9 @@ export type SpaceManagerOptions = {
  */
 export class SpaceManager {
   private runners = new Map<string, SpaceRunner>();
-  private resolvePersistenceLayers?: (pointer: SpacePointer, environment: SpaceRunnerOptions["environment"]) => PersistenceLayer[];
+  private resolvePersistenceLayers?: (pointer: SpacePointer, environment: SpaceRunnerEnvironment | undefined) => PersistenceLayer[];
   private shouldEnableBackend: (pointer: SpacePointer) => boolean;
-  private environment?: SpaceRunnerOptions["environment"];
+  private environment?: SpaceRunnerEnvironment;
 
   constructor(options: SpaceManagerOptions = {}) {
     this.resolvePersistenceLayers = options.resolvePersistenceLayers;
@@ -64,12 +64,16 @@ export class SpaceManager {
     const layers = persistenceLayers.length > 0
       ? persistenceLayers
       : this.resolvePersistenceLayers?.(pointer, this.environment) ?? [];
+    const resolvePersistenceLayers = this.resolvePersistenceLayers
+      ? (runnerPointer: SpaceRunnerPointer, environment: SpaceRunnerEnvironment | undefined) =>
+        this.resolvePersistenceLayers?.(runnerPointer as SpacePointer, environment) ?? []
+      : undefined;
 
     const runner = await SpaceRunner.createForNewSpace(space, pointer, layers, {
       isLocal: key.startsWith("local://"),
       enableBackend: this.shouldEnableBackend(pointer),
       environment: this.environment,
-      resolvePersistenceLayers: this.resolvePersistenceLayers,
+      resolvePersistenceLayers,
     });
     this.runners.set(key, runner);
   }
@@ -97,7 +101,10 @@ export class SpaceManager {
         isLocal: pointer.uri.startsWith("local://"),
         enableBackend: this.shouldEnableBackend(pointer),
         environment: this.environment,
-        resolvePersistenceLayers: this.resolvePersistenceLayers,
+        resolvePersistenceLayers: this.resolvePersistenceLayers
+          ? (runnerPointer: SpaceRunnerPointer, environment: SpaceRunnerEnvironment | undefined) =>
+            this.resolvePersistenceLayers?.(runnerPointer as SpacePointer, environment) ?? []
+          : undefined,
       },
     );
     this.runners.set(key, runner);

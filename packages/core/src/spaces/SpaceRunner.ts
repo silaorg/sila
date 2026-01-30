@@ -7,11 +7,13 @@ import uuid from "../utils/uuid";
 import { Backend } from "./Backend";
 import { AgentServices } from "../agents/AgentServices";
 
+export type SpaceRunnerEnvironment = "web" | "server" | "desktop" | "mobile";
+
 export type SpaceRunnerOptions = {
   isLocal?: boolean;
   enableBackend?: boolean;
-  environment?: "web" | "server" | "desktop" | "mobile";
-  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, environment: SpaceRunnerOptions["environment"]) => PersistenceLayer[];
+  environment?: SpaceRunnerEnvironment;
+  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, environment: SpaceRunnerEnvironment | undefined) => PersistenceLayer[];
 };
 
 export type SpaceRunnerPointer = {
