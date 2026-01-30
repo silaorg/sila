@@ -26,7 +26,7 @@ describe('Space creation and file-system persistence', () => {
     space.name = 'Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Wait for batched save to flush (layer uses ~500ms interval)
@@ -57,7 +57,7 @@ describe('Space creation and file-system persistence', () => {
     const spaceId = space.getId();
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Should not throw "No tree loader registered"

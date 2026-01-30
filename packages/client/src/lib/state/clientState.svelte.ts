@@ -198,8 +198,6 @@ export class ClientState {
       hostType,
       resolvePersistenceLayers: (pointer, resolvedHostType) =>
         this.resolvePersistenceLayers(pointer, resolvedHostType ?? hostType),
-      shouldEnableBackend: (pointer, resolvedHostType) =>
-        this.shouldEnableBackend(pointer, resolvedHostType ?? hostType),
     });
   }
 
@@ -242,19 +240,6 @@ export class ClientState {
       this._fs,
       () => this.auth.getAccessToken(),
     );
-  }
-
-  private shouldEnableBackend(
-    pointer: SpacePointer,
-    hostType: SpaceRunnerHostType,
-  ): boolean {
-    if (hostType === "web") {
-      if (pointer.uri.startsWith("http://") || pointer.uri.startsWith("https://")) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   private assertHostSupportsSpace(pointer: SpacePointer, hostType: SpaceRunnerHostType): void {

@@ -1,10 +1,6 @@
 import { Space } from "./Space";
 import type { PersistenceLayer } from "./persistence/PersistenceLayer";
-import type {
-  SpaceRunnerHostType,
-  SpaceRunnerOptions,
-  SpaceRunnerPointer,
-} from "./SpaceRunner";
+import type { SpaceRunnerHostType, SpaceRunnerPointer } from "./SpaceRunner";
 import { SpaceRunner } from "./SpaceRunner";
 
 export interface SpacePointer {
@@ -15,19 +11,12 @@ export interface SpacePointer {
   userId: string | null;
 }
 
-export interface SpaceConfig {
-  persistenceLayers?: PersistenceLayer[];
-}
-
 export type SpaceManagerOptions = {
   resolvePersistenceLayers?: (
     pointer: SpacePointer,
     hostType: SpaceRunnerHostType | undefined,
   ) => PersistenceLayer[];
-  shouldEnableBackend?: (
-    pointer: SpacePointer,
-    hostType: SpaceRunnerHostType | undefined,
-  ) => boolean;
+  disableBackend?: boolean;
   hostType?: SpaceRunnerHostType;
 };
 
@@ -41,15 +30,12 @@ export class SpaceManager {
     pointer: SpacePointer,
     hostType: SpaceRunnerHostType | undefined,
   ) => PersistenceLayer[];
-  private shouldEnableBackend?: (
-    pointer: SpacePointer,
-    hostType: SpaceRunnerHostType | undefined,
-  ) => boolean;
+  private disableBackend?: boolean;
   private hostType?: SpaceRunnerHostType;
 
   constructor(options: SpaceManagerOptions = {}) {
     this.resolvePersistenceLayers = options.resolvePersistenceLayers;
-    this.shouldEnableBackend = options.shouldEnableBackend;
+    this.disableBackend = options.disableBackend;
     this.hostType = options.hostType;
   }
 
@@ -93,9 +79,7 @@ export class SpaceManager {
       pointer,
       persistenceLayers,
       {
-        enableBackend: this.shouldEnableBackend
-          ? this.shouldEnableBackend(pointer, this.hostType)
-          : false,
+        disableBackend: this.disableBackend,
         hostType: this.hostType,
         resolvePersistenceLayers,
       },
@@ -126,9 +110,7 @@ export class SpaceManager {
       { id: pointer.id, uri: pointer.uri },
       persistenceLayers,
       {
-        enableBackend: this.shouldEnableBackend
-          ? this.shouldEnableBackend(pointer, this.hostType)
-          : false,
+        disableBackend: this.disableBackend,
         hostType: this.hostType,
         resolvePersistenceLayers: this.resolvePersistenceLayers
           ? (

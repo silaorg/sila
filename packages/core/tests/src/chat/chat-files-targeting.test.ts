@@ -30,7 +30,7 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Provide FileStore for CAS writes
@@ -68,7 +68,7 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Provide FileStore for CAS writes

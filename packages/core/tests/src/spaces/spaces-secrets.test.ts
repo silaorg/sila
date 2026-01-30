@@ -27,7 +27,7 @@ describe('Secrets persistence', () => {
 
     // Create persistence and add space to manager to enable secret saving hooks
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Save secrets via wrapped methods

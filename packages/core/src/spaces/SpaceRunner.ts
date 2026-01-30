@@ -10,7 +10,7 @@ import { AgentServices } from "../agents/AgentServices";
 export type SpaceRunnerHostType = "web" | "server" | "desktop" | "mobile";
 
 export type SpaceRunnerOptions = {
-  enableBackend?: boolean;
+  disableBackend?: boolean;
   hostType?: SpaceRunnerHostType;
   resolvePersistenceLayers?: (
     pointer: SpaceRunnerPointer,
@@ -203,10 +203,6 @@ export class SpaceRunner {
   }
 
   getBackend(): Backend {
-    if (!this.shouldEnableBackend()) {
-      throw new Error("Backend creation is disabled for this SpaceRunner");
-    }
-
     if (!this.backend) {
       this.backend = new Backend(this.space);
     }
@@ -226,7 +222,7 @@ export class SpaceRunner {
     this.attachFileStoreProvider();
     this.registerTreeLoader();
     this.setupOperationTracking();
-    this.initBackendIfEnabled();
+    this.initBackend();
     await this.setupTwoWaySync();
     if (this.persistenceLayers.length > 0) {
       await this.syncTreeOpsBetweenLayers(this.space.getId());
@@ -340,8 +336,8 @@ export class SpaceRunner {
   }
 
   private shouldEnableBackend(): boolean {
-    if (this.options.enableBackend !== undefined) {
-      return this.options.enableBackend;
+    if (this.options.disableBackend === true) {
+      return false;
     }
 
     if (this.options.hostType === "web") {
@@ -356,12 +352,14 @@ export class SpaceRunner {
     return true;
   }
 
-  private initBackendIfEnabled(): void {
+  private initBackend() {
     if (!this.shouldEnableBackend()) {
       return;
     }
 
-    this.getBackend();
+    if (!this.backend) {
+      this.backend = new Backend(this.space);
+    }
   }
 
   private attachFileStoreProvider(): void {
