@@ -45,6 +45,7 @@ Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `Spa
 - Start and stop lifecycle for all space services.
 - Expose a small API for common tasks.
 - Provide a `dispose()` for cleanup.
+- Allow environment-specific layer resolution and backend enablement.
 
 ### Non-goals
 

@@ -14,12 +14,24 @@ export interface SpaceConfig {
   persistenceLayers?: PersistenceLayer[];
 }
 
+export type SpaceManagerOptions = {
+  resolvePersistenceLayers?: (pointer: SpacePointer) => PersistenceLayer[];
+  shouldEnableBackend?: (pointer: SpacePointer) => boolean;
+};
+
 /**
  * Manages spaces and their persistence layers.
  * Handles loading, saving, and orchestrating multiple persistence strategies.
  */
 export class SpaceManager {
   private runners = new Map<string, SpaceRunner>();
+  private resolvePersistenceLayers?: (pointer: SpacePointer) => PersistenceLayer[];
+  private shouldEnableBackend: (pointer: SpacePointer) => boolean;
+
+  constructor(options: SpaceManagerOptions = {}) {
+    this.resolvePersistenceLayers = options.resolvePersistenceLayers;
+    this.shouldEnableBackend = options.shouldEnableBackend ?? (() => true);
+  }
 
   /**
    * Add a new space to the manager. Saves the space to the persistence layers.
@@ -33,13 +45,25 @@ export class SpaceManager {
   ): Promise<void> {
     const spaceId = space.getId();
     const key = spaceKey ?? spaceId;
+    const pointer: SpacePointer = {
+      id: spaceId,
+      uri: key,
+      name: space.name ?? null,
+      createdAt: space.createdAt,
+      userId: null,
+    };
 
     if (this.runners.has(key)) {
       return;
     }
 
-    const runner = await SpaceRunner.createForNewSpace(space, persistenceLayers, {
+    const layers = persistenceLayers.length > 0
+      ? persistenceLayers
+      : this.resolvePersistenceLayers?.(pointer) ?? [];
+
+    const runner = await SpaceRunner.createForNewSpace(space, layers, {
       isLocal: key.startsWith("local://"),
+      enableBackend: this.shouldEnableBackend(pointer),
     });
     this.runners.set(key, runner);
   }
@@ -60,10 +84,17 @@ export class SpaceManager {
       return existingRunner.getSpace();
     }
 
+    const layers = persistenceLayers.length > 0
+      ? persistenceLayers
+      : this.resolvePersistenceLayers?.(pointer) ?? [];
+
     const { space, runner } = await SpaceRunner.loadFromLayers(
       { id: pointer.id, uri: pointer.uri },
-      persistenceLayers,
-      { isLocal: pointer.uri.startsWith("local://") },
+      layers,
+      {
+        isLocal: pointer.uri.startsWith("local://"),
+        enableBackend: this.shouldEnableBackend(pointer),
+      },
     );
     this.runners.set(key, runner);
 

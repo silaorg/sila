@@ -9,6 +9,7 @@ import { AgentServices } from "../agents/AgentServices";
 
 export type SpaceRunnerOptions = {
   isLocal?: boolean;
+  enableBackend?: boolean;
 };
 
 export type SpaceRunnerPointer = {
@@ -153,6 +154,10 @@ export class SpaceRunner {
   }
 
   getBackend(): Backend {
+    if (this.options.enableBackend === false) {
+      throw new Error("Backend creation is disabled for this SpaceRunner");
+    }
+
     if (!this.backend) {
       this.backend = new Backend(this.space, this.options.isLocal ?? false);
     }
