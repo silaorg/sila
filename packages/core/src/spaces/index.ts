@@ -1,5 +1,6 @@
 export * from './Space';
 export * from './SpaceManager';
+export * from './SpaceRunner';
 export * from './Backend';
 export * from './AppConfigsData';
 export * from './AppTree';

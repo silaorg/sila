@@ -135,6 +135,12 @@ export class SpaceState {
       throw new Error("Space is not loaded");
     }
 
+    const runner = this.spaceManager.getRunner(this.pointer.uri);
+    if (runner) {
+      this.backend = runner.getBackend();
+      return;
+    }
+
     this.backend = new Backend(this.space, this.pointer.uri.startsWith("local://"));
   }
 

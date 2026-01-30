@@ -1,0 +1,295 @@
+import { RepTree } from "reptree";
+import type { VertexOperation } from "reptree";
+import { Space } from "./Space";
+import { AppTree } from "./AppTree";
+import type { PersistenceLayer } from "./persistence/PersistenceLayer";
+import uuid from "../utils/uuid";
+import { Backend } from "./Backend";
+import { AgentServices } from "../agents/AgentServices";
+
+export type SpaceRunnerOptions = {
+  isLocal?: boolean;
+};
+
+export class SpaceRunner {
+  private backend: Backend | null = null;
+  private agentServices: AgentServices | null = null;
+  private started = false;
+
+  constructor(
+    private space: Space,
+    private persistenceLayers: PersistenceLayer[],
+    private options: SpaceRunnerOptions = {},
+  ) {}
+
+  getSpace(): Space {
+    return this.space;
+  }
+
+  getPersistenceLayers(): PersistenceLayer[] {
+    return this.persistenceLayers;
+  }
+
+  getBackend(): Backend {
+    if (!this.backend) {
+      this.backend = new Backend(this.space, this.options.isLocal ?? false);
+    }
+    return this.backend;
+  }
+
+  getAgentServices(): AgentServices {
+    if (!this.agentServices) {
+      this.agentServices = new AgentServices(this.space);
+    }
+    return this.agentServices;
+  }
+
+  async start(): Promise<void> {
+    if (this.started) return;
+
+    this.attachFileStoreProvider();
+    this.registerTreeLoader();
+    this.setupOperationTracking();
+    await this.setupTwoWaySync();
+    await this.syncTreeOpsBetweenLayers(this.space.getId());
+    this.started = true;
+  }
+
+  async stop(): Promise<void> {
+    if (!this.started) return;
+
+    await Promise.all(
+      this.persistenceLayers
+        .filter(layer => layer.stopListening)
+        .map(layer => layer.stopListening!()),
+    );
+
+    await Promise.all(this.persistenceLayers.map(layer => layer.disconnect()));
+    this.started = false;
+  }
+
+  async dispose(): Promise<void> {
+    await this.stop();
+    this.backend = null;
+    this.agentServices = null;
+  }
+
+  addPersistenceLayer(layer: PersistenceLayer): void {
+    this.persistenceLayers = [...this.persistenceLayers, layer];
+    this.setupOperationTrackingForLayer(layer);
+    this.registerTreeLoader();
+  }
+
+  removePersistenceLayer(layerId: string): void {
+    const removedLayer = this.persistenceLayers.find(layer => layer.id === layerId);
+    this.persistenceLayers = this.persistenceLayers.filter(layer => layer.id !== layerId);
+    if (removedLayer) {
+      removedLayer.disconnect().catch(console.error);
+    }
+  }
+
+  private registerTreeLoader(): void {
+    if (this.persistenceLayers.length === 0) return;
+
+    this.space.registerTreeLoader(async (appTreeId: string) => {
+      const treeLoadPromises = this.persistenceLayers.map(async (layer) => {
+        await layer.connect();
+        const ops = await layer.loadTreeOps(appTreeId);
+        return { layer, ops };
+      });
+
+      let appTree: AppTree | undefined;
+
+      try {
+        const firstTreeResult = await Promise.race(treeLoadPromises);
+        if (firstTreeResult.ops.length === 0) {
+          throw new Error("No app tree ops found");
+        }
+
+        const tree = new RepTree(uuid(), firstTreeResult.ops);
+        if (!tree.root) {
+          throw new Error("No root vertex found in app tree");
+        }
+
+        appTree = new AppTree(tree);
+
+        Promise.allSettled(treeLoadPromises).then(results => {
+          results.forEach(result => {
+            if (result.status === "fulfilled" && result.value !== firstTreeResult) {
+              const { ops } = result.value;
+              if (ops.length > 0) {
+                appTree!.tree.merge(ops);
+              }
+            }
+          });
+        }).catch(error => console.error("Failed to load app tree from additional layers:", error));
+      } catch {
+        const allOps: VertexOperation[] = [];
+        const results = await Promise.allSettled(treeLoadPromises);
+
+        results.forEach(result => {
+          if (result.status === "fulfilled") {
+            allOps.push(...result.value.ops);
+          }
+        });
+
+        const tree = new RepTree(uuid(), allOps);
+        if (!tree.root) {
+          return undefined;
+        }
+
+        appTree = new AppTree(tree);
+      }
+
+      this.syncTreeOpsBetweenLayers(appTreeId);
+
+      return appTree;
+    });
+  }
+
+  private attachFileStoreProvider(): void {
+    if (this.space.fileStore) {
+      return;
+    }
+
+    for (const layer of this.persistenceLayers) {
+      if (typeof (layer as any).getFileStoreProvider === "function") {
+        const provider = (layer as any).getFileStoreProvider();
+        this.space.setFileStoreProvider(provider);
+        return;
+      }
+    }
+  }
+
+  /**
+   * Sync tree operations between layers. It means that layers will share missing ops between each other.
+   * We need it to make sure that all layers converge to the same latest state in case if they were not saving ops at the same time.
+   * @param treeId - The id of the tree to sync
+   */
+  private async syncTreeOpsBetweenLayers(treeId: string): Promise<void> {
+    if (this.persistenceLayers.length <= 1) {
+      return;
+    }
+
+    try {
+      const layerOpsPromises = this.persistenceLayers.map(async (layer) => {
+        await layer.connect();
+        const ops = await layer.loadTreeOps(treeId);
+        return { layer, ops };
+      });
+      const allOpsFromLayers = await Promise.all(layerOpsPromises);
+
+      for (const { layer, ops } of allOpsFromLayers) {
+        const opsIdSet = new Set<string>();
+        for (const op of ops) {
+          opsIdSet.add(`${op.id.counter}@${op.id.peerId}`);
+        }
+
+        const missingOps: VertexOperation[] = [];
+
+        for (const { layer: layerB, ops: opsB } of allOpsFromLayers) {
+          if (layer === layerB) {
+            continue;
+          }
+
+          for (const opB of opsB) {
+            const opBId = `${opB.id.counter}@${opB.id.peerId}`;
+            if (!opsIdSet.has(opBId)) {
+              missingOps.push(opB);
+              opsIdSet.add(opBId);
+            }
+          }
+        }
+
+        if (missingOps.length > 0) {
+          const isSpaceTree = this.space.getId() === treeId;
+          if (isSpaceTree) {
+            console.log(`Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`, missingOps);
+          } else {
+            console.log(`Saving missing ops for tree ${treeId} to layer: ${layer.id}`, missingOps);
+          }
+
+          await layer.saveTreeOps(treeId, missingOps);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to sync tree operations for treeId ${treeId}:`, error);
+    }
+  }
+
+  private setupOperationTracking(space: Space = this.space, layers: PersistenceLayer[] = this.persistenceLayers) {
+    space.tree.observeOpApplied((op) => {
+      if (op.id.peerId === space.tree.peerId && !("transient" in op && op.transient)) {
+        Promise.all(layers.map(layer => layer.saveTreeOps(space.getId(), [op])))
+          .catch(error => console.error("Failed to save space tree operation:", error));
+      }
+    });
+
+    space.observeNewAppTree((appTreeId) => {
+      const appTree = space.getAppTree(appTreeId)!;
+      const ops = appTree.tree.getAllOps();
+
+      Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, ops)))
+        .catch(error => console.error("Failed to save new app tree ops:", error));
+
+      appTree.tree.observeOpApplied((op) => {
+        if (op.id.peerId === appTree.tree.peerId && !("transient" in op && op.transient)) {
+          Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, [op])))
+            .catch(error => console.error("Failed to save app tree operation:", error));
+        }
+      });
+    });
+
+    space.observeTreeLoad((appTreeId) => {
+      const appTree = space.getAppTree(appTreeId)!;
+      appTree.tree.observeOpApplied((op) => {
+        if (op.id.peerId === appTree.tree.peerId && !("transient" in op && op.transient)) {
+          Promise.all(layers.map(layer => layer.saveTreeOps(appTreeId, [op])))
+            .catch(error => console.error("Failed to save loaded app tree operation:", error));
+        }
+      });
+    });
+
+    this.wrapSecretsMethod(space, layers);
+  }
+
+  private setupOperationTrackingForLayer(layer: PersistenceLayer) {
+    this.setupOperationTracking(this.space, [layer]);
+  }
+
+  private async setupTwoWaySync(space: Space = this.space, layers: PersistenceLayer[] = this.persistenceLayers) {
+    const spaceId = space.getId();
+
+    for (const layer of layers) {
+      if (layer.startListening) {
+        await layer.startListening((treeId, incomingOps) => {
+          if (treeId === spaceId) {
+            space.tree.merge(incomingOps);
+          } else {
+            const appTree = space.getAppTree(treeId);
+            if (appTree) {
+              appTree.tree.merge(incomingOps);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  private wrapSecretsMethod(space: Space, layers: PersistenceLayer[]) {
+    const originalSetSecret = space.setSecret.bind(space);
+    const originalSaveAllSecrets = space.saveAllSecrets.bind(space);
+
+    space.setSecret = (key: string, value: string) => {
+      originalSetSecret(key, value);
+      Promise.all(layers.map(layer => layer.saveSecrets({ [key]: value })))
+        .catch(error => console.error("Failed to save secret:", error));
+    };
+
+    space.saveAllSecrets = (secrets: Record<string, string>) => {
+      originalSaveAllSecrets(secrets);
+      Promise.all(layers.map(layer => layer.saveSecrets(secrets)))
+        .catch(error => console.error("Failed to save secrets:", error));
+    };
+  }
+}
