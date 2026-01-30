@@ -9,10 +9,7 @@ import { AppTree } from "./AppTree";
 export class Backend {
   private appBackends: ChatAppBackend[] = [];
 
-  constructor(
-    private space: Space,
-    private options: { disablePeerDelay?: boolean } = {},
-  ) {
+  constructor(private space: Space, private inLocalMode: boolean = false) {
     /*
     if (!inLocalMode) {
       throw new Error("Backend is not supported for remote spaces yet");
@@ -39,9 +36,7 @@ export class Backend {
     const appId = appTree.getAppId();
 
     if (appId === "default-chat") {
-      this.appBackends.push(new ChatAppBackend(this.space, appTree, {
-        disablePeerDelay: this.options.disablePeerDelay,
-      }));
+      this.appBackends.push(new ChatAppBackend(this.space, appTree));
     } else if (appId === "files") {
       // Files app trees don't need a backend for now
       console.log(`Files app tree loaded: ${appTree.getId()}`);

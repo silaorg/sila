@@ -3,7 +3,6 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import type { SpacePointer } from "@sila/core";
 import {
-  Backend,
   FileSystemPersistenceLayer,
   Space as CoreSpace,
   SpaceManager,
@@ -34,7 +33,6 @@ let dataDir: string | null = null;
 const spaceManager = new SpaceManager({ hostType: "server" });
 const serverFs = new NodeFileSystem();
 const spaceLayers = new Map<string, FileSystemPersistenceLayer>();
-const spaceBackends = new Map<string, Backend>();
 
 function ensureDbPath(dbPath: string): void {
   const dir = path.dirname(dbPath);
@@ -175,7 +173,6 @@ export async function getServerSpaceLayer(spaceId: string): Promise<FileSystemPe
 export async function getOrLoadServerSpace(spaceId: string): Promise<CoreSpace> {
   const existing = spaceManager.getSpace(spaceId);
   if (existing) {
-    ensureBackend(existing);
     return existing;
   }
 
@@ -189,9 +186,7 @@ export async function getOrLoadServerSpace(spaceId: string): Promise<CoreSpace> 
     userId: null,
   };
 
-  const space = await spaceManager.loadSpace(pointer, [layer]);
-  ensureBackend(space);
-  return space;
+  return await spaceManager.loadSpace(pointer, [layer]);
 }
 
 export async function createServerSpace(input: {
@@ -207,16 +202,7 @@ export async function createServerSpace(input: {
   });
   const layer = await getServerSpaceLayer(created.id);
   await spaceManager.addNewSpace(space, [layer], created.id);
-  ensureBackend(space);
   return created;
-}
-
-function ensureBackend(space: CoreSpace): void {
-  if (spaceBackends.has(space.getId())) return;
-
-  console.log(`Creating backend for space ${space.getId()}`);
-
-  spaceBackends.set(space.getId(), new Backend(space, { disablePeerDelay: true }));
 }
 
 export function addSpaceMember(

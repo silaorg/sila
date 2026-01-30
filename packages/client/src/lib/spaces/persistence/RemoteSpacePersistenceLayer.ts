@@ -135,28 +135,8 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
   }
 
   async saveSecrets(_secrets: Record<string, string>): Promise<void> {
-    if (!_secrets || Object.keys(_secrets).length === 0) return;
-
-    await this.connect();
-
-    const token = this.getAuthToken?.() ?? null;
-    if (!token) {
-      throw new Error("RemoteSpacePersistenceLayer missing auth token");
-    }
-
-    const url = `${this.serverBaseUrl.replace(/\/+$/, "")}/spaces/${this.spaceId}/secrets`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify(_secrets),
-    });
-
-    if (!response.ok) {
-      const message = await response.text().catch(() => "");
-      throw new Error(`Failed to save secrets: ${response.status} ${message}`);
+    if (!this._connected) {
+      throw new Error("RemoteSpacePersistenceLayer not connected");
     }
   }
 

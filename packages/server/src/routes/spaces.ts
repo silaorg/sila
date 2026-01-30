@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { addSpaceMember, createServerSpace, getServerSpaceLayer, getSpacesForUserId } from "../db";
+import { addSpaceMember, createServerSpace, getSpacesForUserId } from "../db";
 import type { AppVariables } from "../types";
 
 const spaces = new Hono<{ Variables: AppVariables }>();
@@ -9,8 +9,6 @@ const spaces = new Hono<{ Variables: AppVariables }>();
 const createSpaceSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
 });
-
-const secretsSchema = z.record(z.string().trim().min(1), z.string());
 
 spaces.get("/spaces", (c) => {
   const user = c.get("user");
@@ -65,24 +63,6 @@ spaces.post("/spaces/:spaceId/connect", (c) => {
       path: "/socket.io",
     },
   });
-});
-
-spaces.post("/spaces/:spaceId/secrets", zValidator("json", secretsSchema), async (c) => {
-  const user = c.get("user");
-  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
-  const spaceId = c.req.param("spaceId");
-  const space = getSpacesForUserId(user.id).find((s) => s.id === spaceId);
-  if (!space) return c.json({ ok: false, error: "not found" }, 404);
-
-  const secrets = c.req.valid("json");
-  if (!secrets || Object.keys(secrets).length === 0) {
-    return c.json({ ok: false, error: "no secrets provided" }, 400);
-  }
-
-  const layer = await getServerSpaceLayer(spaceId);
-  await layer.saveSecrets(secrets);
-
-  return c.json({ ok: true });
 });
 
 export default spaces;

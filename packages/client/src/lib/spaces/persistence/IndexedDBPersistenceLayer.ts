@@ -82,10 +82,6 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
       throw new Error('IndexedDBPersistenceLayer not connected');
     }
 
-    if (this.spaceUri.startsWith("http://") || this.spaceUri.startsWith("https://")) {
-      return undefined;
-    }
-
     // Load secrets from IndexedDB
     return await getAllSecrets(this.spaceUri, this.spaceId);
   }
@@ -96,10 +92,6 @@ export class IndexedDBPersistenceLayer implements PersistenceLayer {
     }
 
     if (Object.keys(secrets).length === 0) return;
-
-    if (this.spaceUri.startsWith("http://") || this.spaceUri.startsWith("https://")) {
-      return;
-    }
 
     // Save secrets to IndexedDB
     await saveAllSecrets(this.spaceUri, this.spaceId, secrets);

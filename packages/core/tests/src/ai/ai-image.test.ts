@@ -74,7 +74,7 @@ describe('AI Image Integration', () => {
     } as any);
 
     // Set up backend to handle AI responses (BEFORE creating chat tree)
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree (this should trigger the observeTreeLoad callback)
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
@@ -201,7 +201,7 @@ describe('AI Image Integration', () => {
     } as any);
 
     // Set up backend to handle AI responses (BEFORE creating chat tree)
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree (this should trigger the observeTreeLoad callback)
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
@@ -343,7 +343,7 @@ describe('AI Image Integration', () => {
     } as any);
 
     // Set up backend
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
@@ -414,7 +414,7 @@ describe('AI Image Integration', () => {
     } as any);
 
     // Set up backend to handle AI responses
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);

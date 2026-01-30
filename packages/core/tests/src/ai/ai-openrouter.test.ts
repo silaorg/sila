@@ -66,7 +66,7 @@ describe('OpenRouter AI Integration', () => {
     } as any);
 
     // Set up backend to handle AI responses
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
@@ -137,7 +137,7 @@ describe('OpenRouter AI Integration', () => {
     } as any);
 
     // Set up backend
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
@@ -208,7 +208,7 @@ describe('OpenRouter AI Integration', () => {
     } as any);
 
     // Set up backend
-    const backend = new Backend(space);
+    const backend = new Backend(space, true);
 
     // Create chat tree
     const chatTree = ChatAppData.createNewChatTree(space, assistantId);
