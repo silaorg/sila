@@ -7,13 +7,13 @@ import uuid from "../utils/uuid";
 import { Backend } from "./Backend";
 import { AgentServices } from "../agents/AgentServices";
 
-export type SpaceRunnerEnvironment = "web" | "server" | "desktop" | "mobile";
+export type SpaceRunnerHostType = "web" | "server" | "desktop" | "mobile";
 
 export type SpaceRunnerOptions = {
   isLocal?: boolean;
   enableBackend?: boolean;
-  environment?: SpaceRunnerEnvironment;
-  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, environment: SpaceRunnerEnvironment | undefined) => PersistenceLayer[];
+  hostType?: SpaceRunnerHostType;
+  resolvePersistenceLayers?: (pointer: SpaceRunnerPointer, hostType: SpaceRunnerHostType | undefined) => PersistenceLayer[];
 };
 
 export type SpaceRunnerPointer = {
@@ -162,12 +162,12 @@ export class SpaceRunner {
     }
 
     if (options.resolvePersistenceLayers) {
-      return options.resolvePersistenceLayers(pointer, options.environment);
+      return options.resolvePersistenceLayers(pointer, options.hostType);
     }
 
-    const envLabel = options.environment ?? "unknown";
+    const hostLabel = options.hostType ?? "unknown";
     throw new Error(
-      `No persistence layers provided for ${pointer.uri} in ${envLabel} environment`,
+      `No persistence layers provided for ${pointer.uri} in ${hostLabel} host type`,
     );
   }
 
