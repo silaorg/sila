@@ -16,6 +16,17 @@ Space setup is spread across multiple systems. This makes it hard to see how a s
 - `SpaceState` creates `Backend` after the space is loaded.
 - `ChatAppBackend` creates `AgentServices` per chat app tree.
 
+## Lifecycle hooks
+
+Today we only have connect and disconnect points:
+
+- `SpaceState.connect()` loads the space, theme, layout, and backend.
+- `SpaceState.disconnect()` closes the space in `SpaceManager`.
+- `SpaceManager.closeSpace()` stops two-way sync and disconnects layers.
+
+This maps cleanly to `start`, `stop`, and `dispose`. We do not need extra hooks now.
+If we add more runtime services later, we can add targeted hooks then.
+
 ## Proposal
 
 Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `SpaceManager` uses it to create, start, stop, and dispose spaces.
@@ -37,6 +48,7 @@ Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `Spa
 ### Non-goals
 
 - Do not add status events now. Add them when a use case appears.
+- Do not add lifecycle hooks beyond `start`, `stop`, and `dispose`.
 
 ### Sketch
 
@@ -71,4 +83,15 @@ class SpaceRunner {
 
 ## Open questions
 
-- Do we need space-level lifecycle hooks beyond `start` and `stop`?
+- When do we want a shared test helper for runner fixtures?
+
+## Affected areas
+
+- `packages/core/src/spaces/SpaceManager.ts`
+- `packages/client/src/lib/state/spaceState.svelte.ts`
+- `packages/client/src/lib/state/clientState.svelte.ts`
+- `packages/core/src/spaces/Backend.ts`
+- `packages/core/src/apps/ChatAppBackend.ts`
+- `packages/core/src/agents/AgentServices.ts`
+- `packages/client/src/lib/spaces/persistence/*`
+- `packages/core/src/spaces/persistence/*`
