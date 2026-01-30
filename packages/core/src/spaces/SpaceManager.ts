@@ -1,5 +1,6 @@
 import { Space } from "./Space";
 import type { PersistenceLayer } from "./persistence/PersistenceLayer";
+import type { SpaceRunnerOptions } from "./SpaceRunner";
 import { SpaceRunner } from "./SpaceRunner";
 
 export interface SpacePointer {
