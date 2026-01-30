@@ -100,6 +100,52 @@ export async function startServer(options: ServerStartOptions = {}): Promise<Ser
   });
 
   const spacesNamespace = io.of(/^\/spaces\/.+$/);
+  const observedSpaces = new Map<string, { appTrees: Set<string> }>();
+
+  const ensureServerOpsBroadcast = async (spaceId: string) => {
+    if (observedSpaces.has(spaceId)) {
+      return;
+    }
+
+    const space = await getOrLoadServerSpace(spaceId);
+    const observed = { appTrees: new Set<string>() };
+    observedSpaces.set(spaceId, observed);
+
+    const emitOps = (treeId: string, ops: VertexOperation[]) => {
+      if (ops.length === 0) return;
+      spacesNamespace.to(spaceId).emit("ops:receive", { treeId, ops });
+    };
+
+    space.tree.observeOpApplied((op) => {
+      if (op.id.peerId !== space.tree.peerId) return;
+      emitOps(space.getId(), [op]);
+    });
+
+    const registerAppTree = async (appTreeId: string) => {
+      if (observed.appTrees.has(appTreeId)) return;
+      observed.appTrees.add(appTreeId);
+
+      const appTree = space.getAppTree(appTreeId) ?? await space.loadAppTree(appTreeId);
+      if (!appTree) return;
+
+      appTree.tree.observeOpApplied((op) => {
+        if (op.id.peerId !== appTree.tree.peerId) return;
+        emitOps(appTreeId, [op]);
+      });
+    };
+
+    for (const appTree of space.getLoadedAppTrees()) {
+      void registerAppTree(appTree.getId());
+    }
+
+    space.observeNewAppTree((appTreeId) => {
+      void registerAppTree(appTreeId);
+    });
+
+    space.observeTreeLoad((appTreeId) => {
+      void registerAppTree(appTreeId);
+    });
+  };
 
   spacesNamespace.use((socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -133,6 +179,7 @@ export async function startServer(options: ServerStartOptions = {}): Promise<Ser
   spacesNamespace.on("connection", (socket) => {
     const spaceId = (socket as any).spaceId || "unknown";
     socket.join(spaceId);
+    void ensureServerOpsBroadcast(spaceId);
 
     socket.emit("ready", { spaceId });
 
