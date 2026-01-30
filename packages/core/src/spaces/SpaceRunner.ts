@@ -340,6 +340,10 @@ export class SpaceRunner {
       return false;
     }
 
+    if (!this.options.hostType) {
+      return false;
+    }
+
     if (this.options.hostType === "web") {
       if (
         this.pointer.uri.startsWith("http://") ||
