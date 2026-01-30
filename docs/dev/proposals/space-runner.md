@@ -8,6 +8,14 @@ Make space wiring easy to follow. Keep setup in one place.
 
 Space setup is spread across multiple systems. This makes it hard to see how a space, sync layers, backend, and agent service connect.
 
+## Current flow
+
+- `ClientState` creates pointers and uses `SpaceManager` to add or load spaces.
+- `SpaceState` owns connection state. It builds persistence layers per URI.
+- `SpaceManager` loads spaces and wires persistence layers and secrets.
+- `SpaceState` creates `Backend` after the space is loaded.
+- `ChatAppBackend` creates `AgentServices` per chat app tree.
+
 ## Proposal
 
 Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `SpaceManager` uses it to create, start, stop, and dispose spaces.
@@ -25,6 +33,10 @@ Create a `SpaceRunner` wrapper. It owns one space and its runtime services. `Spa
 - Start and stop lifecycle for all space services.
 - Expose a small API for common tasks.
 - Provide a `dispose()` for cleanup.
+
+### Non-goals
+
+- Do not add status events now. Add them when a use case appears.
 
 ### Sketch
 
@@ -50,6 +62,7 @@ class SpaceRunner {
 2. Move space setup logic from `SpaceManager` into `SpaceRunner`.
 3. Update call sites to use `SpaceManager` methods only.
 4. Remove old wiring code after parity.
+5. Add a small test helper if it stays simple.
 
 ## Risks
 
@@ -58,5 +71,4 @@ class SpaceRunner {
 
 ## Open questions
 
-- Should `SpaceRunner` expose events for status changes?
-- Do we need a test helper to build a runner for fixtures?
+- Do we need space-level lifecycle hooks beyond `start` and `stop`?
