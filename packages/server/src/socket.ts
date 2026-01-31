@@ -24,6 +24,11 @@ type OpsStatePayload = {
   trees?: Record<string, Record<string, number[][]> | null>;
 };
 
+type OpsSyncDonePayload = {
+  treeIds: string[];
+  stateVectors: Record<string, Record<string, number[][]> | null>;
+};
+
 type OpsSendPayload = {
   treeId?: string;
   ops?: VertexOperation[];
@@ -43,29 +48,31 @@ function getAppTreeIds(space: { appTreesVertex: { children: { getProperty: (key:
     .filter((tid): tid is string => typeof tid === "string");
 }
 
-async function getTreeOpsDiff(
+async function getTreeOpsDiffAndVector(
   spaceId: string,
   treeId: string,
   theirStateVector?: Record<string, number[][]> | null,
-): Promise<VertexOperation[]> {
+): Promise<{ ops: VertexOperation[]; stateVector: Record<string, number[][]> | null }> {
   const space = await getOrLoadServerSpace(spaceId);
 
   if (treeId === space.getId()) {
     space.tree.stateVectorEnabled = true;
-    return theirStateVector
+    const ops = theirStateVector
       ? space.tree.getMissingOps(theirStateVector)
       : space.tree.getAllOps() as VertexOperation[];
+    return { ops, stateVector: space.tree.getStateVector() ?? null };
   }
 
   const appTree = await space.loadAppTree(treeId);
   if (!appTree) {
-    return [];
+    return { ops: [], stateVector: null };
   }
 
   appTree.tree.stateVectorEnabled = true;
-  return theirStateVector
+  const ops = theirStateVector
     ? appTree.tree.getMissingOps(theirStateVector)
     : appTree.tree.getAllOps() as VertexOperation[];
+  return { ops, stateVector: appTree.tree.getStateVector() ?? null };
 }
 
 export function createSocketServer({ server, jwtSecret }: SocketServerOptions): Server {
@@ -164,17 +171,24 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
   const handleOpsState = async (socket: SpaceSocket, payload: OpsStatePayload) => {
     const { spaceId } = socket.data;
     const space = await getOrLoadServerSpace(spaceId);
-    const treeIds = [space.getId(), ...getAppTreeIds(space)];
     const provided = payload?.trees ?? {};
+    const treeIds = Object.keys(provided);
+    if (treeIds.length === 0) {
+      treeIds.push(space.getId());
+      provided[space.getId()] = null;
+    }
+    const stateVectors: Record<string, Record<string, number[][]> | null> = {};
 
     for (const treeId of treeIds) {
-      const ops = await getTreeOpsDiff(spaceId, treeId, provided[treeId] ?? null);
+      const { ops, stateVector } = await getTreeOpsDiffAndVector(spaceId, treeId, provided[treeId] ?? null);
       if (ops.length > 0) {
         socket.emit("ops:sync", { treeId, ops });
       }
+      stateVectors[treeId] = stateVector;
     }
 
-    socket.emit("ops:sync:done", { treeIds });
+    const donePayload: OpsSyncDonePayload = { treeIds, stateVectors };
+    socket.emit("ops:sync:done", donePayload);
   };
 
   // Persist and merge incoming ops, then broadcast to other clients.
