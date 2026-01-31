@@ -115,14 +115,6 @@ export class SpaceState {
     }
   }
 
-  initBackend(): void {
-    if (!this.space) {
-      throw new Error("Space is not loaded");
-    }
-
-    this.backend = new Backend(this.space, this.pointer.uri.startsWith("local://"));
-  }
-
   /**
    * Disconnect from this space - keeps theme/layout but clears space data
    */
