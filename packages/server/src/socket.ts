@@ -202,6 +202,8 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
 
     // @TODO: Validate ops before saving/merging
 
+    console.log(`Received ${ops.length} ops for tree ${treeId} in space ${spaceId} from user ${socket.data.userId}`);
+
     const layer = await getServerSpaceLayer(spaceId);
     await layer.saveTreeOps(treeId, ops);
 
@@ -222,6 +224,8 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     const { spaceId } = socket.data;
     socket.join(spaceId);
     ensureServerOpsBroadcast(spaceId);
+
+    console.log(`Socket connected: user=${socket.data.userId} space=${spaceId} id=${socket.id}`);
 
     // Initial handshake for space sockets.
     socket.emit("ready", { spaceId });
