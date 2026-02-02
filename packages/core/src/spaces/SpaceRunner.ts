@@ -1,4 +1,4 @@
-import { RepTree } from "reptree";
+import { RepTree, isAnyPropertyOp } from "reptree";
 import type { VertexOperation } from "reptree";
 import { Space } from "./Space";
 import { AppTree } from "./AppTree";
@@ -396,19 +396,10 @@ export class SpaceRunner {
       return;
     }
 
-    /*
-    @TODO:
-    - [ ] Get vector states from each layer (when available)
-    - [ ] Compare vector states to find missing ops
-    - [ ] Share missing ops between layers
-
-    Notes:
-    - Remote layers already do state-vector sync per tree via their own protocol.
-    - For local layers, syncing all trees is OK; for remote layers, prefer the space tree
-      (and load app trees on demand) to avoid full multi-tree vector exchange.
-    */
-
     try {
+      // 1. Load ops from all layers (parallel)
+      // Note: Remote layers (smart sync) return only missing ops (deltas).
+      // Local layers usually return all ops.
       const layerOpsPromises = this.persistenceLayers.map(async (layer) => {
         await layer.connect();
         const ops = await layer.loadTreeOps(treeId);
@@ -416,55 +407,54 @@ export class SpaceRunner {
       });
       const allOpsFromLayers = await Promise.all(layerOpsPromises);
 
+      // 2. Merge ALL discovered ops into the live Space/AppTree
+      // This ensures the Space is the superset of all knowledge.
+      const isSpaceTree = this.space.getId() === treeId;
+      const targetTree = isSpaceTree
+        ? this.space.tree
+        : this.space.getAppTree(treeId)?.tree;
+
+      const allOps = allOpsFromLayers.flatMap((r) => r.ops);
+      if (allOps.length > 0 && targetTree) {
+        targetTree.merge(allOps);
+      }
+
+      if (!targetTree) return;
+
       for (const { layer, ops } of allOpsFromLayers) {
-        const opsIdSet = new Set<string>();
-        for (const op of ops) {
-          opsIdSet.add(`${op.id.counter}@${op.id.peerId}`);
-        }
+        if (layer.type === 'remote') continue;
 
-        // @TODO: find missing ops based on vector states
-        const missingOps: VertexOperation[] = [];
+        // Construct a temporary tree to calculate the layer's vector efficiently
+        // (Assuming local layers allow us to load everything - which they do)
+        // Optimization: If ops is empty, vector is empty.
+        const layerTree = new RepTree(uuid(), ops);
+        const layerVector = layerTree.getStateVector();
 
-        for (const { layer: layerB, ops: opsB } of allOpsFromLayers) {
-          if (layer === layerB) {
-            continue;
-          }
+        // Find what the Space has that this Layer lacks
+        // We cast layerVector to Record<string, number[][]> as RepTree always returns a valid object
+        let missingOps = targetTree.getMissingOps(layerVector as Record<string, number[][]>);
 
-          for (const opB of opsB) {
-            const opBId = `${opB.id.counter}@${opB.id.peerId}`;
-            if (!opsIdSet.has(opBId)) {
-              missingOps.push(opB);
-              opsIdSet.add(opBId);
-            }
-          }
-        }
+        // Filter out transient property ops (which local layers often refuse to save, causing a loop)
+        missingOps = missingOps.filter(op => !isAnyPropertyOp(op) || !op.transient);
 
         if (missingOps.length > 0) {
-          const isSpaceTree = this.space.getId() === treeId;
-          const targetTree = isSpaceTree
-            ? this.space.tree
-            : this.space.getAppTree(treeId)?.tree;
-
           if (isSpaceTree) {
             console.log(
               `Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`,
-              missingOps,
+              missingOps.length,
+              missingOps[0]
             );
           } else {
             console.log(
               `Saving missing ops for tree ${treeId} to layer: ${layer.id}`,
-              missingOps,
+              missingOps.length,
+              missingOps[0]
             );
           }
-
-          // Merge into the live tree so the user sees the updates
-          if (targetTree) {
-            targetTree.merge(missingOps);
-          }
-
           await layer.saveTreeOps(treeId, missingOps);
         }
       }
+
     } catch (error) {
       console.error(
         `Failed to sync tree operations for treeId ${treeId}:`,
