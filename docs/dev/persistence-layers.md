@@ -3,6 +3,7 @@
 ## Purpose
 
 SpaceManager loads and saves a space through one or more persistence layers.
+SpaceRunner owns the runtime wiring per space (load, merge, sync, save).
 A layer stores RepTree operations and optional secrets.
 
 ## How layers are chosen
@@ -12,13 +13,13 @@ Examples:
 
 - `local://` uses IndexedDB only.
 - `file:///path` uses IndexedDB + filesystem.
-- `https://` will add a server layer later.
+- `https://` uses IndexedDB + RemoteSpacePersistenceLayer (socket.io sync).
 
 See `createPersistenceLayersForURI` for the mapping.
 
 ## How loading works
 
-SpaceManager connects all layers in parallel.
+SpaceRunner connects all layers in parallel.
 It builds a space from the first layer that returns operations.
 It then merges operations from other layers that succeed.
 
@@ -27,7 +28,7 @@ If all layers fail, the space load fails.
 
 ## How saving works
 
-SpaceManager writes new operations to every active layer.
+SpaceRunner writes new operations to every active layer.
 If a layer stops working, the remaining layers still persist data.
 
 ## Implications
@@ -41,10 +42,10 @@ If a layer stops working, the remaining layers still persist data.
 Implement the `PersistenceLayer` interface.
 Register it in the URI mapping.
 
-Server sync is a new layer that can:
+Remote sync is a layer that can:
 
-- Fetch ops on load.
+- Fetch ops on load (state-vector diff).
 - Push local ops to the server.
 - Listen for remote ops and merge them.
 
-Add it next to IndexedDB so offline still works.
+Keep IndexedDB for offline caching.
