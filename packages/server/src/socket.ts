@@ -163,18 +163,20 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
   // Send missing ops for the requested trees based on state vectors.
   const handleOpsState = async (socket: SpaceSocket, payload: OpsStatePayload) => {
     const { spaceId } = socket.data;
-    const space = await getOrLoadServerSpace(spaceId);
-    const treeIds = [space.getId(), ...getAppTreeIds(space)];
     const provided = payload?.trees ?? {};
+    const requestedTreeIds = Object.keys(provided);
 
-    for (const treeId of treeIds) {
-      const ops = await getTreeOpsDiff(spaceId, treeId, provided[treeId] ?? null);
+    for (const treeId of requestedTreeIds) {
+      // If provided[treeId] is explicitly null, it means fetching ALL ops (no local state)
+      // If it is a vector, it means fetching missing ops.
+      const ops = await getTreeOpsDiff(spaceId, treeId, provided[treeId]);
+
       if (ops.length > 0) {
         socket.emit("ops:sync", { treeId, ops });
       }
     }
 
-    socket.emit("ops:sync:done", { treeIds });
+    socket.emit("ops:sync:done", { treeIds: requestedTreeIds });
   };
 
   // Persist and merge incoming ops, then broadcast to other clients.
@@ -208,6 +210,8 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
     const { spaceId } = socket.data;
     socket.join(spaceId);
     ensureServerOpsBroadcast(spaceId);
+
+    console.log(`Socket connected: ${socket.id} to space ${spaceId}`);
 
     // Initial handshake for space sockets.
     socket.emit("ready", { spaceId });

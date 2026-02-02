@@ -1,11 +1,8 @@
-import type { PersistenceLayer } from "@sila/core";
-import type { VertexOperation } from "@sila/core";
+import { ConnectedPersistenceLayer } from "@sila/core";
+import type { Space, SpaceRunner, VertexOperation } from "@sila/core";
 import { isAnyPropertyOp } from "@sila/core";
 import { StateVector } from "reptree";
 import { io, type Socket } from "socket.io-client";
-import { getTreeOps } from "@sila/client/localDb";
-
-type StateVectorMap = Record<string, number[][]>;
 
 type OpsSyncPayload = {
   treeId: string;
@@ -17,30 +14,28 @@ type OpsSendPayload = {
   ops?: VertexOperation[];
 };
 
-export class RemoteSpacePersistenceLayer implements PersistenceLayer {
+export class RemoteSpacePersistenceLayer extends ConnectedPersistenceLayer {
   readonly id: string;
   readonly type = "remote" as const;
 
-  private _connected = false;
   private socket: Socket | null = null;
   private syncChain: Promise<void> = Promise.resolve();
   private cachedSyncOps = new Map<string, VertexOperation[]>();
   private onIncomingOps: ((treeId: string, ops: VertexOperation[]) => void) | null = null;
   private serverBaseUrl: string;
+  private spaceRunner: SpaceRunner | null = null;
 
   constructor(
     private spaceUrl: string,
-    private spaceId: string,
     private getAuthToken?: () => string | null,
   ) {
-    this.id = `remote-${spaceUrl}::${spaceId}`;
-    this.serverBaseUrl = this.resolveServerBaseUrl(spaceUrl, spaceId);
+    super();
+    this.id = spaceUrl;
+    this.serverBaseUrl = spaceUrl;
   }
 
-  async connect(): Promise<void> {
-    if (this._connected) return;
-
-    const namespaceUrl = `${this.serverBaseUrl.replace(/\/+$/, "")}/spaces/${this.spaceId}`;
+  protected async doConnect(): Promise<void> {
+    const namespaceUrl = this.id;
     const socket = io(namespaceUrl, {
       path: "/socket.io",
       autoConnect: false,
@@ -70,16 +65,9 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     });
 
     this.socket = socket;
-    this._connected = true;
   }
 
-  isConnected(): boolean {
-    return this._connected;
-  }
-
-  async disconnect(): Promise<void> {
-    if (!this._connected) return;
-    this._connected = false;
+  protected async doDisconnect(): Promise<void> {
     this.onIncomingOps = null;
     if (this.socket) {
       this.socket.disconnect();
@@ -87,34 +75,55 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     }
   }
 
+  referenceSpaceRunner(spaceRunner: SpaceRunner): void {
+    this.spaceRunner = spaceRunner;
+  }
+
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
     await this.connect();
-    const stateVector = await this.buildStateVector(this.spaceId);
-    const opsByTree = await this.requestSync({ [this.spaceId]: stateVector });
-    const ops = opsByTree.get(this.spaceId) ?? [];
-    this.cacheOtherTrees(this.spaceId, opsByTree);
-    return ops;
+
+    let spaceTreeVector: Record<string, number[][]> | null = null;
+
+    const space = this.spaceRunner?.getSpace();
+    if (space) {
+      spaceTreeVector = space.tree.getStateVector();
+    }
+
+    // Get space tree ops from the server
+    // If we have a vector, we send it to get missing ops
+    // If we don't (null), we send null to get ALL ops
+    const spaceIdFromUrl = this.id.split("/").pop()!;
+
+    const vectorMap = { [spaceIdFromUrl]: spaceTreeVector };
+    const resultMap = await this.requestSync(vectorMap);
+
+    return resultMap.get(spaceIdFromUrl) || [];
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
     await this.connect();
-    const cached = this.cachedSyncOps.get(treeId);
-    if (cached) {
-      this.cachedSyncOps.delete(treeId);
-      return cached;
+
+    // check if we have the tree to get its vector
+    let treeVector: Record<string, number[][]> | null = null;
+    const space = this.spaceRunner?.getSpace();
+    if (space) {
+      const appTree = space.getAppTree(treeId);
+      if (appTree) {
+        treeVector = appTree.tree.getStateVector();
+      }
     }
 
-    const stateVector = await this.buildStateVector(treeId);
-    const opsByTree = await this.requestSync({ [treeId]: stateVector });
-    const ops = opsByTree.get(treeId) ?? [];
-    this.cacheOtherTrees(treeId, opsByTree);
-    return ops;
+    const vectorMap = { [treeId]: treeVector };
+    const resultMap = await this.requestSync(vectorMap);
+    return resultMap.get(treeId) || [];
   }
 
   async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
-    if (!this._connected || !this.socket) {
+    if (!this.isConnected() || !this.socket) {
       throw new Error("RemoteSpacePersistenceLayer not connected");
     }
+
+    // @TODO: send vector state to the server
 
     if (ops.length === 0) return;
     const opsToSend = ops.filter((op) => !isAnyPropertyOp(op) || !op.transient);
@@ -128,14 +137,14 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
   }
 
   async loadSecrets(): Promise<Record<string, string> | undefined> {
-    if (!this._connected) {
+    if (!this.isConnected()) {
       throw new Error("RemoteSpacePersistenceLayer not connected");
     }
     return undefined;
   }
 
   async saveSecrets(_secrets: Record<string, string>): Promise<void> {
-    if (!this._connected) {
+    if (!this.isConnected()) {
       throw new Error("RemoteSpacePersistenceLayer not connected");
     }
   }
@@ -167,17 +176,7 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     this.onIncomingOps = null;
   }
 
-  private cacheOtherTrees(requestedTreeId: string, opsByTree: Map<string, VertexOperation[]>) {
-    for (const [treeId, ops] of opsByTree.entries()) {
-      if (treeId === requestedTreeId) continue;
-      if (ops.length === 0) continue;
-      const existing = this.cachedSyncOps.get(treeId) ?? [];
-      existing.push(...ops);
-      this.cachedSyncOps.set(treeId, existing);
-    }
-  }
-
-  private async requestSync(stateVectors: Record<string, StateVectorMap | null>): Promise<Map<string, VertexOperation[]>> {
+  private async requestSync(stateVectors: Record<string, Record<string, number[][]> | null>): Promise<Map<string, VertexOperation[]>> {
     const socket = this.socket;
     if (!socket) {
       throw new Error("RemoteSpacePersistenceLayer not connected");
@@ -220,20 +219,5 @@ export class RemoteSpacePersistenceLayer implements PersistenceLayer {
     const next = this.syncChain.then(fn, fn);
     this.syncChain = next.then(() => undefined, () => undefined);
     return next;
-  }
-
-  private async buildStateVector(treeId: string): Promise<StateVectorMap> {
-    const ops = await getTreeOps(this.spaceUrl, this.spaceId, treeId);
-    const vector = StateVector.fromOperations(ops) as unknown as { getState?: () => StateVectorMap };
-    return vector.getState ? vector.getState() : {};
-  }
-
-  private resolveServerBaseUrl(spaceUrl: string, spaceId: string): string {
-    const normalized = spaceUrl.replace(/\/+$/, "");
-    const suffix = `/spaces/${spaceId}`;
-    if (normalized.endsWith(suffix)) {
-      return normalized.slice(0, -suffix.length);
-    }
-    return normalized;
   }
 }

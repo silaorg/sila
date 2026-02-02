@@ -40,6 +40,18 @@ export class SpaceManager {
   }
 
   /**
+   * Helper to resolve persistence layers using provided list or callback
+   */
+  private getResolvedLayers(
+    pointer: SpacePointer,
+    providedLayers: PersistenceLayer[],
+  ): PersistenceLayer[] {
+    return providedLayers.length > 0
+      ? providedLayers
+      : this.resolvePersistenceLayers?.(pointer, this.hostType) ?? [];
+  }
+
+  /**
    * Add a new space to the manager. Saves the space to the persistence layers.
    * @param space - The space to add
    * @param persistenceLayers - The persistence layers to use for the space
@@ -63,25 +75,15 @@ export class SpaceManager {
       return;
     }
 
-    const resolvePersistenceLayers = this.resolvePersistenceLayers
-      ? (
-        runnerPointer: SpaceRunnerPointer,
-        hostType: SpaceRunnerHostType | undefined,
-      ) =>
-        this.resolvePersistenceLayers?.(
-          runnerPointer as SpacePointer,
-          hostType,
-        ) ?? []
-      : undefined;
+    const layers = this.getResolvedLayers(pointer, persistenceLayers);
 
     const runner = await SpaceRunner.createForNewSpace(
       space,
       pointer,
-      persistenceLayers,
+      layers,
       {
         disableBackend: this.disableBackend,
         hostType: this.hostType,
-        resolvePersistenceLayers,
       },
     );
     this.runners.set(key, runner);
@@ -106,22 +108,14 @@ export class SpaceManager {
       return existingRunner.getSpace();
     }
 
+    const layers = this.getResolvedLayers(pointer, persistenceLayers);
+
     const { space, runner } = await SpaceRunner.loadFromLayers(
       { id: pointer.id, uri: pointer.uri },
-      persistenceLayers,
+      layers,
       {
         disableBackend: this.disableBackend,
         hostType: this.hostType,
-        resolvePersistenceLayers: this.resolvePersistenceLayers
-          ? (
-            runnerPointer: SpaceRunnerPointer,
-            hostType: SpaceRunnerHostType | undefined,
-          ) =>
-            this.resolvePersistenceLayers?.(
-              runnerPointer as SpacePointer,
-              hostType,
-            ) ?? []
-          : undefined,
       },
     );
     this.runners.set(key, runner);

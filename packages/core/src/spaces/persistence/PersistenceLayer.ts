@@ -1,3 +1,4 @@
+import { Space, SpaceRunner } from "@sila/core";
 import type { VertexOperation } from "reptree";
 
 /**
@@ -13,18 +14,21 @@ export interface PersistenceLayer {
   // Multi-tree support - handles both space tree and app trees
   loadSpaceTreeOps(): Promise<VertexOperation[]>
   saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>
-  
+
   // Tree loader callback for lazy loading AppTrees
   loadTreeOps(treeId: string): Promise<VertexOperation[]>
-  
+
   // Secrets management
   loadSecrets(): Promise<Record<string, string> | undefined>
   saveSecrets(secrets: Record<string, string>): Promise<void>
-  
+
   // Optional: for two-way sync layers
   startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>
   stopListening?(): Promise<void>
-  
+
+  // Optional: if our layer would benefit from having a reference to the space it's handling
+  referenceSpaceRunner?(spaceRunner: SpaceRunner): void;
+
   // Metadata
   readonly id: string
   readonly type: 'local' | 'remote'
@@ -49,15 +53,15 @@ export abstract class ConnectedPersistenceLayer implements PersistenceLayer {
   async connect(): Promise<void> {
     // If already connected, return immediately
     if (this._connected) return;
-    
+
     // If already connecting, return the existing promise
     if (this.connectPromise) {
       return this.connectPromise;
     }
-    
+
     // Start connecting and store the promise
     this.connectPromise = this.doConnect();
-    
+
     try {
       await this.connectPromise;
       this._connected = true;
@@ -90,14 +94,14 @@ export abstract class ConnectedPersistenceLayer implements PersistenceLayer {
   // Abstract methods that implementations must provide
   protected abstract doConnect(): Promise<void>;
   protected abstract doDisconnect(): Promise<void>;
-  
+
   // Abstract methods from PersistenceLayer interface
   abstract loadSpaceTreeOps(): Promise<VertexOperation[]>;
   abstract saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>;
   abstract loadTreeOps(treeId: string): Promise<VertexOperation[]>;
   abstract loadSecrets(): Promise<Record<string, string> | undefined>;
   abstract saveSecrets(secrets: Record<string, string>): Promise<void>;
-  
+
   // Optional: for two-way sync layers
   startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>;
   stopListening?(): Promise<void>;

@@ -27,9 +27,9 @@ export type SpaceStateConfig = {
 };
 
 export class SpaceState {
-  pointer: SpacePointer;
+  pointer: SpacePointer = $state() as SpacePointer;
   private spaceManager: SpaceManager;
-  space: Space | null = null;
+  space: Space | null = $state(null);
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
   vertexViewer: VertexViewer;
@@ -48,7 +48,7 @@ export class SpaceState {
 
     const space = this.spaceManager.getSpace(this.pointer.uri);
     this.fileResolver = space?.fileResolver ?? new FileResolver();
-    
+
     this.spaceTelemetry = new SpaceTelemetry(config.analytics, () => this.space);
 
     // We allow space to be null before it loads (see loadSpace method)
@@ -58,15 +58,7 @@ export class SpaceState {
       this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 
-      let allConnected = true;
-      for (const layer of this.persistenceLayers) {
-        if (!layer.isConnected()) {
-          allConnected = false;
-          break;
-        }
-      }
-
-      this.isConnected = allConnected;
+      this.isConnected = true;
     }
   }
 
@@ -102,7 +94,7 @@ export class SpaceState {
           i18n.language = lang;
         }
 
-        this.isConnected = this.persistenceLayers.every((layer) => layer.isConnected());
+        this.isConnected = true;
       } else {
         throw new Error(`Failed to load space ${this.pointer.id}`);
       }

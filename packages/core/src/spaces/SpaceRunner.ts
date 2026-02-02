@@ -12,10 +12,6 @@ export type SpaceRunnerHostType = "web" | "server" | "desktop" | "mobile";
 export type SpaceRunnerOptions = {
   disableBackend?: boolean;
   hostType?: SpaceRunnerHostType;
-  resolvePersistenceLayers?: (
-    pointer: SpaceRunnerPointer,
-    hostType: SpaceRunnerHostType | undefined,
-  ) => PersistenceLayer[];
 };
 
 export type SpaceRunnerPointer = {
@@ -39,6 +35,12 @@ export class SpaceRunner {
       id: space.getId(),
       uri: space.getId(),
     };
+
+    for (const layer of this.persistenceLayers) {
+      if (layer.referenceSpaceRunner) {
+        layer.referenceSpaceRunner(this);
+      }
+    }
   }
 
   static async createForNewSpace(
@@ -47,64 +49,41 @@ export class SpaceRunner {
     layers: PersistenceLayer[],
     options: SpaceRunnerOptions = {},
   ): Promise<SpaceRunner> {
-    const resolvedLayers = this.resolveLayers(pointer, layers, options);
-    const connectedLayers = (
-      await Promise.allSettled(
-        resolvedLayers.map(async (layer) => {
-          await layer.connect();
-          return layer;
-        }),
-      )
-    )
-      .filter((result) => {
-        if (result.status === "rejected") {
-          console.warn("Failed to connect persistence layer:", result.reason);
-          return false;
-        }
-        return true;
-      })
-      .map((result) =>
-        (result as PromiseFulfilledResult<PersistenceLayer>).value
-      );
+    const connectedLayers: PersistenceLayer[] = [];
 
-    if (resolvedLayers.length > 0 && connectedLayers.length === 0) {
+    // Connect all layers in parallel
+    await Promise.allSettled(
+      layers.map(async (layer) => {
+        try {
+          await layer.connect();
+          connectedLayers.push(layer);
+        } catch (error) {
+          console.warn(`Failed to connect persistence layer ${layer.id}:`, error);
+        }
+      })
+    );
+
+    if (layers.length > 0 && connectedLayers.length === 0) {
       throw new Error("No persistence layers available for new space");
     }
 
     if (connectedLayers.length > 0) {
       const initOps = space.tree.getAllOps();
-      const savedLayers = (
-        await Promise.allSettled(
-          connectedLayers.map(async (layer) => {
+      // Save initial state to all connected layers
+      await Promise.allSettled(
+        connectedLayers.map(async (layer) => {
+          try {
             await layer.saveTreeOps(space.getId(), initOps);
-            return layer;
-          }),
-        )
-      )
-        .filter((result) => {
-          if (result.status === "rejected") {
-            console.warn("Failed to save initial ops to layer:", result.reason);
-            return false;
+          } catch (error) {
+            console.warn(`Failed to save initial ops to layer ${layer.id}:`, error);
           }
-          return true;
         })
-        .map((result) =>
-          (result as PromiseFulfilledResult<PersistenceLayer>).value
-        );
-
-      if (savedLayers.length === 0) {
-        throw new Error(
-          "Failed to initialize persistence layers for new space",
-        );
-      }
-
-      const runner = new SpaceRunner(space, savedLayers, options, pointer);
-      await runner.start();
-      return runner;
+      );
     }
 
-    const runner = new SpaceRunner(space, [], options);
-    await runner.start();
+    const runner = new SpaceRunner(space, layers, options, pointer);
+    // We don't await full start/sync here for new spaces, just start it
+    runner.start();
     return runner;
   }
 
@@ -113,86 +92,91 @@ export class SpaceRunner {
     layers: PersistenceLayer[],
     options: SpaceRunnerOptions = {},
   ): Promise<{ space: Space; runner: SpaceRunner }> {
-    const resolvedLayers = this.resolveLayers(pointer, layers, options);
-    const layerPromises = resolvedLayers.map(async (layer) => {
-      await layer.connect();
-      const ops = await layer.loadSpaceTreeOps();
-      return { layer, ops };
-    });
-    const layerResultsPromise = Promise.allSettled(layerPromises);
+    const localLayers = layers.filter(layer => layer.type === "local");
+    const remoteLayers = layers.filter(layer => layer.type === "remote");
 
     let space: Space | null = null;
-    let firstResult:
-      | { layer: PersistenceLayer; ops: VertexOperation[] }
-      | null = null;
-    let availableResults: {
-      layer: PersistenceLayer;
-      ops: VertexOperation[];
-    }[] = [];
-    try {
-      firstResult = await Promise.any(layerPromises);
-      space = new Space(new RepTree(uuid(), firstResult.ops));
-    } catch (error) {
-      console.error("Failed to load space tree from any layer:", error);
-      console.log("As a fallback, will try to load from all layers");
-    }
+    let loadedOps: VertexOperation[] = [];
 
-    const settledResults = await layerResultsPromise;
-    availableResults = settledResults
-      .filter(
-        (
-          result,
-        ): result is PromiseFulfilledResult<
-          { layer: PersistenceLayer; ops: VertexOperation[] }
-        > => result.status === "fulfilled",
-      )
-      .map((result) => result.value);
+    // 1. Try to load from local layers first (fast path)
+    if (localLayers.length > 0) {
+      try {
+        const result = await Promise.any(
+          localLayers.map(async (layer) => {
+            await layer.connect();
+            const ops = await layer.loadSpaceTreeOps();
 
-    if (availableResults.length === 0) {
-      throw new Error("No persistence layers available to load space");
-    }
+            if (ops.length === 0) {
+              throw new Error("No ops found");
+            }
 
-    const availableLayers = availableResults.map((result) => result.layer);
-
-    if (!space) {
-      const allOps: VertexOperation[] = [];
-      availableResults.forEach((result) => {
-        allOps.push(...result.ops);
-      });
-
-      space = new Space(new RepTree(uuid(), allOps));
-    }
-
-    availableResults.forEach((result) => {
-      if (result !== firstResult && result.ops.length > 0) {
-        space!.tree.merge(result.ops);
+            if (ops.length > 0) {
+              // Validate ops by trying to build the tree
+              // If this throws, Promise.any will treat it as a rejection for this layer
+              new Space(new RepTree(uuid(), ops));
+            }
+            return ops;
+          })
+        );
+        loadedOps = result;
+      } catch (error) {
+        console.warn("Failed to load valid space from local layers, falling back to all layers", error);
       }
-    });
+    }
 
-    const runner = new SpaceRunner(space, availableLayers, options, pointer);
+    // 2. If no local layers or local load failed, try remote layers
+    if (loadedOps.length === 0 && remoteLayers.length > 0) {
+      try {
+        const result = await Promise.any(
+          remoteLayers.map(async (layer) => {
+            // Remote layers connect on demand here
+            if (!layer.isConnected()) {
+              await layer.connect();
+            }
+            const ops = await layer.loadSpaceTreeOps();
+
+            if (ops.length > 0) {
+              // Validate ops by trying to build the tree
+              new Space(new RepTree(uuid(), ops));
+            } else {
+              throw new Error("No ops found");
+            }
+            return ops;
+          })
+        );
+        loadedOps = result;
+      } catch (error) {
+        // If we still have no ops and no layers worked, we can't load the space
+        // But maybe it's a new empty space? Use empty ops if we have at least one connected layer?
+        // For now, assume failure if we can't load any ops
+        console.warn("Could not load valid ops from any layer. Starting with empty space if allowed.");
+      }
+    }
+
+    if (loadedOps.length === 0) {
+      throw new Error("No valid ops found in any layer");
+    }
+
+    // Create the space
+    space = new Space(new RepTree(uuid(), loadedOps));
+
+    // Create runner with ALL layers (some might be connected, some not)
+    const runner = new SpaceRunner(space, layers, options, pointer);
+
+    // Load secrets efficiently
     await runner.loadSecrets();
-    await runner.start();
+
+    // Start running (this will handle remaining connections and syncing in background)
+    // We do NOT await this fully to unblock UI
+    runner.start();
+
     return { space, runner };
   }
 
-  private static resolveLayers(
-    pointer: SpaceRunnerPointer,
-    layers: PersistenceLayer[],
-    options: SpaceRunnerOptions,
-  ): PersistenceLayer[] {
-    if (layers.length > 0) {
-      return layers;
-    }
-
-    if (options.resolvePersistenceLayers) {
-      return options.resolvePersistenceLayers(pointer, options.hostType);
-    }
-
-    const hostLabel = options.hostType ?? "unknown";
-    throw new Error(
-      `No persistence layers provided for ${pointer.uri} in ${hostLabel} host type`,
-    );
+  private static async connectAndLoadFromLayersInternal(layers: PersistenceLayer[]) {
+    // Deprecated / Unused
   }
+
 
   getSpace(): Space {
     return this.space;
@@ -218,16 +202,38 @@ export class SpaceRunner {
 
   async start(): Promise<void> {
     if (this.started) return;
+    this.started = true; // Mark as started immediately to prevent double calls
 
     this.attachFileStoreProvider();
     this.registerTreeLoader();
     this.setupOperationTracking();
     this.initBackend();
+
+    // Background task: Connect to all layers, enable sync, and converge state
+    this.runBackgroundSync();
+  }
+
+  private async runBackgroundSync() {
+    // 1. Ensure all layers are connected
+    await Promise.allSettled(
+      this.persistenceLayers.map(async (layer) => {
+        if (!layer.isConnected()) {
+          try {
+            await layer.connect();
+          } catch (e) {
+            console.error(`Failed to connect to layer ${layer.id}`, e);
+          }
+        }
+      })
+    );
+
+    // 2. Setup listeners for real-time sync
     await this.setupTwoWaySync();
+
+    // 3. Perform initial convergence (sync missing ops)
     if (this.persistenceLayers.length > 0) {
       await this.syncTreeOpsBetweenLayers(this.space.getId());
     }
-    this.started = true;
   }
 
   async stop(): Promise<void> {
@@ -390,6 +396,18 @@ export class SpaceRunner {
       return;
     }
 
+    /*
+    @TODO:
+    - [ ] Get vector states from each layer (when available)
+    - [ ] Compare vector states to find missing ops
+    - [ ] Share missing ops between layers
+
+    Notes:
+    - Remote layers already do state-vector sync per tree via their own protocol.
+    - For local layers, syncing all trees is OK; for remote layers, prefer the space tree
+      (and load app trees on demand) to avoid full multi-tree vector exchange.
+    */
+
     try {
       const layerOpsPromises = this.persistenceLayers.map(async (layer) => {
         await layer.connect();
@@ -404,6 +422,7 @@ export class SpaceRunner {
           opsIdSet.add(`${op.id.counter}@${op.id.peerId}`);
         }
 
+        // @TODO: find missing ops based on vector states
         const missingOps: VertexOperation[] = [];
 
         for (const { layer: layerB, ops: opsB } of allOpsFromLayers) {
@@ -422,6 +441,10 @@ export class SpaceRunner {
 
         if (missingOps.length > 0) {
           const isSpaceTree = this.space.getId() === treeId;
+          const targetTree = isSpaceTree
+            ? this.space.tree
+            : this.space.getAppTree(treeId)?.tree;
+
           if (isSpaceTree) {
             console.log(
               `Saving missing ops for the SPACE: ${treeId} to layer: ${layer.id}`,
@@ -432,6 +455,11 @@ export class SpaceRunner {
               `Saving missing ops for tree ${treeId} to layer: ${layer.id}`,
               missingOps,
             );
+          }
+
+          // Merge into the live tree so the user sees the updates
+          if (targetTree) {
+            targetTree.merge(missingOps);
           }
 
           await layer.saveTreeOps(treeId, missingOps);

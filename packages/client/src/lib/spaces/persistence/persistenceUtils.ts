@@ -24,7 +24,7 @@ export function createPersistenceLayersForURI(
   } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
     // Server-synced spaces: IndexedDB + Server (future)
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
-    layers.push(new RemoteSpacePersistenceLayer(uri, spaceId, getRemoteAuthToken));
+    layers.push(new RemoteSpacePersistenceLayer(uri, getRemoteAuthToken));
   } else if (uri.startsWith("capacitor://")) {
     // Mobile spaces: IndexedDB + FileSystem in app sandbox
     layers.push(new IndexedDBPersistenceLayer(uri, spaceId));
