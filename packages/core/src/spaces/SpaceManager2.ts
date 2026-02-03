@@ -85,10 +85,14 @@ export class SpaceManager2 {
    * The ones sync layers we setup with `setupSyncLayers` in the constructor.
    * @param spacePointer The pointer to the space.
    */
-  loadSpace(spacePointer: SpacePointer2) {
+  async loadSpace(spacePointer: SpacePointer2): Promise<Space | null> {
     const syncLayers = this.setupSyncLayers(spacePointer);
     const runner = SpaceRunner2.fromPointer(spacePointer, syncLayers);
     this.spaceRunners.set(spacePointer.uri, runner);
+    if (runner.initSync) {
+      await runner.initSync;
+    }
+    return runner.space;
   }
 
 }

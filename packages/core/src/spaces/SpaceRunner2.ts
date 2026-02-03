@@ -28,8 +28,8 @@ export class SpaceRunner2 {
     return new SpaceRunner2(pointer, layers);
   }
 
-  readonly space: Space | null = null;
-  private initSync: Promise<void> | null = null;
+  space: Space | null = null;
+  initSync: Promise<void> | null = null;
 
   private constructor(readonly pointer: SpacePointer2, readonly layers: SyncLayer[], space?: Space) {
     this.space = space ?? null;
@@ -39,6 +39,9 @@ export class SpaceRunner2 {
   private async startSync() {
     const accumulatedOps: VertexOperation[] = [];
 
+    // We build a space this way so it can be built as fast as possible.
+    // As soon as we get the first layer that has enough ops to build a space
+    // we create it and can use it immidiately without waiting for all layers to load.
     await Promise.all(this.layers.map(async layer => {
       accumulatedOps.push(...await layer.loadSpaceTreeOps());
       if (accumulatedOps.length === 0) return;
