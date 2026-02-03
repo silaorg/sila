@@ -45,7 +45,7 @@ export class SpaceManager2 {
   private spaceRunners = new Map<string, SpaceRunner2>();
   private setupSyncLayers: (spacePointer: SpacePointer2) => SyncLayer[];
 
-  constructor(options: SpaceManager2Options) {
+  constructor(private options: SpaceManager2Options) {
     this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
   }
 
@@ -66,6 +66,10 @@ export class SpaceManager2 {
     const syncLayers = this.setupSyncLayers(pointer);
     const runner = SpaceRunner2.fromExistingSpace(space, pointer, syncLayers);
     this.spaceRunners.set(pointer.uri, runner);
+
+    if (this.options.setupSpaceHandler) {
+      this.options.setupSpaceHandler(pointer, space);
+    }
   }
 
   /**
@@ -92,7 +96,40 @@ export class SpaceManager2 {
     if (runner.initSync) {
       await runner.initSync;
     }
+
+    if (runner.space && this.options.setupSpaceHandler) {
+      this.options.setupSpaceHandler(spacePointer, runner.space);
+    }
+
     return runner.space;
+  }
+
+  /**
+   * Close a space and disconnect its sync layers.
+   * @param ref The pointer or URI of the space.
+   */
+  async closeSpace(ref: string | SpacePointer2) {
+    const uri = typeof ref === 'string' ? ref : ref.uri;
+    const runner = this.spaceRunners.get(uri);
+    if (runner) {
+      await runner.dispose();
+      this.spaceRunners.delete(uri);
+    }
+  }
+
+  get activeSpaces(): Space[] {
+    const spaces: Space[] = [];
+    for (const runner of this.spaceRunners.values()) {
+      if (runner.space) {
+        spaces.push(runner.space);
+      }
+    }
+    return spaces;
+  }
+
+  getRunner(ref: string | SpacePointer2): SpaceRunner2 | undefined {
+    const uri = typeof ref === 'string' ? ref : ref.uri;
+    return this.spaceRunners.get(uri);
   }
 
 }

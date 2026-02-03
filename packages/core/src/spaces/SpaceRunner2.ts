@@ -62,4 +62,9 @@ export class SpaceRunner2 {
       accumulatedOps.length = 0;
     }));
   }
+
+  async dispose() {
+    await Promise.all(this.layers.map(layer => layer.disconnect()));
+    this.space = null;
+  }
 }

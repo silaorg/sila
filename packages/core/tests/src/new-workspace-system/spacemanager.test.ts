@@ -1,19 +1,18 @@
 import { Space, SpaceManager2, } from '@sila/core';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
 
-describe('Space creation and file-system persistence', () => {
-  it("Creates a new space manager", async () => {
-
-    // @TODO: create a test sync layer that can sync changes between instances of spaces
-    // in tests
-
+describe('SpaceManager2', () => {
+  it("Creates a new space manager and loads space", async () => {
     const originalSpace = Space.newSpace('test-space');
+
+    const onSpaceHandler = vi.fn();
 
     const spaceManager = new SpaceManager2({
       setupSyncLayers: (spacePointer) => {
-        return [new TestInMemorySyncLayer(originalSpace, 1000)];
+        return [new TestInMemorySyncLayer(originalSpace, 10)];
       },
+      setupSpaceHandler: onSpaceHandler
     });
 
     const space = await spaceManager.loadSpace({
@@ -26,5 +25,26 @@ describe('Space creation and file-system persistence', () => {
 
     expect(space).toBeTruthy();
     expect(space?.getId()).toBe(originalSpace.getId());
+    expect(onSpaceHandler).toHaveBeenCalledTimes(1);
+    expect(spaceManager.activeSpaces.length).toBe(1);
+
+    // Test closeSpace
+    await spaceManager.closeSpace('test:test-space');
+    expect(spaceManager.activeSpaces.length).toBe(0);
+    expect(spaceManager.getSpace('test:test-space')).toBeNull();
+  });
+
+  it("Adds an existing space", async () => {
+    const onSpaceHandler = vi.fn();
+    const spaceManager = new SpaceManager2({
+      setupSpaceHandler: onSpaceHandler
+    });
+
+    const newSpace = Space.newSpace('manual-space');
+    spaceManager.addSpace(newSpace, 'manual:space');
+
+    expect(spaceManager.activeSpaces.length).toBe(1);
+    expect(spaceManager.getSpace('manual:space')).toBe(newSpace);
+    expect(onSpaceHandler).toHaveBeenCalledWith(expect.objectContaining({ uri: 'manual:space' }), newSpace);
   });
 });
