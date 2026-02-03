@@ -8,7 +8,6 @@ describe('Space creation and file-system persistence', () => {
     // in tests
 
     const spaceManager = new SpaceManager2({
-      enableBacked: false,
       setupSyncLayers: (spacePointer) => {
         return [];
       },
@@ -17,7 +16,6 @@ describe('Space creation and file-system persistence', () => {
     const space = Space.newSpace('test-space');
     spaceManager.addSpace(space, 'test:test-space');
 
-
-
+    expect(spaceManager.getSpace('test:test-space')).toBe(space);
   });
 });

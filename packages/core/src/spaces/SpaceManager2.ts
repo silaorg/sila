@@ -69,6 +69,18 @@ export class SpaceManager2 {
   }
 
   /**
+   * Get a space by its pointer or URI.
+   * @param ref The pointer or URI of the space.
+   * @returns The space or null if not found.
+   */
+  getSpace(ref: string | SpacePointer2): Space | null {
+    const uri = typeof ref === 'string' ? ref : ref.uri;
+    const spaceRunner = this.spaceRunners.get(uri);
+    if (!spaceRunner) return null;
+    return spaceRunner.space;
+  }
+
+  /**
    * Load a space at the pointer with the help of the sync layers.
    * The ones sync layers we setup with `setupSyncLayers` in the constructor.
    * @param spacePointer The pointer to the space.

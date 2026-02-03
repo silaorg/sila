@@ -28,7 +28,7 @@ export class SpaceRunner2 {
     return new SpaceRunner2(pointer, layers);
   }
 
-  private space: Space | null = null;
+  readonly space: Space | null = null;
   private initSync: Promise<void> | null = null;
 
   private constructor(readonly pointer: SpacePointer2, readonly layers: SyncLayer[], space?: Space) {
