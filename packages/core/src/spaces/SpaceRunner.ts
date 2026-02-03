@@ -110,11 +110,10 @@ export class SpaceRunner {
               throw new Error("No ops found");
             }
 
-            if (ops.length > 0) {
-              // Validate ops by trying to build the tree
-              // If this throws, Promise.any will treat it as a rejection for this layer
-              new Space(new RepTree(uuid(), ops));
-            }
+            // Validate ops by trying to build the tree
+            // If this throws, Promise.any will treat it as a rejection for this layer
+            new Space(new RepTree(uuid(), ops));
+
             return ops;
           })
         );

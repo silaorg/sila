@@ -11,10 +11,23 @@ export interface SpacePointer2 {
 }
 
 export type SpaceManager2Options = {
-  // @NOTE: it depends on a space pointer, so it should be determined
-  // based on the space
-  enableBacked: boolean;
+  /**
+   * Setup sync layers for a space. Each platform can have different sync layers.
+   * So a server and a desktop app can sync spaces in different ways.
+   * Whatever we return here will be used for a space at a pointer.
+   * @param spacePointer The pointer to the space.
+   * @returns An array of sync layers setup for the space.
+   */
   setupSyncLayers?: (spacePointer: SpacePointer2) => SyncLayer[];
+
+  /**
+   * Setup space handler for a space. Coud be anything that needs a space to read or edit it.
+   * E.g a UI component or a backend service.
+   * It will be called when a space is just created or loaded.
+   * @param spacePointer The pointer to the space.
+   * @param space The space to setup handler for.
+   */
+  setupSpaceHandler?: (spacePointer: SpacePointer2, space: Space) => void;
 }
 
 /**
@@ -36,6 +49,11 @@ export class SpaceManager2 {
     this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
   }
 
+  /**
+   * Add an existing space we have in memory to the manager.
+   * @param space The space to add.
+   * @param uri The URI of the space.
+   */
   addSpace(space: Space, uri: string) {
     const pointer: SpacePointer2 = {
       id: space.getId(),
@@ -50,6 +68,11 @@ export class SpaceManager2 {
     this.spaceRunners.set(pointer.uri, runner);
   }
 
+  /**
+   * Load a space at the pointer with the help of the sync layers.
+   * The ones sync layers we setup with `setupSyncLayers` in the constructor.
+   * @param spacePointer The pointer to the space.
+   */
   loadSpace(spacePointer: SpacePointer2) {
     const syncLayers = this.setupSyncLayers(spacePointer);
     const runner = SpaceRunner2.fromPointer(spacePointer, syncLayers);
