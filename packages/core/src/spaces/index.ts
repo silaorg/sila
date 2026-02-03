@@ -6,4 +6,8 @@ export * from './AppConfigsData';
 export * from './AppTree';
 export * from './ChatAppData';
 export * from './persistence';
-export * from './files'; 
+export * from './files';
+
+export * from './sync';
+export * from './SpaceManager2';
+

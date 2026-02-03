@@ -155,22 +155,4 @@ export class SpaceManager {
   getRunner(spaceKey: string): SpaceRunner | undefined {
     return this.runners.get(spaceKey);
   }
-
-  /**
-   * Add a persistence layer to an existing space
-   */
-  addPersistenceLayer(spaceKey: string, layer: PersistenceLayer): void {
-    const runner = this.runners.get(spaceKey);
-    if (!runner) return;
-    runner.addPersistenceLayer(layer);
-  }
-
-  /**
-   * Remove a persistence layer from a space
-   */
-  removePersistenceLayer(spaceKey: string, layerId: string): void {
-    const runner = this.runners.get(spaceKey);
-    if (!runner) return;
-    runner.removePersistenceLayer(layerId);
-  }
 }
