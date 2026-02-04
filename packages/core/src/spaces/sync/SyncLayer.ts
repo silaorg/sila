@@ -1,9 +1,20 @@
 import { SpaceRunner } from "@sila/core"
 import { VertexOperation } from "reptree"
 
+/**
+ * SyncLayer is for persisting spaces and syncing them between peers.
+ * SpaceRunner depends on SyncLayer to load and save ops.
+ * Each SyncLayer can have its own source. For example, one could connect 
+ * to an OS's file system and another use a browser's IndexedDB.
+ * At a minimum it should provide a way to load and save ops.
+ * It can also provide a way to stream ops from its source to the SpaceRunner.
+ */
 export interface SyncLayer {
   readonly id: string
   readonly type: 'local' | 'remote'
+
+  // Reference a SpaceRunner in case if the layer would benefit from it
+  spaceRunner?: SpaceRunner
 
   // The main reason SyncLayer exists is to provide a way to load and save ops
   loadSpaceTreeOps(): Promise<VertexOperation[]>

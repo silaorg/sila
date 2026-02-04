@@ -10,18 +10,9 @@ describe('Space creation and file-system persistence', () => {
     });
 
     const startTime = performance.now();
-
-    const space = spaceManager.loadSpace({
-      id: "-",
-      uri: "-",
-      name: "-",
-      createdAt: new Date(),
-      userId: null,
-    });
-
+    const spaceLoadPromise = spaceManager.loadSpace("-");
     const durationToLoadSpace = performance.now() - startTime;
-
-    await expect(space).rejects.toThrow();
+    await expect(spaceLoadPromise).rejects.toThrow();
     expect(durationToLoadSpace).toBeLessThan(10);
   });
 
@@ -29,24 +20,23 @@ describe('Space creation and file-system persistence', () => {
     const timeout = 500;
     const originalSpace = Space.newSpace('test');
     const spaceManager = new SpaceManager2({
-      setupSyncLayers: () => [new TestInMemorySyncLayer(originalSpace, timeout * 1000)]
-    });
-    spaceManager.timeoutForSpaceLoading = timeout;
-
-    const space = spaceManager.loadSpace({
-      id: "-",
-      uri: "-",
-      name: "-",
-      createdAt: new Date(),
-      userId: null,
+      setupSyncLayers: () => [new TestInMemorySyncLayer(originalSpace, timeout * 1000)],
+      timeoutForSpaceLoading: timeout
     });
 
-    await expect(space).rejects.toThrow();
+    const startTime = performance.now();
+    const spaceLoadPromise = spaceManager.loadSpace("-");
+    await expect(spaceLoadPromise).rejects.toThrow();
+    const durationToLoadSpace = performance.now() - startTime;
+    expect(durationToLoadSpace).toBeGreaterThan(timeout * 0.9);
+    expect(durationToLoadSpace).toBeLessThan(timeout * 1.1);
   });
 
   it("Creates a new space manager", async () => {
     const spaceId = 'test-space';
+    const spaceUri = 'test:' + spaceId;
     const originalSpace = Space.newSpace(spaceId);
+    originalSpace.name = "I'm Space";
     const shortestSyncLayerDelay = 1000;
 
     // We setup 3 sync layers with different delays.
@@ -62,19 +52,28 @@ describe('Space creation and file-system persistence', () => {
     });
 
     const startTime = performance.now();
-    const space = await spaceManager.loadSpace({
-      id: spaceId,
-      uri: 'test:test-space',
-      name: 'test-space',
-      createdAt: new Date(),
-      userId: null,
-    });
 
+    const space = await spaceManager.loadSpace(spaceUri);
     expect(space.id).toBe(originalSpace.id);
+    expect(space.name).toBe(originalSpace.name);
 
-    const durationToLoadSpace = performance.now() - startTime;
     // Space should load in around the shortest sync layer delay.
+    const durationToLoadSpace = performance.now() - startTime;
     expect(durationToLoadSpace).toBeGreaterThan(shortestSyncLayerDelay - 100);
     expect(durationToLoadSpace).toBeLessThan(shortestSyncLayerDelay + 100);
+
+    const duplicateSpaceManager = new SpaceManager2({
+      setupSyncLayers: () => syncLayers
+    });
+
+    const duplicateSpace = await duplicateSpaceManager.loadSpace(spaceUri);
+    expect(duplicateSpace.id).toBe(originalSpace.id);
+    expect(duplicateSpace.name).toBe(originalSpace.name);
+
+    // @TODO: load another space, edit it and see if the change propagates to the original space.
+
+    // @TODO: edit the space
+
+    // @TODO: add a new app tree and edit it
   });
 });
