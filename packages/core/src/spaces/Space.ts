@@ -157,8 +157,13 @@ export class Space {
     return providersVertex ? providersVertex.children.length > 0 : false;
   }
 
-  /** Space id is the same as the root vertex id of the space tree */
+  /** @deprecated Use id instead */
   getId(): string {
+    return this.tree.root!.id;
+  }
+
+  /** Space id is the same as the root vertex id of the space tree */
+  get id(): string {
     return this.tree.root!.id;
   }
 
@@ -221,20 +226,6 @@ export class Space {
     return this.tree.getVertexByPath(path);
   }
 
-  // @TODO: make part of Vertex
-  findObjectWithPropertyAtPath(
-    path: string,
-    key: string,
-    value: VertexPropertyType,
-  ): object | undefined {
-    const arr = this.getArray<object>(path);
-    // Check if the object has the property and its value matches the given value
-    return arr.find((obj: object) => {
-      const typedObj = obj as Record<string, VertexPropertyType>;
-      return typedObj[key] === value;
-    });
-  }
-
   /**
    * Load an app tree (a wrapped instance of RepTree) if it's not already loaded
    * @param appTreeId - The id of the app tree to load
@@ -280,24 +271,46 @@ export class Space {
     );
   }
 
+  /**
+   * Pass a function that will be solely responsible for loading app trees.
+   * @param loader - A function that takes an app tree id and returns a promise that resolves to an AppTree instance.
+   */
   registerTreeLoader(
     loader: (appTreeId: string) => Promise<AppTree | undefined>,
   ) {
     this.treeLoader = loader;
   }
 
+  /**
+   * Get a loaded app tree.
+   * @param appTreeId - The id of the app tree to get.
+   * @returns The app tree if it's loaded, undefined otherwise.
+   */
   getAppTree(appTreeId: string): AppTree | undefined {
     return this.appTrees.get(appTreeId);
   }
 
+  /**
+   * Get all loaded app trees.
+   * @returns An array of loaded app trees.
+   */
   getLoadedAppTrees(): ReadonlyArray<AppTree> {
     return Array.from(this.appTrees.values());
   }
 
+  /**
+   * Get all app tree ids.
+   * @returns An array of app tree ids.
+   */
   getAppTreeIds(): ReadonlyArray<string> {
     return this.appTreesVertex.children.map((v) => v.id);
   }
 
+  /**
+   * Delete an app tree from the space tree. 
+   * The tree itself won't be deleted with this function, only the reference to it.
+   * @param appTreeId - The id of the app tree to delete.
+   */
   deleteAppTree(appTreeId: string) {
     const vertex = this.getVertexReferencingAppTree(appTreeId);
     if (!vertex) return;
@@ -305,6 +318,11 @@ export class Space {
     this.tree.deleteVertex(vertex.id);
   }
 
+  /**
+   * Get the vertex that references the given app tree.
+   * @param appTreeId - The id of the app tree to get the vertex for.
+   * @returns The vertex that references the app tree, undefined otherwise.
+   */
   getVertexReferencingAppTree(appTreeId: string): Vertex | undefined {
     for (const vertex of this.appTreesVertex.children) {
       if (vertex.getProperty("tid") === appTreeId) {
@@ -580,8 +598,6 @@ export class Space {
   setApiKey(providerId: string, apiKey: string) {
     this.setSecret(`api-key-${providerId}`, apiKey);
   }
-
-  // Custom OpenAI-like providers methods
 
   /**
    * Add a new custom OpenAI-like provider

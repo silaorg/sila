@@ -5,26 +5,21 @@ export interface SyncLayer {
   readonly id: string
   readonly type: 'local' | 'remote'
 
-  // Lifecycle
-  connect(): Promise<void>
-  isConnected(): boolean
-  disconnect(): Promise<void>
-
-  // Multi-tree support - handles both space tree and app trees
+  // The main reason SyncLayer exists is to provide a way to load and save ops
   loadSpaceTreeOps(): Promise<VertexOperation[]>
+  loadTreeOps(treeId: string): Promise<VertexOperation[]>
   saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>
 
-  // Tree loader callback for lazy loading AppTrees
-  loadTreeOps(treeId: string): Promise<VertexOperation[]>
+  // Implement them if the sync layer requires a connection or any pre-loading actions
+  connect?(): Promise<void>
+  isConnected?(): boolean
+  disconnect?(): Promise<void>
 
-  // Secrets management
-  loadSecrets(): Promise<Record<string, string> | undefined>
-  saveSecrets(secrets: Record<string, string>): Promise<void>
+  // Secrets handling is optional
+  loadSecrets?(): Promise<Record<string, string> | undefined>
+  saveSecrets?(secrets: Record<string, string>): Promise<void>
 
-  // Optional: for two-way sync layers
+  // Two-way sync is optional
   startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>
   stopListening?(): Promise<void>
-
-  // Optional: if our layer would benefit from having a reference to the space it's handling
-  referenceSpaceRunner?(spaceRunner: SpaceRunner): void;
 }

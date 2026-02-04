@@ -32,8 +32,7 @@ export type SpaceManager2Options = {
 
 /**
  * Manages spaces and the way they sync.
- * It uses SpacePointer to identify where a space is located so it can
- * load and save it.
+ * It uses SpacePointer to identify where a space is located so it can load and save it.
  * Spaces get persisted and synced between peers using SyncLayer.
  * A space can have multiple sync layers, for example one for local storage
  * and one for remote storage. When we construct SpaceManager, we 
@@ -41,6 +40,8 @@ export type SpaceManager2Options = {
  * the sync layers for a space depending on what platform we are running on.
  */
 export class SpaceManager2 {
+
+  timeoutForSpaceLoading = 10000;
 
   private spaceRunners = new Map<string, SpaceRunner2>();
   private setupSyncLayers: (spacePointer: SpacePointer2) => SyncLayer[];
@@ -56,7 +57,7 @@ export class SpaceManager2 {
    */
   addSpace(space: Space, uri: string) {
     const pointer: SpacePointer2 = {
-      id: space.getId(),
+      id: space.id,
       uri: uri,
       name: space.name ?? null,
       createdAt: space.createdAt,
@@ -85,13 +86,27 @@ export class SpaceManager2 {
    * The ones sync layers we setup with `setupSyncLayers` in the constructor.
    * @param spacePointer The pointer to the space.
    */
-  async loadSpace(spacePointer: SpacePointer2): Promise<Space | null> {
+  async loadSpace(spacePointer: SpacePointer2): Promise<Space> {
     const syncLayers = this.setupSyncLayers(spacePointer);
+
+    if (syncLayers.length === 0) {
+      throw new Error(`No sync layers to load a space`);
+    }
+
+    const startTime = performance.now();
     const runner = SpaceRunner2.fromPointer(spacePointer, syncLayers);
     this.spaceRunners.set(spacePointer.uri, runner);
-    if (runner.initSync) {
-      await runner.initSync;
+
+    while (true) {
+      if (runner.space) break;
+
+      if (performance.now() - startTime > this.timeoutForSpaceLoading) {
+        throw new Error(`Failed to load space ${spacePointer.uri} within ${this.timeoutForSpaceLoading}ms`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 3));
     }
+
     return runner.space;
   }
 
