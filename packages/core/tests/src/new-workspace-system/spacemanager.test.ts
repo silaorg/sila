@@ -70,10 +70,25 @@ describe('Space creation and file-system persistence', () => {
     expect(duplicateSpace.id).toBe(originalSpace.id);
     expect(duplicateSpace.name).toBe(originalSpace.name);
 
-    // @TODO: load another space, edit it and see if the change propagates to the original space.
+    duplicateSpace.name = "I'm a duplicate space";
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(originalSpace.name).toBe("I'm a duplicate space");
 
-    // @TODO: edit the space
+    // Create an app tree in the duplicate space
+    {
+      const appTree = duplicateSpace.newAppTree("test-app-tree");
+      const v = appTree.tree.root!.newNamedChild("test-child");
+      v.setProperty("message", "Hello");
+    }
 
-    // @TODO: add a new app tree and edit it
+    // Load the app tree in the original space
+    {
+      const appTree = await originalSpace.loadAppTree("test-app-tree");
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(appTree).toBeTruthy();
+      const v = appTree!.tree.getVertexByPath("test-child");
+      expect(v).toBeTruthy();
+      expect(v!.getProperty("message")).toBe("Hello");
+    }
   });
 });
