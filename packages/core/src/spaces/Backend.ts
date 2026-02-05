@@ -22,7 +22,7 @@ export class Backend {
       this.createAppBackend(appTree);
     }
 
-    space.observeTreeLoad((appTreeId) => {
+    space.onTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId);
       if (!appTree) {
         throw new Error(`App tree with id ${appTreeId} not found`);

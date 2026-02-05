@@ -252,67 +252,61 @@ export class Space {
     return appTree;
   }
 
-  observeNewAppTree(observer: (appTreeId: string) => void) {
+  onNewAppTree(observer: (appTreeId: string) => void): () => void {
     this.newTreeObservers.push(observer);
+    return () => {
+      this.newTreeObservers = this.newTreeObservers.filter((l) => l !== observer);
+    };
   }
 
-  unobserveNewAppTree(observer: (appTreeId: string) => void) {
-    this.newTreeObservers = this.newTreeObservers.filter((l) => l !== observer);
-  }
-
-  observeTreeLoad(observer: (appTreeId: string) => void) {
+  onTreeLoad(observer: (appTreeId: string) => void): () => void {
     this.treeLoadObservers.push(observer);
-  }
-
-  unobserveTreeLoad(observer: (appTreeId: string) => void) {
-    this.treeLoadObservers = this.treeLoadObservers.filter((l) =>
-      l !== observer
-    );
+    return () => {
+      this.treeLoadObservers = this.treeLoadObservers.filter((obs) => obs !== observer);
+    };
   }
 
   /**
    * Pass a function that will be solely responsible for loading app trees.
    * @param loader - A function that takes an app tree id and returns a promise that resolves to an AppTree instance.
    */
-  registerTreeLoader(
-    loader: (appTreeId: string) => Promise<AppTree | undefined>,
-  ) {
+  setTreeLoader(loader: (appTreeId: string) => Promise<AppTree | undefined>) {
+    if (this.treeLoader) {
+      throw new Error("Tree loader already set. Can't set it twice.");
+    }
+
     this.treeLoader = loader;
   }
 
   private pendingOpsToCreateTrees = new Map<string, VertexOperation[]>();
 
-  /**
-   * Safe way of adding ops to a tree.
-   * If the tree is not loaded, it will be loaded.
-   * If the tree is not found, it will be created.
-   * @param treeId - The id of the tree to add ops to.
-   * @param ops - The ops to add to the tree.
-   */
-  async addOps(treeId: string, ops: VertexOperation[]) {
+  async addTreeOps(treeId: string, ops: VertexOperation[]) {
     if (this.id === treeId) {
       this.tree.merge(ops);
       return;
     }
 
-    const appTree = await this.loadAppTree(treeId);
-    if (appTree) {
-      appTree.tree.merge(ops);
-    } else {
-      // We do this in a try-catch so if the ops we got are not enough
-      // to create a valid RepTree or AppTree, we accumulate them
-      // and try again when we get more ops.
+    const appTree = this.appTrees.get(treeId);
+    if (!appTree) {
       try {
-        const pendingOps = this.pendingOpsToCreateTrees.get(treeId) ?? [];
-        const allOps = pendingOps.length > 0 ? [...pendingOps, ...ops] : ops;
+        const pendingOps = this.pendingOpsToCreateTrees.get(treeId);
+        const allOps = pendingOps ? [...pendingOps, ...ops] : ops;
+
         const tree = new RepTree(this.tree.peerId, allOps);
         const appTree = new AppTree(tree);
         this.appTrees.set(treeId, appTree);
-      } catch (error) {
-        const existing = this.pendingOpsToCreateTrees.get(treeId) ?? [];
-        this.pendingOpsToCreateTrees.set(treeId, [...existing, ...ops]);
+
+        this.pendingOpsToCreateTrees.delete(treeId);
+        return;
+      } catch (e) {
+        const pendingOps = this.pendingOpsToCreateTrees.get(treeId);
+        const allOps = pendingOps ? [...pendingOps, ...ops] : ops;
+        this.pendingOpsToCreateTrees.set(treeId, allOps);
+        return;
       }
     }
+
+    appTree.tree.merge(ops);
   }
 
   /**

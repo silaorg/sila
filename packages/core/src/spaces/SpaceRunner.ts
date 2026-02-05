@@ -277,7 +277,7 @@ export class SpaceRunner {
   private registerTreeLoader(): void {
     if (this.persistenceLayers.length === 0) return;
 
-    this.space.registerTreeLoader(async (appTreeId: string) => {
+    this.space.setTreeLoader(async (appTreeId: string) => {
       const treeLoadPromises = this.persistenceLayers.map(async (layer) => {
         await layer.connect();
         const ops = await layer.loadTreeOps(appTreeId);
@@ -480,7 +480,7 @@ export class SpaceRunner {
       }
     });
 
-    space.observeNewAppTree((appTreeId) => {
+    space.onNewAppTree((appTreeId) => {
       const appTree = space.getAppTree(appTreeId)!;
       const ops = appTree.tree.getAllOps();
 
@@ -502,7 +502,7 @@ export class SpaceRunner {
       });
     });
 
-    space.observeTreeLoad((appTreeId) => {
+    space.onTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId)!;
       appTree.tree.observeOpApplied((op) => {
         if (

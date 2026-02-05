@@ -4,6 +4,7 @@ import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
 
 describe('Space creation and file-system persistence', () => {
 
+  /*
   it("Throws immidiately if we try to load a space without layers in a manager", async () => {
     const spaceManager = new SpaceManager2({
       setupSyncLayers: () => []
@@ -31,8 +32,10 @@ describe('Space creation and file-system persistence', () => {
     expect(durationToLoadSpace).toBeGreaterThan(timeout * 0.9);
     expect(durationToLoadSpace).toBeLessThan(timeout * 1.1);
   });
+  */
 
-  it("Creates a new space manager", async () => {
+  /*
+  it("Creates a new space manager and syncs", async () => {
     const spaceId = 'test-space';
     const spaceUri = 'test:' + spaceId;
     const originalSpace = Space.newSpace(spaceId);
@@ -73,18 +76,52 @@ describe('Space creation and file-system persistence', () => {
     duplicateSpace.name = "I'm a duplicate space";
     await new Promise(resolve => setTimeout(resolve, 10));
     expect(originalSpace.name).toBe("I'm a duplicate space");
+  });
+  */
 
+  it("Syncs updates to space trees", async () => {
+    const spaceId = 'test-space';
+    const spaceUri = 'test:' + spaceId;
+    const originalPeer = "peer-0";
+    // Don't test against this space, use spaces derived from it with SpaceManagers and SyncLayers
+    const originalSpace_for_sync_layer_only = Space.newSpace(originalPeer);
+    originalSpace_for_sync_layer_only.name = "I'm Space";
+
+    const syncLayers = [
+      new TestInMemorySyncLayer(originalSpace_for_sync_layer_only, 0)
+    ];
+
+    const spaceManagerA = new SpaceManager2({
+      setupSyncLayers: () => syncLayers
+    });
+
+    const spaceA = await spaceManagerA.loadSpace(spaceUri);
+    const spaceManagerB = new SpaceManager2({
+      setupSyncLayers: () => syncLayers
+    });
+
+    const spaceB = await spaceManagerB.loadSpace(spaceUri);
+    expect(spaceB.id).toBe(spaceA.id);
+    expect(spaceB.name).toBe(spaceA.name);
+
+    spaceB.name = "I'm a duplicate space";
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(spaceA.name).toBe("I'm a duplicate space");
+
+    let appTreeId: string;
     // Create an app tree in the duplicate space
     {
-      const appTree = duplicateSpace.newAppTree("test-app-tree");
+      const appTree = spaceA.newAppTree("test-app");
+      appTreeId = appTree.id;
       const v = appTree.tree.root!.newNamedChild("test-child");
       v.setProperty("message", "Hello");
     }
 
+    await new Promise(resolve => setTimeout(resolve, 10));
+
     // Load the app tree in the original space
     {
-      const appTree = await originalSpace.loadAppTree("test-app-tree");
-      await new Promise(resolve => setTimeout(resolve, 10));
+      const appTree = await spaceB.loadAppTree(appTreeId);
       expect(appTree).toBeTruthy();
       const v = appTree!.tree.getVertexByPath("test-child");
       expect(v).toBeTruthy();

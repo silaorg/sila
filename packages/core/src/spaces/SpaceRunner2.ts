@@ -1,4 +1,7 @@
 import { SyncLayer, VertexOperation } from "@sila/core";
+import { RepTree } from "reptree";
+import { AppTree } from "./AppTree";
+import uuid from "../utils/uuid";
 import { Space } from "./Space";
 
 /**
@@ -35,6 +38,64 @@ export class SpaceRunner2 {
     this.initSync = this.startSync();
   }
 
+  private setupTreeLoader() {
+    if (!this.space) {
+      throw new Error(`Space is not initialized`);
+    }
+
+    this.space.setTreeLoader((treeId) => {
+      // We load ops from all layers. The tree is resolved as soon as the first layer
+      // provides enough ops to build a valid tree. However, we continue loading
+      // from other layers in the background to merge their ops into the resolved tree.
+      return new Promise<AppTree | undefined>((resolve) => {
+        const accumulatedOps: VertexOperation[] = [];
+        let appTree: AppTree | undefined;
+        let isResolved = false;
+
+        const tryCreateTree = () => {
+          try {
+            // Attempt to create a valid tree from accumulated ops.
+            // If the ops are insufficient or invalid, RepTree/AppTree throws.
+            const tree = new RepTree(uuid(), accumulatedOps);
+            appTree = new AppTree(tree);
+            isResolved = true;
+            resolve(appTree);
+          } catch {
+            // Ops not sufficient yet, wait for more from other layers
+          }
+        };
+
+        const loadLayer = async (layer: SyncLayer) => {
+          try {
+            const ops = await layer.loadTreeOps(treeId);
+            if (ops.length === 0) return;
+
+            accumulatedOps.push(...ops);
+
+            // If we already have a resolved tree (from another faster layer),
+            // just merge these new ops into it.
+            if (appTree) {
+              appTree.tree.merge(ops);
+            } else {
+              // Otherwise, this layer might provide the missing pieces (or be the first one).
+              tryCreateTree();
+            }
+          } catch (e) {
+            console.error(`Failed to load tree ops from layer ${layer.id}`, e);
+          }
+        };
+
+        const allLayersPromise = Promise.allSettled(this.layers.map(loadLayer));
+
+        allLayersPromise.then(() => {
+          // If all layers finished and we still couldn't create a valid tree,
+          // resolve with undefined (or let the caller handle the missing tree).
+          if (!isResolved) resolve(undefined);
+        });
+      });
+    });
+  }
+
   private async startSync() {
     const localLayers = this.layers.filter(layer => layer.type === 'local');
     const remoteLayers = this.layers.filter(layer => layer.type === 'remote');
@@ -48,7 +109,7 @@ export class SpaceRunner2 {
   }
 
   private async createOrUpdateSpace(layers: SyncLayer[]) {
-    // We do accumulation of ops here just in case if we couldn't build a valid space from a set of ops from a layer.
+    // We accumulate ops here in case if we couldn't build a valid space from a set of ops from a layer.
     // We would carry those incomplete ops over to an iteration with another layer to build a space with.
     // The case with a layer not holding a valid set of ops to build a space is not desirable but possible
     // by the design of the sync layers. Which is fine.
@@ -71,6 +132,8 @@ export class SpaceRunner2 {
           const space = Space.existingSpaceFromOps(accumulatedOps);
           accumulatedOps.length = 0;
           this.space = space;
+
+          this.setupTreeLoader();
 
           this.trackOps(layersToSetupOpsTracking);
           layersToSetupOpsTracking.length = 0;
@@ -109,8 +172,13 @@ export class SpaceRunner2 {
       this.saveOpsToLayer(layer, space.id, [op]);
     });
 
-    space.observeTreeLoad((appTreeId) => {
+    space.onTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId)!;
+
+      // Save all ops of the tree we've just loaded
+      this.saveOpsToLayer(layer, appTreeId, appTree.tree.getAllOps() as VertexOperation[]);
+
+      // And then observe any new incoming ops
       appTree.tree.observeOpApplied((op) => {
         this.saveOpsToLayer(layer, appTreeId, [op]);
       });
@@ -137,7 +205,7 @@ export class SpaceRunner2 {
     const space = this.space!;
 
     await layer.startListening((treeId, incomingOps) => {
-      space.addOps(treeId, incomingOps);
+      space.addTreeOps(treeId, incomingOps);
     });
   }
 

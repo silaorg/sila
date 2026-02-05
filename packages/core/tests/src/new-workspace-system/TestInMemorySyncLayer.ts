@@ -15,19 +15,16 @@ export class TestInMemorySyncLayer implements SyncLayer {
   }
 
   async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
-    if (treeId === this.space.id) {
-      this.space.tree.merge(ops);
-    } else {
-      const appTree = this.space.getAppTree(treeId);
-      if (!appTree) {
-        throw new Error("Tree not found");
-      }
-      appTree.tree.merge(ops);
-    }
+    this.space.addTreeOps(treeId, ops as VertexOperation[]);
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
     await new Promise(resolve => setTimeout(resolve, this.loadDelayMs));
+
+    if (treeId === this.space.id) {
+      return this.space.tree.getAllOps() as VertexOperation[];
+    }
+
     const tree = this.space.getAppTree(treeId);
     if (!tree) {
       throw new Error("Tree not found");
@@ -40,7 +37,7 @@ export class TestInMemorySyncLayer implements SyncLayer {
       onIncomingOps(this.space.id, [op]);
     });
 
-    this.space.observeTreeLoad((appTreeId) => {
+    this.space.onTreeLoad((appTreeId) => {
       const appTree = this.space.getAppTree(appTreeId)!;
       appTree.tree.observeOpApplied((op) => {
         onIncomingOps(appTreeId, [op]);
