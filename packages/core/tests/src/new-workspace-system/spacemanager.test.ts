@@ -4,7 +4,6 @@ import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
 
 describe('Space creation and file-system persistence', () => {
 
-  /*
   it("Throws immidiately if we try to load a space without layers in a manager", async () => {
     const spaceManager = new SpaceManager2({
       setupSyncLayers: () => []
@@ -32,9 +31,7 @@ describe('Space creation and file-system persistence', () => {
     expect(durationToLoadSpace).toBeGreaterThan(timeout * 0.9);
     expect(durationToLoadSpace).toBeLessThan(timeout * 1.1);
   });
-  */
 
-  /*
   it("Creates a new space manager and syncs", async () => {
     const spaceId = 'test-space';
     const spaceUri = 'test:' + spaceId;
@@ -77,7 +74,6 @@ describe('Space creation and file-system persistence', () => {
     await new Promise(resolve => setTimeout(resolve, 10));
     expect(originalSpace.name).toBe("I'm a duplicate space");
   });
-  */
 
   it("Syncs updates to space trees", async () => {
     const spaceId = 'test-space';
@@ -109,7 +105,7 @@ describe('Space creation and file-system persistence', () => {
     expect(spaceA.name).toBe("I'm a duplicate space");
 
     let appTreeId: string;
-    // Create an app tree in the duplicate space
+    // Create an app tree in spaceA
     {
       const appTree = spaceA.newAppTree("test-app");
       appTreeId = appTree.id;
@@ -119,7 +115,7 @@ describe('Space creation and file-system persistence', () => {
 
     await new Promise(resolve => setTimeout(resolve, 10));
 
-    // Load the app tree in the original space
+    // Load the app tree in spaceB
     {
       const appTree = await spaceB.loadAppTree(appTreeId);
       expect(appTree).toBeTruthy();
