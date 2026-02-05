@@ -1,6 +1,11 @@
 import { Space, SpaceManager2, VertexOperation, } from '@sila/core';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
+import { FileSystemSyncLayer } from '@sila/core';
+import { NodeFileSystem } from '../setup/setup-node-file-system';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { rm } from 'fs/promises';
 
 describe('Space creation and file-system persistence', () => {
 
@@ -227,6 +232,199 @@ describe('Space creation and file-system persistence', () => {
       expect(space.tree.root!.getProperty("prop-0")).toBe("val-0");
       expect(space.tree.root!.getProperty("prop-99")).toBe("val-99");
     }
+  });
+
+});
+
+describe('FileSystemSyncLayer - Real file persistence', () => {
+  let tempDir: string;
+  let fs: NodeFileSystem;
+
+  beforeAll(() => {
+    fs = new NodeFileSystem();
+  });
+
+  afterAll(async () => {
+    // Clean up temp directories
+    if (tempDir) {
+      try {
+        await rm(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        console.error("Error cleaning up temp directory:", error);
+      }
+    }
+  });
+
+  it("saves files to disk and can reload them", async () => {
+    // Create a unique temp directory for this test
+    tempDir = join(tmpdir(), `sila-test-${Date.now()}`);
+    const spaceId = 'test-fs-space';
+    const spaceUri = 'fs:' + spaceId;
+
+    // Create a sync layer pointing to temp directory
+    const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
+    await syncLayer.connect();
+
+    // Create a space manager with the file system sync layer
+    const spaceManager = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer]
+    });
+
+    // Create and modify a space
+    const originalSpace = Space.newSpace(spaceId);
+    originalSpace.name = "Test File System Space";
+    originalSpace.tree.root!.setProperty("test-prop", "test-value");
+    originalSpace.tree.root!.setProperty("another-prop", 42);
+
+    // Add space to manager so it gets synced
+    spaceManager.addSpace(originalSpace, spaceUri);
+
+    // Wait for initial sync to complete (this triggers saveTreeOps)
+    const runner = (spaceManager as any).spaceRunners.get(spaceUri);
+    if (runner && runner.initSync) {
+      await runner.initSync;
+    }
+
+    // Wait for sync to complete
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    // Verify directory structure was created
+    expect(await fs.exists(tempDir)).toBe(true);
+    expect(await fs.exists(join(tempDir, 'space-v1'))).toBe(true);
+    expect(await fs.exists(join(tempDir, 'space-v1', 'ops'))).toBe(true);
+    expect(await fs.exists(join(tempDir, 'sila.md'))).toBe(true);
+    expect(await fs.exists(join(tempDir, 'space-v1', 'space.json'))).toBe(true);
+
+    // Verify space.json contains correct ID
+    const spaceJson = JSON.parse(await fs.readTextFile(join(tempDir, 'space-v1', 'space.json')));
+    expect(spaceJson.id).toBe(originalSpace.id); // Use actual space ID, not the string we passed
+
+    // The actual tree ID is originalSpace.id, not the spaceId string we used for the URI
+    const actualTreeId = originalSpace.id;
+
+    // Verify JSONL files were created - use actualTreeId
+    const treeIdPrefix = actualTreeId.substring(0, 2);
+    const treeIdSuffix = actualTreeId.substring(2);
+    const opsDir = join(tempDir, 'space-v1', 'ops', treeIdPrefix, treeIdSuffix);
+
+    // Check that ops directory for this tree exists
+    expect(await fs.exists(opsDir)).toBe(true);
+
+    // Find the date directory (year/month/day)
+    const yearDirs = await fs.readDir(opsDir);
+    expect(yearDirs.length).toBeGreaterThan(0);
+
+    const yearDir = yearDirs.find(d => d.isDirectory && d.name.match(/^\d{4}$/));
+    expect(yearDir).toBeTruthy();
+
+    const monthDirs = await fs.readDir(join(opsDir, yearDir!.name));
+    const monthDir = monthDirs.find(d => d.isDirectory && d.name.match(/^\d{2}$/));
+    expect(monthDir).toBeTruthy();
+
+    const dayDirs = await fs.readDir(join(opsDir, yearDir!.name, monthDir!.name));
+    const dayDir = dayDirs.find(d => d.isDirectory && d.name.match(/^\d{2}$/));
+    expect(dayDir).toBeTruthy();
+
+    const jsonlDir = join(opsDir, yearDir!.name, monthDir!.name, dayDir!.name);
+    const jsonlFiles = await fs.readDir(jsonlDir);
+
+    // Should have at least move ops and property ops files
+    const moveOpsFile = jsonlFiles.find(f => f.name.endsWith('-m.jsonl'));
+    const propOpsFile = jsonlFiles.find(f => f.name.endsWith('-p.jsonl'));
+
+    expect(moveOpsFile).toBeTruthy();
+    expect(propOpsFile).toBeTruthy();
+
+    // Verify file contents contain operations
+    const moveOpsContent = await fs.readTextFile(join(jsonlDir, moveOpsFile!.name));
+    expect(moveOpsContent.length).toBeGreaterThan(0);
+    // Move ops should have JSONL format: [counter, "targetId", parentId]
+    expect(moveOpsContent).toContain('[');
+    expect(moveOpsContent).toContain('null'); // Root has null parent
+
+    const propOpsContent = await fs.readTextFile(join(jsonlDir, propOpsFile!.name));
+    expect(propOpsContent.length).toBeGreaterThan(0);
+    expect(propOpsContent).toContain("test-prop");
+    expect(propOpsContent).toContain("test-value");
+    expect(propOpsContent).toContain("another-prop");
+
+    // Disconnect first space manager
+    await syncLayer.disconnect();
+
+    // Now create a NEW space manager that loads from the same directory
+    const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
+    await syncLayer2.connect();
+
+    const spaceManager2 = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer2]
+    });
+
+    const loadedSpace = await spaceManager2.loadSpace(spaceUri);
+
+    // Verify loaded space has the same data - ID should match the original space's ID
+    expect(loadedSpace.id).toBe(originalSpace.id);
+    expect(loadedSpace.name).toBe("Test File System Space");
+    expect(loadedSpace.tree.root!.getProperty("test-prop")).toBe("test-value");
+    expect(loadedSpace.tree.root!.getProperty("another-prop")).toBe(42);
+
+    await syncLayer2.disconnect();
+  });
+
+  it("handles app tree operations", async () => {
+    // Create a new temp directory for this test
+    tempDir = join(tmpdir(), `sila-test-apptree-${Date.now()}`);
+    const spaceId = 'test-apptree-space';
+    const spaceUri = 'fs:' + spaceId;
+
+    const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
+    await syncLayer.connect();
+
+    const spaceManager = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer]
+    });
+
+    const originalSpace = Space.newSpace(spaceId);
+    originalSpace.name = "App Tree Test Space";
+
+    spaceManager.addSpace(originalSpace, spaceUri);
+
+    // Wait for initial sync
+    const runner = (spaceManager as any).spaceRunners.get(spaceUri);
+    if (runner && runner.initSync) {
+      await runner.initSync;
+    }
+
+    // Create an app tree
+    const appTree = originalSpace.newAppTree("my-app");
+    const child = appTree.tree.root!.newNamedChild("child-node");
+    child.setProperty("message", "Hello from app tree");
+
+    // Wait for sync
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    await syncLayer.disconnect();
+
+    // Load from disk with a new manager
+    const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
+    await syncLayer2.connect();
+
+    const spaceManager2 = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer2]
+    });
+
+    const loadedSpace = await spaceManager2.loadSpace(spaceUri);
+
+    // Give it time to load the app tree
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const loadedAppTree = await loadedSpace.loadAppTree(appTree.id);
+    expect(loadedAppTree).toBeTruthy();
+
+    const loadedChild = loadedAppTree!.tree.getVertexByPath("child-node");
+    expect(loadedChild).toBeTruthy();
+    expect(loadedChild!.getProperty("message")).toBe("Hello from app tree");
+
+    await syncLayer2.disconnect();
   });
 
 });

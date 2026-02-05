@@ -38,6 +38,19 @@ export class SpaceRunner2 {
     this.initSync = this.startSync();
   }
 
+  async dispose() {
+    // Disconnect all layers
+    await Promise.all(this.layers.map(async layer => {
+      if (layer.disconnect) {
+        try {
+          await layer.disconnect();
+        } catch (e) {
+          console.error(`Failed to disconnect layer ${layer.id}`, e);
+        }
+      }
+    }));
+  }
+
   private setupTreeLoader() {
     if (!this.space) {
       throw new Error(`Space is not initialized`);
@@ -99,6 +112,33 @@ export class SpaceRunner2 {
   private async startSync() {
     const localLayers = this.layers.filter(layer => layer.type === 'local');
     const remoteLayers = this.layers.filter(layer => layer.type === 'remote');
+
+    // Connect all layers first
+    await Promise.all(this.layers.map(async layer => {
+      if (layer.connect) {
+        try {
+          await layer.connect();
+        } catch (e) {
+          console.error(`Failed to connect layer ${layer.id}`, e);
+        }
+      }
+    }));
+
+    // If we already have a space (fromExistingSpace), we need to save its initial ops
+    // and set up tracking
+    if (this.space) {
+      this.setupTreeLoader();
+      this.trackOps(this.layers);
+
+      // Save initial space operations to all layers
+      const initialOps = this.space.tree.getAllOps() as VertexOperation[];
+      await Promise.all(this.layers.map(layer =>
+        layer.saveTreeOps(this.space!.id, initialOps).catch(e =>
+          console.error(`Failed to save initial space ops to layer ${layer.id}`, e)
+        )
+      ));
+      return;
+    }
 
     // We load from the local layers first so we can build space tree that we can use
     // later with remote layers to get ops with the help of vector states.
