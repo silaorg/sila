@@ -2,8 +2,7 @@ import { ThemeStore } from "./theme.svelte";
 import { LayoutStore } from "./layout.svelte";
 import type { SpacePointer } from "../spaces/SpacePointer";
 import type { Space } from "@sila/core";
-import type { SpaceManager } from "@sila/core";
-import type { PersistenceLayer } from "@sila/core";
+import type { SpaceManager2 } from "@sila/core";
 import {
   getDraft,
   saveDraft,
@@ -22,20 +21,19 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@sila/core";
 
 export type SpaceStateConfig = {
   pointer: SpacePointer;
-  spaceManager: SpaceManager;
+  spaceManager: SpaceManager2;
   analytics: AppTelemetry;
 };
 
 export class SpaceState {
   pointer: SpacePointer = $state() as SpacePointer;
-  private spaceManager: SpaceManager;
+  private spaceManager: SpaceManager2;
   space: Space | null = $state(null);
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
   vertexViewer: VertexViewer;
   fileResolver: FileResolver;
   isConnected: boolean = $state(false);
-  private persistenceLayers: PersistenceLayer[] = [];
   spaceTelemetry: SpaceTelemetry;
 
   constructor(config: SpaceStateConfig) {
@@ -54,7 +52,6 @@ export class SpaceState {
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {
       this.space = space;
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
       this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 
@@ -63,7 +60,7 @@ export class SpaceState {
   }
 
   /**
-   * Connect to this space - loads the actual Space data from persistence
+   * Connect to this space and load actual space data via sync layers.
    */
   async connect(): Promise<void> {
     if (this.isConnected && this.space) return;
@@ -75,7 +72,6 @@ export class SpaceState {
       if (this.space) {
         this.fileResolver = this.space.fileResolver;
         this.vertexViewer.setSpace(this.space);
-        this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
 
         // Load space-specific theme and layout
         // Stored at: root.theme + root.colorScheme
@@ -121,20 +117,18 @@ export class SpaceState {
   }
 
   /**
-   * Load the space using SpaceManager with appropriate persistence layers
+   * Load the space using SpaceManager2.
    */
   private async loadSpace(): Promise<Space | null> {
     // Check if already loaded in SpaceManager
     let space = this.spaceManager.getSpace(this.pointer.uri);
     if (space) {
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
       return space;
     }
 
     try {
       // Load the space using SpaceManager
-      space = await this.spaceManager.loadSpace(this.pointer);
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
+      space = await this.spaceManager.loadSpace(this.pointer.uri);
       return space;
     } catch (error) {
       console.error("Failed to load space", this.pointer, error);

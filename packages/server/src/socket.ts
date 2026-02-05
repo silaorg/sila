@@ -118,11 +118,11 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
       void registerAppTree(appTree.getId());
     }
 
-    space.observeNewAppTree((appTreeId) => {
+    space.onNewAppTree((appTreeId) => {
       void registerAppTree(appTreeId);
     });
 
-    space.observeTreeLoad((appTreeId) => {
+    space.onTreeLoad((appTreeId) => {
       void registerAppTree(appTreeId);
     });
   };

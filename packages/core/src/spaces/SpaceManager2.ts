@@ -41,10 +41,12 @@ export class SpaceManager2 {
   private timeoutForSpaceLoading = 10000;
   private spaceRunners = new Map<string, SpaceRunner2>();
   private setupSyncLayers: (uri: string) => SyncLayer[];
+  private setupSpaceHandler?: (uri: string, space: Space) => void;
 
-  constructor(options: SpaceManager2Options) {
+  constructor(options: SpaceManager2Options = {}) {
     this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
     this.timeoutForSpaceLoading = options.timeoutForSpaceLoading ?? 10000;
+    this.setupSpaceHandler = options.setupSpaceHandler;
   }
 
   /**
@@ -61,6 +63,7 @@ export class SpaceManager2 {
     const syncLayers = this.setupSyncLayers(uri);
     const runner = SpaceRunner2.fromExistingSpace(space, uri, syncLayers);
     this.spaceRunners.set(uri, runner);
+    this.setupSpaceHandler?.(uri, space);
   }
 
   /**
@@ -83,7 +86,7 @@ export class SpaceManager2 {
   async loadSpace(uri: string): Promise<Space> {
     const existingRunner = this.spaceRunners.get(uri);
     if (existingRunner) {
-      throw new Error(`Space ${uri} is already loaded. You can get it using getSpace method.`);
+      return this.waitForRunnerSpace(existingRunner, uri);
     }
 
     const syncLayers = this.setupSyncLayers(uri);
@@ -94,7 +97,41 @@ export class SpaceManager2 {
 
     const runner = SpaceRunner2.fromURI(uri, syncLayers);
     this.spaceRunners.set(uri, runner);
+    return this.waitForRunnerSpace(runner, uri);
+  }
 
+  /**
+   * Close a loaded space and dispose all of its sync layers.
+   * If a space is not loaded, this is a no-op.
+   */
+  async closeSpace(uri: string): Promise<void> {
+    const runner = this.spaceRunners.get(uri);
+    if (!runner) {
+      return;
+    }
+
+    await runner.dispose();
+    this.spaceRunners.delete(uri);
+  }
+
+  /**
+   * Get sync layers for an active space.
+   */
+  getSyncLayers(uri: string): SyncLayer[] | undefined {
+    return this.spaceRunners.get(uri)?.layers;
+  }
+
+  getRunner(uri: string): SpaceRunner2 | undefined {
+    return this.spaceRunners.get(uri);
+  }
+
+  getActiveSpaces(): Space[] {
+    return Array.from(this.spaceRunners.values())
+      .map((runner) => runner.space)
+      .filter((space): space is Space => space !== null);
+  }
+
+  private async waitForRunnerSpace(runner: SpaceRunner2, uri: string): Promise<Space> {
     const startLoadingTime = performance.now();
     while (true) {
       if (runner.space) break;
@@ -106,7 +143,7 @@ export class SpaceManager2 {
       await new Promise(resolve => setTimeout(resolve, 3));
     }
 
+    this.setupSpaceHandler?.(uri, runner.space);
     return runner.space;
   }
-
 }
