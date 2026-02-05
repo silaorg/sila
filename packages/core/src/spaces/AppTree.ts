@@ -32,6 +32,11 @@ export class AppTree {
     }
   }
 
+  get id(): string {
+    return this.tree.root!.id;
+  }
+
+  // @deprecated Use id instead
   getId(): string {
     return this.tree.root!.id;
   }

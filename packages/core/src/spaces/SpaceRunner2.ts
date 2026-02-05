@@ -90,21 +90,55 @@ export class SpaceRunner2 {
   private async trackOps(layers: SyncLayer[]) {
     const space = this.space;
 
+    // We should only call the method after we have a space ready
     if (!space) {
       throw new Error(`Space is not initialized`);
     }
 
     for (const layer of layers) {
-      space.tree.observeOpApplied((op) => {
-        if (
-          op.id.peerId === space.tree.peerId &&
-          !("transient" in op && op.transient)
-        ) {
-          layer.saveTreeOps(space.id, [op]).catch((error) => {
-            console.error("Failed to save space tree operation:", error);
-          });
-        }
-      });
+      this.trackInOps(layer);
+      this.trackOutOps(layer);
     }
   }
+
+  private async trackInOps(layer: SyncLayer) {
+    const space = this.space!;
+
+    // Ops from the space's root tree
+    space.tree.observeOpApplied((op) => {
+      this.saveOpsToLayer(layer, space.id, [op]);
+    });
+
+    space.observeTreeLoad((appTreeId) => {
+      const appTree = space.getAppTree(appTreeId)!;
+      appTree.tree.observeOpApplied((op) => {
+        this.saveOpsToLayer(layer, appTreeId, [op]);
+      });
+    });
+  }
+
+  private saveOpsToLayer(layer: SyncLayer, treeId: string, ops: VertexOperation[]) {
+    for (const op of ops) {
+      // We save only ops from the current peer
+      // @TODO: consider having "isBroadcasting" for a layer and if it's true, we don't need to check peerId
+      // This is a way to send ops from a server to clients
+      if (op.id.peerId !== this.space!.tree.peerId) continue;
+
+      layer.saveTreeOps(treeId, [op]).catch((error) => {
+        console.error("Failed to save tree operation:", error);
+      });
+    }
+
+  }
+
+  private async trackOutOps(layer: SyncLayer) {
+    if (!layer.startListening) return;
+
+    const space = this.space!;
+
+    await layer.startListening((treeId, incomingOps) => {
+      space.addOps(treeId, incomingOps);
+    });
+  }
+
 }

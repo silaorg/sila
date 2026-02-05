@@ -9,7 +9,6 @@ import { AppConfigsData } from "./AppConfigsData";
 import uuid from "../utils/uuid";
 import { createFileStore, FileResolver, type FileStore } from "./files";
 import type { FileStoreProvider } from "./files/FileStore";
-import { createTexts, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../localization/getTexts";
 import type { Texts } from "../localization/texts";
 
 export class Space {
@@ -193,10 +192,10 @@ export class Space {
       this.tree.newVertex(appsTrees.id, { tid: appTree.getId() });
     }
 
-    this.appTrees.set(appTree.getId(), appTree);
+    this.appTrees.set(appTree.id, appTree);
 
     for (const listener of this.newTreeObservers) {
-      listener(appTree.getId());
+      listener(appTree.id);
     }
 
     for (const listener of this.treeLoadObservers) {
@@ -279,6 +278,41 @@ export class Space {
     loader: (appTreeId: string) => Promise<AppTree | undefined>,
   ) {
     this.treeLoader = loader;
+  }
+
+  private pendingOpsToCreateTrees = new Map<string, VertexOperation[]>();
+
+  /**
+   * Safe way of adding ops to a tree.
+   * If the tree is not loaded, it will be loaded.
+   * If the tree is not found, it will be created.
+   * @param treeId - The id of the tree to add ops to.
+   * @param ops - The ops to add to the tree.
+   */
+  async addOps(treeId: string, ops: VertexOperation[]) {
+    if (this.id === treeId) {
+      this.tree.merge(ops);
+      return;
+    }
+
+    const appTree = await this.loadAppTree(treeId);
+    if (appTree) {
+      appTree.tree.merge(ops);
+    } else {
+      // We do this in a try-catch so if the ops we got are not enough
+      // to create a valid RepTree or AppTree, we accumulate them
+      // and try again when we get more ops.
+      try {
+        const pendingOps = this.pendingOpsToCreateTrees.get(treeId) ?? [];
+        const allOps = pendingOps.length > 0 ? [...pendingOps, ...ops] : ops;
+        const tree = new RepTree(this.tree.peerId, allOps);
+        const appTree = new AppTree(tree);
+        this.appTrees.set(treeId, appTree);
+      } catch (error) {
+        const existing = this.pendingOpsToCreateTrees.get(treeId) ?? [];
+        this.pendingOpsToCreateTrees.set(treeId, [...existing, ...ops]);
+      }
+    }
   }
 
   /**
@@ -373,14 +407,6 @@ export class Space {
       description: texts.defaultAppConfig.description,
       instructions: texts.defaultAppConfig.instructions,
     } as AppConfig;
-  }
-
-  private getWorkspaceTexts(): Texts {
-    const language = this.workspaceLanguage;
-    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
-      return createTexts(language as SupportedLanguage);
-    }
-    return createTexts("en");
   }
 
   // Get provider config and add API key from secrets if it's a cloud provider

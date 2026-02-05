@@ -13,24 +13,28 @@ export interface SyncLayer {
   readonly id: string
   readonly type: 'local' | 'remote'
 
-  // Reference a SpaceRunner in case if the layer would benefit from it
+  // Reference a SpaceRunner in case if the layer needs it or a space inside it
   spaceRunner?: SpaceRunner
 
-  // The main reason SyncLayer exists is to provide a way to load and save ops
+  /** Load ops for the root tree of a space */
   loadSpaceTreeOps(): Promise<VertexOperation[]>
+  /** Load ops for a specific tree */
   loadTreeOps(treeId: string): Promise<VertexOperation[]>
+  /** Save ops for a specific tree */
   saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>
 
-  // Implement them if the sync layer requires a connection or any pre-loading actions
-  connect?(): Promise<void>
-  isConnected?(): boolean
-  disconnect?(): Promise<void>
+  // Two-way sync is optional
+  startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>
+  stopListening?(): Promise<void>
 
   // Secrets handling is optional
   loadSecrets?(): Promise<Record<string, string> | undefined>
   saveSecrets?(secrets: Record<string, string>): Promise<void>
 
-  // Two-way sync is optional
-  startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>
-  stopListening?(): Promise<void>
+  // @TODO: consider removing those or rename them to make it more explicit about
+  // what is going to happen. Like, onMount, onDestroy type of lifecycle
+  // Implement them if the sync layer requires a connection or any pre-loading actions
+  connect?(): Promise<void>
+  isConnected?(): boolean
+  disconnect?(): Promise<void>
 }
