@@ -181,11 +181,14 @@ export class SpaceRunner2 {
       this.saveOpsToLayer(layer, space.id, [op]);
     });
 
+    space.onNewAppTree((appTreeId) => {
+      // We send the existing ops to the layer only when we create it
+      const appTree = space.getAppTree(appTreeId)!;
+      this.saveOpsToLayer(layer, appTreeId, appTree.tree.getAllOps() as VertexOperation[]);
+    });
+
     space.onTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId)!;
-
-      // Save all ops of the tree we've just loaded
-      this.saveOpsToLayer(layer, appTreeId, appTree.tree.getAllOps() as VertexOperation[]);
 
       // And then observe any new incoming ops
       appTree.tree.observeOpApplied((op) => {
