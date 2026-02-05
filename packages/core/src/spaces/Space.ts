@@ -15,8 +15,8 @@ export class Space {
   readonly tree: RepTree;
   private secrets: Record<string, string> | undefined;
   private appTrees: Map<string, AppTree> = new Map();
-  private newTreeObservers: ((treeId: string) => void)[] = [];
-  private treeLoadObservers: ((treeId: string) => void)[] = [];
+  private newTreeListeners: ((treeId: string) => void)[] = [];
+  private treeLoadListeners: ((treeId: string) => void)[] = [];
   private treeLoader:
     | ((treeId: string) => Promise<AppTree | undefined>)
     | undefined;
@@ -194,11 +194,11 @@ export class Space {
 
     this.appTrees.set(appTree.id, appTree);
 
-    for (const listener of this.newTreeObservers) {
+    for (const listener of this.newTreeListeners) {
       listener(appTree.id);
     }
 
-    for (const listener of this.treeLoadObservers) {
+    for (const listener of this.treeLoadListeners) {
       listener(appTree.getId());
     }
 
@@ -244,7 +244,7 @@ export class Space {
     if (appTree) {
       this.appTrees.set(appTreeId, appTree);
 
-      for (const listener of this.treeLoadObservers) {
+      for (const listener of this.treeLoadListeners) {
         listener(appTree.getId());
       }
     }
@@ -252,17 +252,27 @@ export class Space {
     return appTree;
   }
 
-  onNewAppTree(observer: (appTreeId: string) => void): () => void {
-    this.newTreeObservers.push(observer);
+  /**
+   * On new app tree creation, notify all listeners.
+   * When the local space creates a new tree - onNewAppTree is called first followed
+   * by onTreeLoad.
+   * When a remote space creates a new tree - only onTreeLoad is called.
+   */
+  onNewAppTree(listener: (appTreeId: string) => void): () => void {
+    this.newTreeListeners.push(listener);
     return () => {
-      this.newTreeObservers = this.newTreeObservers.filter((l) => l !== observer);
+      this.newTreeListeners = this.newTreeListeners.filter((l) => l !== listener);
     };
   }
 
-  onTreeLoad(observer: (appTreeId: string) => void): () => void {
-    this.treeLoadObservers.push(observer);
+  /**
+   * On app tree load, notify all listeners.
+   * It is called when a new tree is created locally or when a tree is loaded from a sync layer.
+   */
+  onTreeLoad(listener: (appTreeId: string) => void): () => void {
+    this.treeLoadListeners.push(listener);
     return () => {
-      this.treeLoadObservers = this.treeLoadObservers.filter((obs) => obs !== observer);
+      this.treeLoadListeners = this.treeLoadListeners.filter((obs) => obs !== listener);
     };
   }
 
