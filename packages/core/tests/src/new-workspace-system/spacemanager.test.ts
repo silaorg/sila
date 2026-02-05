@@ -124,4 +124,27 @@ describe('Space creation and file-system persistence', () => {
       expect(v!.getProperty("message")).toBe("Hello");
     }
   });
+
+  it("continues loading if one layer fails", async () => {
+    const spaceId = 'test-resilience';
+    const spaceUri = 'test:' + spaceId;
+    const originalSpace = Space.newSpace(spaceId);
+
+    // A layer that throws
+    const failingLayer = new TestInMemorySyncLayer(originalSpace, {
+      shouldFailToLoadSpace: true,
+      shouldFailToLoadTree: true
+    });
+
+    // A valid layer
+    const validLayer = new TestInMemorySyncLayer(originalSpace, 50);
+
+    const spaceManager = new SpaceManager2({
+      setupSyncLayers: () => [failingLayer, validLayer]
+    });
+
+    const space = await spaceManager.loadSpace(spaceUri);
+    expect(space.id).toBe(originalSpace.id);
+    expect(space.name).toBe(originalSpace.name);
+  });
 });

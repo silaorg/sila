@@ -122,7 +122,16 @@ export class SpaceRunner2 {
     // ops to build a space, we create it and can use it immidiately.
     await Promise.all(layers.map(async layer => {
       layersToSetupOpsTracking.push(layer);
-      accumulatedOps.push(...await layer.loadSpaceTreeOps());
+      try {
+        accumulatedOps.push(...await layer.loadSpaceTreeOps());
+      } catch (e) {
+        console.error(`Failed to load space ops from layer ${layer.id}`, e);
+        // If loading fails, we remove it from tracking for now, or maybe we should keep it?
+        // For now, let's keep it in tracking list as it might recover for saving?
+        // But preventing the whole process from crashing is the main goal.
+        return;
+      }
+
       if (accumulatedOps.length === 0) return;
 
       if (!this.space) {

@@ -1,16 +1,33 @@
 import { Space, SyncLayer, VertexOperation } from "@sila/core";
 
+export type TestInMemorySyncLayerOptions = {
+  loadDelayMs?: number;
+  shouldFailToLoadSpace?: boolean;
+  shouldFailToLoadTree?: boolean;
+}
+
 export class TestInMemorySyncLayer implements SyncLayer {
   readonly id: string = 'test-in-memory-sync-layer';
   readonly type = 'local' as const;
   readonly space: Space;
+  private options: TestInMemorySyncLayerOptions;
 
-  constructor(originalSpace: Space, private loadDelayMs: number) {
+  constructor(originalSpace: Space, optionsOrDelay: number | TestInMemorySyncLayerOptions) {
     this.space = originalSpace;
+    if (typeof optionsOrDelay === 'number') {
+      this.options = { loadDelayMs: optionsOrDelay };
+    } else {
+      this.options = optionsOrDelay;
+    }
   }
 
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
-    await new Promise(resolve => setTimeout(resolve, this.loadDelayMs));
+    if (this.options.loadDelayMs) {
+      await new Promise(resolve => setTimeout(resolve, this.options.loadDelayMs));
+    }
+    if (this.options.shouldFailToLoadSpace) {
+      throw new Error("Failed to load space ops");
+    }
     return this.space.tree.getAllOps() as VertexOperation[];
   }
 
@@ -19,7 +36,13 @@ export class TestInMemorySyncLayer implements SyncLayer {
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
-    await new Promise(resolve => setTimeout(resolve, this.loadDelayMs));
+    if (this.options.loadDelayMs) {
+      await new Promise(resolve => setTimeout(resolve, this.options.loadDelayMs));
+    }
+
+    if (this.options.shouldFailToLoadTree) {
+      throw new Error("Failed to load tree ops");
+    }
 
     if (treeId === this.space.id) {
       return this.space.tree.getAllOps() as VertexOperation[];
