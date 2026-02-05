@@ -39,13 +39,13 @@ export class SpaceRunner2 {
   }
 
   async dispose() {
-    // Disconnect all layers
+    // Dispose all layers
     await Promise.all(this.layers.map(async layer => {
-      if (layer.disconnect) {
+      if (layer.dispose) {
         try {
-          await layer.disconnect();
+          await layer.dispose();
         } catch (e) {
-          console.error(`Failed to disconnect layer ${layer.id}`, e);
+          console.error(`Failed to dispose layer ${layer.id}`, e);
         }
       }
     }));
@@ -112,17 +112,6 @@ export class SpaceRunner2 {
   private async startSync() {
     const localLayers = this.layers.filter(layer => layer.type === 'local');
     const remoteLayers = this.layers.filter(layer => layer.type === 'remote');
-
-    // Connect all layers first
-    await Promise.all(this.layers.map(async layer => {
-      if (layer.connect) {
-        try {
-          await layer.connect();
-        } catch (e) {
-          console.error(`Failed to connect layer ${layer.id}`, e);
-        }
-      }
-    }));
 
     // If we already have a space (fromExistingSpace), we need to save its initial ops
     // and set up tracking

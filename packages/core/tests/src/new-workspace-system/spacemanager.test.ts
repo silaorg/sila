@@ -263,7 +263,6 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
     // Create a sync layer pointing to temp directory
     const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
-    await syncLayer.connect();
 
     // Create a space manager with the file system sync layer
     const spaceManager = new SpaceManager2({
@@ -348,12 +347,11 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     expect(propOpsContent).toContain("test-value");
     expect(propOpsContent).toContain("another-prop");
 
-    // Disconnect first space manager
-    await syncLayer.disconnect();
+    // Dispose first sync layer to flush pending writes
+    await syncLayer.dispose();
 
     // Now create a NEW space manager that loads from the same directory
     const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
-    await syncLayer2.connect();
 
     const spaceManager2 = new SpaceManager2({
       setupSyncLayers: () => [syncLayer2]
@@ -367,7 +365,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     expect(loadedSpace.tree.root!.getProperty("test-prop")).toBe("test-value");
     expect(loadedSpace.tree.root!.getProperty("another-prop")).toBe(42);
 
-    await syncLayer2.disconnect();
+    await syncLayer2.dispose();
   });
 
   it("handles app tree operations", async () => {
@@ -377,7 +375,6 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     const spaceUri = 'fs:' + spaceId;
 
     const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
-    await syncLayer.connect();
 
     const spaceManager = new SpaceManager2({
       setupSyncLayers: () => [syncLayer]
@@ -402,11 +399,10 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     // Wait for sync
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    await syncLayer.disconnect();
+    await syncLayer.dispose();
 
     // Load from disk with a new manager
     const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
-    await syncLayer2.connect();
 
     const spaceManager2 = new SpaceManager2({
       setupSyncLayers: () => [syncLayer2]
@@ -424,7 +420,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     expect(loadedChild).toBeTruthy();
     expect(loadedChild!.getProperty("message")).toBe("Hello from app tree");
 
-    await syncLayer2.disconnect();
+    await syncLayer2.dispose();
   });
 
 });

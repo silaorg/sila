@@ -37,16 +37,13 @@ export class FileSystemSyncLayer implements SyncLayer {
     this.opsParser = new OpsParser();
   }
 
-  async connect(): Promise<void> {
+  private async ensureConnected(): Promise<void> {
+    if (this.connected) return;
     await this.ensureDirectoryStructure();
     this.connected = true;
   }
 
-  isConnected(): boolean {
-    return this.connected;
-  }
-
-  async disconnect(): Promise<void> {
+  async dispose(): Promise<void> {
     if (this.saveOpsTimer) {
       this.saveOpsTimer();
       this.saveOpsTimer = null;
@@ -61,9 +58,7 @@ export class FileSystemSyncLayer implements SyncLayer {
   }
 
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
-    if (!this.connected) {
-      throw new Error('FileSystemSyncLayer not connected');
-    }
+    await this.ensureConnected();
 
     // Read the space.json to get the actual space ID (tree ID)
     const spaceJsonPath = this.spacePath + '/space-v1/space.json';
@@ -78,17 +73,12 @@ export class FileSystemSyncLayer implements SyncLayer {
   }
 
   async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
-    if (!this.connected) {
-      throw new Error('FileSystemSyncLayer not connected');
-    }
-
+    await this.ensureConnected();
     return await this.loadAllTreeOps(treeId);
   }
 
   async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
-    if (!this.connected) {
-      throw new Error('FileSystemSyncLayer not connected');
-    }
+    await this.ensureConnected();
 
     if (ops.length === 0) return;
 

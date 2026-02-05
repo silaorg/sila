@@ -31,10 +31,6 @@ export interface SyncLayer {
   loadSecrets?(): Promise<Record<string, string> | undefined>
   saveSecrets?(secrets: Record<string, string>): Promise<void>
 
-  // @TODO: consider removing those or rename them to make it more explicit about
-  // what is going to happen. Like, onMount, onDestroy type of lifecycle
-  // Implement them if the sync layer requires a connection or any pre-loading actions
-  connect?(): Promise<void>
-  isConnected?(): boolean
-  disconnect?(): Promise<void>
+  // Optional cleanup method - called when SpaceRunner is disposed
+  dispose?(): Promise<void>
 }
