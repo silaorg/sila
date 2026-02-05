@@ -4,6 +4,8 @@ export type TestInMemorySyncLayerOptions = {
   loadDelayMs?: number;
   shouldFailToLoadSpace?: boolean;
   shouldFailToLoadTree?: boolean;
+  // If true, the op will be excluded from the loaded ops.
+  shouldExcludeOp?: (op: VertexOperation, index: number) => boolean;
 }
 
 export class TestInMemorySyncLayer implements SyncLayer {
@@ -28,7 +30,12 @@ export class TestInMemorySyncLayer implements SyncLayer {
     if (this.options.shouldFailToLoadSpace) {
       throw new Error("Failed to load space ops");
     }
-    return this.space.tree.getAllOps() as VertexOperation[];
+
+    const allOps = this.space.tree.getAllOps() as VertexOperation[];
+    if (this.options.shouldExcludeOp) {
+      return allOps.filter((op, index) => !this.options.shouldExcludeOp!(op, index));
+    }
+    return allOps;
   }
 
   async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
@@ -45,14 +52,22 @@ export class TestInMemorySyncLayer implements SyncLayer {
     }
 
     if (treeId === this.space.id) {
-      return this.space.tree.getAllOps() as VertexOperation[];
+      const allOps = this.space.tree.getAllOps() as VertexOperation[];
+      if (this.options.shouldExcludeOp) {
+        return allOps.filter((op, index) => !this.options.shouldExcludeOp!(op, index));
+      }
+      return allOps;
     }
 
     const tree = this.space.getAppTree(treeId);
     if (!tree) {
       throw new Error("Tree not found");
     }
-    return tree.tree.getAllOps() as VertexOperation[];
+    const allOps = tree.tree.getAllOps() as VertexOperation[];
+    if (this.options.shouldExcludeOp) {
+      return allOps.filter((op, index) => !this.options.shouldExcludeOp!(op, index));
+    }
+    return allOps;
   }
 
   startListening(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void> {
