@@ -36,12 +36,6 @@ export class SpaceRunner2 {
   }
 
   private async startSync() {
-    // @TODO: refactor for the following logic:
-    // First, load from local layers and after that - 
-    // load from remote but using vector states we can get from trees 
-    // created with ops from the local layers. It means that remote 
-    // layers should reference a space so they can get trees and their vector states.
-
     const localLayers = this.layers.filter(layer => layer.type === 'local');
     const remoteLayers = this.layers.filter(layer => layer.type === 'remote');
 
@@ -54,12 +48,19 @@ export class SpaceRunner2 {
   }
 
   private async createOrUpdateSpace(layers: SyncLayer[]) {
+    // We do accumulation of ops here just in case if we couldn't build a valid space from a set of ops from a layer.
+    // We would carry those incomplete ops over to an iteration with another layer to build a space with.
+    // The case with a layer not holding a valid set of ops to build a space is not desirable but possible
+    // by the design of the sync layers. Which is fine.
     const accumulatedOps: VertexOperation[] = [];
 
-    // We build a space this way so it can be built as fast as possible.
-    // As soon as we get the first layer that has enough ops to build a space
-    // we create it and can use it immidiately without waiting for all layers to load.
+    const layersToSetupOpsTracking: SyncLayer[] = [];
+
+    // We're trying to build a space as soon as possible without waiting for
+    // ops from all of the layers. As soon as we get a layer that has enough
+    // ops to build a space, we create it and can use it immidiately.
     await Promise.all(layers.map(async layer => {
+      layersToSetupOpsTracking.push(layer);
       accumulatedOps.push(...await layer.loadSpaceTreeOps());
       if (accumulatedOps.length === 0) return;
 
@@ -70,6 +71,9 @@ export class SpaceRunner2 {
           const space = Space.existingSpaceFromOps(accumulatedOps);
           accumulatedOps.length = 0;
           this.space = space;
+
+          this.trackOps(layersToSetupOpsTracking);
+          layersToSetupOpsTracking.length = 0;
         } catch (e) {
           return;
         }
@@ -77,6 +81,30 @@ export class SpaceRunner2 {
 
       this.space.tree.merge(accumulatedOps);
       accumulatedOps.length = 0;
+
+      this.trackOps(layersToSetupOpsTracking);
+      layersToSetupOpsTracking.length = 0;
     }));
+  }
+
+  private async trackOps(layers: SyncLayer[]) {
+    const space = this.space;
+
+    if (!space) {
+      throw new Error(`Space is not initialized`);
+    }
+
+    for (const layer of layers) {
+      space.tree.observeOpApplied((op) => {
+        if (
+          op.id.peerId === space.tree.peerId &&
+          !("transient" in op && op.transient)
+        ) {
+          layer.saveTreeOps(space.id, [op]).catch((error) => {
+            console.error("Failed to save space tree operation:", error);
+          });
+        }
+      });
+    }
   }
 }
