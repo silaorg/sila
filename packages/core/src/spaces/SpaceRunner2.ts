@@ -216,6 +216,8 @@ export class SpaceRunner2 {
           console.error(`Failed to save initial space ops to layer ${layer.id}`, e)
         )
       ));
+
+      this.loadSecrets();
       return;
     }
 
@@ -259,6 +261,10 @@ export class SpaceRunner2 {
           this.setupTreeLoader();
           this.trackOps(layersToTrack);
 
+
+
+          this.loadSecrets();
+
           // Sync ops back to layers that don't have all ops
           for (const layer of this.layers) {
             if (layer.uploadMissingFromTree) layer.uploadMissingFromTree(this.space.tree);
@@ -297,6 +303,8 @@ export class SpaceRunner2 {
       this.trackInOps(layer);
       this.trackOutOps(layer);
     }
+
+    this.wrapSecretsMethod(this.space!, layers);
   }
 
   private async trackInOps(layer: SyncLayer) {
@@ -345,5 +353,36 @@ export class SpaceRunner2 {
     await layer.startListening((treeId, incomingOps) => {
       space.addTreeOps(treeId, incomingOps);
     });
+  }
+
+  private wrapSecretsMethod(space: Space, layers: SyncLayer[]) {
+    // Intercept secret changes to persist them to all layers
+    const originalSetSecret = space.setSecret.bind(space);
+    const originalSaveAllSecrets = space.saveAllSecrets.bind(space);
+
+    space.setSecret = (key: string, value: string) => {
+      originalSetSecret(key, value);
+      layers.forEach(l => l.saveSecrets?.({ [key]: value }));
+    };
+
+    space.saveAllSecrets = (secrets: Record<string, string>) => {
+      originalSaveAllSecrets(secrets);
+      layers.forEach(l => l.saveSecrets?.(secrets));
+    };
+  }
+
+  private async loadSecrets(): Promise<void> {
+    if (this.layers.length === 0) return;
+
+    try {
+      const results = await Promise.all(this.layers.map(l => l.loadSecrets?.()));
+      const secrets = Object.assign({}, ...results); // Merge all loaded secrets
+
+      if (Object.keys(secrets).length > 0) {
+        this.space!.saveAllSecrets(secrets);
+      }
+    } catch (error) {
+      console.error("Failed to load secrets:", error);
+    }
   }
 }

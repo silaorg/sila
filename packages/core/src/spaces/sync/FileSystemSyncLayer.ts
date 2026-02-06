@@ -26,6 +26,7 @@ export class FileSystemSyncLayer implements SyncLayer {
   private treeOpsToSave = new Map<string, VertexOperation[]>();
   private saveOpsIntervalMs = 500;
   private opsParser: OpsParser;
+  private secretsWriteChain: Promise<void> = Promise.resolve();
 
   constructor(
     private spacePath: string,
@@ -50,6 +51,7 @@ export class FileSystemSyncLayer implements SyncLayer {
 
     // Ensure any pending ops are flushed before teardown
     await this.saveOps();
+    await this.secretsWriteChain;
 
     // Clean up the ops parser
     this.opsParser.destroy();
@@ -396,5 +398,123 @@ export class FileSystemSyncLayer implements SyncLayer {
     opTypeHint?: OpsFileType
   ): Promise<VertexOperation[]> {
     return await this.opsParser.parseLines(lines, peerId, opTypeHint);
+  }
+
+  async loadSecrets(): Promise<Record<string, string> | undefined> {
+    await this.ensureConnected();
+    return await this.readSecretsFromFile();
+  }
+
+  async saveSecrets(secrets: Record<string, string>): Promise<void> {
+    await this.ensureConnected();
+
+    if (Object.keys(secrets).length === 0) return;
+
+    // Serialize writes to avoid last-writer-wins race conditions
+    this.secretsWriteChain = this.secretsWriteChain.then(async () => {
+      const existing = await this.readSecretsFromFile();
+      const merged = { ...(existing || {}), ...secrets };
+      await this.writeSecretsToFile(merged);
+    });
+
+    await this.secretsWriteChain;
+  }
+
+  // Secrets encryption/decryption
+  private async encryptSecrets(secretsObj: Record<string, string>, key: string): Promise<string> {
+    // Convert the key string to a crypto key
+    const encoder = new TextEncoder();
+    const keyBuffer = encoder.encode(key);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyBuffer,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt"]
+    );
+
+    // Convert secrets to string and encrypt
+    const secretsString = JSON.stringify(secretsObj);
+    const secretsBuffer = encoder.encode(secretsString);
+
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    const encryptedBuffer = await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      cryptoKey,
+      secretsBuffer
+    );
+
+    // Combine IV and encrypted data and convert to base64
+    const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+    combined.set(iv);
+    combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(combined).toString('base64');
+    }
+    return btoa(String.fromCharCode(...combined));
+  }
+
+  private async decryptSecrets(encryptedData: string, key: string): Promise<Record<string, string>> {
+    // Convert the key string to a crypto key
+    const encoder = new TextEncoder();
+    const keyBuffer = encoder.encode(key);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyBuffer,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["decrypt"]
+    );
+
+    // Convert base64 back to array buffer
+    let combined: Uint8Array;
+    if (typeof Buffer !== 'undefined') {
+      combined = new Uint8Array(Buffer.from(encryptedData, 'base64'));
+    } else {
+      combined = new Uint8Array(
+        atob(encryptedData).split('').map(c => c.charCodeAt(0))
+      );
+    }
+
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encryptedBuffer = combined.slice(12);
+
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      cryptoKey,
+      encryptedBuffer
+    );
+
+    const decryptedString = new TextDecoder().decode(decryptedBuffer);
+    try {
+      return JSON.parse(decryptedString);
+    } catch (error) {
+      return {};
+    }
+  }
+
+  private async readSecretsFromFile(): Promise<Record<string, string> | undefined> {
+    const secretsPath = this.spacePath + '/space-v1/secrets';
+
+    if (!await this.fs.exists(secretsPath)) {
+      return undefined;
+    }
+
+    const encryptedData = await this.fs.readTextFile(secretsPath);
+    if (!encryptedData) {
+      return undefined;
+    }
+
+    return await this.decryptSecrets(encryptedData, this.spaceId);
+  }
+
+  private async writeSecretsToFile(secrets: Record<string, string>) {
+    const encryptedData = await this.encryptSecrets(secrets, this.spaceId);
+    const secretsPath = this.spacePath + '/space-v1/secrets';
+    await this.fs.writeTextFile(secretsPath, encryptedData);
   }
 }

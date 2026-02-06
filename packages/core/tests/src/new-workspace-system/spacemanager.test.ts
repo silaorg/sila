@@ -6,6 +6,7 @@ import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { rm } from 'fs/promises';
+import uuid from "../../../src/utils/uuid";
 
 describe('Space creation and file-system persistence', () => {
 
@@ -418,6 +419,87 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     expect(loadedChild!.getProperty("message")).toBe("Hello from app tree");
 
     await syncLayer2.dispose();
+  });
+
+  test("Secret Management", async () => {
+    const spaceId = uuid();
+    const spaceUri = spaceId;
+
+    const originalSpace = Space.newSpace(spaceId);
+    // Setup initial layer
+    const syncLayer = new TestInMemorySyncLayer(originalSpace, 0);
+
+    const spaceManager = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer]
+    });
+
+    spaceManager.addSpace(originalSpace, spaceUri);
+    const space = await spaceManager.loadSpace(spaceUri);
+
+    // Set a secret
+    space.setSecret("api-key", "secret-value-123");
+
+    // Verify it's in the layer
+    expect(syncLayer.secrets["api-key"]).toBe("secret-value-123");
+
+    // Load from "disk" (memory in this case) with a new manager
+    const syncLayer2 = new TestInMemorySyncLayer(originalSpace, 0);
+    // Manually sync the "storage"
+    syncLayer2.secrets = { ...syncLayer.secrets };
+
+    const spaceManager2 = new SpaceManager2({
+      setupSyncLayers: () => [syncLayer2]
+    });
+
+    // Load the space
+    const loadedSpace = await spaceManager2.loadSpace(spaceUri);
+
+    // Verify secret is loaded
+    expect(loadedSpace.getSecret("api-key")).toBe("secret-value-123");
+  });
+
+  test("FileSystemSyncLayer - Secret Persistence", async () => {
+    const spaceId = uuid();
+    const spaceUri = spaceId;
+    const tempDir = join(tmpdir(), `sila-test-secrets-${spaceId}`);
+    await fs.mkdir(tempDir, { recursive: true });
+
+    try {
+      const originalSpace = Space.newSpace(spaceId);
+      const fs = new NodeFileSystem();
+      const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
+
+      const spaceManager = new SpaceManager2({
+        setupSyncLayers: () => [syncLayer]
+      });
+
+      spaceManager.addSpace(originalSpace, spaceUri);
+      const space = await spaceManager.loadSpace(spaceUri);
+
+      // Set a secret
+      space.setSecret("fs-secret-key", "fs-secret-value");
+
+      // Save ops (which might trigger secret saving if implementation was coupled, but we have separate secret saving)
+      // Wait a bit for pending promises if any (though secrets are saved via promise chain in sync layer immediately)
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await syncLayer.dispose();
+
+      // Reload with new layer
+      const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
+      const spaceManager2 = new SpaceManager2({
+        setupSyncLayers: () => [syncLayer2]
+      });
+
+      const loadedSpace = await spaceManager2.loadSpace(spaceUri);
+
+      // Verify secret is loaded
+      expect(loadedSpace.getSecret("fs-secret-key")).toBe("fs-secret-value");
+
+      await syncLayer2.dispose();
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 
 });

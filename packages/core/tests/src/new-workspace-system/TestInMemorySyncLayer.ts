@@ -13,6 +13,7 @@ export class TestInMemorySyncLayer implements SyncLayer {
   readonly type = 'local' as const;
   readonly space: Space;
   private options: TestInMemorySyncLayerOptions;
+  public secrets: Record<string, string> = {};
 
   constructor(originalSpace: Space, optionsOrDelay: number | TestInMemorySyncLayerOptions) {
     this.space = originalSpace;
@@ -86,5 +87,13 @@ export class TestInMemorySyncLayer implements SyncLayer {
       });
     });
     return Promise.resolve();
+  }
+
+  async loadSecrets(): Promise<Record<string, string> | undefined> {
+    return { ...this.secrets };
+  }
+
+  async saveSecrets(secrets: Record<string, string>): Promise<void> {
+    Object.assign(this.secrets, secrets);
   }
 }
