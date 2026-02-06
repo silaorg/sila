@@ -1,6 +1,7 @@
 import { Space } from "./Space";
 import { SpaceRunner2 } from "./SpaceRunner2";
 import { SyncLayer } from "./sync/SyncLayer";
+import type { FileLayer } from "./files/FileLayer";
 
 export type SpaceManager2Options = {
   /**
@@ -11,6 +12,13 @@ export type SpaceManager2Options = {
    * @returns An array of sync layers setup for the space.
    */
   setupSyncLayers?: (uri: string) => SyncLayer[];
+
+  /**
+   * Setup file layer for a space. This handles file storage independently from operation sync.
+   * @param uri The URI of the space.
+   * @returns A file layer or undefined if no file storage is needed.
+   */
+  setupFileLayer?: (uri: string) => FileLayer | undefined;
 
   /**
    * Setup space handler for a space. Coud be anything that needs a space to read or edit it.
@@ -41,11 +49,13 @@ export class SpaceManager2 {
   private timeoutForSpaceLoading = 10000;
   private spaceRunners = new Map<string, SpaceRunner2>();
   private setupSyncLayers: (uri: string) => SyncLayer[];
+  private setupFileLayer?: (uri: string) => FileLayer | undefined;
   private setupSpaceHandler?: (uri: string, space: Space) => void;
   private handledSpaces = new Set<string>();
 
   constructor(options: SpaceManager2Options = {}) {
     this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
+    this.setupFileLayer = options.setupFileLayer;
     this.timeoutForSpaceLoading = options.timeoutForSpaceLoading ?? 10000;
     this.setupSpaceHandler = options.setupSpaceHandler;
   }
@@ -62,7 +72,8 @@ export class SpaceManager2 {
     }
 
     const syncLayers = this.setupSyncLayers(uri);
-    const runner = SpaceRunner2.fromExistingSpace(space, uri, syncLayers);
+    const fileLayer = this.setupFileLayer?.(uri);
+    const runner = SpaceRunner2.fromExistingSpace(space, uri, syncLayers, fileLayer);
     this.spaceRunners.set(uri, runner);
     this.trySetupSpaceHandler(uri, space);
   }
@@ -97,7 +108,8 @@ export class SpaceManager2 {
       throw new Error(`No sync layers to load a space`);
     }
 
-    const runner = SpaceRunner2.fromURI(uri, syncLayers);
+    const fileLayer = this.setupFileLayer?.(uri);
+    const runner = SpaceRunner2.fromURI(uri, syncLayers, fileLayer);
     this.spaceRunners.set(uri, runner);
 
     const space = await runner.loadSpace(this.timeoutForSpaceLoading);

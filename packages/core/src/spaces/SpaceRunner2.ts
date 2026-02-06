@@ -3,6 +3,7 @@ import { RepTree } from "reptree";
 import { AppTree } from "./AppTree";
 import uuid from "../utils/uuid";
 import { Space } from "./Space";
+import type { FileLayer } from "./files/FileLayer";
 
 /**
  * Runs a space in memory and syncs them between peers with the help of sync layers.
@@ -16,18 +17,20 @@ export class SpaceRunner2 {
    * @param space 
    * @param uri 
    * @param layers 
+   * @param fileLayer 
    */
-  static fromExistingSpace(space: Space, uri: string, layers: SyncLayer[]): SpaceRunner2 {
-    return new SpaceRunner2(uri, layers, space);
+  static fromExistingSpace(space: Space, uri: string, layers: SyncLayer[], fileLayer?: FileLayer): SpaceRunner2 {
+    return new SpaceRunner2(uri, layers, space, fileLayer);
   }
 
   /**
    * Create a new space runner from a URI. This will load the space from the layers.
    * @param uri 
    * @param layers 
+   * @param fileLayer 
    */
-  static fromURI(uri: string, layers: SyncLayer[]): SpaceRunner2 {
-    return new SpaceRunner2(uri, layers);
+  static fromURI(uri: string, layers: SyncLayer[], fileLayer?: FileLayer): SpaceRunner2 {
+    return new SpaceRunner2(uri, layers, undefined, fileLayer);
   }
 
   space: Space | null = null;
@@ -36,7 +39,7 @@ export class SpaceRunner2 {
   private initializationComplete = false;  // Tracks when secrets and file store are ready
   private runningSpaceHandlers = new Set<() => void>();
 
-  private constructor(readonly uri: string, readonly layers: SyncLayer[], space?: Space) {
+  private constructor(readonly uri: string, readonly layers: SyncLayer[], space?: Space, private readonly fileLayer?: FileLayer) {
     this.space = space ?? null;
 
     // If we already have a space, start syncing immediately to set up tracking
@@ -397,13 +400,10 @@ export class SpaceRunner2 {
       return;
     }
 
-    // Try to find a layer that provides a file store
-    for (const layer of this.layers) {
-      if (layer.getFileStoreProvider) {
-        const provider = layer.getFileStoreProvider();
-        this.space!.setFileStoreProvider(provider);
-        return;
-      }
+    // Use dedicated file layer if provided
+    if (this.fileLayer) {
+      const provider = this.fileLayer.getFileStoreProvider();
+      this.space!.setFileStoreProvider(provider);
     }
   }
 }

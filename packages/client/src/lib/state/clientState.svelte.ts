@@ -4,7 +4,7 @@ import { SpaceState } from "./spaceState.svelte";
 import { isDevMode, spaceInspectorOpen } from "./devMode";
 import { setupSwins, swinsLayout } from "./swinsLayout";
 import type { SpacePointer } from "../spaces/SpacePointer";
-import { createSyncLayersForURI } from "../spaces/sync/syncUtils";
+import { createSyncLayersForURI, createFileLayerForURI } from "../spaces/sync/syncUtils";
 import {
   checkIfCanCreateSpaceAndReturnPath,
   checkIfPathHasValidStructureAndReturnActualRootPath,
@@ -196,6 +196,7 @@ export class ClientState {
   private createSpaceManager(): SpaceManager2 {
     return new SpaceManager2({
       setupSyncLayers: (uri) => this.createSyncLayers(uri),
+      setupFileLayer: (uri) => createFileLayerForURI(uri, this._fs),
       setupSpaceHandler: (uri, space) => {
         if (this.shouldEnableBackendForUri(uri)) {
           if (!this._backendsByUri.has(uri)) {

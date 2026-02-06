@@ -40,7 +40,4 @@ export interface SyncLayer {
 
   // Optional cleanup method - called when SpaceRunner is disposed
   dispose?(): Promise<void>
-
-  // Optional file store provider (for file uploads/downloads)
-  getFileStoreProvider?(): FileStoreProvider
 }

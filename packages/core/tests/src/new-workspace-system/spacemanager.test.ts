@@ -1,7 +1,7 @@
 import { Space, SpaceManager2, VertexOperation, } from '@sila/core';
 import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
 import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
-import { FileSystemSyncLayer } from '@sila/core';
+import { FileSystemSyncLayer, LocalFileLayer } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -513,9 +513,11 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
       const originalSpace = Space.newSpace(spaceId);
       const nodeFs = new NodeFileSystem();
       const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
+      const fileLayer = new LocalFileLayer(tempDir, nodeFs);
 
       const spaceManager = new SpaceManager2({
-        setupSyncLayers: () => [syncLayer]
+        setupSyncLayers: () => [syncLayer],
+        setupFileLayer: () => fileLayer
       });
 
       spaceManager.addSpace(originalSpace, spaceUri);
@@ -539,8 +541,10 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
       // Reload
       const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
+      const fileLayer2 = new LocalFileLayer(tempDir, nodeFs);
       const spaceManager2 = new SpaceManager2({
-        setupSyncLayers: () => [syncLayer2]
+        setupSyncLayers: () => [syncLayer2],
+        setupFileLayer: () => fileLayer2
       });
 
       const loadedSpace = await spaceManager2.loadSpace(spaceUri);
