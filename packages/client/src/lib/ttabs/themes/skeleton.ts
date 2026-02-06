@@ -14,46 +14,46 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-grid-bg': 'var(--color-surface-200-800)',
     '--ttabs-grid-border': 'none',
     '--ttabs-column-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
-    
+
     // Text colors
     '--ttabs-tab-text-color': 'var(--color-surface-700-300)',
     '--ttabs-tab-active-text-color': 'var(--color-surface-900-50)',
-    
+
     // Content area
     '--ttabs-content-bg': 'var(--color-surface-50-950)',
     '--ttabs-content-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
     '--ttabs-content-text-color': 'var(--color-surface-900-50)',
     '--ttabs-content-padding': 'var(--spacing, 1rem)',
-    
+
     // Tab headers
-    '--ttabs-tab-header-padding': '0.755rem 1rem',
-    '--ttabs-tab-header-font-size': 'var(--base-font-size)',
-    '--ttabs-tab-bar-border': 'none',
+    '--ttabs-tab-header-padding': '0.65rem 0.75rem 0.6rem 0.75rem',
+    '--ttabs-tab-header-font-size': '0.85rem',
+    '--ttabs-tab-bar-border': '1px solid var(--color-surface-100-900)',
     '--ttabs-tab-indicator-size': '1px',
     '--ttabs-tab-indicator-offset': '0',
     '--ttabs-transition-duration': '0',
     '--ttabs-transition-timing': 'ease',
-    
+
     // Controls
-    '--ttabs-show-close-button': 'flex', 
+    '--ttabs-show-close-button': 'flex',
     '--ttabs-close-button-color': 'var(--color-surface-500)',
     '--ttabs-close-button-hover-color': 'var(--color-surface-700-300)',
     '--ttabs-close-button-hover-bg': 'var(--color-surface-100-900)',
-    '--ttabs-tab-close-margin': '8px',
+    '--ttabs-tab-close-margin': '6px',
     // Match the circular icon button size used for the "+" new-tab button
-    '--ttabs-tab-close-size': '22px',
+    '--ttabs-tab-close-size': '18px',
     '--ttabs-tab-close-border-radius': '9999px',
-    
+
     // Error styling
     '--ttabs-error-bg': 'var(--color-error-100-900)',
     '--ttabs-error-color': 'var(--color-error-500)',
     '--ttabs-error-border': 'var(--default-border-width, 1px) solid var(--color-error-500)',
     '--ttabs-error-padding': 'var(--spacing, 1rem)',
     '--ttabs-error-border-radius': '0',
-    
+
     // Empty state
     '--ttabs-empty-state-color': 'var(--color-surface-500)',
-    
+
     // Utility elements
     '--ttabs-resizer-hover-color': 'var(--color-primary-500)',
     '--ttabs-drop-indicator-color': 'var(--color-primary-500)',
@@ -65,17 +65,18 @@ export const SKELETON_THEME: TtabsTheme = {
     '--ttabs-column-resizer-offset': '-3px',
     '--ttabs-drop-indicator-width': '4px',
     '--ttabs-drop-indicator-offset': '-2px',
-    
+
     // Border radius
     '--ttabs-border-radius': '0',
     '--ttabs-border-radius-sm': '0'
   },
-  
+
   // Optional classes that can be added
   classes: {
     // Add Skeleton-compatible classes here if needed
     'panel': 'overflow-hidden',
-    'tab-header-focused': 'focus-visible:outline-none'
+    'tab-header-focused': 'focus-visible:outline-none',
+    'tab-bar': '!border-b-0'
   }
 };
 
