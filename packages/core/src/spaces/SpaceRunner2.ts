@@ -57,54 +57,63 @@ export class SpaceRunner2 {
     }
 
     this.space.setTreeLoader((treeId) => {
-      // We load ops from all layers. The tree is resolved as soon as the first layer
-      // provides enough ops to build a valid tree. However, we continue loading
-      // from other layers in the background to merge their ops into the resolved tree.
-      return new Promise<AppTree | undefined>((resolve) => {
-        const accumulatedOps: VertexOperation[] = [];
-        let appTree: AppTree | undefined;
-        let isResolved = false;
+      return this.loadAppTree(treeId);
+    });
+  }
 
-        const tryCreateTree = () => {
-          try {
-            // Attempt to create a valid tree from accumulated ops.
-            // If the ops are insufficient or invalid, RepTree/AppTree throws.
-            const tree = new RepTree(uuid(), accumulatedOps);
-            appTree = new AppTree(tree);
-            isResolved = true;
-            resolve(appTree);
-          } catch {
-            // Ops not sufficient yet, wait for more from other layers
+  private async loadAppTree(treeId: string): Promise<AppTree | undefined> {
+    // We load ops from all layers. The tree is resolved as soon as the first layer
+    // provides enough ops to build a valid tree. However, we continue loading
+    // from other layers in the background to merge their ops into the resolved tree.
+    return new Promise<AppTree | undefined>((resolve) => {
+      const accumulatedOps: VertexOperation[] = [];
+      let appTree: AppTree | undefined;
+      let isResolved = false;
+
+      const tryCreateTree = () => {
+        try {
+          // Attempt to create a valid tree from accumulated ops.
+          // If the ops are insufficient or invalid, RepTree/AppTree throws.
+          const tree = new RepTree(uuid(), accumulatedOps);
+          appTree = new AppTree(tree);
+          isResolved = true;
+          resolve(appTree);
+        } catch {
+          // Ops not sufficient yet, wait for more from other layers
+        }
+      };
+
+      const loadLayer = async (layer: SyncLayer) => {
+        try {
+          const ops = await layer.loadTreeOps(treeId);
+          if (ops.length === 0) return;
+
+          accumulatedOps.push(...ops);
+
+          // If we already have a resolved tree (from another faster layer),
+          // just merge these new ops into it.
+          if (appTree) {
+            appTree.tree.merge(ops);
+          } else {
+            // Otherwise, this layer might provide the missing pieces (or be the first one).
+            tryCreateTree();
           }
-        };
+        } catch (e) {
+          console.error(`Failed to load tree ops from layer ${layer.id}`, e);
+        }
+      };
 
-        const loadLayer = async (layer: SyncLayer) => {
-          try {
-            const ops = await layer.loadTreeOps(treeId);
-            if (ops.length === 0) return;
+      const allLayersPromise = Promise.allSettled(this.layers.map(loadLayer));
 
-            accumulatedOps.push(...ops);
+      allLayersPromise.then(() => {
+        // If all layers finished and we still couldn't create a valid tree,
+        // resolve with undefined (or let the caller handle the missing tree).
+        if (!isResolved) resolve(undefined);
 
-            // If we already have a resolved tree (from another faster layer),
-            // just merge these new ops into it.
-            if (appTree) {
-              appTree.tree.merge(ops);
-            } else {
-              // Otherwise, this layer might provide the missing pieces (or be the first one).
-              tryCreateTree();
-            }
-          } catch (e) {
-            console.error(`Failed to load tree ops from layer ${layer.id}`, e);
-          }
-        };
-
-        const allLayersPromise = Promise.allSettled(this.layers.map(loadLayer));
-
-        allLayersPromise.then(() => {
-          // If all layers finished and we still couldn't create a valid tree,
-          // resolve with undefined (or let the caller handle the missing tree).
-          if (!isResolved) resolve(undefined);
-        });
+        // Sync ops back to layers that don't have all ops
+        for (const layer of this.layers) {
+          // @TODO: implement
+        }
       });
     });
   }

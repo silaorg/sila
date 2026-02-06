@@ -27,7 +27,7 @@ export class Backend {
   }
 
   createAppBackend(appTree: AppTree) {
-    const appId = appTree.getAppId();
+    const appId = appTree.appId;
 
     if (appId === "default-chat") {
       this.appBackends.push(new ChatAppBackend(this.space, appTree));
