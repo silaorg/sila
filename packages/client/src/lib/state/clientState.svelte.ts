@@ -17,7 +17,7 @@ import {
   saveCurrentSpaceUri,
   savePointers,
 } from "@sila/client/localDb";
-import { Space, SpaceManager2 } from "@sila/core";
+import { Backend, Space, SpaceManager2 } from "@sila/core";
 import { AppFileSystem } from "../appFs";
 import type { AppDialogs } from "../appDialogs";
 import { uuid } from "@sila/core";
@@ -61,6 +61,7 @@ export class ClientState {
   private _initializationError: string | null = $state(null);
   private _spaceManager: SpaceManager2 = new SpaceManager2();
   private _spaceIdsByUri = new Map<string, string>();
+  private _backendsByUri = new Map<string, Backend>();
   private _defaultTheme: ThemeStore = $state(new ThemeStore());
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
@@ -195,7 +196,32 @@ export class ClientState {
   private createSpaceManager(): SpaceManager2 {
     return new SpaceManager2({
       setupSyncLayers: (uri) => this.createSyncLayers(uri),
+      setupSpaceHandler: (uri, space) => {
+        if (this.shouldEnableBackendForUri(uri)) {
+          if (!this._backendsByUri.has(uri)) {
+            this._backendsByUri.set(uri, new Backend(space, true));
+          }
+        }
+      },
     });
+  }
+
+  private shouldEnableBackendForUri(uri: string): boolean {
+    return this.isDesktopHost() && this.isLocalSpaceUri(uri);
+  }
+
+  private isDesktopHost(): boolean {
+    return typeof window !== "undefined" && Boolean((window as any).electronFileSystem);
+  }
+
+  private isLocalSpaceUri(uri: string): boolean {
+    if (uri.startsWith("memory://")) return false;
+    if (uri.startsWith("http://") || uri.startsWith("https://")) return false;
+    if (uri.startsWith("capacitor://")) return false;
+    if (uri.startsWith("local://")) return true;
+    if (uri.startsWith("file://")) return true;
+    if (uri.startsWith("/")) return true;
+    return /^[A-Za-z]:[\\/]/.test(uri);
   }
 
   private createSyncLayers(uri: string) {
@@ -479,6 +505,7 @@ export class ClientState {
 
     // Remove from database
     const spaceUri = spaceState?.pointer.uri ?? spaceKeyOrId;
+    this._backendsByUri.delete(spaceUri);
     await removeSpaceFromDb(spaceUri);
 
     this._updateCurrentSpace();

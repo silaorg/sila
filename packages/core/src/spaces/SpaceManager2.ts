@@ -42,6 +42,7 @@ export class SpaceManager2 {
   private spaceRunners = new Map<string, SpaceRunner2>();
   private setupSyncLayers: (uri: string) => SyncLayer[];
   private setupSpaceHandler?: (uri: string, space: Space) => void;
+  private handledSpaces = new Set<string>();
 
   constructor(options: SpaceManager2Options = {}) {
     this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
@@ -63,7 +64,7 @@ export class SpaceManager2 {
     const syncLayers = this.setupSyncLayers(uri);
     const runner = SpaceRunner2.fromExistingSpace(space, uri, syncLayers);
     this.spaceRunners.set(uri, runner);
-    this.setupSpaceHandler?.(uri, space);
+    this.trySetupSpaceHandler(uri, space);
   }
 
   /**
@@ -86,7 +87,7 @@ export class SpaceManager2 {
   async loadSpace(uri: string): Promise<Space> {
     const existingRunner = this.spaceRunners.get(uri);
     if (existingRunner) {
-      return this.waitForRunnerSpace(existingRunner, uri);
+      return this.waitForSpace(existingRunner, uri);
     }
 
     const syncLayers = this.setupSyncLayers(uri);
@@ -97,7 +98,7 @@ export class SpaceManager2 {
 
     const runner = SpaceRunner2.fromURI(uri, syncLayers);
     this.spaceRunners.set(uri, runner);
-    return this.waitForRunnerSpace(runner, uri);
+    return this.waitForSpace(runner, uri);
   }
 
   /**
@@ -112,6 +113,7 @@ export class SpaceManager2 {
 
     await runner.dispose();
     this.spaceRunners.delete(uri);
+    this.handledSpaces.delete(uri);
   }
 
   /**
@@ -131,7 +133,7 @@ export class SpaceManager2 {
       .filter((space): space is Space => space !== null);
   }
 
-  private async waitForRunnerSpace(runner: SpaceRunner2, uri: string): Promise<Space> {
+  private async waitForSpace(runner: SpaceRunner2, uri: string): Promise<Space> {
     const startLoadingTime = performance.now();
     while (true) {
       if (runner.space) break;
@@ -143,7 +145,15 @@ export class SpaceManager2 {
       await new Promise(resolve => setTimeout(resolve, 3));
     }
 
-    this.setupSpaceHandler?.(uri, runner.space);
+    this.trySetupSpaceHandler(uri, runner.space);
     return runner.space;
+  }
+
+  private trySetupSpaceHandler(uri: string, space: Space): void {
+    if (!this.setupSpaceHandler) return;
+    if (this.handledSpaces.has(uri)) return;
+
+    this.handledSpaces.add(uri);
+    this.setupSpaceHandler(uri, space);
   }
 }

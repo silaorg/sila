@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import {
+  Backend,
   FileSystemSyncLayer,
   Space as CoreSpace,
   SpaceManager2,
@@ -29,11 +30,17 @@ export type SpaceMember = {
 
 let db: Database.Database | null = null;
 let dataDir: string | null = null;
-const spaceManager = new SpaceManager2({
-  setupSyncLayers: (spaceUri) => [getServerSpaceLayerSync(spaceUri)],
-});
 const serverFs = new NodeFileSystem();
 const spaceLayers = new Map<string, FileSystemSyncLayer>();
+const spaceBackends = new Map<string, Backend>();
+const spaceManager = new SpaceManager2({
+  setupSyncLayers: (spaceUri) => [getServerSpaceLayerSync(spaceUri)],
+  setupSpaceHandler: (spaceUri, space) => {
+    if (!spaceBackends.has(spaceUri)) {
+      spaceBackends.set(spaceUri, new Backend(space, true));
+    }
+  },
+});
 
 function ensureDbPath(dbPath: string): void {
   const dir = path.dirname(dbPath);
