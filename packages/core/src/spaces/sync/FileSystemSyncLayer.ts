@@ -15,7 +15,6 @@ type OpsFileType = 'm' | 'p';
 
 /**
  * File system sync layer that saves operations to local files in JSONL format.
- * Adapted from FileSystemPersistenceLayer for the new SyncLayer interface.
  */
 export class FileSystemSyncLayer implements SyncLayer {
   readonly id: string;
