@@ -199,7 +199,7 @@ export class ClientState {
       setupSpaceHandler: (uri, space) => {
         if (this.shouldEnableBackendForUri(uri)) {
           if (!this._backendsByUri.has(uri)) {
-            this._backendsByUri.set(uri, new Backend(space, true));
+            this._backendsByUri.set(uri, new Backend(space));
           }
         }
       },
@@ -509,7 +509,7 @@ export class ClientState {
     await removeSpaceFromDb(spaceUri);
 
     this._updateCurrentSpace();
-   await this._saveState();
+    await this._saveState();
   }
 
   /**
