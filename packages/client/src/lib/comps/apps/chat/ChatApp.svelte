@@ -167,10 +167,7 @@
         shouldAutoScroll = false;
         return;
       }
-      if (assistantGrowTargetId && scrollTop > previousScrollTop) {
-        shouldAutoScroll = true;
-        return;
-      }
+
       if (isAtBottom) {
         shouldAutoScroll = true;
       }
