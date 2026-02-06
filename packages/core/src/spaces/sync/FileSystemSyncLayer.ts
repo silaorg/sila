@@ -517,4 +517,11 @@ export class FileSystemSyncLayer implements SyncLayer {
     const secretsPath = this.spacePath + '/space-v1/secrets';
     await this.fs.writeTextFile(secretsPath, encryptedData);
   }
+
+  getFileStoreProvider() {
+    return {
+      getSpaceRootPath: () => this.spacePath,
+      getFs: () => this.fs
+    };
+  }
 }

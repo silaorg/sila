@@ -1,5 +1,6 @@
 import { SpaceRunner } from "@sila/core"
 import { RepTree, VertexOperation } from "reptree"
+import type { FileStoreProvider } from "../files/FileStore";
 
 /**
  * SyncLayer is for persisting spaces and syncing them between peers.
@@ -39,4 +40,7 @@ export interface SyncLayer {
 
   // Optional cleanup method - called when SpaceRunner is disposed
   dispose?(): Promise<void>
+
+  // Optional file store provider (for file uploads/downloads)
+  getFileStoreProvider?(): FileStoreProvider
 }

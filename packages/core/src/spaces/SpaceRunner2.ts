@@ -33,6 +33,8 @@ export class SpaceRunner2 {
   space: Space | null = null;
   private loadingSpacePromise: Promise<Space> | null = null;
   private syncStarted = false;
+  private initializationComplete = false;  // Tracks when secrets and file store are ready
+  private runningSpaceHandlers = new Set<() => void>();
 
   private constructor(readonly uri: string, readonly layers: SyncLayer[], space?: Space) {
     this.space = space ?? null;
@@ -67,7 +69,7 @@ export class SpaceRunner2 {
    */
   async loadSpace(timeoutMs = 10000): Promise<Space> {
     // If already loaded, return immediately
-    if (this.space) {
+    if (this.space && this.initializationComplete) {
       return this.space;
     }
 
@@ -87,7 +89,7 @@ export class SpaceRunner2 {
       const startTime = performance.now();
 
       const checkSpace = () => {
-        if (this.space) {
+        if (this.space && this.initializationComplete) {
           resolve(this.space);
           return;
         }
@@ -217,7 +219,8 @@ export class SpaceRunner2 {
         )
       ));
 
-      this.loadSecrets();
+      await this.loadSecrets();
+      this.initializationComplete = true;
       return;
     }
 
@@ -263,7 +266,8 @@ export class SpaceRunner2 {
 
 
 
-          this.loadSecrets();
+          await this.loadSecrets();
+          this.initializationComplete = true;
 
           // Sync ops back to layers that don't have all ops
           for (const layer of this.layers) {
@@ -383,6 +387,23 @@ export class SpaceRunner2 {
       }
     } catch (error) {
       console.error("Failed to load secrets:", error);
+    } finally {
+      this.attachFileStoreProvider();
+    }
+  }
+
+  private attachFileStoreProvider(): void {
+    if (this.space!.fileStore) {
+      return;
+    }
+
+    // Try to find a layer that provides a file store
+    for (const layer of this.layers) {
+      if (layer.getFileStoreProvider) {
+        const provider = layer.getFileStoreProvider();
+        this.space!.setFileStoreProvider(provider);
+        return;
+      }
     }
   }
 }

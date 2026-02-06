@@ -1,5 +1,5 @@
 import { Space, SpaceManager2, VertexOperation, } from '@sila/core';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
 import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
 import { FileSystemSyncLayer } from '@sila/core';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
@@ -498,6 +498,66 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
       await syncLayer2.dispose();
     } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("FileSystemSyncLayer - File Store Persistence", async () => {
+    const spaceId = uuid();
+    const spaceUri = spaceId;
+    const tempDir = join(tmpdir(), `sila-test-files-${spaceId}`);
+    const { mkdir } = await import('fs/promises');
+    await mkdir(tempDir, { recursive: true });
+
+    try {
+      const originalSpace = Space.newSpace(spaceId);
+      const nodeFs = new NodeFileSystem();
+      const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
+
+      const spaceManager = new SpaceManager2({
+        setupSyncLayers: () => [syncLayer]
+      });
+
+      spaceManager.addSpace(originalSpace, spaceUri);
+      const space = await spaceManager.loadSpace(spaceUri);
+
+      // Verify file store is attached
+      expect(space.fileStore).toBeDefined();
+
+      // Upload a file (simulated by putBytes)
+      const content = new TextEncoder().encode("Hello Sila Files");
+      const { hash } = await space!.fileStore!.putBytes(content);
+
+      // Verify existence
+      expect(await space!.fileStore!.exists(hash)).toBe(true);
+
+      // Verify content
+      const loadedBytes = await space!.fileStore!.getBytes(hash);
+      expect(new TextDecoder().decode(loadedBytes)).toBe("Hello Sila Files");
+
+      await syncLayer.dispose();
+
+      // Reload
+      const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
+      const spaceManager2 = new SpaceManager2({
+        setupSyncLayers: () => [syncLayer2]
+      });
+
+      const loadedSpace = await spaceManager2.loadSpace(spaceUri);
+
+      // Verify file store survives reload (and file persistence)
+      expect(loadedSpace.fileStore).toBeDefined();
+      expect(await loadedSpace!.fileStore!.exists(hash)).toBe(true);
+      const reloadedBytes = await loadedSpace!.fileStore!.getBytes(hash);
+      expect(new TextDecoder().decode(reloadedBytes)).toBe("Hello Sila Files");
+
+      await syncLayer2.dispose();
+    } catch (e) {
+      console.error("Test failed:", e);
+      throw e;
+    } finally {
+      // Give FS a moment to release handles
+      await new Promise(r => setTimeout(r, 100));
       await rm(tempDir, { recursive: true, force: true });
     }
   });
