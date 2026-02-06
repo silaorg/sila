@@ -56,6 +56,21 @@ export class FileSystemSyncLayer implements SyncLayer {
     this.connected = false;
   }
 
+  async getSpaceId(): Promise<string | undefined> {
+    await this.ensureConnected();
+
+    // Use the same logic for finding space.json
+    const spaceJsonPath = this.spacePath + '/space-v1/space.json';
+    if (await this.fs.exists(spaceJsonPath)) {
+      const spaceJsonContent = await this.fs.readTextFile(spaceJsonPath);
+      const spaceJson = JSON.parse(spaceJsonContent);
+      return spaceJson.id;
+    }
+
+    // If no space.json exists yet, this is a new space
+    return undefined;
+  }
+
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
     await this.ensureConnected();
 

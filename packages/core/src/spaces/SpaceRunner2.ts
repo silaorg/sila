@@ -31,11 +31,17 @@ export class SpaceRunner2 {
   }
 
   space: Space | null = null;
-  initSync: Promise<void> | null = null;
+  private loadingSpacePromise: Promise<Space> | null = null;
+  private syncStarted = false;
 
   private constructor(readonly uri: string, readonly layers: SyncLayer[], space?: Space) {
     this.space = space ?? null;
-    this.initSync = this.startSync();
+
+    // If we already have a space, start syncing immediately to set up tracking
+    if (this.space) {
+      this.syncStarted = true;
+      this.startSync();
+    }
   }
 
   async dispose() {
@@ -51,24 +57,101 @@ export class SpaceRunner2 {
     }));
   }
 
+  /**
+   * Load the space and wait for it to be ready.
+   * If the space is already loaded, returns it immediately.
+   * If the space is currently loading, waits for the existing load to complete.
+   * @param timeoutMs Maximum time to wait for space to load (default: 10000ms)
+   * @returns The loaded space
+   * @throws Error if space fails to load within timeout
+   */
+  async loadSpace(timeoutMs = 10000): Promise<Space> {
+    // If already loaded, return immediately
+    if (this.space) {
+      return this.space;
+    }
+
+    // If currently loading, return the existing promise
+    if (this.loadingSpacePromise) {
+      return this.loadingSpacePromise;
+    }
+
+    // Start syncing if not already started
+    if (!this.syncStarted) {
+      this.syncStarted = true;
+      this.startSync(); // Fire and forget - polling will check this.space
+    }
+
+    // Start loading with polling and timeout
+    this.loadingSpacePromise = new Promise<Space>((resolve, reject) => {
+      const startTime = performance.now();
+
+      const checkSpace = () => {
+        if (this.space) {
+          resolve(this.space);
+          return;
+        }
+
+        if (performance.now() - startTime > timeoutMs) {
+          reject(new Error(`Failed to load space within ${timeoutMs}ms`));
+          return;
+        }
+
+        setTimeout(checkSpace, 3);
+      };
+
+      checkSpace();
+    });
+
+    try {
+      const space = await this.loadingSpacePromise;
+      return space;
+    } finally {
+      this.loadingSpacePromise = null;
+    }
+  }
+
+  /**
+   * Discover the space ID from the layers.
+   * Returns the first available space ID from any layer.
+   * @returns The space ID if found, null if no space exists yet (new space scenario)
+   */
+  private async fetchSpaceId(): Promise<string | null> {
+    const layersWithGetSpaceId = this.layers.filter(layer => layer.getSpaceId);
+
+    if (layersWithGetSpaceId.length === 0) {
+      return null;
+    }
+
+    try {
+      // Promise.any returns the first fulfilled promise
+      const spaceId = await Promise.any(
+        layersWithGetSpaceId.map(layer => layer.getSpaceId!())
+      );
+      return spaceId || null;
+    } catch {
+      // All layers rejected or returned undefined - this is a new space
+      return null;
+    }
+  }
+
   private setupTreeLoader() {
     if (!this.space) {
       throw new Error(`Space is not initialized`);
     }
 
     this.space.setTreeLoader((treeId) => {
-      return this.loadAppTree(treeId);
+      return this.loadTree(treeId);
     });
   }
 
-  private async loadAppTree(treeId: string): Promise<AppTree | undefined> {
+  private async loadTree(treeId: string): Promise<AppTree | undefined> {
     // We load ops from all layers. The tree is resolved as soon as the first layer
     // provides enough ops to build a valid tree. However, we continue loading
     // from other layers in the background to merge their ops into the resolved tree.
     return new Promise<AppTree | undefined>((resolve) => {
       const accumulatedOps: VertexOperation[] = [];
       let appTree: AppTree | undefined;
-      let isResolved = false;
 
       const tryCreateTree = () => {
         try {
@@ -76,7 +159,6 @@ export class SpaceRunner2 {
           // If the ops are insufficient or invalid, RepTree/AppTree throws.
           const tree = new RepTree(uuid(), accumulatedOps);
           appTree = new AppTree(tree);
-          isResolved = true;
           resolve(appTree);
         } catch {
           // Ops not sufficient yet, wait for more from other layers
@@ -107,23 +189,22 @@ export class SpaceRunner2 {
 
       allLayersPromise.then(() => {
         // If all layers finished and we still couldn't create a valid tree,
-        // resolve with undefined (or let the caller handle the missing tree).
-        if (!isResolved) resolve(undefined);
+        // resolve with undefined.
+        if (!appTree) {
+          resolve(undefined);
+          return;
+        }
 
         // Sync ops back to layers that don't have all ops
         for (const layer of this.layers) {
-          // @TODO: implement
+          if (layer.uploadMissingFromTree) layer.uploadMissingFromTree(appTree.tree);
         }
       });
     });
   }
 
   private async startSync() {
-    const localLayers = this.layers.filter(layer => layer.type === 'local');
-    const remoteLayers = this.layers.filter(layer => layer.type === 'remote');
-
-    // If we already have a space (fromExistingSpace), we need to save its initial ops
-    // and set up tracking
+    // If we already have a space (fromExistingSpace), save its initial ops and set up tracking
     if (this.space) {
       this.setupTreeLoader();
       this.trackOps(this.layers);
@@ -138,64 +219,71 @@ export class SpaceRunner2 {
       return;
     }
 
-    // We load from the local layers first so we can build space tree that we can use
-    // later with remote layers to get ops with the help of vector states.
-    // It means that if we have most of the ops locally already, the remote layers will return
-    // only the remaining missing ops.
-    await this.createOrUpdateSpace(localLayers);
-    await this.createOrUpdateSpace(remoteLayers);
-  }
+    const startLoadingSpaceTime = performance.now();
 
-  private async createOrUpdateSpace(layers: SyncLayer[]) {
-    // We accumulate ops here in case if we couldn't build a valid space from a set of ops from a layer.
-    // We would carry those incomplete ops over to an iteration with another layer to build a space with.
-    // The case with a layer not holding a valid set of ops to build a space is not desirable but possible
-    // by the design of the sync layers. Which is fine.
+    // Discover the space ID from layers
+    const spaceId = await this.fetchSpaceId();
+
+    if (!spaceId) {
+      // No space exists yet - new spaces must be created via Space.newSpace() and addSpace()
+      throw new Error('No existing space found. Create a space first using Space.newSpace() and addSpace()');
+    }
+
+    // Race all layers to load space as quickly as possible  
+    // We accumulate ops and create space as soon as we have enough for a valid structure
     const accumulatedOps: VertexOperation[] = [];
+    const layersToTrack: SyncLayer[] = [];
 
-    const layersToSetupOpsTracking: SyncLayer[] = [];
+    await Promise.all(this.layers.map(async layer => {
+      layersToTrack.push(layer);
 
-    // We're trying to build a space as soon as possible without waiting for
-    // ops from all of the layers. As soon as we get a layer that has enough
-    // ops to build a space, we create it and can use it immidiately.
-    await Promise.all(layers.map(async layer => {
-      layersToSetupOpsTracking.push(layer);
+      let ops: VertexOperation[];
       try {
-        accumulatedOps.push(...await layer.loadSpaceTreeOps());
+        ops = await layer.loadTreeOps(spaceId);
       } catch (e) {
-        console.error(`Failed to load space ops from layer ${layer.id}`, e);
-        // If loading fails, we remove it from tracking for now, or maybe we should keep it?
-        // For now, let's keep it in tracking list as it might recover for saving?
-        // But preventing the whole process from crashing is the main goal.
+        console.error(`Failed to load tree ops from layer ${layer.id}`, e);
         return;
       }
 
+      accumulatedOps.push(...ops);
       if (accumulatedOps.length === 0) return;
 
+      // Try to create space if we don't have one yet
       if (!this.space) {
-        // We do it in try-catch in case if the space ops can't create a valid space. 
-        // We will carry the ops we accumulated to the next cycle if space creation fails.
         try {
-          const space = Space.existingSpaceFromOps(accumulatedOps);
+          this.space = Space.existingSpaceFromOps(accumulatedOps);
           accumulatedOps.length = 0;
-          this.space = space;
+
+          console.log(`⏱️ Space ${this.space.id} loaded in ${performance.now() - startLoadingSpaceTime}ms; from layer: ${layer.id}`);
 
           this.setupTreeLoader();
+          this.trackOps(layersToTrack);
 
-          this.trackOps(layersToSetupOpsTracking);
-          layersToSetupOpsTracking.length = 0;
+          // Sync ops back to layers that don't have all ops
+          for (const layer of this.layers) {
+            if (layer.uploadMissingFromTree) layer.uploadMissingFromTree(this.space.tree);
+          }
+
+          layersToTrack.length = 0;
         } catch (e) {
+          // Not enough ops yet, continue accumulating
           return;
         }
+      } else {
+        // Space exists, merge additional ops
+        this.space.tree.merge(accumulatedOps);
+        accumulatedOps.length = 0;
+
+        this.trackOps(layersToTrack);
+        layersToTrack.length = 0;
       }
-
-      this.space.tree.merge(accumulatedOps);
-      accumulatedOps.length = 0;
-
-      this.trackOps(layersToSetupOpsTracking);
-      layersToSetupOpsTracking.length = 0;
     }));
+
+    if (!this.space) {
+      throw new Error(`Failed to create space from ${accumulatedOps.length} accumulated ops`);
+    }
   }
+
 
   private async trackOps(layers: SyncLayer[]) {
     const space = this.space;
@@ -258,5 +346,4 @@ export class SpaceRunner2 {
       space.addTreeOps(treeId, incomingOps);
     });
   }
-
 }

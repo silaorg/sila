@@ -23,6 +23,10 @@ export class TestInMemorySyncLayer implements SyncLayer {
     }
   }
 
+  async getSpaceId(): Promise<string | undefined> {
+    return this.space.id;
+  }
+
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
     if (this.options.loadDelayMs) {
       await new Promise(resolve => setTimeout(resolve, this.options.loadDelayMs));

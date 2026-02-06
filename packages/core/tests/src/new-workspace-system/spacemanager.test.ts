@@ -385,11 +385,8 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
     spaceManager.addSpace(originalSpace, spaceUri);
 
-    // Wait for initial sync
-    const runner = (spaceManager as any).spaceRunners.get(spaceUri);
-    if (runner && runner.initSync) {
-      await runner.initSync;
-    }
+    // Wait for sync to start (sync starts immediately for exists spaces now)
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     // Create an app tree
     const appTree = originalSpace.newAppTree("my-app");

@@ -1,4 +1,5 @@
 import type { SyncLayer, VertexOperation } from "@sila/core";
+import { RepTree } from "@sila/core";
 import { isAnyPropertyOp } from "@sila/core";
 import {
   appendTreeOps,
@@ -45,5 +46,32 @@ export class IndexedDBSyncLayer implements SyncLayer {
   async saveSecrets(secrets: Record<string, string>): Promise<void> {
     if (Object.keys(secrets).length === 0) return;
     await saveAllSecrets(this.spaceUri, this.spaceId, secrets);
+  }
+
+  async uploadMissingFromTree(tree: RepTree): Promise<void> {
+    const root = tree.root;
+    if (!root) {
+      return;
+    }
+
+    const opsInLayer = await this.loadTreeOps(root.id);
+
+    try {
+      const layerTree = new RepTree(root.id, opsInLayer);
+      const layerStateVector = layerTree.getStateVector() ?? [];
+      // @TODO: consider returning non readonly or use readonly everywhere
+      // and perhaps as a separate type StateVector or smth
+      // @ts-ignore
+      const missingOps = tree.getMissingOps(layerStateVector);
+
+      if (missingOps.length === 0) {
+        return;
+      }
+
+      await this.saveTreeOps(root.id, missingOps);
+    } catch (e) {
+      console.error(`Failed to upload missing ops from tree ${root.id}`, e);
+    }
+
   }
 }

@@ -1,5 +1,5 @@
 import { SpaceRunner } from "@sila/core"
-import { VertexOperation } from "reptree"
+import { RepTree, VertexOperation } from "reptree"
 
 /**
  * SyncLayer is for persisting spaces and syncing them between peers.
@@ -16,12 +16,18 @@ export interface SyncLayer {
   // Reference a SpaceRunner in case if the layer needs it or a space inside it
   spaceRunner?: SpaceRunner
 
+  /** Get the space ID from this layer's storage (optional, for migration) */
+  getSpaceId?(): Promise<string | undefined>
+
   /** Load ops for the root tree of a space */
   loadSpaceTreeOps(): Promise<VertexOperation[]>
   /** Load ops for a specific tree */
   loadTreeOps(treeId: string): Promise<VertexOperation[]>
   /** Save ops for a specific tree */
   saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void>
+
+  /** Upload ops from a tree that are missing from this layer */
+  uploadMissingFromTree?(tree: RepTree): Promise<void>
 
   // Two-way sync is optional
   startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void>

@@ -87,18 +87,22 @@ export class SpaceManager2 {
   async loadSpace(uri: string): Promise<Space> {
     const existingRunner = this.spaceRunners.get(uri);
     if (existingRunner) {
-      return this.waitForSpace(existingRunner, uri);
+      const space = await existingRunner.loadSpace(this.timeoutForSpaceLoading);
+      this.trySetupSpaceHandler(uri, space);
+      return space;
     }
 
     const syncLayers = this.setupSyncLayers(uri);
-
     if (syncLayers.length === 0) {
       throw new Error(`No sync layers to load a space`);
     }
 
     const runner = SpaceRunner2.fromURI(uri, syncLayers);
     this.spaceRunners.set(uri, runner);
-    return this.waitForSpace(runner, uri);
+
+    const space = await runner.loadSpace(this.timeoutForSpaceLoading);
+    this.trySetupSpaceHandler(uri, space);
+    return space;
   }
 
   /**
@@ -131,22 +135,6 @@ export class SpaceManager2 {
     return Array.from(this.spaceRunners.values())
       .map((runner) => runner.space)
       .filter((space): space is Space => space !== null);
-  }
-
-  private async waitForSpace(runner: SpaceRunner2, uri: string): Promise<Space> {
-    const startLoadingTime = performance.now();
-    while (true) {
-      if (runner.space) break;
-
-      if (performance.now() - startLoadingTime > this.timeoutForSpaceLoading) {
-        throw new Error(`Failed to load space ${uri} within ${this.timeoutForSpaceLoading}ms`);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 3));
-    }
-
-    this.trySetupSpaceHandler(uri, runner.space);
-    return runner.space;
   }
 
   private trySetupSpaceHandler(uri: string, space: Space): void {
