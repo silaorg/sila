@@ -10,9 +10,18 @@ We release in three steps:
 3) Publish the draft as the latest release
 
 ## Releasing a new desktop version
-1. Run `npm -w packages/desktop version 1.6.1 --no-git-tag-version` from the repo root.
-2. Commit `packages/desktop/package.json` with `git commit -am "ci: bump desktop to 1.6.1"`.
-3. Create and push the release tag with `git tag desktop-v1.6.1 && git push origin desktop-v1.6.1`.
+
+### Patch release
+Run `npm run release:desktop:patch` from the repo root. This script:
+1. Checks you are on `main` and up to date
+2. Bumps the patch version in `packages/desktop/package.json`
+3. Creates a git tag `desktop-vX.Y.Z`
+4. Pushes the commit and tag to origin
+
+### Minor / Major release
+1. Run `npm -w packages/desktop version minor --no-git-tag-version` (or `major`) from the repo root.
+2. Commit `packages/desktop/package.json` with `git commit -am "ci: bump desktop to X.Y.Z"`.
+3. Create and push the release tag with `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`.
 
 ## CI Stages
 
