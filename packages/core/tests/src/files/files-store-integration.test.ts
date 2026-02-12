@@ -24,15 +24,18 @@ describe('File Store Integration', () => {
 
   beforeEach(async () => {
     fs = new NodeFileSystem();
-    
+
     // Create a real space for testing
     space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
-    
+
     // Set up file store properly
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await manager.addSpace(space, spaceId);
   });
 
   afterEach(async () => {
@@ -48,7 +51,7 @@ describe('File Store Integration', () => {
       // Create a simple text file
       const textContent = '8899';
       const textBlob = new Blob([textContent], { type: 'text/plain' });
-      
+
       // Store the text file in CAS
       const put = await fileStore!.putBytes(new TextEncoder().encode(textContent), 'text/plain');
       expect(put).toBeDefined();
@@ -57,7 +60,7 @@ describe('File Store Integration', () => {
       // Verify we can retrieve the content
       const retrievedData = await fileStore!.getBytes(put.hash);
       expect(retrievedData).toBeDefined();
-      
+
       const retrievedText = new TextDecoder().decode(retrievedData);
       expect(retrievedText).toBe(textContent);
     });
@@ -75,7 +78,7 @@ This is a test markdown file.
 The number is: **8899**`;
 
       const markdownBlob = new Blob([markdownContent], { type: 'text/markdown' });
-      
+
       // Store the markdown file in CAS
       const put = await fileStore!.putBytes(new TextEncoder().encode(markdownContent), 'text/markdown');
       expect(put).toBeDefined();
@@ -84,7 +87,7 @@ The number is: **8899**`;
       // Verify we can retrieve the content
       const retrievedData = await fileStore!.getBytes(put.hash);
       expect(retrievedData).toBeDefined();
-      
+
       const retrievedText = new TextDecoder().decode(retrievedData);
       expect(retrievedText).toBe(markdownContent);
     });
@@ -96,7 +99,7 @@ The number is: **8899**`;
       // Create a large text file
       const largeContent = 'Line 1\n'.repeat(1000); // 1000 lines
       const largeBlob = new Blob([largeContent], { type: 'text/plain' });
-      
+
       // Store the large text file in CAS
       const put = await fileStore!.putBytes(new TextEncoder().encode(largeContent), 'text/plain');
       expect(put).toBeDefined();
@@ -105,7 +108,7 @@ The number is: **8899**`;
       // Verify we can retrieve the content
       const retrievedData = await fileStore!.getBytes(put.hash);
       expect(retrievedData).toBeDefined();
-      
+
       const retrievedText = new TextDecoder().decode(retrievedData);
       expect(retrievedText).toBe(largeContent);
       expect(retrievedText.split('\n').length).toBe(1001);
@@ -121,7 +124,7 @@ The number is: **8899**`;
       // Test that we can store and retrieve data
       const testContent = 'test content';
       const testBlob = new Blob([testContent], { type: 'text/plain' });
-      
+
       const put = await fileStore!.putBytes(new TextEncoder().encode(testContent), 'text/plain');
       expect(put.hash).toBeDefined();
 

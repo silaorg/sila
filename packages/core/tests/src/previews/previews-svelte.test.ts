@@ -9,11 +9,11 @@ import type { FileReference } from '@sila/core';
 // Mock the client state for Svelte testing
 class MockClientState {
   private _currentSpace: Space | null = null;
-  
+
   get currentSpace(): Space | null {
     return this._currentSpace;
   }
-  
+
   set currentSpace(space: Space | null) {
     this._currentSpace = space;
   }
@@ -21,7 +21,7 @@ class MockClientState {
 
 // Mock file resolver that works with Svelte
 class SvelteFileResolver {
-  constructor(private clientState: MockClientState) {}
+  constructor(private clientState: MockClientState) { }
 
   async resolveFileReference(fileRef: FileReference) {
     if (!this.clientState.currentSpace) {
@@ -108,19 +108,24 @@ describe('Simplified File Previews (Svelte)', () => {
   let mockClientState: MockClientState;
   let fileResolver: SvelteFileResolver;
 
+  let layer: FileSystemPersistenceLayer;
+
   beforeEach(async () => {
     // Create temporary directory
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-simplified-previews-svelte-test-'));
-    
-    // Create space manager and test space
-    spaceManager = new SpaceManager({ disableBackend: true });
-    testSpace = Space.newSpace(crypto.randomUUID());
-    testSpace.name = 'Simplified File Previews Svelte Test Space';
 
-    // Create file system persistence layer
+    // Create space and layer
+    testSpace = Space.newSpace(crypto.randomUUID());
     const fs = new NodeFileSystem();
-    const layer = new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs);
-    await spaceManager.addNewSpace(testSpace, [layer]);
+    layer = new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs);
+
+    // Create space manager and test space
+    spaceManager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await Promise.resolve(); // maintain async structure if needed, though addSpace is sync
+    await spaceManager.addSpace(testSpace, testSpace.getId());
 
     // Wait for persistence to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -128,7 +133,7 @@ describe('Simplified File Previews (Svelte)', () => {
     // Create files tree using generic app tree with id 'files' and ensure folder
     filesTree = testSpace.newAppTree('files');
     FilesTreeData.ensureFolderPath(filesTree, ['files']);
-    
+
     // Create file store
     const fileStore = createFileStore({
       getSpaceRootPath: () => tempDir,
@@ -169,7 +174,9 @@ describe('Simplified File Previews (Svelte)', () => {
     if (tempDir) {
       await rm(tempDir, { recursive: true, force: true });
     }
-    await spaceManager.closeSpace(testSpace.getId());
+    if (testSpace) {
+      await spaceManager.closeSpace(testSpace.getId());
+    }
   });
 
   describe('Svelte Integration', () => {
@@ -215,13 +222,13 @@ describe('Simplified File Previews (Svelte)', () => {
     it('should demonstrate Svelte component testing patterns', async () => {
       // This test demonstrates how you would test Svelte components
       // that use the simplified file preview system
-      
+
       // Mock a Svelte component that uses file references
       const mockComponent = {
         props: {
           fileRef,
           showGallery: false,
-          onGalleryOpen: () => {},
+          onGalleryOpen: () => { },
         },
         state: {
           resolvedFile: null,
@@ -231,22 +238,22 @@ describe('Simplified File Previews (Svelte)', () => {
         async loadFile() {
           this.state.isLoading = true;
           this.state.hasError = false;
-          
+
           const resolvedFile = await fileResolver.resolveFileReference(this.props.fileRef);
-          
+
           if (resolvedFile) {
             this.state.resolvedFile = resolvedFile;
           } else {
             this.state.hasError = true;
           }
-          
+
           this.state.isLoading = false;
         }
       };
 
       // Test the component's file loading behavior
       await mockComponent.loadFile();
-      
+
       expect(mockComponent.state.isLoading).toBe(false);
       expect(mockComponent.state.hasError).toBe(false);
       expect(mockComponent.state.resolvedFile).toBeDefined();
@@ -265,19 +272,19 @@ describe('Simplified File Previews (Svelte)', () => {
       const updateResolvedFiles = async () => {
         mockReactiveState.isLoading = true;
         mockReactiveState.resolvedFiles = [];
-        
+
         for (const fileRef of mockReactiveState.fileRefs) {
           const resolvedFile = await fileResolver.resolveFileReference(fileRef);
           if (resolvedFile) {
             mockReactiveState.resolvedFiles.push(resolvedFile);
           }
         }
-        
+
         mockReactiveState.isLoading = false;
       };
 
       await updateResolvedFiles();
-      
+
       expect(mockReactiveState.isLoading).toBe(false);
       expect(mockReactiveState.resolvedFiles).toHaveLength(1);
       expect(mockReactiveState.resolvedFiles[0].name).toBe('test-image.png');
@@ -294,7 +301,7 @@ describe('Simplified File Previews (Svelte)', () => {
             fileRefs: [fileRef],
             resolvedFiles: [],
           });
-          return { unsubscribe: () => {} };
+          return { unsubscribe: () => { } };
         }
       };
 
@@ -332,19 +339,19 @@ describe('Simplified File Previews (Svelte)', () => {
               },
             ],
           });
-          return { unsubscribe: () => {} };
+          return { unsubscribe: () => { } };
         }
       };
 
-             const derivedStore = {
-         subscribe: (callback: (value: any) => void) => {
-           baseStore.subscribe((baseValue) => {
-             const fileRefs = FilePreviewUtils.extractFileReferences(baseValue.messages[0]);
-             callback({ fileRefs });
-           });
-           return { unsubscribe: () => {} };
-         }
-       };
+      const derivedStore = {
+        subscribe: (callback: (value: any) => void) => {
+          baseStore.subscribe((baseValue) => {
+            const fileRefs = FilePreviewUtils.extractFileReferences(baseValue.messages[0]);
+            callback({ fileRefs });
+          });
+          return { unsubscribe: () => { } };
+        }
+      };
 
       let derivedValue: any;
       const unsubscribe = derivedStore.subscribe((value) => {
@@ -365,7 +372,7 @@ describe('Simplified File Previews (Svelte)', () => {
       // Test event handling in Svelte components
       const mockEventDispatcher = () => {
         const listeners: Record<string, Function[]> = {};
-        
+
         return {
           on: (event: string, callback: Function) => {
             if (!listeners[event]) {
@@ -414,16 +421,16 @@ describe('Simplified File Previews (Svelte)', () => {
         destroyed: false,
         fileRef,
         resolvedFile: null,
-        
+
         onMount() {
           this.mounted = true;
           this.loadFile();
         },
-        
+
         onDestroy() {
           this.destroyed = true;
         },
-        
+
         async loadFile() {
           if (this.mounted && !this.destroyed) {
             this.resolvedFile = await fileResolver.resolveFileReference(this.fileRef);
@@ -434,7 +441,7 @@ describe('Simplified File Previews (Svelte)', () => {
       // Simulate component mount
       mockComponent.onMount();
       await new Promise(resolve => setTimeout(resolve, 100)); // Wait for async load
-      
+
       expect(mockComponent.mounted).toBe(true);
       expect(mockComponent.resolvedFile).toBeDefined();
       expect(mockComponent.resolvedFile?.name).toBe('test-image.png');

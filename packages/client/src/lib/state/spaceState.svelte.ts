@@ -2,7 +2,7 @@ import { ThemeStore } from "./theme.svelte";
 import { LayoutStore } from "./layout.svelte";
 import type { SpacePointer } from "../spaces/SpacePointer";
 import type { Space } from "@sila/core";
-import type { SpaceManager2 } from "@sila/core";
+import type { SpaceManager } from "@sila/core";
 import {
   getDraft,
   saveDraft,
@@ -21,13 +21,13 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@sila/core";
 
 export type SpaceStateConfig = {
   pointer: SpacePointer;
-  spaceManager: SpaceManager2;
+  spaceManager: SpaceManager;
   analytics: AppTelemetry;
 };
 
 export class SpaceState {
   pointer: SpacePointer = $state() as SpacePointer;
-  private spaceManager: SpaceManager2;
+  private spaceManager: SpaceManager;
   space: Space | null = $state(null);
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
@@ -117,7 +117,7 @@ export class SpaceState {
   }
 
   /**
-   * Load the space using SpaceManager2.
+   * Load the space using SpaceManager.
    */
   private async loadSpace(): Promise<Space | null> {
     // Check if already loaded in SpaceManager

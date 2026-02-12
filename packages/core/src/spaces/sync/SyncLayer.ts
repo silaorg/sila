@@ -38,6 +38,10 @@ export interface SyncLayer {
   loadSecrets?(): Promise<Record<string, string> | undefined>
   saveSecrets?(secrets: Record<string, string>): Promise<void>
 
+  // Connection handling is optional
+  connect?(): Promise<void>
+  disconnect?(): Promise<void>
+
   // Optional cleanup method - called when SpaceRunner is disposed
   dispose?(): Promise<void>
 }

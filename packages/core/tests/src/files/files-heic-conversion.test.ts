@@ -21,13 +21,13 @@ function toDataUrl(file: File): Promise<string> {
   });
 }
 
-function getImageDimensions(src: string): Promise<{ width: number; height: number } | null> {
+let getImageDimensions = function (src: string): Promise<{ width: number; height: number } | null> {
   return new Promise((resolve) => {
     // For testing purposes, return mock dimensions
     // In a real implementation, you might use a Node.js image library
     resolve({ width: 100, height: 100 });
   });
-}
+};
 
 // Node.js compatible version of optimizeImageSize for testing
 async function optimizeImageSize(file: File): Promise<File> {
@@ -35,20 +35,20 @@ async function optimizeImageSize(file: File): Promise<File> {
   if (!file.type.startsWith('image/')) {
     return file;
   }
-  
+
   try {
     // Get image dimensions using our Node.js compatible function
     const dimensions = await getImageDimensions(await toDataUrl(file));
     if (!dimensions) return file;
-    
+
     const { width, height } = dimensions;
     const maxSize = 2048;
-    
+
     // Check if resizing is needed
     if (width <= maxSize && height <= maxSize) {
       return file; // No resizing needed
     }
-    
+
     // For testing, just return the original file
     // In a real implementation, you would resize the image
     return file;
@@ -69,7 +69,6 @@ describe('HEIC Conversion Pipeline', () => {
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-heic-test-'));
-    manager = new SpaceManager({ disableBackend: true });
   });
 
   afterEach(async () => {
@@ -101,7 +100,10 @@ describe('HEIC Conversion Pipeline', () => {
     space.name = 'HEIC Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    await manager.addNewSpace(space, [layer]);
+    manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Give time to ensure base structure is on disk
     await wait(600);
@@ -116,7 +118,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Read the test HEIC file
     const heicFilePath = path.join(__dirname, '../../assets/to-send/from-iphone.heic');
     const heicBuffer = await readFile(heicFilePath);
-    
+
     // Create a File-like object for testing
     const heicFile = {
       name: 'from-iphone.heic',
@@ -149,7 +151,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Create files tree and link file (use a generic app tree with id 'files')
     const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['heic-test']);
-    
+
     const fileVertex = FilesTreeData.saveFileInfo(
       folder,
       {
@@ -188,7 +190,10 @@ describe('HEIC Conversion Pipeline', () => {
     space.name = 'HEIC Deduplication Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    await manager.addNewSpace(space, [layer]);
+    manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     await wait(600);
 
@@ -200,7 +205,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Read the test HEIC file
     const heicFilePath = path.join(__dirname, '../../assets/to-send/from-iphone.heic');
     const heicBuffer = await readFile(heicFilePath);
-    
+
     // Create two identical HEIC files
     const heicFile1 = {
       name: 'from-iphone-1.heic',
@@ -223,7 +228,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Upload both
     const dataUrl1 = await toDataUrl(processedFile1);
     const dataUrl2 = await toDataUrl(processedFile2);
-    
+
     const put1 = await fileStore!.putDataUrl(dataUrl1);
     const put2 = await fileStore!.putDataUrl(dataUrl2);
 
@@ -233,7 +238,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Create files tree (use a generic app tree with id 'files')
     const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['dedup-test']);
-    
+
     // Create two file vertices with different names but same hash
     const fileVertex1 = FilesTreeData.saveFileInfo(
       folder,
@@ -267,7 +272,10 @@ describe('HEIC Conversion Pipeline', () => {
     space.name = 'Non-HEIC Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    await manager.addNewSpace(space, [layer]);
+    manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     await wait(600);
 
@@ -279,7 +287,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Create a simple PNG file
     const pngDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=';
     const pngBuffer = Buffer.from(pngDataUrl.split(',')[1]!, 'base64');
-    
+
     const pngFile = {
       name: 'test.png',
       type: 'image/png',
@@ -299,7 +307,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Create files tree (use a generic app tree with id 'files')
     const filesTree = space.newAppTree('files');
     const folder = FilesTreeData.ensureFolderPath(filesTree, ['png-test']);
-    
+
     const fileVertex = FilesTreeData.saveFileInfo(
       folder,
       {
@@ -321,7 +329,10 @@ describe('HEIC Conversion Pipeline', () => {
     space.name = 'Image Resizing Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    await manager.addNewSpace(space, [layer]);
+    manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     await wait(600);
 
@@ -333,7 +344,7 @@ describe('HEIC Conversion Pipeline', () => {
     // Create a large JPEG file (simulating a high-resolution image)
     const largeJpegDataUrl = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxAAPwA/8A';
     const largeJpegBuffer = Buffer.from(largeJpegDataUrl.split(',')[1]!, 'base64');
-    
+
     const largeJpegFile = {
       name: 'large-image.jpg',
       type: 'image/jpeg',
@@ -359,10 +370,10 @@ describe('HEIC Conversion Pipeline', () => {
       const dataUrl = await toDataUrl(optimizedFile);
       const put = await fileStore!.putDataUrl(dataUrl);
 
-    // Create files tree (use a generic app tree with id 'files')
-    const filesTree = space.newAppTree('files');
+      // Create files tree (use a generic app tree with id 'files')
+      const filesTree = space.newAppTree('files');
       const folder = FilesTreeData.ensureFolderPath(filesTree, ['resize-test']);
-      
+
       const fileVertex = FilesTreeData.saveFileInfo(
         folder,
         {
@@ -389,39 +400,39 @@ describe('HEIC Conversion Pipeline', () => {
 describe('Image Resizing Logic', () => {
   it('should calculate correct dimensions for different aspect ratios', () => {
     const maxSize = 2048;
-    
+
     // Test landscape image (wider than tall)
     const landscapeWidth = 4000;
     const landscapeHeight = 3000;
     const landscapeRatio = Math.min(maxSize / landscapeWidth, maxSize / landscapeHeight);
     const newLandscapeWidth = Math.round(landscapeWidth * landscapeRatio);
     const newLandscapeHeight = Math.round(landscapeHeight * landscapeRatio);
-    
+
     expect(newLandscapeWidth).toBe(2048); // Should be max width
     expect(newLandscapeHeight).toBe(1536); // Should maintain aspect ratio
-    
+
     // Test portrait image (taller than wide)
     const portraitWidth = 3000;
     const portraitHeight = 4000;
     const portraitRatio = Math.min(maxSize / portraitWidth, maxSize / portraitHeight);
     const newPortraitWidth = Math.round(portraitWidth * portraitRatio);
     const newPortraitHeight = Math.round(portraitHeight * portraitRatio);
-    
+
     expect(newPortraitWidth).toBe(1536); // Should maintain aspect ratio
     expect(newPortraitHeight).toBe(2048); // Should be max height
-    
+
     // Test square image
     const squareSize = 3000;
     const squareRatio = Math.min(maxSize / squareSize, maxSize / squareSize);
     const newSquareSize = Math.round(squareSize * squareRatio);
-    
+
     expect(newSquareSize).toBe(2048); // Should be max size
-    
+
     // Test small image (should not be resized)
     const smallSize = 1000;
     const smallRatio = Math.min(maxSize / smallSize, maxSize / smallSize);
     const newSmallSize = Math.round(smallSize * smallRatio);
-    
+
     expect(newSmallSize).toBe(2048); // Ratio calculation would scale up
     // But the actual implementation checks if resizing is needed first
     expect(smallSize <= maxSize).toBe(true); // Small images won't be resized

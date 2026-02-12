@@ -29,11 +29,11 @@ describe('Text File AI Integration', () => {
 
   beforeEach(async () => {
     fs = new NodeFileSystem();
-    
+
     // Create a real space for testing
     space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
-    
+
     // Add a chat assistant config
     const assistantId = 'test-assistant';
     space.addAppConfig({
@@ -51,8 +51,11 @@ describe('Text File AI Integration', () => {
 
     // Set up file store
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await manager.addSpace(space, spaceId);
   });
 
   const createAgent = () => new WrapChatAgent(chatData, new AgentServices(space), chatTree);

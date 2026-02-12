@@ -38,7 +38,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
   private propOpsCompactCountThreshold = 10;
 
   constructor(
-    private spacePath: string, 
+    private spacePath: string,
     private spaceId: string,
     private fs: AppFileSystem
   ) {
@@ -91,7 +91,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     return await this.loadAllTreeOps(this.spaceId);
   }
 
-  async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {    
+  async saveTreeOps(treeId: string, ops: ReadonlyArray<VertexOperation>): Promise<void> {
     if (!this.isConnected()) {
       throw new Error('FileSystemPersistenceLayer not connected');
     }
@@ -330,7 +330,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
 
   private removeSavedOpsFromOpsToSave(treeId: string, ops: VertexOperation[]) {
     const opsToSave = this.treeOpsToSave.get(treeId);
-    
+
     if (!opsToSave) {
       return;
     }
@@ -523,11 +523,15 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
   private async encryptSecrets(secretsObj: Record<string, string>, key: string): Promise<string> {
     // Convert the key string to a crypto key
     const encoder = new TextEncoder();
-    const keyBuffer = encoder.encode(key);
+    const keyData = encoder.encode(key);
+
+    // Hash the key to ensure it's exactly 256 bits (32 bytes) for AES-GCM
+    const keyBuffer = await crypto.subtle.digest('SHA-256', keyData);
+
     const cryptoKey = await crypto.subtle.importKey(
       "raw",
       keyBuffer,
-      { name: "AES-GCM", length: 256 },
+      { name: "AES-GCM" },
       false,
       ["encrypt"]
     );
@@ -557,13 +561,16 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
   }
 
   private async decryptSecrets(encryptedData: string, key: string): Promise<Record<string, string>> {
-    // Convert the key string to a crypto key
     const encoder = new TextEncoder();
-    const keyBuffer = encoder.encode(key);
+    const keyData = encoder.encode(key);
+
+    // Hash the key to ensure it's exactly 256 bits (32 bytes) for AES-GCM
+    const keyBuffer = await crypto.subtle.digest('SHA-256', keyData);
+
     const cryptoKey = await crypto.subtle.importKey(
       "raw",
       keyBuffer,
-      { name: "AES-GCM", length: 256 },
+      { name: "AES-GCM" },
       false,
       ["decrypt"]
     );
@@ -582,16 +589,17 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     const iv = combined.slice(0, 12);
     const encryptedBuffer = combined.slice(12);
 
-    const decryptedBuffer = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      cryptoKey,
-      encryptedBuffer
-    );
-
-    const decryptedString = new TextDecoder().decode(decryptedBuffer);
     try {
+      const decryptedBuffer = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv },
+        cryptoKey,
+        encryptedBuffer
+      );
+
+      const decryptedString = new TextDecoder().decode(decryptedBuffer);
       return JSON.parse(decryptedString);
-    } catch (error) {
+    } catch (e) {
+      console.error('Failed to decrypt secrets:', e);
       return {};
     }
   }
@@ -619,10 +627,9 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
 
   private async checkIfSecretsNeedToBeSaved() {
     // @TODO: Implement this
-    // This method would need access to current secrets from the space
-    // For now, we'll implement it when we integrate with SpaceManager
-    // The old implementation compared current secrets with file secrets
   }
+
+
 
   // File watching event handler
   private handleWatchEvent(event: WatchEvent) {
@@ -634,7 +641,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
           this.tryReadSecretsFromPeer(event.path);
         }
         break;
-        
+
       case 'change':
         if (event.path.endsWith('.jsonl')) {
           this.tryReadOpsFromPeer(event.path);
@@ -642,7 +649,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
           this.tryReadSecretsFromPeer(event.path);
         }
         break;
-        
+
       // We don't need to handle 'addDir', 'unlink', or 'unlinkDir' for our use case
       // but they're available if needed in the future
     }

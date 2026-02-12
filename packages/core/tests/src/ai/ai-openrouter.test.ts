@@ -43,8 +43,10 @@ describe('OpenRouter AI Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({
@@ -84,7 +86,7 @@ describe('OpenRouter AI Integration', () => {
     // Get the response
     const messages = chatData.messageVertices;
     const response = messages[messages.length - 1];
-    
+
     if (!response) {
       throw new Error('No response found');
     }
@@ -95,7 +97,7 @@ describe('OpenRouter AI Integration', () => {
     }
 
     console.log('OpenRouter AI Response:', responseData.text);
-    
+
     // Should contain the expected response
     expect(responseData.text).toContain('Hello from OpenRouter!');
   }, 30000);
@@ -114,8 +116,10 @@ describe('OpenRouter AI Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({
@@ -155,7 +159,7 @@ describe('OpenRouter AI Integration', () => {
     // Get the response
     const messages = chatData.messageVertices;
     const response = messages[messages.length - 1];
-    
+
     if (!response) {
       throw new Error('No response found');
     }
@@ -166,7 +170,7 @@ describe('OpenRouter AI Integration', () => {
     }
 
     console.log('OpenRouter Specific Model Response:', responseData.text);
-    
+
     // Should contain the expected response
     expect(responseData.text).toContain('Using GPT-4o via OpenRouter!');
   }, 30000);
@@ -185,8 +189,10 @@ describe('OpenRouter AI Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({
@@ -226,7 +232,7 @@ describe('OpenRouter AI Integration', () => {
     // Get the response
     const messages = chatData.messageVertices;
     const response = messages[messages.length - 1];
-    
+
     if (!response) {
       throw new Error('No response found');
     }
@@ -237,7 +243,7 @@ describe('OpenRouter AI Integration', () => {
     }
 
     console.log('OpenRouter Claude Response:', responseData.text);
-    
+
     // Should contain the expected response
     expect(responseData.text).toContain('Hello from Claude via OpenRouter!');
   }, 30000);
@@ -255,8 +261,10 @@ describe('OpenRouter AI Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({
@@ -274,7 +282,7 @@ describe('OpenRouter AI Integration', () => {
 
     // Test getMostCapableModel with OpenRouter
     const mostCapableModel = await agentServices.getMostCapableModel();
-    
+
     expect(mostCapableModel).not.toBeNull();
     expect(mostCapableModel?.provider).toBe('openrouter');
     expect(mostCapableModel?.model).toBe(openrouterDefault); // Should use the default model
@@ -306,8 +314,10 @@ describe('OpenRouter AI Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({

@@ -30,8 +30,10 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Provide FileStore for CAS writes
     if (typeof (layer as any).getFileStoreProvider === 'function') {
@@ -41,9 +43,9 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const chatTree = ChatAppData.createNewChatTree(space, 'test-config');
     const chatData = new ChatAppData(space, chatTree);
 
-    const message = await chatData.newMessage({ 
-      role: 'user', 
-      text: 'Here is an image', 
+    const message = await chatData.newMessage({
+      role: 'user',
+      text: 'Here is an image',
       attachments: [
         { id: 'att1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
       ],
@@ -68,8 +70,10 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Provide FileStore for CAS writes
     if (typeof (layer as any).getFileStoreProvider === 'function') {
@@ -79,9 +83,9 @@ describe('Chat file targeting (per-chat files path under CAS)', () => {
     const chatTree = ChatAppData.createNewChatTree(space, 'test-config');
     const chatData = new ChatAppData(space, chatTree);
 
-    const message = await chatData.newMessage({ 
-      role: 'user', 
-      text: 'Nested path image', 
+    const message = await chatData.newMessage({
+      role: 'user',
+      text: 'Nested path image',
       attachments: [
         { id: 'att1', kind: 'image', name: 'nested.png', mimeType: 'image/png', size: 68, dataUrl: makePngDataUrl() }
       ],

@@ -50,8 +50,10 @@ describe('Local assets persisted in workspace CAS', () => {
     const spaceId = space.getId();
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Ensure base structure
     await wait(500);

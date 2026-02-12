@@ -34,7 +34,7 @@ class FilePreviewUtils {
       return false;
     }
 
-    return files.some((att: any) => 
+    return files.some((att: any) =>
       att?.file?.tree && att?.file?.vertex
     );
   }
@@ -45,7 +45,7 @@ class FilePreviewUtils {
       return 0;
     }
 
-    return files.filter((att: any) => 
+    return files.filter((att: any) =>
       att?.file?.tree && att?.file?.vertex
     ).length;
   }
@@ -63,16 +63,34 @@ describe('Simplified File Previews (Core)', () => {
   beforeEach(async () => {
     // Create temporary directory
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-simplified-previews-core-test-'));
-    
+
     // Create space manager and test space
-    spaceManager = new SpaceManager({ disableBackend: true });
+    // Create space manager and test space
+    spaceManager = new SpaceManager({
+      setupSyncLayers: (uri) => {
+        if (uri === testSpace.getId()) {
+          const fs = new NodeFileSystem();
+          return [new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs)];
+        }
+        return [];
+      }
+    });
     testSpace = Space.newSpace(crypto.randomUUID());
     testSpace.name = 'Simplified File Previews Core Test Space';
 
     // Create file system persistence layer
+    // Note: Layer created inside setupSyncLayers to match pattern, or we can create it outside and capture it.
+    // Let's capture it.
     const fs = new NodeFileSystem();
     const layer = new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs);
-    await spaceManager.addNewSpace(testSpace, [layer]);
+
+    // Re-create manager to use this layer
+    spaceManager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+
+    await spaceManager.addSpace(testSpace, testSpace.getId());
 
     // Wait for persistence to initialize
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -85,7 +103,7 @@ describe('Simplified File Previews (Core)', () => {
     // Create files tree using generic app tree with id 'files' and ensure folder
     filesTree = testSpace.newAppTree('files');
     FilesTreeData.ensureFolderPath(filesTree, ['files']);
-    
+
     // Create file store
     const fileStore = createFileStore({
       getSpaceRootPath: () => tempDir,
@@ -294,7 +312,7 @@ describe('Simplified File Previews (Core)', () => {
       expect(fileInfo?.width).toBe(800);
       expect(fileInfo?.height).toBe(600);
       expect(fileInfo?.hash).toBe(fileVertex.getProperty('hash'));
-      		expect(fileInfo?.url).toMatch(/^sila:\/\/spaces\/[^\/]+\/files\/[^\/]+/);
+      expect(fileInfo?.url).toMatch(/^sila:\/\/spaces\/[^\/]+\/files\/[^\/]+/);
     });
 
     it('should handle missing file references gracefully', async () => {
@@ -340,7 +358,7 @@ describe('Simplified File Previews (Core)', () => {
       const fileInfos = await fileResolver.getFilesInfo(fileRefs);
       expect(fileInfos).toHaveLength(1);
       expect(fileInfos[0]?.name).toBe('test-image.png');
-      		expect(fileInfos[0]?.url).toMatch(/^sila:\/\/spaces\/[^\/]+\/files\/[^\/]+/);
+      expect(fileInfos[0]?.url).toMatch(/^sila:\/\/spaces\/[^\/]+\/files\/[^\/]+/);
 
       // 4. Verify the complete workflow works
       expect(fileInfos[0]?.id).toBe(fileVertex.id);

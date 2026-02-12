@@ -28,11 +28,11 @@ describe('Text File Attachments Integration', () => {
 
   beforeEach(async () => {
     fs = new NodeFileSystem();
-    
+
     // Create a real space for testing
     space = Space.newSpace(crypto.randomUUID());
     const spaceId = space.getId();
-    
+
     // Add a chat assistant config
     const assistantId = 'test-assistant';
     space.addAppConfig({
@@ -50,8 +50,11 @@ describe('Text File Attachments Integration', () => {
 
     // Set up file store
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await manager.addSpace(space, spaceId);
   });
 
   afterEach(async () => {
@@ -75,7 +78,7 @@ function test() {
 \`\`\``;
 
       const textFile = new File([textContent], 'test.md', { type: 'text/markdown' });
-      
+
       // Create attachment preview
       const attachment = {
         id: 'test-id',
@@ -121,7 +124,7 @@ function test() {
     it('should handle mixed image and text file attachments', async () => {
       const textContent = 'Hello, world!';
       const textFile = new File([textContent], 'hello.txt', { type: 'text/plain' });
-      
+
       // Create text attachment
       const textAttachment = {
         id: 'text-id',
@@ -170,7 +173,7 @@ function test() {
       const files = messageVertex?.getProperty('files') as any[];
       expect(files).toBeDefined();
       expect(files.length).toBe(2);
-      
+
       const [att] = files;
       expect(att.tree).toBeDefined();
     });
@@ -179,7 +182,7 @@ function test() {
       // Create a large text file (simulate)
       const largeContent = 'Line 1\n'.repeat(1000); // 1000 lines
       const textFile = new File([largeContent], 'large.txt', { type: 'text/plain' });
-      
+
       const attachment = {
         id: 'large-id',
         kind: 'text' as const,
@@ -206,7 +209,7 @@ function test() {
       await wait(1200);
 
       expect(message).toBeDefined();
-      
+
       // Verify the large file was handled
       const messageVertex = (chatData.messageVertices.at(-1) as any);
       const files = messageVertex?.getProperty('files') as any[];
@@ -218,7 +221,7 @@ function test() {
     it('should include text file content in AI messages', async () => {
       // This test would require a mock AI service
       // For now, we'll test the message processing logic
-      
+
       const textContent = `function hello() {
   console.log("Hello, world!");
 }`;
@@ -288,7 +291,7 @@ function test() {
 
       for (const testCase of testCases) {
         const file = new File([testCase.content], testCase.name, { type: testCase.mimeType });
-        
+
         const attachment = {
           id: `test-${testCase.name}`,
           kind: 'text' as const,
@@ -312,7 +315,7 @@ function test() {
         const message = await chatData.newMessage({ role: 'user', text: `Review this ${testCase.expectedLang} file`, attachments: [attachment] });
 
         expect(message).toBeDefined();
-        
+
         const messageVertex = (chatData.messageVertices.at(-1) as any);
         const files = messageVertex?.getProperty('files') as any[];
         expect(files[0].tree).toBeDefined();

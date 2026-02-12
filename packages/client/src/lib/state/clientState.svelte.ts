@@ -17,7 +17,7 @@ import {
   saveCurrentSpaceUri,
   savePointers,
 } from "@sila/client/localDb";
-import { Backend, Space, SpaceManager2 } from "@sila/core";
+import { Backend, Space, SpaceManager } from "@sila/core";
 import { AppFileSystem } from "../appFs";
 import type { AppDialogs } from "../appDialogs";
 import { uuid } from "@sila/core";
@@ -59,7 +59,7 @@ export type AppVersions = {
 export class ClientState {
   private _init: boolean = $state(false);
   private _initializationError: string | null = $state(null);
-  private _spaceManager: SpaceManager2 = new SpaceManager2();
+  private _spaceManager: SpaceManager = new SpaceManager();
   private _spaceIdsByUri = new Map<string, string>();
   private _backendsByUri = new Map<string, Backend>();
   private _defaultTheme: ThemeStore = $state(new ThemeStore());
@@ -193,8 +193,8 @@ export class ClientState {
     this._init = true;
   }
 
-  private createSpaceManager(): SpaceManager2 {
-    return new SpaceManager2({
+  private createSpaceManager(): SpaceManager {
+    return new SpaceManager({
       setupSyncLayers: (uri) => this.createSyncLayers(uri),
       setupFileLayer: (uri) => createFileLayerForURI(uri, this._fs),
       setupSpaceHandler: (uri, space) => {

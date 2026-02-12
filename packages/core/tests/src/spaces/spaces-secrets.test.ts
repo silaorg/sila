@@ -27,8 +27,10 @@ describe('Secrets persistence', () => {
 
     // Create persistence and add space to manager to enable secret saving hooks
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Save secrets via wrapped methods
     space.setSecret('api-key-openai', 'sk-123');

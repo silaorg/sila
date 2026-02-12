@@ -51,8 +51,10 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenAI provider
     space.saveModelProviderConfig({
@@ -124,7 +126,7 @@ describe('AI Image Integration', () => {
     // Debug: Check if files were stored correctly
     console.log('User message created:', userMessage.getProperties());
     console.log('User message files:', userMessage.getProperty('files'));
-    
+
     // Wait a moment for any async operations to complete
     await wait(1000);
 
@@ -146,7 +148,7 @@ describe('AI Image Integration', () => {
     // Get the latest message (should be the AI response)
     const messages = chatData.messageVertices;
     const latestMessage = messages[messages.length - 1];
-    
+
     if (!latestMessage) {
       throw new Error('No messages found');
     }
@@ -159,7 +161,7 @@ describe('AI Image Integration', () => {
     // Check if the response confirms seeing the image
     const responseText = latestMessageData.text.toUpperCase();
     console.log('AI Response:', latestMessageData.text);
-    
+
     // The AI should see the image and respond with "YES"
     expect(responseText).toContain('YES');
   }, 30000); // 30 second timeout for API call
@@ -178,8 +180,10 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenAI provider
     space.saveModelProviderConfig({
@@ -227,9 +231,9 @@ describe('AI Image Integration', () => {
     }
 
     // Create a user message with the cat image
-    const userMessage = await chatData.newMessage({ 
-      role: 'user', 
-      text: 'What animal do you see in this image? Say only the animal name in one word.', 
+    const userMessage = await chatData.newMessage({
+      role: 'user',
+      text: 'What animal do you see in this image? Say only the animal name in one word.',
       attachments: [
         {
           id: 'cat-image',
@@ -245,7 +249,7 @@ describe('AI Image Integration', () => {
     // Debug: Check if files were stored correctly
     console.log('User message created (test 2):', userMessage);
     console.log('User message files (test 2):', (userMessage as any).files);
-    
+
     // Wait a moment for any async operations to complete
     await wait(1000);
 
@@ -258,7 +262,7 @@ describe('AI Image Integration', () => {
     // Get the first response
     const messages = chatData.messageVertices;
     const firstResponse = messages[messages.length - 1];
-    
+
     if (!firstResponse) {
       throw new Error('No first response found');
     }
@@ -279,7 +283,7 @@ describe('AI Image Integration', () => {
     // Get the follow-up response
     const updatedMessages = chatData.messageVertices;
     const followUpResponse = updatedMessages[updatedMessages.length - 1];
-    
+
     if (!followUpResponse) {
       throw new Error('No follow-up response found');
     }
@@ -294,14 +298,14 @@ describe('AI Image Integration', () => {
     // The bug: first response might not see the image, but follow-up should
     const firstResponseText = firstResponseData.text.toLowerCase();
     const followUpResponseText = followUpResponseData.text.toLowerCase();
-    
+
     // At least one of the responses should contain "cat"
     const firstSeesCat = firstResponseText.includes('cat');
     const followUpSeesCat = followUpResponseText.includes('cat');
-    
+
     console.log(`First response sees cat: ${firstSeesCat}`);
     console.log(`Follow-up response sees cat: ${followUpSeesCat}`);
-    
+
     // The AI should maintain context of the image across the conversation
     expect(firstSeesCat || followUpSeesCat).toBe(true);
   }, 60000); // 60 second timeout for API calls
@@ -320,8 +324,10 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenAI provider
     space.saveModelProviderConfig({
@@ -361,7 +367,7 @@ describe('AI Image Integration', () => {
     // Get the response
     const messages = chatData.messageVertices;
     const response = messages[messages.length - 1];
-    
+
     if (!response) {
       throw new Error('No response found');
     }
@@ -372,7 +378,7 @@ describe('AI Image Integration', () => {
     }
 
     console.log('Response without image:', responseData.text);
-    
+
     // Should say "NO IMAGE"
     expect(responseData.text.trim()).toBe('NO IMAGE');
   }, 30000);
@@ -391,8 +397,10 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Add OpenRouter provider
     space.saveModelProviderConfig({
@@ -428,9 +436,9 @@ describe('AI Image Integration', () => {
     const catImageBuffer = await readFile(catImagePath);
 
     // Create a user message with the cat image
-    const userMessage = await chatData.newMessage({ 
-      role: 'user', 
-      text: 'What animal do you see in this image? Say only the animal name in one word.', 
+    const userMessage = await chatData.newMessage({
+      role: 'user',
+      text: 'What animal do you see in this image? Say only the animal name in one word.',
       attachments: [
         {
           id: 'cat-image',
@@ -449,7 +457,7 @@ describe('AI Image Integration', () => {
     // Get the response
     const messages = chatData.messageVertices;
     const response = messages[messages.length - 1];
-    
+
     if (!response) {
       throw new Error('No response found');
     }
@@ -460,7 +468,7 @@ describe('AI Image Integration', () => {
     }
 
     console.log('OpenRouter Vision Response:', responseData.text);
-    
+
     // Should contain "cat" (case insensitive)
     const responseText = responseData.text.toLowerCase();
     expect(responseText).toContain('cat');

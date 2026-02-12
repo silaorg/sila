@@ -1,158 +1,159 @@
 import { Space } from "./Space";
-import type { PersistenceLayer } from "./persistence/PersistenceLayer";
-import type { SpaceRunnerHostType, SpaceRunnerPointer } from "./SpaceRunner";
 import { SpaceRunner } from "./SpaceRunner";
-
-export interface SpacePointer {
-  id: string;
-  uri: string;
-  name: string | null;
-  createdAt: Date;
-  userId: string | null;
-}
+import { SyncLayer } from "./sync/SyncLayer";
+import type { FileLayer } from "./files/FileLayer";
 
 export type SpaceManagerOptions = {
-  resolvePersistenceLayers?: (
-    pointer: SpacePointer,
-    hostType: SpaceRunnerHostType | undefined,
-  ) => PersistenceLayer[];
-  disableBackend?: boolean;
-  hostType?: SpaceRunnerHostType;
-};
+  /**
+   * Setup sync layers for a space. Each platform can have different sync layers.
+   * So a server and a desktop app can sync spaces in different ways.
+   * Whatever we return here will be used for a space at a pointer.
+   * @param uri The URI of the space.
+   * @returns An array of sync layers setup for the space.
+   */
+  setupSyncLayers?: (uri: string) => SyncLayer[];
+
+  /**
+   * Setup file layer for a space. This handles file storage independently from operation sync.
+   * @param uri The URI of the space.
+   * @returns A file layer or undefined if no file storage is needed.
+   */
+  setupFileLayer?: (uri: string) => FileLayer | undefined;
+
+  /**
+   * Setup space handler for a space. Coud be anything that needs a space to read or edit it.
+   * E.g a UI component or a backend service.
+   * It will be called when a space is just created or loaded.
+   * @param uri The URI of the space.
+   * @param space The space to setup handler for.
+   */
+  setupSpaceHandler?: (uri: string, space: Space) => void;
+
+  /**
+   * The timeout for loading a space. If a space is not loaded within this time,
+   * it will throw an error.
+   */
+  timeoutForSpaceLoading?: number;
+}
 
 /**
- * Manages spaces and their persistence layers.
- * Handles loading, saving, and orchestrating multiple persistence strategies.
+ * Manages spaces and the way they sync.
+ * It uses SpacePointer to identify where a space is located so it can load and save it.
+ * Spaces get persisted and synced between peers using SyncLayer.
+ * A space can have multiple sync layers, for example one for local storage
+ * and one for remote storage. When we construct SpaceManager, we 
+ * need to pass a function that would be responsible for setting up
+ * the sync layers for a space depending on what platform we are running on.
  */
 export class SpaceManager {
-  private runners = new Map<string, SpaceRunner>();
-  private resolvePersistenceLayers?: (
-    pointer: SpacePointer,
-    hostType: SpaceRunnerHostType | undefined,
-  ) => PersistenceLayer[];
-  private disableBackend?: boolean;
-  private hostType?: SpaceRunnerHostType;
+  private timeoutForSpaceLoading = 10000;
+  private spaceRunners = new Map<string, SpaceRunner>();
+  private setupSyncLayers: (uri: string) => SyncLayer[];
+  private setupFileLayer?: (uri: string) => FileLayer | undefined;
+  private setupSpaceHandler?: (uri: string, space: Space) => void;
+  private handledSpaces = new Set<string>();
 
   constructor(options: SpaceManagerOptions = {}) {
-    this.resolvePersistenceLayers = options.resolvePersistenceLayers;
-    this.disableBackend = options.disableBackend;
-    this.hostType = options.hostType;
+    this.setupSyncLayers = options.setupSyncLayers ? options.setupSyncLayers : () => [];
+    this.setupFileLayer = options.setupFileLayer;
+    this.timeoutForSpaceLoading = options.timeoutForSpaceLoading ?? 10000;
+    this.setupSpaceHandler = options.setupSpaceHandler;
   }
 
   /**
-   * Helper to resolve persistence layers using provided list or callback
+   * Add an existing space we have in memory to the manager.
+   * @param space The space to add.
+   * @param uri The URI of the space.
    */
-  private getResolvedLayers(
-    pointer: SpacePointer,
-    providedLayers: PersistenceLayer[],
-  ): PersistenceLayer[] {
-    return providedLayers.length > 0
-      ? providedLayers
-      : this.resolvePersistenceLayers?.(pointer, this.hostType) ?? [];
-  }
-
-  /**
-   * Add a new space to the manager. Saves the space to the persistence layers.
-   * @param space - The space to add
-   * @param persistenceLayers - The persistence layers to use for the space
-   */
-  async addNewSpace(
-    space: Space,
-    persistenceLayers: PersistenceLayer[] = [],
-    spaceKey?: string,
-  ): Promise<void> {
-    const spaceId = space.getId();
-    const key = spaceKey ?? spaceId;
-    const pointer: SpacePointer = {
-      id: spaceId,
-      uri: key,
-      name: space.name ?? null,
-      createdAt: space.createdAt,
-      userId: null,
-    };
-
-    if (this.runners.has(key)) {
-      return;
-    }
-
-    const layers = this.getResolvedLayers(pointer, persistenceLayers);
-
-    const runner = await SpaceRunner.createForNewSpace(
-      space,
-      pointer,
-      layers,
-      {
-        disableBackend: this.disableBackend,
-        hostType: this.hostType,
-      },
-    );
-    this.runners.set(key, runner);
-  }
-
-  /**
-   * Load an existing space from persistence layers.
-   * Will return space as soon as it loads from the fastest layer
-   * and merge in the ops from the other layers as they load.
-   * @param pointer - The pointer to the space
-   * @param persistenceLayers - The persistence layers to use for the space
-   */
-  async loadSpace(
-    pointer: SpacePointer,
-    persistenceLayers: PersistenceLayer[] = [],
-  ): Promise<Space> {
-    const key = pointer.uri;
-
-    // Check if already loaded
-    const existingRunner = this.runners.get(key);
+  async addSpace(space: Space, uri: string) {
+    const existingRunner = this.spaceRunners.get(uri);
     if (existingRunner) {
-      return existingRunner.getSpace();
+      throw new Error(`Space ${uri} is already added. You can get it using getSpace method.`);
     }
 
-    const layers = this.getResolvedLayers(pointer, persistenceLayers);
+    const syncLayers = this.setupSyncLayers(uri);
+    const fileLayer = this.setupFileLayer?.(uri);
+    const runner = await SpaceRunner.fromExistingSpace(space, uri, syncLayers, fileLayer);
+    this.spaceRunners.set(uri, runner);
+    this.trySetupSpaceHandler(uri, space);
+  }
 
-    const { space, runner } = await SpaceRunner.loadFromLayers(
-      { id: pointer.id, uri: pointer.uri },
-      layers,
-      {
-        disableBackend: this.disableBackend,
-        hostType: this.hostType,
-      },
-    );
-    this.runners.set(key, runner);
+  /**
+   * Get a space by its URI.
+   * @param uri The URI of the space.
+   * @returns The space or null if not found.
+   */
+  getSpace(uri: string): Space | null {
+    const spaceRunner = this.spaceRunners.get(uri);
+    if (!spaceRunner) return null;
+    return spaceRunner.space;
+  }
 
+  /**
+   * Load a space at the URI with the help of the sync layers.
+   * The ones we setup with `setupSyncLayers` in the constructor.
+   * It will throw if it takes too long to load the space or the layers can't create a valid space.
+   * @param uri The URI of the space.
+   */
+  async loadSpace(uri: string): Promise<Space> {
+    const existingRunner = this.spaceRunners.get(uri);
+    if (existingRunner) {
+      const space = await existingRunner.loadSpace(this.timeoutForSpaceLoading);
+      this.trySetupSpaceHandler(uri, space);
+      return space;
+    }
+
+    const syncLayers = this.setupSyncLayers(uri);
+    if (syncLayers.length === 0) {
+      throw new Error(`No sync layers to load a space`);
+    }
+
+    const fileLayer = this.setupFileLayer?.(uri);
+    const runner = SpaceRunner.fromURI(uri, syncLayers, fileLayer);
+    this.spaceRunners.set(uri, runner);
+
+    const space = await runner.loadSpace(this.timeoutForSpaceLoading);
+    this.trySetupSpaceHandler(uri, space);
     return space;
   }
 
   /**
-   * Close a space and disconnect its persistence layers
+   * Close a loaded space and dispose all of its sync layers.
+   * If a space is not loaded, this is a no-op.
    */
-  async closeSpace(spaceKey: string): Promise<void> {
-    const runner = this.runners.get(spaceKey);
-    if (runner) {
-      await runner.dispose();
-      this.runners.delete(spaceKey);
+  async closeSpace(uri: string): Promise<void> {
+    const runner = this.spaceRunners.get(uri);
+    if (!runner) {
+      return;
     }
+
+    await runner.dispose();
+    this.spaceRunners.delete(uri);
+    this.handledSpaces.delete(uri);
   }
 
   /**
-   * Get all active spaces
+   * Get sync layers for an active space.
    */
+  getSyncLayers(uri: string): SyncLayer[] | undefined {
+    return this.spaceRunners.get(uri)?.layers;
+  }
+
+  getRunner(uri: string): SpaceRunner | undefined {
+    return this.spaceRunners.get(uri);
+  }
+
   getActiveSpaces(): Space[] {
-    return Array.from(this.runners.values()).map((runner) => runner.getSpace());
+    return Array.from(this.spaceRunners.values())
+      .map((runner) => runner.space)
+      .filter((space): space is Space => space !== null);
   }
 
-  /**
-   * Get a specific space by ID
-   */
-  getSpace(spaceKey: string): Space | undefined {
-    return this.runners.get(spaceKey)?.getSpace();
-  }
+  private trySetupSpaceHandler(uri: string, space: Space): void {
+    if (!this.setupSpaceHandler) return;
+    if (this.handledSpaces.has(uri)) return;
 
-  getPersistenceLayers(spaceKey: string): PersistenceLayer[] | undefined {
-    return this.runners.get(spaceKey)?.getPersistenceLayers();
-  }
-
-  getRunner(spaceKey: string): SpaceRunner | undefined {
-    return this.runners.get(spaceKey);
+    this.handledSpaces.add(uri);
+    this.setupSpaceHandler(uri, space);
   }
 }

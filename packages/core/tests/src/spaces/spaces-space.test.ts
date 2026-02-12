@@ -26,8 +26,10 @@ describe('Space creation and file-system persistence', () => {
     space.name = 'Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Wait for batched save to flush (layer uses ~500ms interval)
     await new Promise((r) => setTimeout(r, 1500));
@@ -57,8 +59,11 @@ describe('Space creation and file-system persistence', () => {
     const spaceId = space.getId();
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      disableBackend: true,
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Should not throw "No tree loader registered"
     const maybeTree = await space.loadAppTree('chat');

@@ -47,8 +47,11 @@ describe('Chat app tree creation and persistence', () => {
     await chatData.newMessage({ role: 'user', text: 'How are you?' });
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await manager.addSpace(space, spaceId);
 
     // Allow time for batched ops to flush
     await wait(1500);
@@ -83,13 +86,16 @@ describe('Chat app tree creation and persistence', () => {
     const tinyPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBg9v2e0UAAAAASUVORK5CYII=';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer],
+      setupFileLayer: () => layer
+    });
+    await manager.addSpace(space, spaceId);
 
     // Create a user message with one image attachment
-    const msg = await chatData.newMessage({ 
-      role: 'user', 
-      text: 'Here is an image', 
+    const msg = await chatData.newMessage({
+      role: 'user',
+      text: 'Here is an image',
       attachments: [
         { id: 'a1', kind: 'image', name: 'pixel.png', mimeType: 'image/png', size: 68, dataUrl: tinyPng }
       ]
@@ -99,7 +105,7 @@ describe('Chat app tree creation and persistence', () => {
     await wait(1200);
 
     // The saved message should have files with file refs (tree+vertex)
-    const lastMessageVertex = chatData.messageVertices.at(-1) as any;
+    const lastMessageVertex = chatData.messageVertices[chatData.messageVertices.length - 1] as any;
     const files = lastMessageVertex?.getProperty('files');
     expect(Array.isArray(files)).toBe(true);
     expect(files[0]?.tree).toBeTypeOf('string');

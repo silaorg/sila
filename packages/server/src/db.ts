@@ -5,7 +5,7 @@ import {
   Backend,
   FileSystemSyncLayer,
   Space as CoreSpace,
-  SpaceManager2,
+  SpaceManager,
   uuid,
 } from "@sila/core";
 import { NodeFileSystem } from "./utils/nodeFileSystem";
@@ -33,7 +33,7 @@ let dataDir: string | null = null;
 const serverFs = new NodeFileSystem();
 const spaceLayers = new Map<string, FileSystemSyncLayer>();
 const spaceBackends = new Map<string, Backend>();
-const spaceManager = new SpaceManager2({
+const spaceManager = new SpaceManager({
   setupSyncLayers: (spaceUri) => [getServerSpaceLayerSync(spaceUri)],
   setupSpaceHandler: (spaceUri, space) => {
     if (!spaceBackends.has(spaceUri)) {

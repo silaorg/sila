@@ -54,10 +54,10 @@ describe('Clipboard paste functionality', () => {
     // Create a mock image file
     const imageContent = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]); // PNG header
     const mockFile = createMockFile('test-image.png', 'image/png', imageContent);
-    
+
     // Create mock clipboard event with file
     const clipboardEvent = createMockClipboardEvent([mockFile]);
-    
+
     // Test that the event has the expected structure
     expect(clipboardEvent.clipboardData).toBeDefined();
     expect(clipboardEvent.clipboardData!.files).toHaveLength(1);
@@ -69,10 +69,10 @@ describe('Clipboard paste functionality', () => {
     // Create a mock text file
     const textContent = 'Hello, this is a test text file\nWith multiple lines';
     const mockFile = createMockFile('test.txt', 'text/plain', textContent);
-    
+
     // Create mock clipboard event with file
     const clipboardEvent = createMockClipboardEvent([mockFile]);
-    
+
     // Test that the event has the expected structure
     expect(clipboardEvent.clipboardData).toBeDefined();
     expect(clipboardEvent.clipboardData!.files).toHaveLength(1);
@@ -82,10 +82,10 @@ describe('Clipboard paste functionality', () => {
 
   it('should process pasted image data correctly', async () => {
     const imageDataUrl = makePngDataUrl();
-    
+
     // Create mock clipboard event with image data
     const clipboardEvent = createMockClipboardEvent([], imageDataUrl);
-    
+
     // Test that the event has the expected structure
     expect(clipboardEvent.clipboardData).toBeDefined();
     expect(clipboardEvent.clipboardData!.types).toContain('image/png');
@@ -95,7 +95,7 @@ describe('Clipboard paste functionality', () => {
   it('should handle empty clipboard data gracefully', async () => {
     // Create mock clipboard event with no files or image data
     const clipboardEvent = createMockClipboardEvent();
-    
+
     // Test that the event has the expected structure
     expect(clipboardEvent.clipboardData).toBeDefined();
     expect(clipboardEvent.clipboardData!.files).toBeNull();
@@ -110,8 +110,10 @@ describe('Clipboard paste functionality', () => {
     space.name = 'Clipboard Paste Test Space';
 
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({ disableBackend: true });
-    await manager.addNewSpace(space, [layer]);
+    const manager = new SpaceManager({
+      setupSyncLayers: () => [layer]
+    });
+    await manager.addSpace(space, spaceId);
 
     // Connect file store to space (desktop CAS)
     space.setFileStoreProvider({
@@ -157,10 +159,10 @@ describe('Clipboard paste functionality', () => {
     // Create multiple mock files
     const imageFile = createMockFile('image.png', 'image/png', new Uint8Array([137, 80, 78, 71]));
     const textFile = createMockFile('document.txt', 'text/plain', 'Hello world');
-    
+
     // Create mock clipboard event with multiple files
     const clipboardEvent = createMockClipboardEvent([imageFile, textFile]);
-    
+
     // Test that the event has the expected structure
     expect(clipboardEvent.clipboardData).toBeDefined();
     expect(clipboardEvent.clipboardData!.files).toHaveLength(2);

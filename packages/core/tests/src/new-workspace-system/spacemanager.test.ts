@@ -1,4 +1,4 @@
-import { Space, SpaceManager2, VertexOperation, } from '@sila/core';
+import { Space, SpaceManager, VertexOperation, } from '@sila/core';
 import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
 import { TestInMemorySyncLayer } from './TestInMemorySyncLayer';
 import { FileSystemSyncLayer, LocalFileLayer } from '@sila/core';
@@ -11,7 +11,7 @@ import uuid from "../../../src/utils/uuid";
 describe('Space creation and file-system persistence', () => {
 
   it("Throws immidiately if we try to load a space without layers in a manager", async () => {
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => []
     });
 
@@ -25,7 +25,7 @@ describe('Space creation and file-system persistence', () => {
   it("Throws if it takes too long to load it", async () => {
     const timeout = 500;
     const originalSpace = Space.newSpace('test');
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => [new TestInMemorySyncLayer(originalSpace, timeout * 1000)],
       timeoutForSpaceLoading: timeout
     });
@@ -53,7 +53,7 @@ describe('Space creation and file-system persistence', () => {
       new TestInMemorySyncLayer(originalSpace, shortestSyncLayerDelay)
     ];
 
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => syncLayers
     });
 
@@ -68,7 +68,7 @@ describe('Space creation and file-system persistence', () => {
     expect(durationToLoadSpace).toBeGreaterThan(shortestSyncLayerDelay - 100);
     expect(durationToLoadSpace).toBeLessThan(shortestSyncLayerDelay + 100);
 
-    const duplicateSpaceManager = new SpaceManager2({
+    const duplicateSpaceManager = new SpaceManager({
       setupSyncLayers: () => syncLayers
     });
 
@@ -93,12 +93,12 @@ describe('Space creation and file-system persistence', () => {
       new TestInMemorySyncLayer(originalSpace_for_sync_layer_only, 0)
     ];
 
-    const spaceManagerA = new SpaceManager2({
+    const spaceManagerA = new SpaceManager({
       setupSyncLayers: () => syncLayers
     });
 
     const spaceA = await spaceManagerA.loadSpace(spaceUri);
-    const spaceManagerB = new SpaceManager2({
+    const spaceManagerB = new SpaceManager({
       setupSyncLayers: () => syncLayers
     });
 
@@ -145,7 +145,7 @@ describe('Space creation and file-system persistence', () => {
     // A valid layer
     const validLayer = new TestInMemorySyncLayer(originalSpace, 50);
 
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => [failingLayer, validLayer]
     });
 
@@ -207,7 +207,7 @@ describe('Space creation and file-system persistence', () => {
         });
       });
 
-      const spaceManager = new SpaceManager2({
+      const spaceManager = new SpaceManager({
         setupSyncLayers: () => layers
       });
 
@@ -266,7 +266,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
 
     // Create a space manager with the file system sync layer
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => [syncLayer]
     });
 
@@ -277,7 +277,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     originalSpace.tree.root!.setProperty("another-prop", 42);
 
     // Add space to manager so it gets synced
-    spaceManager.addSpace(originalSpace, spaceUri);
+    await spaceManager.addSpace(originalSpace, spaceUri);
 
     // Wait for initial sync to complete (this triggers saveTreeOps)
     const runner = (spaceManager as any).spaceRunners.get(spaceUri);
@@ -354,7 +354,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     // Now create a NEW space manager that loads from the same directory
     const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
 
-    const spaceManager2 = new SpaceManager2({
+    const spaceManager2 = new SpaceManager({
       setupSyncLayers: () => [syncLayer2]
     });
 
@@ -377,14 +377,14 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
     const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
 
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => [syncLayer]
     });
 
     const originalSpace = Space.newSpace(spaceId);
     originalSpace.name = "App Tree Test Space";
 
-    spaceManager.addSpace(originalSpace, spaceUri);
+    await spaceManager.addSpace(originalSpace, spaceUri);
 
     // Wait for sync to start (sync starts immediately for exists spaces now)
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -402,7 +402,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     // Load from disk with a new manager
     const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
 
-    const spaceManager2 = new SpaceManager2({
+    const spaceManager2 = new SpaceManager({
       setupSyncLayers: () => [syncLayer2]
     });
 
@@ -429,11 +429,11 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     // Setup initial layer
     const syncLayer = new TestInMemorySyncLayer(originalSpace, 0);
 
-    const spaceManager = new SpaceManager2({
+    const spaceManager = new SpaceManager({
       setupSyncLayers: () => [syncLayer]
     });
 
-    spaceManager.addSpace(originalSpace, spaceUri);
+    await spaceManager.addSpace(originalSpace, spaceUri);
     const space = await spaceManager.loadSpace(spaceUri);
 
     // Set a secret
@@ -447,7 +447,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
     // Manually sync the "storage"
     syncLayer2.secrets = { ...syncLayer.secrets };
 
-    const spaceManager2 = new SpaceManager2({
+    const spaceManager2 = new SpaceManager({
       setupSyncLayers: () => [syncLayer2]
     });
 
@@ -469,11 +469,11 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
       const fs = new NodeFileSystem();
       const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, fs);
 
-      const spaceManager = new SpaceManager2({
+      const spaceManager = new SpaceManager({
         setupSyncLayers: () => [syncLayer]
       });
 
-      spaceManager.addSpace(originalSpace, spaceUri);
+      await spaceManager.addSpace(originalSpace, spaceUri);
       const space = await spaceManager.loadSpace(spaceUri);
 
       // Set a secret
@@ -487,7 +487,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
 
       // Reload with new layer
       const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, fs);
-      const spaceManager2 = new SpaceManager2({
+      const spaceManager2 = new SpaceManager({
         setupSyncLayers: () => [syncLayer2]
       });
 
@@ -515,12 +515,12 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
       const syncLayer = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
       const fileLayer = new LocalFileLayer(tempDir, nodeFs);
 
-      const spaceManager = new SpaceManager2({
+      const spaceManager = new SpaceManager({
         setupSyncLayers: () => [syncLayer],
         setupFileLayer: () => fileLayer
       });
 
-      spaceManager.addSpace(originalSpace, spaceUri);
+      await spaceManager.addSpace(originalSpace, spaceUri);
       const space = await spaceManager.loadSpace(spaceUri);
 
       // Verify file store is attached
@@ -542,7 +542,7 @@ describe('FileSystemSyncLayer - Real file persistence', () => {
       // Reload
       const syncLayer2 = new FileSystemSyncLayer(tempDir, spaceId, nodeFs);
       const fileLayer2 = new LocalFileLayer(tempDir, nodeFs);
-      const spaceManager2 = new SpaceManager2({
+      const spaceManager2 = new SpaceManager({
         setupSyncLayers: () => [syncLayer2],
         setupFileLayer: () => fileLayer2
       });
