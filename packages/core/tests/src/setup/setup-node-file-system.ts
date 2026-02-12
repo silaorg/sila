@@ -36,12 +36,12 @@ export class NodeFileSystem implements AppFileSystem {
   async create(path: string): Promise<FileHandle> {
     const dir = path.substring(0, path.lastIndexOf('/'));
     await mkdir(dir, { recursive: true });
-    
+
     return {
       write: async (data: Uint8Array) => {
         await writeFile(path, data);
       },
-      close: async () => {}
+      close: async () => { }
     };
   }
 
@@ -55,7 +55,7 @@ export class NodeFileSystem implements AppFileSystem {
           await writeFile(path, content);
         }
       },
-      close: async () => {}
+      close: async () => { }
     };
   }
 
@@ -64,7 +64,30 @@ export class NodeFileSystem implements AppFileSystem {
   }
 
   async watch(path: string, callback: (event: WatchEvent) => void, options?: { recursive?: boolean }): Promise<UnwatchFn> {
-    return () => {};
+    const { watch } = await import('fs');
+
+    try {
+      const watcher = watch(path, { recursive: options?.recursive }, (eventType, filename) => {
+        if (filename) {
+          // Map fs.watch events to our WatchEvent type
+          const event: WatchEvent = {
+            // 'rename' usually means a file was added or removed. 
+            // For simplicity in this test helper, we'll treat it as 'change' or 'add' 
+            // since we just want to trigger the sync layer's reader.
+            event: eventType === 'rename' ? 'change' : 'change',
+            path: `${path}/${filename}`
+          };
+          callback(event);
+        }
+      });
+
+      return () => {
+        watcher.close();
+      };
+    } catch (e) {
+      console.warn(`Failed to watch path ${path}:`, e);
+      return () => { };
+    }
   }
 
   async readBinaryFile(path: string): Promise<Uint8Array> {

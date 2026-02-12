@@ -1,6 +1,6 @@
 import type { VertexOperation } from "reptree";
 import type { SyncLayer } from "./SyncLayer";
-import type { AppFileSystem, FileHandle } from "@sila/core";
+import type { AppFileSystem, FileHandle, WatchEvent, UnwatchFn } from "@sila/core";
 import { isMoveVertexOp, isAnyPropertyOp } from "@sila/core";
 import { interval } from "@sila/core";
 import { OpsParser } from "../persistence/OpsParser";
@@ -27,6 +27,9 @@ export class FileSystemSyncLayer implements SyncLayer {
   private saveOpsIntervalMs = 500;
   private opsParser: OpsParser;
   private secretsWriteChain: Promise<void> = Promise.resolve();
+  private unwatchSpaceFsChanges: UnwatchFn | null = null;
+  private onIncomingOpsCallback: ((treeId: string, ops: VertexOperation[]) => void) | null = null;
+  private savedPeerIds = new Set<string>();
 
   constructor(
     private spacePath: string,
@@ -105,7 +108,114 @@ export class FileSystemSyncLayer implements SyncLayer {
     // Update space.json with the actual space ID when we save the space tree
     await this.ensureSpaceJsonExists(treeId);
 
+
+
     this.addOpsToSave(treeId, opsToSave);
+  }
+
+  async startListening?(onIncomingOps: (treeId: string, ops: VertexOperation[]) => void): Promise<void> {
+    this.onIncomingOpsCallback = onIncomingOps;
+
+    try {
+      this.unwatchSpaceFsChanges = await this.fs.watch(
+        this.spacePath,
+        this.handleWatchEvent.bind(this),
+        { recursive: true }
+      );
+    } catch (error) {
+      console.error("Error setting up file watch:", error);
+      throw error;
+    }
+  }
+
+  async stopListening?(): Promise<void> {
+    if (this.unwatchSpaceFsChanges) {
+      this.unwatchSpaceFsChanges();
+      this.unwatchSpaceFsChanges = null;
+    }
+
+    this.onIncomingOpsCallback = null;
+  }
+
+  // File watching event handler
+  private handleWatchEvent(event: WatchEvent) {
+    if (event.event === 'change' || event.event === 'add') {
+      if (event.path.endsWith('.jsonl')) {
+        this.tryReadOpsFromPeer(event.path);
+      }
+    }
+  }
+
+  private async tryReadOpsFromPeer(path: string) {
+    if (!this.onIncomingOpsCallback) {
+      return;
+    }
+
+
+    let peerId: string | null = null;
+    let opType: OpsFileType | undefined;
+    let treeId: string | null = null;
+
+    try {
+      const splitPath = path.split('/');
+
+      // Extract peer ID from the filename (remove .jsonl extension)
+      const fileName = splitPath.pop()!;
+      const fileInfo = this.getOpsFileInfo(fileName);
+      if (!fileInfo) {
+        // Not an ops file we care about
+        return;
+      }
+
+      peerId = fileInfo.peerId;
+      opType = fileInfo.opType;
+
+      if (!peerId) {
+        return;
+      }
+
+      // Skip if we've saved ops for this peerId (it's us)
+      if (this.savedPeerIds.has(peerId)) {
+        return;
+      }
+
+      // Extract tree ID from path structure
+      const dayDir = splitPath.pop();
+      if (!dayDir || !dayDir.match(/^\d{2}$/)) return;
+
+      const monthDir = splitPath.pop();
+      if (!monthDir || !monthDir.match(/^\d{2}$/)) return;
+
+      const yearDir = splitPath.pop();
+      if (!yearDir || !yearDir.match(/^\d{4}$/)) return;
+
+      const treeIdEndPart = splitPath.pop();
+      if (!treeIdEndPart) return;
+
+      const treeIdStartPart = splitPath.pop();
+      if (!treeIdStartPart) return;
+
+      // Combine to get the full tree ID
+      treeId = treeIdStartPart + treeIdEndPart;
+
+    } catch (e) {
+      console.error("Error getting peerId from", path);
+      return;
+    }
+
+    try {
+      const lines = await this.fs.readTextFileLines(path);
+      const ops = await this.turnJSONLinesIntoOps(lines, peerId, opType);
+
+      if (ops.length === 0) {
+        return;
+      }
+
+      // Notify callback about incoming operations
+      this.onIncomingOpsCallback(treeId, ops);
+    } catch (error) {
+      console.error("Error reading ops from peer file", path, error);
+    }
   }
 
   private async ensureSpaceJsonExists(spaceId: string): Promise<void> {
