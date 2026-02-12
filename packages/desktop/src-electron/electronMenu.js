@@ -30,6 +30,12 @@ export function setupElectronMenu(mainWindow) {
               /** @type {import('electron').MenuItemConstructorOptions} */ ({ role: 'about' }),
               /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
               {
+                label: 'Preferences…',
+                accelerator: 'CmdOrCtrl+,',
+                click: () => sendAction('open-settings')
+              },
+              /** @type {import('electron').MenuItemConstructorOptions} */ ({ type: 'separator' }),
+              {
                 label: 'Check for Updates',
                 click: () => {
                   const globalAny = /** @type {any} */ (globalThis);
