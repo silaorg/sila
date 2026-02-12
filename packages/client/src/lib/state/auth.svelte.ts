@@ -29,6 +29,10 @@ export class AuthStore {
   public user: User | null = $state(null);
   public isAuthenticated = $state(false);
 
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
   constructor() {
     // Load auth state from cookies on initialization
     this.loadFromStorage();
@@ -124,6 +128,11 @@ export class AuthStore {
       });
 
       if (!response.success || !response.data) {
+        // If refresh endpoint isn't available, just stop trying.
+        if (response.status === 404) {
+          console.warn("Token refresh endpoint not found; skipping refresh.");
+          return;
+        }
         // Only logout if we get a 401 response
         if (response.status === 401) {
           console.error('Token refresh failed with 401, logging out');
@@ -183,6 +192,14 @@ export class AuthStore {
     }
 
     try {
+      if (this.accessToken && this.tokenExpiry) {
+        const expiresSoon = this.tokenExpiry - Date.now() < 5 * 60 * 1000;
+        if (!expiresSoon) {
+          this.isAuthenticated = true;
+          return true;
+        }
+      }
+
       await this.refreshTokens();
       this.isAuthenticated = true;
       return true;

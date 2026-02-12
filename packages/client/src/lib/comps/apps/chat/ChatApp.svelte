@@ -27,7 +27,9 @@
   let { data }: { data: ChatAppData } = $props();
   provideChatAppData(data);
   const clientState = useClientState();
-  const spaceTelemetry = $derived(clientState.currentSpaceState?.spaceTelemetry);
+  const spaceTelemetry = $derived(
+    clientState.currentSpaceState?.spaceTelemetry,
+  );
   let scrollableElement = $state<HTMLElement | undefined>(undefined);
   let messages = $state<Vertex[]>([]);
   let shouldAutoScroll = $state(true);
@@ -55,7 +57,7 @@
   let isAtBottom = $derived(distFromBottom <= BOTTOM_THRESHOLD_PX);
   // Base spacer keeps the composer from crowding the last message after send.
   let bottomSpacerHeight = $derived(
-    Math.max(clientHeight - BOTTOM_SPACER_OFFSET_PX, MIN_BOTTOM_SPACER_PX)
+    Math.max(clientHeight - BOTTOM_SPACER_OFFSET_PX, MIN_BOTTOM_SPACER_PX),
   );
   let dynamicBottomSpacerHeight = $derived.by(() => {
     // Spacer collapses as the assistant reply grows, then we follow normally.
@@ -63,17 +65,21 @@
       return 0;
     }
     const base = bottomSpacerBase;
-    if (assistantGrowStartHeight !== null && assistantGrowCurrentHeight !== null) {
+    if (
+      assistantGrowStartHeight !== null &&
+      assistantGrowCurrentHeight !== null
+    ) {
       const delta = Math.max(
         assistantGrowCurrentHeight - assistantGrowStartHeight,
-        0
+        0,
       );
       return Math.max(base - delta, 0);
     }
     return base;
   });
   let pageSearchEnabled = $derived(
-    clientState.pageSearchConfig.enabled && !clientState.pageSearchConfig.useNative
+    clientState.pageSearchConfig.enabled &&
+      !clientState.pageSearchConfig.useNative,
   );
 
   const visibleMessages = $derived.by(() => {
@@ -112,13 +118,13 @@
   const lastMessageIsByUser = $derived.by(() =>
     visibleMessages.length > 0
       ? visibleMessages[visibleMessages.length - 1].vertex?.getProperty(
-          "role"
+          "role",
         ) === "user"
-      : false
+      : false,
   );
 
   let lastMessageId = $derived.by(() =>
-    messages.length > 0 ? messages[messages.length - 1].id : undefined
+    messages.length > 0 ? messages[messages.length - 1].id : undefined,
   );
 
   let showScrollDown = $derived(distFromBottom > SCROLL_BUTTON_THRESHOLD_PX);
@@ -161,10 +167,7 @@
         shouldAutoScroll = false;
         return;
       }
-      if (assistantGrowTargetId && scrollTop > previousScrollTop) {
-        shouldAutoScroll = true;
-        return;
-      }
+
       if (isAtBottom) {
         shouldAutoScroll = true;
       }
@@ -216,7 +219,7 @@
     let resizeObserver: ResizeObserver | null = null;
     if (scrollableElement && typeof ResizeObserver !== "undefined") {
       const messageEl = scrollableElement.querySelector(
-        `[data-vertex-id="${assistantGrowTargetId}"]`
+        `[data-vertex-id="${assistantGrowTargetId}"]`,
       ) as HTMLElement | null;
 
       if (messageEl) {
@@ -318,7 +321,7 @@
             .find((vertex) => vertex.getProperty("role") === "user");
           if (lastUserVertex && scrollableElement) {
             const userEl = scrollableElement.querySelector(
-              `[data-vertex-id="${lastUserVertex.id}"]`
+              `[data-vertex-id="${lastUserVertex.id}"]`,
             ) as HTMLElement | null;
             if (userEl) {
               updateUserSpacerHeight(userEl);
@@ -365,7 +368,7 @@
 
   function scrollToBottom(smooth: boolean = false, force: boolean = false) {
     if (!scrollableElement) return;
-    
+
     // Only check shouldAutoScroll if not forced (e.g., when user clicks scroll button)
     if (!force && !shouldAutoScroll) return;
 
@@ -397,7 +400,7 @@
   function getScrollPaddingTop(): number {
     if (!scrollableElement) return 0;
     const paddingTop = Number.parseFloat(
-      getComputedStyle(scrollableElement).paddingTop
+      getComputedStyle(scrollableElement).paddingTop,
     );
     return Number.isFinite(paddingTop) ? paddingTop : 0;
   }
@@ -405,7 +408,7 @@
   function getScrollPaddingBottom(): number {
     if (!scrollableElement) return 0;
     const paddingBottom = Number.parseFloat(
-      getComputedStyle(scrollableElement).paddingBottom
+      getComputedStyle(scrollableElement).paddingBottom,
     );
     return Number.isFinite(paddingBottom) ? paddingBottom : 0;
   }
@@ -427,14 +430,14 @@
       SPACER_FUDGE_PX;
     bottomSpacerBase = Math.max(
       availableHeight - userEl.getBoundingClientRect().height,
-      0
+      0,
     );
   }
 
   function scrollToMessageTop(messageId: string) {
     if (!scrollableElement) return;
     const el = scrollableElement.querySelector(
-      `[data-vertex-id="${messageId}"]`
+      `[data-vertex-id="${messageId}"]`,
     ) as HTMLElement | null;
     if (!el) return;
     isScrollingProgrammatically = true;
@@ -445,7 +448,6 @@
       });
     });
   }
-
 
   // Using shared AttachmentPreview from core
 
@@ -486,7 +488,7 @@
     clientState.layout.swins.open(
       swinsLayout.files.key,
       { filesRoot },
-      i18n.texts.chat.chatFilesTitle
+      i18n.texts.chat.chatFilesTitle,
     );
   }
 
@@ -496,11 +498,9 @@
       return;
     }
     await tick();
-    if (
-      !scrollableElement.querySelector(`[data-vertex-id="${messageId}"]`)
-    ) {
+    if (!scrollableElement.querySelector(`[data-vertex-id="${messageId}"]`)) {
       console.warn(
-        `scrollToMessage: element with vertex id "${messageId}" not found`
+        `scrollToMessage: element with vertex id "${messageId}" not found`,
       );
       return;
     }
@@ -575,6 +575,7 @@
     enabled={pageSearchEnabled}
     contentRevision={messages}
   />
+
   <div class="absolute top-3 right-3 z-10 flex items-center gap-2">
     {#if pageSearchEnabled}
       <button
@@ -604,11 +605,11 @@
   >
     <div class="w-full max-w-4xl mx-auto" bind:this={messageContainerEl}>
       {#each visibleMessages as visibleMessage, index (visibleMessage.vertex?.id ?? "in-progress")}
-        <ChatAppMessage 
-          {visibleMessage} 
-          {data} 
+        <ChatAppMessage
+          {visibleMessage}
+          {data}
           isLastMessage={index === visibleMessages.length - 1}
-          lastProcessMessagesExpanded={lastProcessMessagesExpanded}
+          {lastProcessMessagesExpanded}
           onLastProcessMessagesExpandedChange={(expanded) => {
             lastProcessMessagesExpanded = expanded;
           }}

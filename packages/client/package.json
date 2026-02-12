@@ -16,8 +16,8 @@
     "check": "svelte-check"
   },
   "dependencies": {
-    "@fontsource/inter": "^5.0.0",
     "@floating-ui/dom": "1.6.11",
+    "@fontsource/inter": "^5.0.0",
     "@markpage/svelte": "^0.1.1",
     "@sila/core": "*",
     "@tailwindcss/forms": "^0.5.9",
@@ -39,6 +39,7 @@
     "prosemirror-view": "^1.34.2",
     "runed": "^0.34.0",
     "shiki": "^2.0.3",
+    "socket.io-client": "^4.8.3",
     "svelte-persisted-store": "^0.12.0",
     "svelte-sonner": "^1.0.5",
     "ttabs-svelte": "^0.0.15"

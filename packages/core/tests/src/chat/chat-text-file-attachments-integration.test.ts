@@ -50,7 +50,7 @@ describe('Text File Attachments Integration', () => {
 
     // Set up file store
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
   });
 

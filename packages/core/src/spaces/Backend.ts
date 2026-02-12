@@ -9,20 +9,14 @@ import { AppTree } from "./AppTree";
 export class Backend {
   private appBackends: ChatAppBackend[] = [];
 
-  constructor(private space: Space, private inLocalMode: boolean = false) {
-    /*
-    if (!inLocalMode) {
-      throw new Error("Backend is not supported for remote spaces yet");
-    }
-    */
-
+  constructor(private space: Space) {
     const loadedTrees = space.getLoadedAppTrees();
 
     for (const appTree of loadedTrees) {
       this.createAppBackend(appTree);
     }
 
-    space.observeTreeLoad((appTreeId) => {
+    space.onTreeLoad((appTreeId) => {
       const appTree = space.getAppTree(appTreeId);
       if (!appTree) {
         throw new Error(`App tree with id ${appTreeId} not found`);
@@ -33,7 +27,7 @@ export class Backend {
   }
 
   createAppBackend(appTree: AppTree) {
-    const appId = appTree.getAppId();
+    const appId = appTree.appId;
 
     if (appId === "default-chat") {
       this.appBackends.push(new ChatAppBackend(this.space, appTree));

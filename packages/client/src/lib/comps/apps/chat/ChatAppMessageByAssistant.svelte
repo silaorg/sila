@@ -367,7 +367,9 @@
           {#if !canExpandMessage && inProgress}
             <span class="opacity-70">•</span>
             <div class="flex items-center gap-1 group">
-              <span class="text-shimmer">{i18n.texts.chat.thinking}</span>
+              <span class="loading-dots opacity-70"
+                >{i18n.texts.chat.thinking}</span
+              >
             </div>
           {:else if canExpandMessage}
             <span class="opacity-70">•</span>
@@ -377,7 +379,7 @@
             >
               <span
                 class="opacity-70 group-hover:opacity-100"
-                class:text-shimmer={inProgress}>{expandLabel}</span
+                class:loading-dots={inProgress}>{expandLabel}</span
               >
               {#if isProcessMessagesExpanded}
                 <ChevronDown
@@ -448,7 +450,8 @@
             >
               {#each lastToolUsagePairs as toolMessage, index (toolMessage.id)}
                 <div
-                  class:tool-preview-item-new={index === lastToolUsagePairs.length - 1}
+                  class:tool-preview-item-new={index ===
+                    lastToolUsagePairs.length - 1}
                 >
                   <ChatAppToolUsageItem
                     message={toolMessage}

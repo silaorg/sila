@@ -31,7 +31,7 @@ describe('File Store Integration', () => {
     
     // Set up file store properly
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
   });
 

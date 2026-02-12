@@ -1,11 +1,8 @@
 import { ThemeStore } from "./theme.svelte";
 import { LayoutStore } from "./layout.svelte";
 import type { SpacePointer } from "../spaces/SpacePointer";
-import type { Space, Vertex } from "@sila/core";
-import type { SpaceManager } from "@sila/core";
-import type { PersistenceLayer } from "@sila/core";
-import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
-import type { AppFileSystem } from "../appFs";
+import type { Space } from "@sila/core";
+import type { SpaceManager2 } from "@sila/core";
 import {
   getDraft,
   saveDraft,
@@ -15,7 +12,7 @@ import {
   getSecret,
   setSecret
 } from "@sila/client/localDb";
-import { Backend, FileResolver } from "@sila/core";
+import { FileResolver } from "@sila/core";
 import { SpaceTelemetry } from "./spaceTelemetry";
 import VertexViewer from "./vertexViewer.svelte";
 import { AppTelemetry } from "./clientTelemetry";
@@ -24,30 +21,24 @@ import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "@sila/core";
 
 export type SpaceStateConfig = {
   pointer: SpacePointer;
-  spaceManager: SpaceManager;
+  spaceManager: SpaceManager2;
   analytics: AppTelemetry;
-  getAppFs?: () => AppFileSystem | null;
 };
 
 export class SpaceState {
-  pointer: SpacePointer;
-  private spaceManager: SpaceManager;
-  space: Space | null = null;
+  pointer: SpacePointer = $state() as SpacePointer;
+  private spaceManager: SpaceManager2;
+  space: Space | null = $state(null);
   theme: ThemeStore = $state(new ThemeStore());
   layout: LayoutStore = $state(new LayoutStore(''));
   vertexViewer: VertexViewer;
   fileResolver: FileResolver;
   isConnected: boolean = $state(false);
-  private persistenceLayers: PersistenceLayer[] = [];
-  private getAppFs: () => AppFileSystem | null;
-
-  private backend: Backend | null = null;
   spaceTelemetry: SpaceTelemetry;
 
   constructor(config: SpaceStateConfig) {
     this.pointer = config.pointer;
     this.spaceManager = config.spaceManager;
-    this.getAppFs = config.getAppFs ? config.getAppFs : () => null;
     // IMPORTANT: we key UI layout (tabs/tiling) by pointer URI so multiple pointers
     // with the same underlying space id do NOT share open tabs/layout state.
     this.layout.spaceUri = this.pointer.uri;
@@ -55,34 +46,21 @@ export class SpaceState {
 
     const space = this.spaceManager.getSpace(this.pointer.uri);
     this.fileResolver = space?.fileResolver ?? new FileResolver();
-    
+
     this.spaceTelemetry = new SpaceTelemetry(config.analytics, () => this.space);
 
     // We allow space to be null before it loads (see loadSpace method)
     if (space) {
       this.space = space;
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || [];
       this.fileResolver = space.fileResolver;
       this.vertexViewer.setSpace(space);
 
-      let allConnected = true;
-      for (const layer of this.persistenceLayers) {
-        if (!layer.isConnected()) {
-          allConnected = false;
-          break;
-        }
-      }
-
-      if (allConnected) {
-        this.initBackend();
-      }
-
-      this.isConnected = allConnected;
+      this.isConnected = true;
     }
   }
 
   /**
-   * Connect to this space - loads the actual Space data from persistence
+   * Connect to this space and load actual space data via sync layers.
    */
   async connect(): Promise<void> {
     if (this.isConnected && this.space) return;
@@ -112,8 +90,6 @@ export class SpaceState {
           i18n.language = lang;
         }
 
-        this.initBackend();
-
         this.isConnected = true;
       } else {
         throw new Error(`Failed to load space ${this.pointer.id}`);
@@ -125,14 +101,6 @@ export class SpaceState {
       });
       throw error;
     }
-  }
-
-  initBackend(): void {
-    if (!this.space) {
-      throw new Error("Space is not loaded");
-    }
-
-    this.backend = new Backend(this.space, this.pointer.uri.startsWith("local://"));
   }
 
   /**
@@ -149,20 +117,18 @@ export class SpaceState {
   }
 
   /**
-   * Load the space using SpaceManager with appropriate persistence layers
+   * Load the space using SpaceManager2.
    */
   private async loadSpace(): Promise<Space | null> {
     // Check if already loaded in SpaceManager
     let space = this.spaceManager.getSpace(this.pointer.uri);
-    if (space) return space;
+    if (space) {
+      return space;
+    }
 
     try {
-      // Create appropriate persistence layers based on URI
-      // Prefer existing layers from SpaceManager; otherwise construct using app FS provider
-      this.persistenceLayers = this.spaceManager.getPersistenceLayers(this.pointer.uri) || createPersistenceLayersForURI(this.pointer.id, this.pointer.uri, this.getAppFs());
-
       // Load the space using SpaceManager
-      space = await this.spaceManager.loadSpace(this.pointer, this.persistenceLayers);
+      space = await this.spaceManager.loadSpace(this.pointer.uri);
       return space;
     } catch (error) {
       console.error("Failed to load space", this.pointer, error);

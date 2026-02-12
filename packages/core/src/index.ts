@@ -15,7 +15,9 @@ export type { AttachmentPreview, AttachmentKind } from './spaces/files/Attachmen
 export type { FileInfo } from './spaces/files/FileInfo';
 export type { AppFileSystem, FileEntry, FileHandle, WatchEvent, UnwatchFn } from './appFs';
 export { FileSystemPersistenceLayer } from './spaces/persistence/FileSystemPersistenceLayer';
-export type { FileStore } from './spaces/files/FileStore';
+export type { FileStore, FileStoreProvider } from './spaces/files/FileStore';
 export { createFileStore } from './spaces/files/FileStore';
 export { FileResolver } from './spaces/files/FileResolver';
 export type { FileReference, ResolvedFileInfo, ResolvedFileInfoWithKind } from './spaces/files/FileResolver';
+export type { FileLayer } from './spaces/files/FileLayer';
+export { LocalFileLayer } from './spaces/files/LocalFileLayer';

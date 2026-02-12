@@ -7,13 +7,6 @@ export class AppTree {
   private eventCallbacks: Map<string, Set<EventCallback>> = new Map();
 
   static isValid(tree: RepTree): boolean {
-    /*
-    const root = tree.getVertexByPath('/app-tree');
-    if (!root) {
-      return false;
-    }
-    */
-
     return true;
   }
 
@@ -32,11 +25,11 @@ export class AppTree {
     }
   }
 
-  getId(): string {
+  get id(): string {
     return this.tree.root!.id;
   }
 
-  getAppId(): string | undefined {
+  get appId(): string | undefined {
     const appId = this.tree.root!.getProperty('appId');
     if (!appId) {
       return undefined;
@@ -45,13 +38,24 @@ export class AppTree {
     return appId as string;
   }
 
-  getVersion(): string {
+  get version(): string {
     const version = this.tree.root!.getProperty('version');
     if (!version) {
       throw new Error("Version is not set");
     }
 
     return version as string;
+  }
+
+
+  // @deprecated Use id instead
+  getId(): string {
+    return this.tree.root!.id;
+  }
+
+  // @deprecated Use appId instead
+  getAppId(): string | undefined {
+    return this.appId;
   }
 
   get createdAt(): Date {

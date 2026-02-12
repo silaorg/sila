@@ -9,7 +9,6 @@
 
   let appTreeId = $state<string | undefined>(undefined);
   let name = $state<string | undefined>(undefined);
-  let appId = $state<string | undefined>(undefined);
   let isEditing = $state(false);
   let draftName = $state("");
   let inputEl = $state<HTMLInputElement | null>(null);
@@ -47,7 +46,8 @@
       if (tile.type === "tab") {
         const content = ttabs.getTabContent(tile.id);
         if (
-          (content?.componentId === "chat" || content?.componentId === "files") &&
+          (content?.componentId === "chat" ||
+            content?.componentId === "files") &&
           content?.data?.componentProps?.treeId === treeId
         ) {
           return tile.id;
@@ -60,31 +60,8 @@
   onMount(() => {
     const vertex = clientState.currentSpace?.getVertex(id);
     appTreeId = vertex?.getProperty("tid") as string | undefined;
-    name = vertex?.name
-    
-    // Load the app tree to get the appId
-    if (appTreeId) {
-      loadAppTreeInfo();
-    }
+    name = vertex?.name;
   });
-
-  async function loadAppTreeInfo() {
-    if (!appTreeId) return;
-    
-    try {
-      const appTree = await clientState.currentSpace?.loadAppTree(appTreeId);
-      if (appTree) {
-        appId = appTree.getAppId();
-        // Use the name from the app tree if available
-        const appTreeName = appTree.tree.root?.getProperty("name") as string;
-        if (appTreeName) {
-          name = appTreeName;
-        }
-      }
-    } catch (error) {
-      console.warn("Failed to load app tree info:", error);
-    }
-  }
 
   $effect(() => {
     const unobserve = clientState.currentSpace?.tree.observe(id, onSpaceChange);
@@ -114,13 +91,25 @@
   function openApp() {
     const layout = clientState.currentSpaceState?.layout;
 
-    if (appTreeId && layout) {
-      if (appId === "files") {
-        layout.openFilesTab(appTreeId, name ?? "Files");
-      } else {
-        layout.openChatTab(appTreeId, name ?? "New chat");
-      }
+    if (!appTreeId) {
+      throw new Error("No app tree id");
     }
+
+    if (!layout) {
+      throw new Error("No layout");
+    }
+
+    // @TODO: open a generic openAppTab() and then resolve it intisde the tab
+
+    /*    
+    if (appId === "files") {
+      layout.openFilesTab(appTreeId, name ?? "Files");
+    } else {
+      layout.openChatTab(appTreeId, name ?? "New chat");
+    }
+    */
+
+    layout.openChatTab(appTreeId, name ?? "New chat");
   }
 
   async function startEditing() {

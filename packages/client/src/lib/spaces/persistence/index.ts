@@ -1,5 +1,6 @@
 export { IndexedDBPersistenceLayer } from './IndexedDBPersistenceLayer';
-export { FileSystemPersistenceLayer } from './FileSystemPersistenceLayer';
+export { FileSystemPersistenceLayer } from '@sila/core';
+export { RemoteSpacePersistenceLayer } from './RemoteSpacePersistenceLayer';
 export { 
   createPersistenceLayersForURI, 
-} from './persistenceUtils'; 
+} from './persistenceUtils';

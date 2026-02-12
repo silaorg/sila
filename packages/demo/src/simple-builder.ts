@@ -1,6 +1,6 @@
 import * as from from './demo-space-config';
 import { NodeFileSystem } from './node-file-system';
-import { Space, SpaceManager, uuid, FileSystemPersistenceLayer, ChatAppData } from "@sila/core";
+import { Space, SpaceManager2, uuid, FileSystemSyncLayer, ChatAppData } from "@sila/core";
 import { rm } from 'fs/promises';
 
 export class SimpleDemoBuilder {
@@ -9,7 +9,7 @@ export class SimpleDemoBuilder {
     console.log(`Output path: ${outputPath}`);
     
     try {
-      // Create Node.js file system and persistence layer
+      // Create Node.js file system and sync layer
       const fs = new NodeFileSystem();
       
       // Check if output directory exists and what it contains
@@ -48,12 +48,12 @@ export class SimpleDemoBuilder {
       // Set space name
       space.name = config.name;
 
-      // Create persistence layer
-      const persistenceLayer = new FileSystemPersistenceLayer(outputPath, spaceId, fs);
-      
-      // Create space manager and add the space
-      const spaceManager = new SpaceManager();
-      await spaceManager.addNewSpace(space, [persistenceLayer]);
+      // Create sync layer + manager and add the space
+      const syncLayer = new FileSystemSyncLayer(outputPath, spaceId, fs);
+      const spaceManager = new SpaceManager2({
+        setupSyncLayers: () => [syncLayer],
+      });
+      spaceManager.addSpace(space, outputPath);
 
       // Add assistants using the real Space API
       for (const assistant of config.assistants) {

@@ -123,6 +123,7 @@ export class WrapChatAgent
     const ourPeerId = this.appTree.tree.peerId;
     const minutesSinceLast = this.getMinutesSinceVertexCreated(last);
 
+    // @TODO: Find a way of activating that logic only for non-server spaces
     // If the last message was created by someone else in the last 3 minutes, we don't reply.
     // But if it's older than 3 minutes, we do reply assuming that the peer that supposed to reply exited before replying.
     if (peerIdCreatedLast !== ourPeerId && minutesSinceLast < 3) {

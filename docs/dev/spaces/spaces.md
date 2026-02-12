@@ -60,7 +60,7 @@ The `SpaceManager` coordinates persistence:
 
 ### Two-way sync (optional)
 
-Some layers (e.g., FileSystem) can listen for changes. The manager applies incoming ops to the appropriate tree. CRDT merging in RepTree ensures convergence.
+Some layers (e.g., FileSystem watch or RemoteSpacePersistenceLayer) can listen for changes. The runner applies incoming ops to the appropriate tree. CRDT merging in RepTree ensures convergence.
 
 ### Transient properties
 

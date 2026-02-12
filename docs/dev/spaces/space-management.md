@@ -24,6 +24,12 @@ Environment-agnostic orchestrator that:
 - Handles space lifecycle (create, load, close)
 - Merges operations from multiple sources using RepTree's conflict resolution
 
+### SpaceRunner
+Per-space runtime owner that:
+- Connects layers and loads ops (first response wins, then merge)
+- Wires two-way sync listeners
+- Saves new ops and secrets to all layers
+
 ### PersistenceLayer
 Abstract interface for storage backends with two sync models:
 - **One-way (write-only)**: Local storage, databases - saves operations without listening for changes
@@ -56,7 +62,8 @@ This enables scenarios like:
 
 ### Client Implementation
 - `IndexedDBPersistenceLayer`: One-way local storage using IndexedDB
-- `ServerPersistenceLayer`: Two-way sync with HTTP/WebSocket APIs  
+- `FileSystemPersistenceLayer`: One-way local storage with file watch support
+- `RemoteSpacePersistenceLayer`: Two-way sync over socket.io
 - `spaceManagerSetup.ts`: Factory functions for creating space connections
 
 ### Server Implementation  
@@ -65,7 +72,6 @@ This enables scenarios like:
 
 ## Current Status
 
-**✅ Working**: Local-only spaces with IndexedDB persistence
-**🚧 Next**: Server persistence layers and two-way sync capabilities
+**✅ Working**: Local (IndexedDB + FileSystem) and remote sync (RemoteSpacePersistenceLayer)
 
-The system is fully operational for local spaces and ready for extension with additional persistence strategies. 
+The system is operational and supports multiple persistence strategies per space. 

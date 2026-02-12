@@ -5,7 +5,7 @@ import type { SpacePointer } from "@sila/client/spaces/SpacePointer";
 
 // API Base URL - should match the server
 // Use Vite/SvelteKit env with a static property chain to satisfy SSR runner
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3131';
+export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:6001';
 
 export interface APIResponse<T = any> {
   data?: T;
@@ -121,7 +121,9 @@ export async function fetchSpaces(client: ClientState) {
   try {
     const response = await api.get("/spaces", undefined, client);
     if (response.success && response.data) {
-      const spaces: SpacePointer[] = (response.data as any[]).map((space: any) => ({
+      const payload = response.data as { spaces?: any[] };
+      const rawSpaces = Array.isArray(payload?.spaces) ? payload.spaces : [];
+      const spaces: SpacePointer[] = rawSpaces.map((space: any) => ({
         id: space.id,
         uri: `${API_BASE_URL}/spaces/${space.id}`,
         name: space.name,
@@ -155,7 +157,9 @@ export async function fetchSpaces(client: ClientState) {
 
       const existingIds = new Set(client.pointers.map(p => p.id));
       const newSpaces = spaces.filter(space => !existingIds.has(space.id));
-      client.pointers = [...client.pointers, ...newSpaces];
+      for (const space of newSpaces) {
+        client.addSpacePointer(space);
+      }
     }
   } catch (error) {
     console.error("Failed to fetch spaces:", error);

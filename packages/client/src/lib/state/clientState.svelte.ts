@@ -4,7 +4,7 @@ import { SpaceState } from "./spaceState.svelte";
 import { isDevMode, spaceInspectorOpen } from "./devMode";
 import { setupSwins, swinsLayout } from "./swinsLayout";
 import type { SpacePointer } from "../spaces/SpacePointer";
-import { createPersistenceLayersForURI } from "../spaces/persistence/persistenceUtils";
+import { createSyncLayersForURI, createFileLayerForURI } from "../spaces/sync/syncUtils";
 import {
   checkIfCanCreateSpaceAndReturnPath,
   checkIfPathHasValidStructureAndReturnActualRootPath,
@@ -17,7 +17,7 @@ import {
   saveCurrentSpaceUri,
   savePointers,
 } from "@sila/client/localDb";
-import { Space, SpaceManager } from "@sila/core";
+import { Backend, Space, SpaceManager2 } from "@sila/core";
 import { AppFileSystem } from "../appFs";
 import type { AppDialogs } from "../appDialogs";
 import { uuid } from "@sila/core";
@@ -59,7 +59,9 @@ export type AppVersions = {
 export class ClientState {
   private _init: boolean = $state(false);
   private _initializationError: string | null = $state(null);
-  private _spaceManager = new SpaceManager();
+  private _spaceManager: SpaceManager2 = new SpaceManager2();
+  private _spaceIdsByUri = new Map<string, string>();
+  private _backendsByUri = new Map<string, Backend>();
   private _defaultTheme: ThemeStore = $state(new ThemeStore());
   private _spaceStates: SpaceState[] = $state([]);
   private _fs: AppFileSystem | null = null;
@@ -175,6 +177,7 @@ export class ClientState {
 
     this._fs = initState?.fs || null;
     this._dialog = initState?.dialog || null;
+    this._spaceManager = this.createSpaceManager();
     this.appVersions = initState?.appVersions ?? null;
     this.appTelemetry.init(initState?.telemetryConfig ?? null);
     if (initState?.pageSearch) {
@@ -190,6 +193,80 @@ export class ClientState {
     this._init = true;
   }
 
+  private createSpaceManager(): SpaceManager2 {
+    return new SpaceManager2({
+      setupSyncLayers: (uri) => this.createSyncLayers(uri),
+      setupFileLayer: (uri) => createFileLayerForURI(uri, this._fs),
+      setupSpaceHandler: (uri, space) => {
+        if (this.shouldEnableBackendForUri(uri)) {
+          if (!this._backendsByUri.has(uri)) {
+            this._backendsByUri.set(uri, new Backend(space));
+          }
+        }
+      },
+    });
+  }
+
+  private shouldEnableBackendForUri(uri: string): boolean {
+    return this.isDesktopHost() && this.isLocalSpaceUri(uri);
+  }
+
+  private isDesktopHost(): boolean {
+    return typeof window !== "undefined" && Boolean((window as any).electronFileSystem);
+  }
+
+  private isLocalSpaceUri(uri: string): boolean {
+    if (uri.startsWith("memory://")) return false;
+    if (uri.startsWith("http://") || uri.startsWith("https://")) return false;
+    if (uri.startsWith("capacitor://")) return false;
+    if (uri.startsWith("local://")) return true;
+    if (uri.startsWith("file://")) return true;
+    if (uri.startsWith("/")) return true;
+    return /^[A-Za-z]:[\\/]/.test(uri);
+  }
+
+  private createSyncLayers(uri: string) {
+    const spaceId = this._spaceIdsByUri.get(uri);
+    if (!spaceId) {
+      if (uri.startsWith("memory://")) {
+        return [];
+      }
+
+      throw new Error(`Space ID is not registered for ${uri}`);
+    }
+
+    return createSyncLayersForURI(
+      spaceId,
+      uri,
+      this._fs,
+      () => this.auth.getAccessToken(),
+    );
+  }
+
+  private syncSpaceIdIndexFromPointers(): void {
+    this._spaceIdsByUri.clear();
+    for (const pointer of this.pointers) {
+      this._spaceIdsByUri.set(pointer.uri, pointer.id);
+    }
+  }
+
+  private indexSpacePointer(pointer: SpacePointer): void {
+    this._spaceIdsByUri.set(pointer.uri, pointer.id);
+  }
+
+  private removeIndexedSpacePointer(spaceKeyOrId: string): void {
+    if (this._spaceIdsByUri.has(spaceKeyOrId)) {
+      this._spaceIdsByUri.delete(spaceKeyOrId);
+      return;
+    }
+
+    for (const [uri, id] of this._spaceIdsByUri.entries()) {
+      if (id === spaceKeyOrId) {
+        this._spaceIdsByUri.delete(uri);
+      }
+    }
+  }
+
   /**
    * Single initialization method that handles database loading and everything
    */
@@ -200,6 +277,7 @@ export class ClientState {
       // Initialize database and load space data
       const { pointers, currentSpaceUri, config } = await initializeDatabase();
       this.pointers = pointers;
+      this.syncSpaceIdIndexFromPointers();
       this.config = config;
 
       // Create SpaceState instances for all pointers
@@ -208,7 +286,6 @@ export class ClientState {
           pointer,
           spaceManager: this._spaceManager,
           analytics: this.appTelemetry,
-          getAppFs: () => this._fs,
         })
       );
 
@@ -256,6 +333,29 @@ export class ClientState {
     await this._saveState();
   }
 
+  addSpacePointer(pointer: SpacePointer): void {
+    const exists = this.pointers.some((p) => p.uri === pointer.uri || p.id === pointer.id);
+    if (exists) return;
+
+    this.pointers = [...this.pointers, pointer];
+    this.indexSpacePointer(pointer);
+    const newSpaceState = new SpaceState({
+      pointer,
+      spaceManager: this._spaceManager,
+      analytics: this.appTelemetry,
+    });
+    this._spaceStates = [...this._spaceStates, newSpaceState];
+
+    if (typeof window !== "undefined" && (window as any).electronFileSystem) {
+      (window as any).electronFileSystem.registerSpace(
+        pointer.id,
+        pointer.uri,
+        pointer.name,
+        pointer.createdAt,
+      );
+    }
+  }
+
   /**
    * Create a new local space using SpaceManager with URI-based persistence
    */
@@ -278,14 +378,8 @@ export class ClientState {
       userId: this.auth.user?.id || null,
     };
 
-    // Create persistence layers based on URI
-    const persistenceLayers = createPersistenceLayersForURI(
-      spaceId,
-      pointer.uri,
-      this._fs,
-    );
-
-    await this._spaceManager.addNewSpace(space, persistenceLayers, pointer.uri);
+    this.indexSpacePointer(pointer);
+    this._spaceManager.addSpace(space, pointer.uri);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -303,7 +397,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -341,7 +434,8 @@ export class ClientState {
     };
 
     // Add the space to the manager without any persistence layers
-    await this._spaceManager.addNewSpace(space, [], pointer.uri);
+    this.indexSpacePointer(pointer);
+    this._spaceManager.addSpace(space, pointer.uri);
 
     // Update client state collections
     this.pointers = [...this.pointers, pointer];
@@ -349,7 +443,6 @@ export class ClientState {
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 
@@ -392,6 +485,7 @@ export class ClientState {
     this.pointers = updatedPointers.length === this.pointers.length
       ? this.pointers.filter((pointer) => pointer.id !== spaceKeyOrId)
       : updatedPointers;
+    this.removeIndexedSpacePointer(spaceKeyOrId);
     const updatedSpaceStates = this._spaceStates.filter((spaceState) =>
       spaceState.pointer.uri !== spaceKeyOrId
     );
@@ -412,10 +506,11 @@ export class ClientState {
 
     // Remove from database
     const spaceUri = spaceState?.pointer.uri ?? spaceKeyOrId;
+    this._backendsByUri.delete(spaceUri);
     await removeSpaceFromDb(spaceUri);
 
     this._updateCurrentSpace();
-   await this._saveState();
+    await this._saveState();
   }
 
   /**
@@ -598,15 +693,9 @@ export class ClientState {
       userId: this.auth.user?.id || null,
     };
 
-    // Create persistence layers based on URI (will be IndexedDB + FileSystem)
-    const persistenceLayers = createPersistenceLayersForURI(
-      spaceId,
-      spaceRootPath,
-      this._fs,
-    );
-
     // Load the space using SpaceManager
-    const space = await this._spaceManager.loadSpace(pointer, persistenceLayers);
+    this.indexSpacePointer(pointer);
+    const space = await this._spaceManager.loadSpace(pointer.uri);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -624,11 +713,11 @@ export class ClientState {
 
     // Add to our collections
     this.pointers = [...this.pointers, pointer];
+    this.indexSpacePointer(pointer);
     const newSpaceState = new SpaceState({
       pointer,
       spaceManager: this._spaceManager,
       analytics: this.appTelemetry,
-      getAppFs: () => this._fs,
     });
     this._spaceStates = [...this._spaceStates, newSpaceState];
 

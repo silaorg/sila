@@ -9,15 +9,14 @@ import { AppConfigsData } from "./AppConfigsData";
 import uuid from "../utils/uuid";
 import { createFileStore, FileResolver, type FileStore } from "./files";
 import type { FileStoreProvider } from "./files/FileStore";
-import { createTexts, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../localization/getTexts";
 import type { Texts } from "../localization/texts";
 
 export class Space {
   readonly tree: RepTree;
   private secrets: Record<string, string> | undefined;
   private appTrees: Map<string, AppTree> = new Map();
-  private newTreeObservers: ((treeId: string) => void)[] = [];
-  private treeLoadObservers: ((treeId: string) => void)[] = [];
+  private newTreeListeners: ((treeId: string) => void)[] = [];
+  private treeLoadListeners: ((treeId: string) => void)[] = [];
   private treeLoader:
     | ((treeId: string) => Promise<AppTree | undefined>)
     | undefined;
@@ -157,8 +156,13 @@ export class Space {
     return providersVertex ? providersVertex.children.length > 0 : false;
   }
 
-  /** Space id is the same as the root vertex id of the space tree */
+  /** @deprecated Use id instead */
   getId(): string {
+    return this.tree.root!.id;
+  }
+
+  /** Space id is the same as the root vertex id of the space tree */
+  get id(): string {
     return this.tree.root!.id;
   }
 
@@ -188,13 +192,13 @@ export class Space {
       this.tree.newVertex(appsTrees.id, { tid: appTree.getId() });
     }
 
-    this.appTrees.set(appTree.getId(), appTree);
+    this.appTrees.set(appTree.id, appTree);
 
-    for (const listener of this.newTreeObservers) {
-      listener(appTree.getId());
+    for (const listener of this.newTreeListeners) {
+      listener(appTree.id);
     }
 
-    for (const listener of this.treeLoadObservers) {
+    for (const listener of this.treeLoadListeners) {
       listener(appTree.getId());
     }
 
@@ -221,20 +225,6 @@ export class Space {
     return this.tree.getVertexByPath(path);
   }
 
-  // @TODO: make part of Vertex
-  findObjectWithPropertyAtPath(
-    path: string,
-    key: string,
-    value: VertexPropertyType,
-  ): object | undefined {
-    const arr = this.getArray<object>(path);
-    // Check if the object has the property and its value matches the given value
-    return arr.find((obj: object) => {
-      const typedObj = obj as Record<string, VertexPropertyType>;
-      return typedObj[key] === value;
-    });
-  }
-
   /**
    * Load an app tree (a wrapped instance of RepTree) if it's not already loaded
    * @param appTreeId - The id of the app tree to load
@@ -254,7 +244,7 @@ export class Space {
     if (appTree) {
       this.appTrees.set(appTreeId, appTree);
 
-      for (const listener of this.treeLoadObservers) {
+      for (const listener of this.treeLoadListeners) {
         listener(appTree.getId());
       }
     }
@@ -262,42 +252,103 @@ export class Space {
     return appTree;
   }
 
-  observeNewAppTree(observer: (appTreeId: string) => void) {
-    this.newTreeObservers.push(observer);
+  /**
+   * On new app tree creation, notify all listeners.
+   * When the local space creates a new tree - onNewAppTree is called first followed
+   * by onTreeLoad.
+   * When a remote space creates a new tree - only onTreeLoad is called.
+   */
+  onNewAppTree(listener: (appTreeId: string) => void): () => void {
+    this.newTreeListeners.push(listener);
+    return () => {
+      this.newTreeListeners = this.newTreeListeners.filter((l) => l !== listener);
+    };
   }
 
-  unobserveNewAppTree(observer: (appTreeId: string) => void) {
-    this.newTreeObservers = this.newTreeObservers.filter((l) => l !== observer);
+  /**
+   * On app tree load, notify all listeners.
+   * It is called when a new tree is created locally or when a tree is loaded from a sync layer.
+   */
+  onTreeLoad(listener: (appTreeId: string) => void): () => void {
+    this.treeLoadListeners.push(listener);
+    return () => {
+      this.treeLoadListeners = this.treeLoadListeners.filter((obs) => obs !== listener);
+    };
   }
 
-  observeTreeLoad(observer: (appTreeId: string) => void) {
-    this.treeLoadObservers.push(observer);
-  }
+  /**
+   * Pass a function that will be solely responsible for loading app trees.
+   * @param loader - A function that takes an app tree id and returns a promise that resolves to an AppTree instance.
+   */
+  setTreeLoader(loader: (appTreeId: string) => Promise<AppTree | undefined>) {
+    if (this.treeLoader) {
+      throw new Error("Tree loader already set. Can't set it twice.");
+    }
 
-  unobserveTreeLoad(observer: (appTreeId: string) => void) {
-    this.treeLoadObservers = this.treeLoadObservers.filter((l) =>
-      l !== observer
-    );
-  }
-
-  registerTreeLoader(
-    loader: (appTreeId: string) => Promise<AppTree | undefined>,
-  ) {
     this.treeLoader = loader;
   }
 
+  private pendingOpsToCreateTrees = new Map<string, VertexOperation[]>();
+
+  async addTreeOps(treeId: string, ops: VertexOperation[]) {
+    if (this.id === treeId) {
+      this.tree.merge(ops);
+      return;
+    }
+
+    const appTree = this.appTrees.get(treeId);
+    if (!appTree) {
+      try {
+        const pendingOps = this.pendingOpsToCreateTrees.get(treeId);
+        const allOps = pendingOps ? [...pendingOps, ...ops] : ops;
+
+        const tree = new RepTree(this.tree.peerId, allOps);
+        const appTree = new AppTree(tree);
+        this.appTrees.set(treeId, appTree);
+
+        this.pendingOpsToCreateTrees.delete(treeId);
+        return;
+      } catch (e) {
+        const pendingOps = this.pendingOpsToCreateTrees.get(treeId);
+        const allOps = pendingOps ? [...pendingOps, ...ops] : ops;
+        this.pendingOpsToCreateTrees.set(treeId, allOps);
+        return;
+      }
+    }
+
+    appTree.tree.merge(ops);
+  }
+
+  /**
+   * Get a loaded app tree.
+   * @param appTreeId - The id of the app tree to get.
+   * @returns The app tree if it's loaded, undefined otherwise.
+   */
   getAppTree(appTreeId: string): AppTree | undefined {
     return this.appTrees.get(appTreeId);
   }
 
+  /**
+   * Get all loaded app trees.
+   * @returns An array of loaded app trees.
+   */
   getLoadedAppTrees(): ReadonlyArray<AppTree> {
     return Array.from(this.appTrees.values());
   }
 
+  /**
+   * Get all app tree ids.
+   * @returns An array of app tree ids.
+   */
   getAppTreeIds(): ReadonlyArray<string> {
     return this.appTreesVertex.children.map((v) => v.id);
   }
 
+  /**
+   * Delete an app tree from the space tree. 
+   * The tree itself won't be deleted with this function, only the reference to it.
+   * @param appTreeId - The id of the app tree to delete.
+   */
   deleteAppTree(appTreeId: string) {
     const vertex = this.getVertexReferencingAppTree(appTreeId);
     if (!vertex) return;
@@ -305,6 +356,11 @@ export class Space {
     this.tree.deleteVertex(vertex.id);
   }
 
+  /**
+   * Get the vertex that references the given app tree.
+   * @param appTreeId - The id of the app tree to get the vertex for.
+   * @returns The vertex that references the app tree, undefined otherwise.
+   */
   getVertexReferencingAppTree(appTreeId: string): Vertex | undefined {
     for (const vertex of this.appTreesVertex.children) {
       if (vertex.getProperty("tid") === appTreeId) {
@@ -355,14 +411,6 @@ export class Space {
       description: texts.defaultAppConfig.description,
       instructions: texts.defaultAppConfig.instructions,
     } as AppConfig;
-  }
-
-  private getWorkspaceTexts(): Texts {
-    const language = this.workspaceLanguage;
-    if (language && SUPPORTED_LANGUAGES.includes(language as SupportedLanguage)) {
-      return createTexts(language as SupportedLanguage);
-    }
-    return createTexts("en");
   }
 
   // Get provider config and add API key from secrets if it's a cloud provider
@@ -580,8 +628,6 @@ export class Space {
   setApiKey(providerId: string, apiKey: string) {
     this.setSecret(`api-key-${providerId}`, apiKey);
   }
-
-  // Custom OpenAI-like providers methods
 
   /**
    * Add a new custom OpenAI-like provider

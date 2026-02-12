@@ -69,7 +69,7 @@ describe('HEIC Conversion Pipeline', () => {
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-heic-test-'));
-    manager = new SpaceManager();
+    manager = new SpaceManager({ disableBackend: true });
   });
 
   afterEach(async () => {

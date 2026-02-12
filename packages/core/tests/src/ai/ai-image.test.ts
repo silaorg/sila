@@ -51,7 +51,7 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenAI provider
@@ -178,7 +178,7 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenAI provider
@@ -320,7 +320,7 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenAI provider
@@ -391,7 +391,7 @@ describe('AI Image Integration', () => {
 
     // Set up persistence
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager();
+    const manager = new SpaceManager({ disableBackend: true });
     await manager.addNewSpace(space, [layer]);
 
     // Add OpenRouter provider
