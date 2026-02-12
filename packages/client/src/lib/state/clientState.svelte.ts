@@ -379,7 +379,7 @@ export class ClientState {
     };
 
     this.indexSpacePointer(pointer);
-    this._spaceManager.addSpace(space, pointer.uri);
+    await this._spaceManager.addSpace(space, pointer.uri);
 
     // Register space with electron file system for file protocol
     if (typeof window !== "undefined" && (window as any).electronFileSystem) {
@@ -435,7 +435,7 @@ export class ClientState {
 
     // Add the space to the manager without any persistence layers
     this.indexSpacePointer(pointer);
-    this._spaceManager.addSpace(space, pointer.uri);
+    await this._spaceManager.addSpace(space, pointer.uri);
 
     // Update client state collections
     this.pointers = [...this.pointers, pointer];
