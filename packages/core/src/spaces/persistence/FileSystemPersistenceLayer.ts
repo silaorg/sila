@@ -720,15 +720,22 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
       return;
     }
 
-    const lines = await this.fs.readTextFileLines(path);
-    const ops = await this.turnJSONLinesIntoOps(lines, peerId, opType);
+    try {
+      const lines = await this.fs.readTextFileLines(path);
+      const ops = await this.turnJSONLinesIntoOps(lines, peerId, opType);
 
-    if (ops.length === 0) {
-      return;
+      if (ops.length === 0) {
+        return;
+      }
+
+      // Notify callback about incoming operations
+      this.onIncomingOpsCallback(treeId, ops);
+    } catch (error) {
+      // Ignore ENOENT errors (file deleted/moved between watch event and read)
+      if ((error as any).code !== 'ENOENT') {
+        console.error("Error reading ops from peer file", path, error);
+      }
     }
-
-    // Notify callback about incoming operations
-    this.onIncomingOpsCallback(treeId, ops);
   }
 
   private async tryReadSecretsFromPeer(path: string) {

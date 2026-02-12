@@ -214,7 +214,9 @@ export class FileSystemSyncLayer implements SyncLayer {
       // Notify callback about incoming operations
       this.onIncomingOpsCallback(treeId, ops);
     } catch (error) {
-      console.error("Error reading ops from peer file", path, error);
+      if ((error as any).code !== 'ENOENT') {
+        console.error("Error reading ops from peer file", path, error);
+      }
     }
   }
 
