@@ -44,4 +44,10 @@ export interface SyncLayer {
 
   // Optional cleanup method - called when SpaceRunner is disposed
   dispose?(): Promise<void>
+
+  /**
+   * If true, the layer is responsible for broadcasting ops to other peers.
+   * SpaceRunner will pass all ops to this layer, not just local ones.
+   */
+  isBroadcasting?: boolean
 }

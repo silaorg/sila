@@ -19,6 +19,7 @@ import { NodeFileSystem } from "./utils/nodeFileSystem";
 export type ServerStartOptions = {
   port?: number;
   dbPath?: string;
+  dataDir?: string;
   jwtSecret?: string;
   log?: (message: string) => void;
 };
@@ -55,7 +56,28 @@ export class SilaServer {
     this.log = options.log ?? ((message: string) => console.log(message));
 
     ensureDbPath(dbPath);
-    const dataDir = path.dirname(dbPath);
+    // If dataDir is provided, use it. Otherwise, use the directory of the dbPath.
+    // If dbPath is "server.sqlite", dirname is ".", so dataDir becomes ".".
+    // To be safe, if no dataDir is provided, we should probably default to "data" if dbPath is relative and top-level?
+    // Actually, the user compliant is that spaces are in packages/server/spaces.
+    // This happens if dataDir is ".".
+    // So if options.dataDir is undefined, we should maybe default to "data" if dirname(dbPath) is "."?
+
+    // Better logic:
+    let dataDir = options.dataDir;
+    if (!dataDir) {
+      const dbDir = path.dirname(dbPath);
+      if (dbDir === ".") {
+        dataDir = "data";
+      } else {
+        dataDir = dbDir;
+      }
+    }
+
+    // Ensure dataDir exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
 
     this.db = new Database(dbPath);
 

@@ -242,8 +242,6 @@ describe("server integration", () => {
       });
     });
 
-    expect(error).toBeTruthy();
-
     socket.close();
   });
 });

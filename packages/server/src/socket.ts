@@ -3,6 +3,7 @@ import type { ServerType } from "@hono/node-server";
 import { type VertexOperation, SpaceManager } from "@sila/core";
 import type { Database } from "./db";
 import { getUserFromToken } from "./middleware/auth";
+import { ServerSyncLayer } from "./sync/ServerSyncLayer";
 
 export type SocketServerOptions = {
   server: ServerType;
@@ -36,53 +37,6 @@ export function createSocketServer({ server, jwtSecret, spaceManager, db }: Sock
 
   const spacesNamespace = io.of(/^\/spaces\/.+$/);
   const observedSpaces = new Map<string, { appTrees: Set<string> }>();
-
-  const ensureServerOpsBroadcast = async (spaceId: string) => {
-    if (observedSpaces.has(spaceId)) {
-      return;
-    }
-
-    const space = await spaceManager.loadSpace(spaceId);
-    const observed = { appTrees: new Set<string>() };
-    observedSpaces.set(spaceId, observed);
-
-    // Forward local ops to all clients in the space room.
-    const emitOps = (treeId: string, ops: VertexOperation[]) => {
-      if (ops.length === 0) return;
-      spacesNamespace.to(spaceId).emit("ops:receive", { treeId, ops });
-    };
-
-    space.tree.observeOpApplied((op: VertexOperation) => {
-      if (op.id.peerId !== space.tree.peerId) return;
-      emitOps(space.getId(), [op]);
-    });
-
-    // Attach listeners for each app tree once.
-    const registerAppTree = async (appTreeId: string) => {
-      if (observed.appTrees.has(appTreeId)) return;
-      observed.appTrees.add(appTreeId);
-
-      const appTree = space.getAppTree(appTreeId) ?? await space.loadAppTree(appTreeId);
-      if (!appTree) return;
-
-      appTree.tree.observeOpApplied((op: VertexOperation) => {
-        if (op.id.peerId !== appTree.tree.peerId) return;
-        emitOps(appTreeId, [op]);
-      });
-    };
-
-    for (const appTree of space.getLoadedAppTrees()) {
-      void registerAppTree(appTree.getId());
-    }
-
-    space.onNewAppTree((appTreeId: string) => {
-      void registerAppTree(appTreeId);
-    });
-
-    space.onTreeLoad((appTreeId: string) => {
-      void registerAppTree(appTreeId);
-    });
-  };
 
   // Auth + space access gate for namespace connections.
   const authenticateSocket = (socket: SpaceSocket, next: (err?: Error) => void) => {
@@ -121,15 +75,36 @@ export function createSocketServer({ server, jwtSecret, spaceManager, db }: Sock
     const { spaceId } = socket.data;
     socket.join(spaceId);
 
-    // Ensure we are listening to space updates to broadcast to the room
-    await ensureServerOpsBroadcast(spaceId);
-
-    console.log(`Socket connected: ${socket.id} to space ${spaceId}`);
-
     const space = await spaceManager.loadSpace(spaceId);
     socket.emit("ready", { spaceId });
 
+    // Send initial state to the connecting socket
+    // Send initial state to the connecting socket
+    const emitOps = (treeId: string, ops: VertexOperation[]) => {
+      socket.emit("ops:sync", {
+        treeId,
+        ops,
+      });
+      socket.emit("ops:sync:done", { treeIds: [treeId] });
+    };
+
+    // Delay sync to ensure client listeners are ready
+    setTimeout(() => {
+      // Sync root tree
+      emitOps(space.getId(), space.tree.getAllOps() as VertexOperation[]);
+
+      // Sync loaded app trees
+      for (const appTree of space.getLoadedAppTrees()) {
+        emitOps(appTree.getId(), appTree.tree.getAllOps() as VertexOperation[]);
+      }
+    }, 50);
+
     // @TODO: introduce the socket to ServerSyncLayer
+    const syncLayers = spaceManager.getSyncLayers(spaceId);
+    if (syncLayers) {
+      const serverSyncLayer = syncLayers.find(l => l instanceof ServerSyncLayer) as ServerSyncLayer | undefined;
+      serverSyncLayer?.addSocket(socket);
+    }
   });
 
   return io;

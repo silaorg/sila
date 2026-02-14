@@ -373,7 +373,7 @@ export class SpaceRunner {
       // We save only ops from the current peer
       // @TODO: consider having "isBroadcasting" for a layer and if it's true, we don't need to check peerId
       // This is a way to send ops from a server to clients
-      if (op.id.peerId !== this.space!.tree.peerId) continue;
+      if (!layer.isBroadcasting && op.id.peerId !== this.space!.tree.peerId) continue;
 
       layer.saveTreeOps(treeId, [op]).catch((error) => {
         console.error("Failed to save tree operation:", error);
