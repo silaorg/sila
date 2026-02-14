@@ -224,6 +224,21 @@ export function createSocketServer({ server, jwtSecret }: SocketServerOptions): 
       await handleOpsSend(socket, payload);
     });
 
+    socket.on("secrets:send", async (secrets: Record<string, string>) => {
+      const { spaceId } = socket.data;
+      if (!secrets || Object.keys(secrets).length === 0) return;
+
+      try {
+        const space = await getOrLoadServerSpace(spaceId);
+        // This will trigger the space's save hooks, which will persist
+        // the secrets to the server's FileSystemSyncLayer.
+        space.saveAllSecrets(secrets);
+        console.log(`[Socket] Saved secrets for space ${spaceId}`);
+      } catch (error) {
+        console.error(`[Socket] Failed to save secrets for space ${spaceId}`, error);
+      }
+    });
+
     socket.on("disconnect", () => {
       socket.leave(spaceId);
     });

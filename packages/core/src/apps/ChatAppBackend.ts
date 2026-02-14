@@ -16,17 +16,18 @@ export default class ChatAppBackend {
   }
 
   constructor(private space: Space, private appTree: AppTree) {
+    console.log(`[ChatAppBackend] Initializing for space ${space.id} tree ${appTree.getId()}`);
     this.data = new ChatAppData(this.space, appTree);
     this.agentServices = new AgentServices(this.space);
     this.defaultChatAgent = new WrapChatAgent(this.data, this.agentServices, this.appTree);
 
-    this.defaultChatAgent.subscribe((e) => {  
+    this.defaultChatAgent.subscribe((e) => {
       if (e.type === "messageGenerated") {
         // Agent has finished generating messages
-        //console.log("Chat agent finished generating messages");
+        console.log("[ChatAppBackend] Chat agent finished generating messages");
         this.runTitleAgent();
       } else if (e.type === "error") {
-        console.error("Chat agent error:", e.error);
+        console.error("[ChatAppBackend] Chat agent error:", e.error);
       } else if (e.type === "state") {
         //console.log("Chat agent state changed to:", e.state);
       }
@@ -39,7 +40,7 @@ export default class ChatAppBackend {
     try {
       const messages = this.data.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>());
       const currentTitle = this.data.title || "";
-      
+
       // Get the same config that the chat agent uses. We would take only the targetLLM from it
       let config = this.data.configId ?
         this.agentServices.space.getAppConfig(this.data.configId) : undefined;
@@ -54,12 +55,12 @@ export default class ChatAppBackend {
       }
 
       const titleAgent = new ThreadTitleAgent(this.agentServices, { targetLLM: config.targetLLM });
-      
+
       const result = await titleAgent.run({
         messages,
         title: currentTitle
       });
-      
+
       if (result && result.title) {
         this.data.title = result.title;
         console.log("Title updated:", result.title);

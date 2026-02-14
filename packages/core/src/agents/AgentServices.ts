@@ -84,6 +84,16 @@ export class AgentServices {
       return providerConfig.apiKey as string;
     }
 
+    // Check environment variables (server-side only typically)
+    if (
+      typeof process !== "undefined" &&
+      process.env &&
+      provider.toUpperCase() === "OPENAI"
+    ) {
+      const envKey = process.env.OPENAI_API_KEY;
+      if (envKey) return envKey;
+    }
+
     // @NOTE: consider adding checks in other parts, such as user profile
 
     throw new Error("No API key found");

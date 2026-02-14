@@ -25,7 +25,7 @@ export function createSyncLayersForURI(
 
   if (uri.startsWith("http://") || uri.startsWith("https://")) {
     layers.push(new IndexedDBSyncLayer(uri, spaceId));
-    layers.push(new RemoteSyncLayer(uri, getRemoteAuthToken));
+    layers.push(new RemoteSyncLayer(uri, spaceId, getRemoteAuthToken));
     return layers;
   }
 

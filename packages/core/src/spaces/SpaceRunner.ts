@@ -95,7 +95,10 @@ export class SpaceRunner {
     // Start syncing if not already started
     if (!this.syncStarted) {
       this.syncStarted = true;
-      this.startSync(); // Fire and forget - polling will check this.space
+      this.startSync().catch((error) => {
+        console.error(`Status sync failed for space ${this.uri}`, error);
+        // We could also set a failed state here to stop polling eagerly
+      }); // Fire and forget - polling will check this.space
     }
 
     // Start loading with polling and timeout

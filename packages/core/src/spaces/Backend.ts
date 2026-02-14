@@ -10,6 +10,7 @@ export class Backend {
   private appBackends: ChatAppBackend[] = [];
 
   constructor(private space: Space) {
+    console.log(`[Backend] Initializing for space ${space.id}`);
     const loadedTrees = space.getLoadedAppTrees();
 
     for (const appTree of loadedTrees) {
@@ -28,6 +29,7 @@ export class Backend {
 
   createAppBackend(appTree: AppTree) {
     const appId = appTree.appId;
+    console.log(`[Backend] Creating app backend for ${appId} (${appTree.getId()})`);
 
     if (appId === "default-chat") {
       this.appBackends.push(new ChatAppBackend(this.space, appTree));

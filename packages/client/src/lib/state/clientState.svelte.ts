@@ -307,6 +307,15 @@ export class ClientState {
         // @TODO: implement connection to server
       }
 
+      // If no spaces found and authenticated, create one automatically
+      if (this.pointers.length === 0 && this.auth.isAuthenticated) {
+        try {
+          await this.createRemoteSpace();
+        } catch (e) {
+          console.error("Failed to auto-create remote space", e);
+        }
+      }
+
       // Set current space and connect to it
       // Prefer URI selection (unambiguous when multiple pointers share the same id).
       await this._setCurrentSpace(currentSpaceUri);
@@ -453,6 +462,48 @@ export class ClientState {
     // Mark client initialized for in-memory usage scenarios (workbench/tests)
     this._init = true;
     this.appTelemetry.capture(AnalyticsEvents.SpaceCreatedDemo, { spaceId });
+
+    return spaceId;
+  }
+
+  /**
+   * Create a new remote space on the server
+   */
+  async createRemoteSpace(name: string = "My Space"): Promise<string> {
+    const { api, API_BASE_URL } = await import("../utils/api");
+
+    // Optimistic creation
+    const response = await api.post("/spaces", { name }, undefined, this);
+
+    if (!response.success || !response.data) {
+      throw new Error(response.error || "Failed to create remote space");
+    }
+
+    const spaceData = response.data.space;
+    if (!spaceData || !spaceData.id) {
+      throw new Error("Invalid space data received from server");
+    }
+
+    const spaceId = spaceData.id;
+    const uri = `${API_BASE_URL}/spaces/${spaceId}`;
+
+    const pointer: SpacePointer = {
+      id: spaceId,
+      uri: uri,
+      name: spaceData.name,
+      createdAt: new Date(spaceData.created_at || spaceData.createdAt || Date.now()),
+      userId: this.auth.user?.id || null,
+    };
+
+    // Save persistence
+    await savePointers([pointer]);
+
+    // Update local state
+    this.addSpacePointer(pointer);
+
+    // Switch to new space
+    await this.switchToSpace(uri);
+    this._updateCurrentSpace();
 
     return spaceId;
   }

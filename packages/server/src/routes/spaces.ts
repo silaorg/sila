@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { addSpaceMember, createServerSpace, getSpacesForUserId } from "../db";
+import { addSpaceMember, createServerSpace, getSpacesForUserId, getOrLoadServerSpace } from "../db";
+import type { VertexOperation } from "reptree";
 import type { AppVariables } from "../types";
 
 const spaces = new Hono<{ Variables: AppVariables }>();
@@ -46,7 +47,7 @@ spaces.delete("/spaces/:spaceId", (c) => {
   const spaceId = c.req.param("spaceId");
 
   console.log(`User ${user.id} requested deletion of space ${spaceId}`);
-  
+
   throw new Error("Not implemented");
 });
 
@@ -63,6 +64,37 @@ spaces.post("/spaces/:spaceId/connect", (c) => {
       path: "/socket.io",
     },
   });
+});
+
+
+spaces.get("/spaces/:spaceId/:treeId", async (c) => {
+  const user = c.get("user");
+  if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
+  const spaceId = c.req.param("spaceId");
+  const treeId = c.req.param("treeId");
+
+  // Check access
+  const hasAccess = getSpacesForUserId(user.id).some((s) => s.id === spaceId);
+  if (!hasAccess) return c.json({ ok: false, error: "not found" }, 404);
+
+  try {
+    const space = await getOrLoadServerSpace(spaceId);
+    let ops: VertexOperation[] = [];
+
+    if (treeId === spaceId) {
+      ops = space.tree.getAllOps() as VertexOperation[];
+    } else {
+      const appTree = await space.loadAppTree(treeId);
+      if (appTree) {
+        ops = appTree.tree.getAllOps() as VertexOperation[];
+      }
+    }
+
+    return c.json(ops);
+  } catch (e) {
+    console.error(`Failed to fetch ops for space ${spaceId} tree ${treeId}`, e);
+    return c.json({ ok: false, error: "internal error" }, 500);
+  }
 });
 
 export default spaces;

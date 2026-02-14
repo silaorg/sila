@@ -21,7 +21,7 @@ export async function apiRequest<T = any>(
 ): Promise<APIResponse<T>> {
   try {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     const headers: Record<string, string> = {};
 
     if (options.body) {
@@ -57,7 +57,7 @@ export async function apiRequest<T = any>(
 
     const contentType = response.headers.get('content-type');
     let data;
-    
+
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
@@ -131,27 +131,7 @@ export async function fetchSpaces(client: ClientState) {
         userId: space.owner_id,
       }));
 
-      for (const space of spaces) {
-        try {
-          const spaceResponse = await api.get<SpaceCreationResponse>(
-            `/spaces/${space.id}`,
-            undefined,
-            client
-          );
-          if (spaceResponse.success && spaceResponse.data) {
-            const operations = spaceResponse.data.operations;
-            if (operations && operations.length > 0) {
-              await appendTreeOps(space.uri, space.id, space.id, operations);
-            }
-            const secrets = spaceResponse.data.secrets;
-            if (secrets && Object.keys(secrets).length > 0) {
-              await saveAllSecrets(space.uri, space.id, secrets);
-            }
-          }
-        } catch (spaceError) {
-          console.error(`Failed to fetch details for space ${space.id}:`, spaceError);
-        }
-      }
+      console.log(`User got ${spaces.length} spaces`);
 
       await savePointers(spaces);
 

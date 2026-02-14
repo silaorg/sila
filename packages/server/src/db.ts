@@ -37,7 +37,7 @@ const spaceManager = new SpaceManager({
   setupSyncLayers: (spaceUri) => [getServerSpaceLayerSync(spaceUri)],
   setupSpaceHandler: (spaceUri, space) => {
     if (!spaceBackends.has(spaceUri)) {
-      spaceBackends.set(spaceUri, new Backend(space, true));
+      spaceBackends.set(spaceUri, new Backend(space));
     }
   },
 });
