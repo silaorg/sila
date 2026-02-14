@@ -10,10 +10,20 @@ const createSpaceSchema = z.object({
   name: z.string().trim().min(1).max(80).optional(),
 });
 
-spaces.get("/spaces", (c) => {
+spaces.get("/spaces", async (c) => {
   const user = c.get("user");
   if (!user) return c.json({ ok: false, error: "unauthorized" }, 401);
-  return c.json({ ok: true, spaces: getSpacesForUserId(user.id) });
+  const spaces = getSpacesForUserId(user.id);
+  if (spaces.length === 0) {
+    const space = await createServerSpace({
+      name: "My First Space",
+      createdAt: new Date().toISOString(),
+    });
+    addSpaceMember(space.id, user.id, "owner");
+    return c.json({ ok: true, spaces: [space] });
+  }
+
+  return c.json({ ok: true, spaces });
 });
 
 spaces.get("/spaces/:spaceId", (c) => {
@@ -46,7 +56,7 @@ spaces.delete("/spaces/:spaceId", (c) => {
   const spaceId = c.req.param("spaceId");
 
   console.log(`User ${user.id} requested deletion of space ${spaceId}`);
-  
+
   throw new Error("Not implemented");
 });
 

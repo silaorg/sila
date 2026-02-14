@@ -54,8 +54,10 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
     const email = emailParam?.trim();
     if (!email) return c.json({ ok: false, error: "email is required" }, 400);
 
-    const user = getUserByEmail(email);
-    if (!user) return c.json({ ok: false, error: "not found" }, 404);
+    let user = getUserByEmail(email);
+    if (!user) {
+      user = createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
+    }
 
     const token = issueUserToken(user.id, user.email, jwtSecret);
     return c.json({ ok: true, user, token });

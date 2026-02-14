@@ -232,7 +232,12 @@ export class SpaceRunner {
       this.setupTreeLoader();
       this.trackOps(this.layers);
 
-      // Save initial space operations to all layers
+      // Save initial space operations to all layers.
+      // We do this to ensure that when a space is created in memory (e.g. via Space.newSpace())
+      // and then added to the manager, all its existing history is immediately persisted
+      // to the configured storage layers.
+      // @NOTE: but I'm not sure if we actually need to do it like this; also, we don't
+      // address other than root space trees here.
       const initialOps = this.space.tree.getAllOps() as VertexOperation[];
       await Promise.all(this.layers.map(layer =>
         layer.saveTreeOps(this.space!.id, initialOps).catch(e =>
