@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import jwt, { type JwtPayload } from "jsonwebtoken";
-import { getUserById, type User } from "../db";
+import type { Database, User } from "../db";
 
 export function extractBearerToken(
   authHeader: string | undefined,
@@ -32,16 +32,17 @@ export function getUserIdFromToken(
 export function getUserFromToken(
   token: string,
   jwtSecret: string,
+  db: Database,
 ): User | null {
   const userId = getUserIdFromToken(token, jwtSecret);
   if (!userId) return null;
-  return getUserById(userId);
+  return db.getUserById(userId);
 }
 
-export function createAuthMiddleware(jwtSecret: string): MiddlewareHandler {
+export function createAuthMiddleware(jwtSecret: string, db: Database): MiddlewareHandler {
   return async (c, next) => {
     const token = extractBearerToken(c.req.header("authorization"));
-    const user = token ? getUserFromToken(token, jwtSecret) : null;
+    const user = token ? getUserFromToken(token, jwtSecret, db) : null;
     c.set("user", user ?? null);
     await next();
   };

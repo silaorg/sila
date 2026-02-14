@@ -5,8 +5,7 @@ import path from "node:path";
 import jwt from "jsonwebtoken";
 import { io as createClient } from "socket.io-client";
 import { Space } from "@sila/core";
-import { getOrLoadServerSpace } from "../src/db";
-import { startServer, type ServerInstance } from "../src/server";
+import { startServer, type SilaServer } from "../src/server";
 
 const jsonHeaders = {
   "Content-Type": "application/json",
@@ -15,7 +14,7 @@ const jsonHeaders = {
 type CreatedUser = { id: string; email: string };
 
 describe("server integration", () => {
-  let server: ServerInstance;
+  let server: SilaServer;
   let baseUrl = "";
   let tempDir = "";
   let user: CreatedUser;
@@ -28,7 +27,7 @@ describe("server integration", () => {
       port: 0,
       dbPath: path.join(tempDir, "server.sqlite"),
       jwtSecret: "test-secret",
-      log: () => {},
+      log: () => { },
     });
     baseUrl = `http://127.0.0.1:${server.port}`;
 
@@ -54,7 +53,7 @@ describe("server integration", () => {
     };
     spaceId = spacePayload.space.id;
 
-    const space = await getOrLoadServerSpace(spaceId);
+    const space = await server.spaceManager.loadSpace(spaceId);
     space.tree.root?.setProperty("testKey", "testValue");
   });
 
@@ -144,9 +143,10 @@ describe("server integration", () => {
     const socket = createClient(`${baseUrl}/spaces/${spaceId}`, {
       path: "/socket.io",
       auth: { token: accessToken },
+      autoConnect: false,
     });
 
-    const readyPayload = await new Promise<{ spaceId: string }>((resolve, reject) => {
+    const readyPromise = new Promise<{ spaceId: string }>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("ready timeout"));
       }, 5000);
@@ -161,8 +161,6 @@ describe("server integration", () => {
         reject(error);
       });
     });
-
-    expect(readyPayload.spaceId).toBe(spaceId);
 
     const syncPromise = new Promise<{ treeIds: string[] }>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -203,6 +201,11 @@ describe("server integration", () => {
       });
     });
 
+    socket.connect();
+
+    const readyPayload = await readyPromise;
+    expect(readyPayload.spaceId).toBe(spaceId);
+
     socket.emit("ops:state", {});
 
     const syncPayload = await syncPromise;
@@ -217,7 +220,7 @@ describe("server integration", () => {
     expect(Array.isArray(spaceOps)).toBe(true);
     expect(spaceOps?.length).toBeGreaterThan(0);
 
-    const reconstructed = Space.existingSpaceFromOps(spaceOps ?? []);
+    const reconstructed = Space.existingSpaceFromOps((spaceOps as any) ?? []);
     expect(reconstructed.getId()).toBe(spaceId);
 
     socket.close();

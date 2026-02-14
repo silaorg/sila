@@ -1,27 +1,19 @@
 import { Hono } from "hono";
 import jwt from "jsonwebtoken";
-import { uuid } from "@sila/core";
+import { uuid, SpaceManager } from "@sila/core";
 import type { AppVariables } from "../types";
-import {
-  addSpaceMember,
-  createServerSpace,
-  createUser,
-  getUserByEmail,
-  getUserById,
-  listSpaceMembers,
-  listSpaces,
-  listUsers,
-} from "../db";
+import { createServerSpace } from "../server";
+import type { Database } from "../db";
 
 function issueUserToken(userId: string, email: string, secret: string): string {
   return jwt.sign({ sub: userId, email }, secret, { expiresIn: "7d" });
 }
 
-export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVariables }> {
+export function createDevOnlyRouter(jwtSecret: string, db: Database, spaceManager: SpaceManager): Hono<{ Variables: AppVariables }> {
   const devOnly = new Hono<{ Variables: AppVariables }>();
 
   devOnly.get("/users", (c) => {
-    return c.json({ ok: true, users: listUsers() });
+    return c.json({ ok: true, users: db.listUsers() });
   });
 
   devOnly.post("/users", async (c) => {
@@ -37,13 +29,13 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
       return c.json({ ok: false, error: "email is required" }, 400);
     }
 
-    const user = createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
+    const user = db.createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
     return c.json({ ok: true, user });
   });
 
   devOnly.get("/users/:userId", (c) => {
     const userId = c.req.param("userId");
-    const user = getUserById(userId);
+    const user = db.getUserById(userId);
     if (!user) return c.json({ ok: false, error: "not found" }, 404);
     const token = issueUserToken(user.id, user.email, jwtSecret);
     return c.json({ ok: true, user, token });
@@ -54,9 +46,9 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
     const email = emailParam?.trim();
     if (!email) return c.json({ ok: false, error: "email is required" }, 400);
 
-    let user = getUserByEmail(email);
+    let user = db.getUserByEmail(email);
     if (!user) {
-      user = createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
+      user = db.createUser({ id: uuid(), email, createdAt: new Date().toISOString() });
     }
 
     const token = issueUserToken(user.id, user.email, jwtSecret);
@@ -64,7 +56,7 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
   });
 
   devOnly.get("/spaces", (c) => {
-    return c.json({ ok: true, spaces: listSpaces() });
+    return c.json({ ok: true, spaces: db.listSpaces() });
   });
 
   devOnly.post("/spaces", async (c) => {
@@ -81,20 +73,20 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
       return c.json({ ok: false, error: "name and ownerId are required" }, 400);
     }
 
-    const owner = getUserById(ownerId);
+    const owner = db.getUserById(ownerId);
     if (!owner) return c.json({ ok: false, error: "owner not found" }, 404);
 
-    const space = await createServerSpace({
+    const space = await createServerSpace(spaceManager, db, {
       name,
       createdAt: new Date().toISOString(),
     });
-    addSpaceMember(space.id, ownerId, "owner");
+    db.addSpaceMember(space.id, ownerId, "owner");
     return c.json({ ok: true, space });
   });
 
   devOnly.get("/space-members/:spaceId", (c) => {
     const spaceId = c.req.param("spaceId");
-    return c.json({ ok: true, members: listSpaceMembers(spaceId) });
+    return c.json({ ok: true, members: db.listSpaceMembers(spaceId) });
   });
 
   devOnly.post("/space-members/:spaceId", async (c) => {
@@ -112,10 +104,10 @@ export function createDevOnlyRouter(jwtSecret: string): Hono<{ Variables: AppVar
       return c.json({ ok: false, error: "userId is required" }, 400);
     }
 
-    const user = getUserById(userId);
+    const user = db.getUserById(userId);
     if (!user) return c.json({ ok: false, error: "user not found" }, 404);
 
-    addSpaceMember(spaceId, userId, role);
+    db.addSpaceMember(spaceId, userId, role);
     return c.json({ ok: true, spaceId, userId, role });
   });
 

@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import jwt, { type JwtPayload } from "jsonwebtoken";
-import { getUserById } from "../db";
+import type { Database } from "../db";
 import type { AppVariables } from "../types";
 
 function issueUserToken(userId: string, email: string, secret: string): string {
   return jwt.sign({ sub: userId, email }, secret, { expiresIn: "7d" });
 }
 
-export function createAuthRouter(jwtSecret: string): Hono<{ Variables: AppVariables }> {
+export function createAuthRouter(jwtSecret: string, db: Database): Hono<{ Variables: AppVariables }> {
   const auth = new Hono<{ Variables: AppVariables }>();
 
   auth.post("/auth/refresh", async (c) => {
@@ -39,7 +39,7 @@ export function createAuthRouter(jwtSecret: string): Hono<{ Variables: AppVariab
       return c.json({ ok: false, error: "invalid token" }, 401);
     }
 
-    const user = getUserById(userId);
+    const user = db.getUserById(userId);
     if (!user) {
       return c.json({ ok: false, error: "user not found" }, 404);
     }
