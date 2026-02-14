@@ -16,6 +16,8 @@ export class RemoteSyncLayer implements SyncLayer {
   readonly type = "remote" as const;
 
   private socket: Socket | null = null;
+  private pendingTreeRequests = new Map<string, { resolve: (ops: VertexOperation[]) => void; reject: (err: Error) => void }>();
+  private loadedTrees = new Set<string>();
   private onIncomingOps?: (treeId: string, ops: VertexOperation[]) => void;
   private connected = false;
 
@@ -24,6 +26,12 @@ export class RemoteSyncLayer implements SyncLayer {
     private readonly getAuthToken?: () => string | null,
   ) {
     this.id = `remote-sync-${spaceUri}`;
+  }
+
+  async getSpaceId(): Promise<string | undefined> {
+    // Extract spaceId from URI: .../spaces/SPACE_ID
+    const match = this.spaceUri.match(/\/spaces\/([^\/]+)$/);
+    return match ? match[1] : undefined;
   }
 
   async connect(): Promise<void> {
@@ -51,7 +59,18 @@ export class RemoteSyncLayer implements SyncLayer {
     this.socket.on("ops:sync", (payload: OpsReceivePayload) => {
       // Initial sync or re-sync
       console.log(`[RemoteSyncLayer] Received ops:sync for tree ${payload.treeId}, ops: ${payload.ops.length}`);
-      this.onIncomingOps?.(payload.treeId, payload.ops);
+
+      this.loadedTrees.add(payload.treeId);
+
+      // Resolve any pending requests for this tree
+      const pending = this.pendingTreeRequests.get(payload.treeId);
+      if (pending) {
+        pending.resolve(payload.ops);
+        this.pendingTreeRequests.delete(payload.treeId);
+      } else {
+        // If no one is waiting, just notify the listener
+        this.onIncomingOps?.(payload.treeId, payload.ops);
+      }
     });
 
     this.socket.on("ops:receive", (payload: OpsReceivePayload) => {
@@ -71,11 +90,51 @@ export class RemoteSyncLayer implements SyncLayer {
   }
 
   async loadSpaceTreeOps(): Promise<VertexOperation[]> {
-    return []; // We rely on ops:sync event for initial load
+    // For remote layer, we determine the spaceId from the URI
+    const spaceId = await this.getSpaceId();
+    if (!spaceId) return [];
+    return this.loadTreeOps(spaceId);
   }
 
-  async loadTreeOps(_treeId: string): Promise<VertexOperation[]> {
-    return []; // We rely on ops:sync event for initial load
+  async loadTreeOps(treeId: string): Promise<VertexOperation[]> {
+    // If we already loaded this tree (via ops:sync), we might want to return nothing 
+    // because onIncomingOps handled it? 
+    // BUT SpaceRunner calls loadTreeOps explicitly.
+    // Ideally, we should wait for the ops:sync event.
+
+    if (this.loadedTrees.has(treeId)) {
+      // If already loaded, we assume subsequent updates come via ops:receive/ops:sync events 
+      // that are handled by startListening callback.
+      // However, if SpaceRunner asks for it, it might be looking for initial state.
+      // Since we don't store ops here, we can't return them if we missed the event 
+      // or if it was already consumed. 
+      // But for the initial load, this promise should be pending until ops:sync arrives.
+      return [];
+    }
+
+    return new Promise<VertexOperation[]>((resolve, reject) => {
+      // Set a timeout
+      const timeout = setTimeout(() => {
+        if (this.pendingTreeRequests.has(treeId)) {
+          this.pendingTreeRequests.delete(treeId);
+          // Don't reject, just return empty so SpaceRunner can continue (maybe other layers have data)
+          // But for RemoteLayer, empty means no data.
+          console.warn(`[RemoteSyncLayer] Timeout waiting for tree ${treeId}`);
+          resolve([]);
+        }
+      }, 5000);
+
+      this.pendingTreeRequests.set(treeId, {
+        resolve: (ops) => {
+          clearTimeout(timeout);
+          resolve(ops);
+        },
+        reject: (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        }
+      });
+    });
   }
 
   async saveTreeOps(
