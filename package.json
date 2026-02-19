@@ -1,0 +1,10 @@
+{
+  "name": "sila",
+  "description": "Root package for Sila's monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+  }
+}
