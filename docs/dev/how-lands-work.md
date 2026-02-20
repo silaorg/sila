@@ -1,4 +1,4 @@
-# How a land works
+# How lands works in Sila
 
 Lands as stored in a directory with a stucture similar to this:
 ```text
