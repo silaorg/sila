@@ -1,6 +1,14 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { ChatAgent, LangMessage, z as aiZ } from "aiwrapper";
+import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
+import {
+  createToolApplyPatch,
+  createToolEditDocument,
+  createToolExecuteCommand,
+  createToolReadDocument,
+  createToolSearchReplacePatch,
+} from "./tools/index.js";
 
 const THREAD_MESSAGES_FILE_NAME = "messages.json";
 
@@ -11,13 +19,29 @@ export class SlackAgent {
   #lang;
   /** @type {string} */
   #instructions;
+  /** @type {string} */
+  #threadId;
+  /** @type {PTYShellSessionManager} */
+  #ptyManager;
+  /** @type {string} */
+  #defaultCwd;
 
   /**
-   * @param {{ threadDir: string; lang: import("aiwrapper").LanguageProvider; instructions?: string }} options
+   * @param {{
+   *  threadDir: string;
+   *  threadId: string;
+   *  lang: import("aiwrapper").LanguageProvider;
+   *  ptyManager: PTYShellSessionManager;
+   *  defaultCwd?: string;
+   *  instructions?: string;
+   * }} options
    */
   constructor(options) {
     this.#threadDir = options.threadDir;
+    this.#threadId = options.threadId;
     this.#lang = options.lang;
+    this.#ptyManager = options.ptyManager;
+    this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#instructions = options.instructions ?? defaultSlackInstructions();
   }
 
@@ -26,7 +50,11 @@ export class SlackAgent {
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async processUserMessage(input) {
-    const agent = await loadThreadAgent(this.#threadDir, this.#lang);
+    const agent = await loadThreadAgent(this.#threadDir, this.#lang, {
+      threadId: this.#threadId,
+      ptyManager: this.#ptyManager,
+      defaultCwd: this.#defaultCwd,
+    });
     agent.messages.instructions = this.#instructions;
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
     await saveThreadMessages(this.#threadDir, agent.messages);
@@ -51,29 +79,57 @@ export class InProcessSlackAgentRuntime {
   #lang;
   /** @type {string} */
   #instructions;
+  /** @type {string} */
+  #defaultCwd;
+  /** @type {Map<string, PTYShellSessionManager>} */
+  #ptyManagersByThread = new Map();
 
   /**
-   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions?: string }} options
+   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions?: string; defaultCwd?: string }} options
    */
   constructor(options) {
     this.#lang = options.lang;
+    this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#instructions = options.instructions ?? defaultSlackInstructions();
   }
 
   /**
-   * @param {{ threadDir: string; userId: string; text: string }} input
+   * @param {{ threadId: string; threadDir: string; userId: string; text: string }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async handleThreadMessage(input) {
+    const ptyManager = this.#getOrCreatePtyManager(input.threadId);
+
     const agent = new SlackAgent({
+      threadId: input.threadId,
       threadDir: input.threadDir,
       lang: this.#lang,
+      ptyManager,
+      defaultCwd: this.#defaultCwd,
       instructions: this.#instructions,
     });
     return agent.processUserMessage({
       userId: input.userId,
       text: input.text,
     });
+  }
+
+  async stop() {
+    const managers = Array.from(this.#ptyManagersByThread.values());
+    this.#ptyManagersByThread.clear();
+    await Promise.all(managers.map((manager) => manager.stopAll()));
+  }
+
+  #getOrCreatePtyManager(threadId) {
+    const key = String(threadId);
+    const existing = this.#ptyManagersByThread.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const manager = new PTYShellSessionManager({ defaultCwd: this.#defaultCwd });
+    this.#ptyManagersByThread.set(key, manager);
+    return manager;
   }
 }
 
@@ -112,8 +168,8 @@ ${historyText}
   }
 }
 
-async function loadThreadAgent(threadDir, lang) {
-  const agent = new ChatAgent(lang);
+async function loadThreadAgent(threadDir, lang, options) {
+  const agent = createSlackChatAgent(lang, options);
   const messages = await loadThreadMessages(threadDir);
   if (messages.length > 0) {
     agent.messages.push(...messages);
@@ -159,10 +215,32 @@ async function saveThreadMessages(threadDir, messages) {
   await fs.writeFile(filePath, `${JSON.stringify(serializable, null, 2)}\n`, "utf8");
 }
 
+export function createSlackChatAgent(lang, options) {
+  const tools = [
+    { name: "web_search" },
+    createToolExecuteCommand({
+      sessionId: options.threadId,
+      ptyManager: options.ptyManager,
+      defaultCwd: options.defaultCwd,
+    }),
+    createToolReadDocument({ baseDir: options.defaultCwd }),
+    createToolEditDocument({ baseDir: options.defaultCwd }),
+    createToolApplyPatch({ baseDir: options.defaultCwd }),
+    createToolSearchReplacePatch({ baseDir: options.defaultCwd }),
+  ];
+
+  return new ChatAgent(lang, { tools });
+}
+
 export function defaultSlackInstructions() {
   return [
     "You are a concise assistant in Slack.",
     "Use short, direct answers.",
     "If context is missing, ask one clear follow-up question.",
+    "Use web_search for current events or facts likely to change.",
+    "Use read_document/edit_document/apply_patch/apply_search_replace_patch for file work.",
+    "Use execute_command for CLI work.",
+    "For stateful CLI tasks, run shell start first, then commands, then shell stop when done.",
+    "Avoid interactive terminal apps like vim, nano, less, and htop.",
   ].join("\n");
 }

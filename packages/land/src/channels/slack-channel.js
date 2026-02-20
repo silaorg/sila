@@ -21,7 +21,7 @@ const SlackChannelConfigSchema = z.looseObject({
   mode: z.literal("socket").default("socket"),
   botUserOAuthToken: OptionalTokenSchema,
   appLevelToken: OptionalTokenSchema,
-  aiModel: z.string().min(1).default("gpt-5-nano"),
+  aiModel: z.string().min(1).default("gpt-5.2"),
 });
 
 const THREAD_STATE_FILE_NAME = "state.json";
@@ -81,7 +81,10 @@ export class SlackChannel {
     }
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
-    this.#agentRuntime = new InProcessSlackAgentRuntime({ lang: this.#lang });
+    this.#agentRuntime = new InProcessSlackAgentRuntime({
+      lang: this.#lang,
+      defaultCwd: path.resolve(this.#path, "..", ".."),
+    });
 
     const { App, LogLevel } = await import("@slack/bolt");
     const app = new App({
@@ -105,11 +108,14 @@ export class SlackChannel {
   }
 
   async stop() {
-    if (!this.#app) {
+    if (!this.#app && !this.#agentRuntime) {
       return;
     }
 
-    await this.#app.stop();
+    await this.#agentRuntime?.stop();
+    if (this.#app) {
+      await this.#app.stop();
+    }
     this.#app = null;
     this.#lang = null;
     this.#agentRuntime = null;
@@ -194,6 +200,7 @@ export class SlackChannel {
     await fs.mkdir(threadDir, { recursive: true });
 
     const result = await this.#agentRuntime.handleThreadMessage({
+      threadId: thread.threadId,
       threadDir,
       userId,
       text,
