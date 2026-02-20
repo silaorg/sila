@@ -2,6 +2,7 @@
   "type": "module",
   "main": "src/cli.js",
   "dependencies": {
+    "@slack/bolt": "^4.6.0",
     "picocolors": "^1.1.1",
     "zod": "^4.1.5"
   },

@@ -43,6 +43,7 @@ test("create then run land succeeds", async () => {
 
   const runResult = await runCli(["run", landDir]);
   assert.equal(runResult.code, 0);
+  assert.match(runResult.stdout, /Starting Slack channel at:/);
   assert.match(runResult.stdout, /Running land:/);
 });
 

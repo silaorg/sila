@@ -1,17 +1,26 @@
-import { readConfig } from "./config.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { SlackChannel } from "./channels/slack-channel.js";
+import { CONFIG_FILE_NAME, readConfig } from "./config.js";
 
 export class Land {
-  /** @type {string} **/
+  /** @type {string} */
   #path;
   /** @type {string} */
   #name;
-  /** @type {Promise} **/
+  /** @type {Promise<void>} */
   #readConfigPromise;
+  /** @type {Array<SlackChannel>} */
+  #channels = [];
 
   #isRunning = false;
 
   get name() {
     return this.#name;
+  }
+
+  get path() {
+    return this.#path;
   }
 
   set name(value) {
@@ -20,15 +29,17 @@ export class Land {
 
   /**
    * Construct a Land instance for the given path. The path should point to the directory containing the land's config.json.
-   * @param {string} path 
+   * @param {string} landPath
    */
-  constructor(path) {
-    this.#readConfigPromise = readConfig(path).then(config => {
-      this.path = path;
-      this.#name = config.name;
-    }).catch(error => {
-      console.error("Failed to load config:", error);
-    });
+  constructor(landPath) {
+    this.#path = landPath;
+    this.#readConfigPromise = readConfig(landPath)
+      .then((config) => {
+        this.#name = config.name;
+      })
+      .catch((error) => {
+        console.error("Failed to load config:", error);
+      });
   }
 
   async run() {
@@ -39,6 +50,65 @@ export class Land {
 
     await this.#readConfigPromise;
 
+    await this.runChannels();
+
     console.log(`Running land: ${this.name} at path: ${this.path}`);
+  }
+
+  async runChannels() {
+    const channelsDir = path.join(this.#path, "channels");
+    const channelDirEntries = await readDirectoryEntriesOrEmpty(channelsDir);
+
+    for (const entry of channelDirEntries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const channelPath = path.join(channelsDir, entry.name);
+      const configPath = path.join(channelPath, CONFIG_FILE_NAME);
+      const channelConfig = await readJsonFileOrNull(configPath);
+
+      if (!channelConfig) {
+        continue;
+      }
+
+      if (channelConfig.channel === "slack") {
+        const channel = new SlackChannel(channelPath, channelConfig);
+        this.#channels.push(channel);
+        await channel.run();
+      }
+    }
+
+    console.log(`Loaded ${this.#channels.length} channel(s).`);
+  }
+}
+
+async function readDirectoryEntriesOrEmpty(directoryPath) {
+  try {
+    return await fs.readdir(directoryPath, { withFileTypes: true });
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+async function readJsonFileOrNull(filePath) {
+  let raw;
+  try {
+    raw = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`Skipping invalid JSON file at ${filePath}:`, error.message);
+    return null;
   }
 }

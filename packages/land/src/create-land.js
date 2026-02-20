@@ -52,9 +52,7 @@ export async function createLand(options) {
   await fs.mkdir(assetsPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
-  await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), {
-    channel: parsedOptions.channel,
-  });
+  await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
 
   await writeJsonFile(path.join(providersPath, "openai.json"), {
     apiKey: parsedOptions.openaiApiKey ?? "",
@@ -74,6 +72,20 @@ export async function createLand(options) {
 
 async function writeJsonFile(filePath, data) {
   await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+function buildChannelConfig(channel) {
+  if (channel === "slack") {
+    return {
+      channel: "slack",
+      enabled: true,
+      mode: "socket",
+      botUserOAuthToken: "",
+      appLevelToken: "",
+    };
+  }
+
+  return { channel };
 }
 
 async function statIfExists(filePath) {
