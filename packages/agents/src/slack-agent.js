@@ -46,6 +46,37 @@ export class SlackAgent {
   }
 }
 
+export class InProcessSlackAgentRuntime {
+  /** @type {import("aiwrapper").LanguageProvider} */
+  #lang;
+  /** @type {string} */
+  #instructions;
+
+  /**
+   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions?: string }} options
+   */
+  constructor(options) {
+    this.#lang = options.lang;
+    this.#instructions = options.instructions ?? defaultSlackInstructions();
+  }
+
+  /**
+   * @param {{ threadDir: string; userId: string; text: string }} input
+   * @returns {Promise<{ responded: boolean; answer: string }>}
+   */
+  async handleThreadMessage(input) {
+    const agent = new SlackAgent({
+      threadDir: input.threadDir,
+      lang: this.#lang,
+      instructions: this.#instructions,
+    });
+    return agent.processUserMessage({
+      userId: input.userId,
+      text: input.text,
+    });
+  }
+}
+
 async function decideShouldRespond(lang, agent) {
   if (!lang || agent.messages.length === 0) {
     return true;

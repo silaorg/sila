@@ -1,4 +1,9 @@
 {
+  "name": "@sila/agents",
+  "version": "0.1.0",
   "type": "module",
-  "main": "slack-agent.js"
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  }
 }

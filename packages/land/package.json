@@ -2,6 +2,7 @@
   "type": "module",
   "main": "src/cli.js",
   "dependencies": {
+    "@sila/agents": "*",
     "@slack/bolt": "^4.6.0",
     "aiwrapper": "^3.0.2",
     "picocolors": "^1.1.1",

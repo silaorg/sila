@@ -48,7 +48,7 @@ That coupling makes the channel harder to test and harder to reuse for other pro
 
 ### 1. New agent module
 
-Create `packages/agents/slack-agent.js` with a small API like:
+Create `packages/agents/src/slack-agent.js` with a small API like:
 
 ```js
 export class SlackAgent {
@@ -154,6 +154,6 @@ This keeps rollout safe and keeps the upgrade path open without changing channel
 
 ## Open Questions
 
-- Should `slack-agent.js` live at `packages/agents/slack-agent.js` or in a nested structure like `packages/agents/src/slack-agent.js`?
+- Should we keep a flat agent package API (`@sila/agents`) or expose provider-specific entry points as subpaths?
 - Do we want one process per thread or a pooled worker model?
 - Should thread files move from `messages.json` to append-only `messages.jsonl` in same change or later?

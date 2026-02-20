@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { SlackAgent, defaultSlackInstructions } from "../../../agents/slack-agent.js";
+import { InProcessSlackAgentRuntime } from "@sila/agents";
 
 const OptionalTokenSchema = z
   .string()
@@ -39,6 +39,8 @@ export class SlackChannel {
   #botUserId = null;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
+  /** @type {null | import("@sila/agents").InProcessSlackAgentRuntime} */
+  #agentRuntime = null;
   #isRunning = false;
 
   /**
@@ -79,6 +81,7 @@ export class SlackChannel {
     }
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
+    this.#agentRuntime = new InProcessSlackAgentRuntime({ lang: this.#lang });
 
     const { App, LogLevel } = await import("@slack/bolt");
     const app = new App({
@@ -109,6 +112,7 @@ export class SlackChannel {
     await this.#app.stop();
     this.#app = null;
     this.#lang = null;
+    this.#agentRuntime = null;
     this.#botUserId = null;
     this.#processingThreads.clear();
     this.#isRunning = false;
@@ -182,19 +186,18 @@ export class SlackChannel {
    * @param {string} text
    */
   async #processThreadMessage(thread, userId, text) {
-    if (!this.#lang) {
+    if (!this.#lang || !this.#agentRuntime) {
       return;
     }
 
     const threadDir = path.join(this.#path, thread.threadId);
     await fs.mkdir(threadDir, { recursive: true });
 
-    const agent = new SlackAgent({
+    const result = await this.#agentRuntime.handleThreadMessage({
       threadDir,
-      lang: this.#lang,
-      instructions: defaultSlackInstructions(),
+      userId,
+      text,
     });
-    const result = await agent.processUserMessage({ userId, text });
 
     await saveThreadState(threadDir, {
       channelId: thread.channelId,
