@@ -16,6 +16,7 @@ The agent should own thread logic:
 - LLM execution and answer generation
 
 This follows the direction in `docs/dev/proposals/architecture-v2.md` and gives us a clean provider gateway <-> thread agent boundary.
+For v1, behavior and message handling should stay the same as today, and runtime stays in-process.
 
 ## Current Problem
 
@@ -33,13 +34,15 @@ That coupling makes the channel harder to test and harder to reuse for other pro
 - Keep `slack-channel.js` thin and provider-focused.
 - Isolate conversational/runtime logic into `slack-agent.js`.
 - Define a stable contract so channel and agent can evolve independently.
-- Support an in-process adapter first, and child-process execution second.
+- Keep current message behavior and storage format unchanged in v1.
+- Use in-process execution in v1, but through an API boundary that can support child-process or other transports later.
 
 ## Non-Goals
 
 - Replacing Slack Bolt transport.
-- Changing thread folder layout in this step.
+- Changing thread folder layout or message file formats in this step.
 - Introducing a generic multi-provider agent framework immediately.
+- Shipping child-process runtime in v1.
 
 ## Proposed Shape
 
@@ -65,6 +68,8 @@ export class SlackAgent {
 }
 ```
 
+V1 parity rule: keep existing `messages.json` and `state.json` content/shape, and keep current response behavior.
+
 ### 2. Slack channel as gateway
 
 `slack-channel.js` should:
@@ -76,14 +81,15 @@ export class SlackAgent {
 
 ### 3. Runtime mode abstraction
 
-Add `agentRuntime: "in-process" | "child-process"` in Slack channel config.
+Define a runtime adapter interface now, but only implement in-process mode in v1.
 
-- `in-process` (default first): import and call `SlackAgent` directly.
-- `child-process` (phase 2): spawn a Node process and communicate via IPC.
+- `InProcessSlackAgentRuntime` (v1): import and call `SlackAgent` directly.
+- `ChildProcessSlackAgentRuntime` (future): same interface, different transport.
+- Other transports can reuse the same contract later.
 
-This keeps rollout safe: same contract, different runtime.
+This keeps rollout safe and keeps the upgrade path open without changing channel/agent business logic.
 
-## Child Process Contract (Phase 2)
+## Future Transport Contract (Phase 2+)
 
 ### Channel -> Agent
 
@@ -125,10 +131,10 @@ This keeps rollout safe: same contract, different runtime.
 ## Recommended Rollout
 
 1. Extract current logic into `SlackAgent` module with no behavior changes.
-2. Keep channel in-process using the new module.
-3. Add runtime interface (`InProcessAgentRuntime`, `ChildProcessAgentRuntime`).
-4. Implement child-process mode behind config flag.
-5. Add tests that assert parity between both modes.
+2. Add runtime interface and implement only `InProcessSlackAgentRuntime`.
+3. Keep channel wired to in-process runtime only (no child-process config yet).
+4. Add parity tests that assert message/state files and outbound text match current behavior.
+5. Add optional runtime selection and child-process transport later without changing agent logic.
 
 ## Benefits
 
@@ -148,6 +154,6 @@ This keeps rollout safe: same contract, different runtime.
 
 ## Open Questions
 
-- Should agent code live in new `packages/agents` or under existing `packages/agent`?
+- Should `slack-agent.js` live at `packages/agents/slack-agent.js` or in a nested structure like `packages/agents/src/slack-agent.js`?
 - Do we want one process per thread or a pooled worker model?
 - Should thread files move from `messages.json` to append-only `messages.jsonl` in same change or later?
