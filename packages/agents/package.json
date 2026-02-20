@@ -1,0 +1,4 @@
+{
+  "type": "module",
+  "main": "slack-agent.js"
+}

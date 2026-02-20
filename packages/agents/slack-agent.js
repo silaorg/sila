@@ -1,0 +1,137 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { ChatAgent, LangMessage, z as aiZ } from "aiwrapper";
+
+const THREAD_MESSAGES_FILE_NAME = "messages.json";
+
+export class SlackAgent {
+  /** @type {string} */
+  #threadDir;
+  /** @type {import("aiwrapper").LanguageProvider} */
+  #lang;
+  /** @type {string} */
+  #instructions;
+
+  /**
+   * @param {{ threadDir: string; lang: import("aiwrapper").LanguageProvider; instructions?: string }} options
+   */
+  constructor(options) {
+    this.#threadDir = options.threadDir;
+    this.#lang = options.lang;
+    this.#instructions = options.instructions ?? defaultSlackInstructions();
+  }
+
+  /**
+   * @param {{ userId: string; text: string }} input
+   * @returns {Promise<{ responded: boolean; answer: string }>}
+   */
+  async processUserMessage(input) {
+    const agent = await loadThreadAgent(this.#threadDir, this.#lang);
+    agent.messages.instructions = this.#instructions;
+    agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
+    await saveThreadMessages(this.#threadDir, agent.messages);
+
+    const shouldSendReply = await decideShouldRespond(this.#lang, agent);
+    if (!shouldSendReply) {
+      return { responded: false, answer: "" };
+    }
+
+    const result = await agent.run([]);
+    await saveThreadMessages(this.#threadDir, agent.messages);
+
+    return {
+      responded: true,
+      answer: typeof result?.answer === "string" ? result.answer.trim() : "",
+    };
+  }
+}
+
+async function decideShouldRespond(lang, agent) {
+  if (!lang || agent.messages.length === 0) {
+    return true;
+  }
+
+  const history = agent.messages.slice(-6);
+  const historyText = history.map((message) => `${message.role}: ${message.text}`).join("\n\n");
+
+  const decisionSchema = aiZ.object({
+    respond: aiZ
+      .boolean()
+      .describe("Whether the assistant should respond to the last user message."),
+  });
+
+  const decisionPrompt = `
+You are deciding whether an assistant should respond to the latest user message in a chat.
+
+Rules:
+- Return false for short acknowledgements like "ok", "thanks", "got it", unless user asks a follow-up.
+- Return true when user asks a question, requests work, or starts a new topic.
+- When unsure, return true.
+
+Conversation history:
+${historyText}
+`;
+
+  try {
+    const decision = await lang.askForObject(decisionPrompt, decisionSchema);
+    return Boolean(decision?.object?.respond);
+  } catch (error) {
+    console.error("Failed to run respond/no-respond decision; defaulting to respond:", error);
+    return true;
+  }
+}
+
+async function loadThreadAgent(threadDir, lang) {
+  const agent = new ChatAgent(lang);
+  const messages = await loadThreadMessages(threadDir);
+  if (messages.length > 0) {
+    agent.messages.push(...messages);
+  }
+  return agent;
+}
+
+async function loadThreadMessages(threadDir) {
+  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
+  let raw;
+  try {
+    raw = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    console.error(`Invalid ${THREAD_MESSAGES_FILE_NAME} at ${filePath}, starting with empty history.`);
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    console.error(`Invalid ${THREAD_MESSAGES_FILE_NAME} format at ${filePath}, expected array.`);
+    return [];
+  }
+
+  return parsed.map((item) => new LangMessage(item.role, item.items, item.meta));
+}
+
+async function saveThreadMessages(threadDir, messages) {
+  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
+  const serializable = Array.from(messages).map((message) => ({
+    role: message.role,
+    items: message.items,
+    meta: message.meta,
+  }));
+  await fs.writeFile(filePath, `${JSON.stringify(serializable, null, 2)}\n`, "utf8");
+}
+
+export function defaultSlackInstructions() {
+  return [
+    "You are a concise assistant in Slack.",
+    "Use short, direct answers.",
+    "If context is missing, ask one clear follow-up question.",
+  ].join("\n");
+}
