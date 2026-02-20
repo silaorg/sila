@@ -82,6 +82,7 @@ function buildChannelConfig(channel) {
       mode: "socket",
       botUserOAuthToken: "",
       appLevelToken: "",
+      aiModel: "gpt-5.2",
     };
   }
 
