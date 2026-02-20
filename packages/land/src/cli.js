@@ -10,7 +10,8 @@ import {
   createDefaultConfig,
   getConfigPath,
   readConfig,
-} from "./land-config.js";
+} from "./config.js";
+import { Land } from "./land.js";
 
 const USAGE = `Usage:
   silaland create [path]
@@ -131,7 +132,12 @@ async function handleRun(args) {
     throw error;
   }
 
-  logInfo(`Running land in: ${landDir}`);
+  const land = new Land(landDir);
+  land.run().catch((error) => {
+    logError(`Failed to run land: ${error.message}`);
+    process.exitCode = 1;
+  });
+
   if (values.watch) {
     logInfo("Watch mode enabled.");
   }
