@@ -1,6 +1,6 @@
 Read [README.md] if you havent.
 
-And the dev rules we use:
+Important dev rules to follow:
 - [docs/dev/rules/how-to-code.md]
 - [docs/dev/rules/how-to-commit.md]
 - [docs/dev/rules/how-to-write-proposals.md]
