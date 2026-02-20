@@ -18,7 +18,9 @@ This keeps behavior simple, explicit, and auditable.
 workspace/
   config.json
   assets/
-  threads/
+  providers/
+    openai.json
+  channels/
     telegram/
       config.json
       123/
