@@ -1,0 +1,11 @@
+**/dist/
+**/build/
+**/node_modules
+**/.svelte-kit
+
+.env*
+!*.env.example
+.DS_Store
+*.log
+
+**/test-land

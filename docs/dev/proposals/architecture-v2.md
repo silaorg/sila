@@ -17,6 +17,7 @@ This keeps behavior simple, explicit, and auditable.
 ```text
 workspace/
   config.json
+  assets/
   threads/
     telegram/
       config.json

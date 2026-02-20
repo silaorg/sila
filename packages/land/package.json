@@ -1,0 +1,12 @@
+{
+  "type": "module",
+  "main": "src/cli.js",
+  "dependencies": {
+    "picocolors": "^1.1.1",
+    "zod": "^4.1.5"
+  },
+  "scripts": {
+    "start": "node src/cli.js run",
+    "dev": "node --watch src/cli.js run --watch"
+  }
+}

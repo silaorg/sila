@@ -1,1 +1,0 @@
-console.log("hello, world! This is the workspace package.");
