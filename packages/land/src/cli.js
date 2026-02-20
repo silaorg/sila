@@ -11,10 +11,11 @@ import {
   getConfigPath,
   readConfig,
 } from "./config.js";
+import { CreateLandError, createLand } from "./create-land.js";
 import { Land } from "./land.js";
 
 const USAGE = `Usage:
-  silaland create [path]
+  silaland create [path] [--channel telegram] [--openai-api-key <key>] [--secret NAME=VALUE]
   silaland run [path] [--watch]
 
 Commands:
@@ -22,6 +23,10 @@ Commands:
   run      Run a land directory (bootstraps config.json only for new/empty dirs).
 
 Options:
+  -c, --channel <name>    Channel to scaffold for create.
+  -k, --openai-api-key <key>
+                           OpenAI API key to write into providers/openai.json.
+  -s, --secret <kv>       Secret in NAME=VALUE format. Can be repeated.
   -w, --watch             Enable watch mode for run.
   -h, --help              Show help.
 `;
@@ -54,6 +59,9 @@ async function main() {
 
 async function handleCreate(args) {
   const { values, positionals } = parseCommandArgs(args, {
+    channel: { type: "string", short: "c" },
+    "openai-api-key": { type: "string", short: "k" },
+    secret: { type: "string", short: "s", multiple: true },
     help: { type: "boolean", short: "h" },
   });
 
@@ -67,19 +75,31 @@ async function handleCreate(args) {
   }
 
   const landDir = resolveLandDir(positionals[0]);
-  const existing = await statIfExists(landDir);
+  const secrets = parseSecretOptions(values.secret ?? []);
 
-  if (existing && !existing.isDirectory()) {
-    throw new Error(`Path exists and is not a directory: ${landDir}`);
+  try {
+    const created = await createLand({
+      path: landDir,
+      channel: values.channel,
+      openaiApiKey: values["openai-api-key"],
+      secrets,
+    });
+    logSuccess(`Created land at: ${created.landPath}`);
+    logInfo(`Scaffolded channel: ${created.channel}`);
+    if (created.openaiConfigured) {
+      logInfo("Configured OpenAI provider.");
+    } else {
+      logInfo("Scaffolded OpenAI provider config. Set apiKey in providers/openai.json.");
+    }
+    if (created.secretCount) {
+      logInfo(`Stored ${created.secretCount} secret(s).`);
+    }
+  } catch (error) {
+    if (error instanceof CreateLandError) {
+      throw usageError(error.message);
+    }
+    throw error;
   }
-
-  if (existing) {
-    throw new Error(`Land already exists at ${landDir}.`);
-  }
-
-  await fs.mkdir(landDir, { recursive: true });
-  await createDefaultConfig(landDir);
-  logSuccess(`Created land at: ${landDir}`);
 }
 
 async function handleRun(args) {
@@ -149,6 +169,23 @@ function parseCommandArgs(args, options) {
   } catch (error) {
     throw usageError(error.message);
   }
+}
+
+function parseSecretOptions(secretArgs) {
+  if (!secretArgs.length) {
+    return undefined;
+  }
+
+  return secretArgs.map((secretArg) => {
+    const separator = secretArg.indexOf("=");
+    if (separator <= 0) {
+      throw usageError(`Invalid --secret value "${secretArg}". Expected NAME=VALUE.`);
+    }
+    return {
+      name: secretArg.slice(0, separator),
+      value: secretArg.slice(separator + 1),
+    };
+  });
 }
 
 function resolveLandDir(maybePath) {

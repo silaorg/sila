@@ -40,7 +40,5 @@ export class Land {
     await this.#readConfigPromise;
 
     console.log(`Running land: ${this.name} at path: ${this.path}`);
-    
-
   }
 }
