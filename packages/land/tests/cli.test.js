@@ -40,6 +40,8 @@ test("create then run land succeeds", async () => {
   ]);
   assert.equal(createResult.code, 0);
   assert.match(createResult.stdout, /Created land at:/);
+  const skillsStat = await fs.stat(path.join(landDir, "skills"));
+  assert.equal(skillsStat.isDirectory(), true);
 
   const runResult = await runCli(["run", landDir]);
   assert.equal(runResult.code, 0);

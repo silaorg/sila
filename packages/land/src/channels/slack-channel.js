@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { InProcessSlackAgentRuntime } from "@sila/agents";
+import { InProcessSlackAgentRuntime, defaultSlackInstructions } from "@sila/agents";
+import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 
 const OptionalTokenSchema = z
   .string()
@@ -81,9 +82,13 @@ export class SlackChannel {
     }
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
+    const landPath = path.resolve(this.#path, "..", "..");
+    const skills = await loadSkillIndex(landPath);
+    const instructions = appendSkillCatalogInstructions(defaultSlackInstructions(), skills);
     this.#agentRuntime = new InProcessSlackAgentRuntime({
       lang: this.#lang,
-      defaultCwd: path.resolve(this.#path, "..", ".."),
+      defaultCwd: landPath,
+      instructions,
     });
 
     const { App, LogLevel } = await import("@slack/bolt");

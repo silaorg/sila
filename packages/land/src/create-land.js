@@ -44,11 +44,13 @@ export async function createLand(options) {
 
   const providersPath = path.join(landPath, "providers");
   const agentsPath = path.join(landPath, "agents");
+  const skillsPath = path.join(landPath, "skills");
   const assetsPath = path.join(landPath, "assets");
   const channelPath = path.join(landPath, "channels", parsedOptions.channel);
 
   await fs.mkdir(providersPath, { recursive: true });
   await fs.mkdir(agentsPath, { recursive: true });
+  await fs.mkdir(skillsPath, { recursive: true });
   await fs.mkdir(assetsPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
