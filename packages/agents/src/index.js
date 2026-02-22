@@ -10,5 +10,6 @@ export {
   createToolEditDocument,
   createToolExecuteCommand,
   createToolReadDocument,
+  createToolSeeImage,
   createToolSearchReplacePatch,
 } from "./tools/index.js";

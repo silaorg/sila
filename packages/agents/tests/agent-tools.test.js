@@ -45,6 +45,7 @@ describe("createSlackChatAgent", () => {
     const toolNames = (agent.messages.availableTools || []).map((tool) => tool.name);
     ok(toolNames.includes("web_search"));
     ok(toolNames.includes("execute_command"));
+    ok(toolNames.includes("see"));
     ok(toolNames.includes("read_document"));
     ok(toolNames.includes("edit_document"));
     ok(toolNames.includes("apply_patch"));
