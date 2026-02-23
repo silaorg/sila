@@ -6,5 +6,6 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "node packages/land/src/cli.js run packages/land/test-land --watch"
   }
 }
