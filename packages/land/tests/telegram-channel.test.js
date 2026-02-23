@@ -16,7 +16,6 @@ test("telegram document upload is forwarded as relative dated path", async () =>
       channel: "telegram",
       enabled: true,
       botToken: "test-bot-token",
-      aiModel: "gpt-5.2",
     },
     {
       async createBot() {
@@ -78,7 +77,6 @@ test("telegram audio upload includes transcription and sends response", async ()
       channel: "telegram",
       enabled: true,
       botToken: "test-bot-token",
-      aiModel: "gpt-5.2",
     },
     {
       async createBot() {
@@ -133,11 +131,9 @@ async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-telegram-channel-"));
   const landPath = path.join(root, "land");
   const channelPath = path.join(landPath, "channels", "telegram");
-  const providersPath = path.join(landPath, "providers");
 
   await fs.mkdir(channelPath, { recursive: true });
-  await fs.mkdir(providersPath, { recursive: true });
-  await fs.writeFile(path.join(providersPath, "openai.json"), JSON.stringify({ apiKey: "sk-test" }), "utf8");
+  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=sk-test\n", "utf8");
   return { root, landPath, channelPath };
 }
 

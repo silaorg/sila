@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { loadLandEnvironment, readEnvValue } from "../env.js";
 
 export const OptionalTokenSchema = z
   .string()
@@ -42,44 +43,13 @@ export async function saveThreadState(threadDir, state) {
 }
 
 export async function readOpenAiApiKey(channelPath) {
-  const providerPath = path.resolve(channelPath, "..", "..", "providers", "openai.json");
-  const fromConfig = await readProviderApiKey(providerPath);
-  if (fromConfig) {
-    return fromConfig;
-  }
-  if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) {
-    return process.env.OPENAI_API_KEY.trim();
-  }
-  return null;
+  const landPath = path.resolve(channelPath, "..", "..");
+  await loadLandEnvironment(landPath);
+  return readEnvValue("OPENAI_API_KEY");
 }
 
-async function readProviderApiKey(providerPath) {
-  let raw;
-  try {
-    raw = await fs.readFile(providerPath, "utf8");
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    console.warn(`Invalid OpenAI provider config at ${providerPath}:`, error.message);
-    return null;
-  }
-
-  if (!parsed || typeof parsed !== "object") {
-    return null;
-  }
-
-  const value = parsed.apiKey;
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed : null;
+export async function readExaApiKey(channelPath) {
+  const landPath = path.resolve(channelPath, "..", "..");
+  await loadLandEnvironment(landPath);
+  return readEnvValue("EXA_API_KEY");
 }

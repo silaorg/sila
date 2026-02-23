@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { CONFIG_FILE_NAME, createDefaultConfig } from "./config.js";
+import { getLandEnvPath } from "./env.js";
 
 export const CreateLandOptionsSchema = z.object({
   path: z.string().min(1),
@@ -42,23 +43,18 @@ export async function createLand(options) {
   await fs.mkdir(landPath, { recursive: true });
   await createDefaultConfig(landPath);
 
-  const providersPath = path.join(landPath, "providers");
   const agentsPath = path.join(landPath, "agents");
   const skillsPath = path.join(landPath, "skills");
   const assetsPath = path.join(landPath, "assets");
   const channelPath = path.join(landPath, "channels", parsedOptions.channel);
 
-  await fs.mkdir(providersPath, { recursive: true });
   await fs.mkdir(agentsPath, { recursive: true });
   await fs.mkdir(skillsPath, { recursive: true });
   await fs.mkdir(assetsPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
   await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
-
-  await writeJsonFile(path.join(providersPath, "openai.json"), {
-    apiKey: parsedOptions.openaiApiKey ?? "",
-  });
+  await fs.writeFile(getLandEnvPath(landPath), buildLandEnv(parsedOptions), "utf8");
 
   if (parsedOptions.secrets?.length) {
     await writeJsonFile(path.join(landPath, "secrets.json"), parsedOptions.secrets);
@@ -84,7 +80,6 @@ function buildChannelConfig(channel) {
       mode: "socket",
       botUserOAuthToken: "",
       appLevelToken: "",
-      aiModel: "gpt-5.2",
     };
   }
 
@@ -93,11 +88,20 @@ function buildChannelConfig(channel) {
       channel: "telegram",
       enabled: true,
       botToken: "",
-      aiModel: "gpt-5.2",
     };
   }
 
   return { channel };
+}
+
+function buildLandEnv(options) {
+  const openAiApiKey = options.openaiApiKey ?? "";
+  return [
+    "# AI provider keys for this land",
+    `OPENAI_API_KEY=${openAiApiKey}`,
+    "EXA_API_KEY=",
+    "",
+  ].join("\n");
 }
 
 async function statIfExists(filePath) {

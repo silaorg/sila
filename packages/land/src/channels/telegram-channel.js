@@ -25,8 +25,8 @@ const TelegramChannelConfigSchema = z.looseObject({
   channel: z.literal("telegram"),
   enabled: z.boolean().default(true),
   botToken: OptionalTokenSchema,
-  aiModel: z.string().min(1).default("gpt-5.2"),
 });
+const OPENAI_MODEL = "gpt-5.2";
 
 export class TelegramChannel {
   /** @type {string} */
@@ -96,12 +96,12 @@ export class TelegramChannel {
     const openAiApiKey = await readOpenAiApiKey(this.#path);
     if (!openAiApiKey) {
       console.log(
-        `Telegram channel missing OpenAI API key for ${this.#path}. Set providers/openai.json apiKey or OPENAI_API_KEY env.`,
+        `Telegram channel missing OpenAI API key for ${this.#path}. Set OPENAI_API_KEY in land .env or process env.`,
       );
       return;
     }
 
-    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
+    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
     this.#openai = this.#dependencies.createOpenAiClient(openAiApiKey);
     this.#landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(this.#landPath);

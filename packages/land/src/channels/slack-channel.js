@@ -18,8 +18,8 @@ const SlackChannelConfigSchema = z.looseObject({
   mode: z.literal("socket").default("socket"),
   botUserOAuthToken: OptionalTokenSchema,
   appLevelToken: OptionalTokenSchema,
-  aiModel: z.string().min(1).default("gpt-5.2"),
 });
+const OPENAI_MODEL = "gpt-5.2";
 
 export class SlackChannel {
   /** @type {string} */
@@ -70,12 +70,12 @@ export class SlackChannel {
     const openAiApiKey = await readOpenAiApiKey(this.#path);
     if (!openAiApiKey) {
       console.log(
-        `Slack channel missing OpenAI API key for ${this.#path}. Set providers/openai.json apiKey or OPENAI_API_KEY env.`,
+        `Slack channel missing OpenAI API key for ${this.#path}. Set OPENAI_API_KEY in land .env or process env.`,
       );
       return;
     }
 
-    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
+    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
     const landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(landPath);
     const instructions = appendSkillCatalogInstructions(defaultSlackInstructions(), skills);

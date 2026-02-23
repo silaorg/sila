@@ -25,7 +25,7 @@ Commands:
 Options:
   -c, --channel <name>    Channel to scaffold for create.
   -k, --openai-api-key <key>
-                           OpenAI API key to write into providers/openai.json.
+                           OpenAI API key to write into .env as OPENAI_API_KEY.
   -s, --secret <kv>       Secret in NAME=VALUE format. Can be repeated.
   -w, --watch             Enable watch mode for run.
   -h, --help              Show help.
@@ -87,9 +87,9 @@ async function handleCreate(args) {
     logSuccess(`Created land at: ${created.landPath}`);
     logInfo(`Scaffolded channel: ${created.channel}`);
     if (created.openaiConfigured) {
-      logInfo("Configured OpenAI provider.");
+      logInfo("Configured OPENAI_API_KEY in .env.");
     } else {
-      logInfo("Scaffolded OpenAI provider config. Set apiKey in providers/openai.json.");
+      logInfo("Scaffolded .env file. Set OPENAI_API_KEY and EXA_API_KEY there.");
     }
     if (created.secretCount) {
       logInfo(`Stored ${created.secretCount} secret(s).`);

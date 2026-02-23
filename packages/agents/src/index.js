@@ -23,4 +23,5 @@ export {
   createToolReadDocument,
   createToolSeeImage,
   createToolSearchReplacePatch,
+  createToolWebSearch,
 } from "./tools/index.js";

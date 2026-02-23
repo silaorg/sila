@@ -3,6 +3,7 @@ import path from "node:path";
 import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
+import { loadLandEnvironment } from "./env.js";
 
 const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
   slack: SlackChannel,
@@ -55,6 +56,7 @@ export class Land {
     this.#isRunning = true;
 
     await this.#readConfigPromise;
+    await loadLandEnvironment(this.#path);
 
     await this.runChannels();
 

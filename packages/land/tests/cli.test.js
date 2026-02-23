@@ -40,6 +40,9 @@ test("create then run land succeeds", async () => {
   ]);
   assert.equal(createResult.code, 0);
   assert.match(createResult.stdout, /Created land at:/);
+  const landEnv = await fs.readFile(path.join(landDir, ".env"), "utf8");
+  assert.match(landEnv, /OPENAI_API_KEY=sk-test/);
+  assert.match(landEnv, /EXA_API_KEY=/);
   const skillsStat = await fs.stat(path.join(landDir, "skills"));
   assert.equal(skillsStat.isDirectory(), true);
 

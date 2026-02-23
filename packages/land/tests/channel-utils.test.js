@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import {
   enqueueSerialTask,
+  readExaApiKey,
   readOpenAiApiKey,
   sanitizeThreadId,
   saveThreadState,
@@ -14,17 +15,25 @@ test("sanitizeThreadId replaces unsupported characters", () => {
   assert.equal(sanitizeThreadId("chat:123/alpha beta"), "chat_123_alpha_beta");
 });
 
-test("readOpenAiApiKey loads from provider config", async () => {
+test("readOpenAiApiKey loads from land .env", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
   const landPath = path.join(tempRoot, "land");
   const channelPath = path.join(landPath, "channels", "telegram");
-  const providersPath = path.join(landPath, "providers");
   await fs.mkdir(channelPath, { recursive: true });
-  await fs.mkdir(providersPath, { recursive: true });
-  await fs.writeFile(path.join(providersPath, "openai.json"), JSON.stringify({ apiKey: "sk-config" }), "utf8");
+  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=sk-env-file\n", "utf8");
 
-  const key = await readOpenAiApiKey(channelPath);
-  assert.equal(key, "sk-config");
+  const previous = process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try {
+    const key = await readOpenAiApiKey(channelPath);
+    assert.equal(key, "sk-env-file");
+  } finally {
+    if (typeof previous === "string") {
+      process.env.OPENAI_API_KEY = previous;
+    } else {
+      delete process.env.OPENAI_API_KEY;
+    }
+  }
 });
 
 test("readOpenAiApiKey falls back to env", async () => {
@@ -42,6 +51,27 @@ test("readOpenAiApiKey falls back to env", async () => {
       process.env.OPENAI_API_KEY = previous;
     } else {
       delete process.env.OPENAI_API_KEY;
+    }
+  }
+});
+
+test("readExaApiKey loads from land .env", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const landPath = path.join(tempRoot, "land");
+  const channelPath = path.join(landPath, "channels", "telegram");
+  await fs.mkdir(channelPath, { recursive: true });
+  await fs.writeFile(path.join(landPath, ".env"), "EXA_API_KEY=exa-key\n", "utf8");
+
+  const previous = process.env.EXA_API_KEY;
+  delete process.env.EXA_API_KEY;
+  try {
+    const key = await readExaApiKey(channelPath);
+    assert.equal(key, "exa-key");
+  } finally {
+    if (typeof previous === "string") {
+      process.env.EXA_API_KEY = previous;
+    } else {
+      delete process.env.EXA_API_KEY;
     }
   }
 });
