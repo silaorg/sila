@@ -1,20 +1,25 @@
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 import path from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
 import { Lang } from "aiwrapper";
 import OpenAI from "openai";
 import { z } from "zod";
 import { InProcessChatAgentRuntime, defaultTelegramInstructions } from "@sila/agents";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
+import { OptionalTokenSchema, enqueueSerialTask, readOpenAiApiKey, saveThreadState } from "./channel-utils.js";
 import {
-  OptionalTokenSchema,
-  enqueueSerialTask,
-  readOpenAiApiKey,
-  sanitizeThreadId,
-  saveThreadState,
-} from "./channel-utils.js";
+  getAttachmentInfo,
+  getAudioInfo,
+  getMessageCaption,
+  getMessageDate,
+  getMessageText,
+  getThreadContext,
+  getUserId,
+  isTelegramAttachmentMessage,
+  isTelegramAudioMessage,
+  isTelegramUserTextMessage,
+} from "./telegram/telegram-input-parser.js";
+import { storeTelegramFile } from "./telegram/telegram-file-store.js";
+import { transcribeAudioFile } from "./telegram/telegram-transcriber.js";
 
 const TelegramChannelConfigSchema = z.looseObject({
   channel: z.literal("telegram"),
@@ -28,11 +33,11 @@ export class TelegramChannel {
   #path;
   /** @type {import("zod").infer<typeof TelegramChannelConfigSchema>} */
   #config;
-  /** @type {null | import("telegraf").Telegraf<any>} */
+  /** @type {null | any} */
   #bot = null;
   /** @type {null | import("aiwrapper").LanguageProvider} */
   #lang = null;
-  /** @type {null | OpenAI} */
+  /** @type {null | any} */
   #openai = null;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
@@ -41,14 +46,33 @@ export class TelegramChannel {
   /** @type {string} */
   #landPath = process.cwd();
   #isRunning = false;
+  /** @type {{
+   *  createBot: (token: string) => Promise<any>;
+   *  createOpenAiClient: (apiKey: string) => any;
+   *  createAgentRuntime: (options: { lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd: string }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  storeTelegramFile: typeof storeTelegramFile;
+   *  transcribeAudioFile: typeof transcribeAudioFile;
+   * }} */
+  #dependencies;
 
   /**
    * @param {string} channelPath
    * @param {Record<string, unknown>} rawConfig
+   * @param {Partial<{
+   *  createBot: (token: string) => Promise<any>;
+   *  createOpenAiClient: (apiKey: string) => any;
+   *  createAgentRuntime: (options: { lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd: string }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  storeTelegramFile: typeof storeTelegramFile;
+   *  transcribeAudioFile: typeof transcribeAudioFile;
+   * }>} [dependencies]
    */
-  constructor(channelPath, rawConfig) {
+  constructor(channelPath, rawConfig, dependencies = {}) {
     this.#path = channelPath;
     this.#config = parseChannelConfig(rawConfig);
+    this.#dependencies = {
+      ...createDefaultDependencies(),
+      ...dependencies,
+    };
   }
 
   async run() {
@@ -76,21 +100,23 @@ export class TelegramChannel {
     }
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: this.#config.aiModel });
-    this.#openai = new OpenAI({ apiKey: openAiApiKey });
+    this.#openai = this.#dependencies.createOpenAiClient(openAiApiKey);
     this.#landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(this.#landPath);
     const instructions = appendSkillCatalogInstructions(defaultTelegramInstructions(), skills);
-    this.#agentRuntime = new InProcessChatAgentRuntime({
+    this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,
       defaultCwd: this.#landPath,
       instructions,
     });
 
-    const { Telegraf } = await import("telegraf");
-    const bot = new Telegraf(this.#config.botToken, { handlerTimeout: 9 * 60 * 1000 });
-    bot.catch((error) => {
-      console.error("Telegram bot handler error:", error);
-    });
+    const bot = await this.#dependencies.createBot(this.#config.botToken);
+    if (typeof bot.catch === "function") {
+      bot.catch((error) => {
+        console.error("Telegram bot handler error:", error);
+      });
+    }
+
     bot.on("text", async (ctx) => this.#handleTextMessage(ctx));
     bot.on("document", async (ctx) => this.#handleAttachmentMessage(ctx, "document"));
     bot.on("photo", async (ctx) => this.#handleAttachmentMessage(ctx, "photo"));
@@ -110,7 +136,7 @@ export class TelegramChannel {
     }
 
     await this.#agentRuntime?.stop();
-    if (this.#bot) {
+    if (this.#bot && typeof this.#bot.stop === "function") {
       this.#bot.stop("shutdown");
     }
 
@@ -182,13 +208,14 @@ export class TelegramChannel {
         }
 
         const threadDir = path.join(this.#path, thread.threadId);
-        const localPath = await this.#downloadTelegramFile({
+        const localPath = await this.#dependencies.storeTelegramFile({
           fileId: attachment.fileId,
           originalName: attachment.fileName,
           threadDir,
           createdAt: getMessageDate(ctx),
           telegram: ctx.telegram,
         });
+
         const relativePath = this.#toAgentRelativePath(localPath);
         let messageText = `[Uploaded a ${attachment.label}: ${relativePath}]`;
         const caption = getMessageCaption(ctx);
@@ -226,18 +253,19 @@ export class TelegramChannel {
         }
 
         const threadDir = path.join(this.#path, thread.threadId);
-        const localPath = await this.#downloadTelegramFile({
+        const localPath = await this.#dependencies.storeTelegramFile({
           fileId: audioInfo.fileId,
           originalName: audioInfo.fileName,
           threadDir,
           createdAt: getMessageDate(ctx),
           telegram: ctx.telegram,
         });
+
         const relativePath = this.#toAgentRelativePath(localPath);
         let messageText = `[Uploaded an audio file: ${relativePath}]`;
 
         try {
-          const transcription = await this.#transcribeAudio(localPath);
+          const transcription = await this.#dependencies.transcribeAudioFile(this.#openai, localPath);
           if (transcription) {
             messageText += `\n\n[Audio transcription]\n${transcription}`;
           }
@@ -302,48 +330,6 @@ export class TelegramChannel {
   }
 
   /**
-   * @param {{
-   *  fileId: string;
-   *  originalName: string;
-   *  threadDir: string;
-   *  createdAt: Date;
-   *  telegram: any;
-   * }} input
-   */
-  async #downloadTelegramFile(input) {
-    const datePath = buildDatePath(input.createdAt);
-    const datedDir = path.join(input.threadDir, "files", datePath);
-    await fs.mkdir(datedDir, { recursive: true });
-
-    const safeName = sanitizeFileName(input.originalName);
-    const targetPath = await buildUniqueFilePath(datedDir, safeName);
-    const fileLink = await input.telegram.getFileLink(input.fileId);
-    await downloadFileToPath(fileLink.href, targetPath);
-    return targetPath;
-  }
-
-  /**
-   * @param {string} localPath
-   * @returns {Promise<string>}
-   */
-  async #transcribeAudio(localPath) {
-    if (!this.#openai) {
-      return "";
-    }
-
-    const transcription = await this.#openai.audio.transcriptions.create({
-      file: fsSync.createReadStream(localPath),
-      model: "whisper-1",
-    });
-
-    if (!transcription || typeof transcription.text !== "string") {
-      return "";
-    }
-
-    return transcription.text.trim();
-  }
-
-  /**
    * @param {string} absolutePath
    */
   #toAgentRelativePath(absolutePath) {
@@ -363,198 +349,19 @@ function parseChannelConfig(rawConfig) {
   return result.data;
 }
 
-function isTelegramUserTextMessage(ctx) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-
-  if (typeof ctx.message.text !== "string") {
-    return false;
-  }
-
-  if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
-  }
-
-  return true;
-}
-
-function isTelegramAttachmentMessage(ctx) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-  if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
-  }
-  return Boolean(ctx.message.document || ctx.message.photo || ctx.message.video);
-}
-
-function isTelegramAudioMessage(ctx, kind) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-  if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
-  }
-  if (kind === "audio") {
-    return Boolean(ctx.message.audio);
-  }
-  return Boolean(ctx.message.voice);
-}
-
-function getMessageText(ctx) {
-  return String(ctx.message.text || "").trim();
-}
-
-function getMessageCaption(ctx) {
-  if (!ctx.message || typeof ctx.message.caption !== "string") {
-    return "";
-  }
-  return ctx.message.caption.trim();
-}
-
-function getMessageDate(ctx) {
-  const unixSeconds = Number(ctx.message?.date);
-  if (Number.isFinite(unixSeconds) && unixSeconds > 0) {
-    return new Date(unixSeconds * 1000);
-  }
-  return new Date();
-}
-
-function getUserId(ctx) {
-  if (!ctx.from || typeof ctx.from !== "object") {
-    return "";
-  }
-  if (typeof ctx.from.id === "undefined" || ctx.from.id === null) {
-    return "";
-  }
-  return String(ctx.from.id);
-}
-
-function getThreadContext(ctx) {
-  const chatId = String(ctx.chat?.id ?? "");
+function createDefaultDependencies() {
   return {
-    threadId: sanitizeThreadId(chatId),
-    chatId,
+    async createBot(botToken) {
+      const { Telegraf } = await import("telegraf");
+      return new Telegraf(botToken, { handlerTimeout: 9 * 60 * 1000 });
+    },
+    createOpenAiClient(apiKey) {
+      return new OpenAI({ apiKey });
+    },
+    createAgentRuntime(options) {
+      return new InProcessChatAgentRuntime(options);
+    },
+    storeTelegramFile,
+    transcribeAudioFile,
   };
-}
-
-function getAttachmentInfo(ctx, kind) {
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return null;
-  }
-
-  if (kind === "document" && ctx.message.document) {
-    return {
-      fileId: String(ctx.message.document.file_id),
-      fileName: String(ctx.message.document.file_name || `file_${Date.now()}`),
-      label: "file",
-    };
-  }
-
-  if (kind === "photo" && Array.isArray(ctx.message.photo) && ctx.message.photo.length > 0) {
-    const photo = ctx.message.photo[ctx.message.photo.length - 1];
-    return {
-      fileId: String(photo.file_id),
-      fileName: `photo_${Date.now()}.jpg`,
-      label: "photo",
-    };
-  }
-
-  if (kind === "video" && ctx.message.video) {
-    return {
-      fileId: String(ctx.message.video.file_id),
-      fileName: String(ctx.message.video.file_name || `video_${Date.now()}.mp4`),
-      label: "video",
-    };
-  }
-
-  return null;
-}
-
-function getAudioInfo(ctx, kind) {
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return null;
-  }
-
-  if (kind === "audio" && ctx.message.audio) {
-    const fileName = String(ctx.message.audio.file_name || "").trim();
-    const extension = path.extname(fileName) || ".mp3";
-    return {
-      fileId: String(ctx.message.audio.file_id),
-      fileName: fileName || `audio_${Date.now()}${extension}`,
-    };
-  }
-
-  if (kind === "voice" && ctx.message.voice) {
-    return {
-      fileId: String(ctx.message.voice.file_id),
-      fileName: `voice_${Date.now()}.ogg`,
-    };
-  }
-
-  return null;
-}
-
-function sanitizeFileName(input) {
-  const normalized = String(input || "").trim();
-  if (!normalized) {
-    return `file_${Date.now()}`;
-  }
-
-  const safe = normalized.replace(/[/\\]/g, "_").replace(/[^a-zA-Z0-9._-]/g, "_");
-  if (!safe.length || safe === "." || safe === "..") {
-    return `file_${Date.now()}`;
-  }
-  return safe;
-}
-
-function buildDatePath(date) {
-  const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return path.join(year, month, day);
-}
-
-async function buildUniqueFilePath(directory, fileName) {
-  const parsed = path.parse(fileName);
-  const baseName = parsed.name || "file";
-  const extension = parsed.ext || "";
-
-  let index = 0;
-  while (true) {
-    const suffix = index === 0 ? "" : `_${index}`;
-    const candidateName = `${baseName}${suffix}${extension}`;
-    const candidatePath = path.join(directory, candidateName);
-
-    try {
-      await fs.access(candidatePath);
-      index += 1;
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return candidatePath;
-      }
-      throw error;
-    }
-  }
-}
-
-async function downloadFileToPath(url, destinationPath) {
-  const response = await fetch(url);
-  if (!response.ok || !response.body) {
-    throw new Error(`Failed to fetch Telegram file. status=${response.status}`);
-  }
-
-  const writeStream = fsSync.createWriteStream(destinationPath, { flags: "wx" });
-  await pipeline(Readable.fromWeb(response.body), writeStream);
 }

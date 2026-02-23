@@ -1,9 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { LangMessage, z as aiZ } from "aiwrapper";
-import { defaultSlackInstructions } from "./instructions.js";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
-import { createChatAgent } from "./slack-agent.js";
+import { createChatAgent } from "./chat-agent.js";
 
 const THREAD_MESSAGES_FILE_NAME = "messages.json";
 
@@ -28,7 +27,7 @@ export class ThreadAgent {
    *  lang: import("aiwrapper").LanguageProvider;
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
-   *  instructions?: string;
+   *  instructions: string;
    * }} options
    */
   constructor(options) {
@@ -37,7 +36,7 @@ export class ThreadAgent {
     this.#lang = options.lang;
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
-    this.#instructions = options.instructions ?? defaultSlackInstructions();
+    this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
 
   /**
@@ -85,12 +84,12 @@ export class InProcessChatAgentRuntime {
   #ptyManagersByThread = new Map();
 
   /**
-   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions?: string; defaultCwd?: string }} options
+   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd?: string }} options
    */
   constructor(options) {
     this.#lang = options.lang;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
-    this.#instructions = options.instructions ?? defaultSlackInstructions();
+    this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
   }
 
   /**
@@ -137,6 +136,13 @@ export class InProcessChatAgentRuntime {
  * Backward-compatible alias. Use InProcessChatAgentRuntime for new code.
  */
 export class InProcessSlackAgentRuntime extends InProcessChatAgentRuntime {}
+
+function requireInstructions(instructions, contextName) {
+  if (typeof instructions !== "string" || !instructions.trim().length) {
+    throw new Error(`${contextName} requires explicit non-empty instructions.`);
+  }
+  return instructions;
+}
 
 async function decideShouldRespond(lang, agent) {
   if (!lang || agent.messages.length === 0) {

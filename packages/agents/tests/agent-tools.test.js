@@ -1,7 +1,8 @@
 import { describe, it } from "node:test";
 import { ok } from "node:assert";
 import { Lang } from "aiwrapper";
-import { createChatAgent, createSlackChatAgent } from "../src/slack-agent.js";
+import { createChatAgent } from "../src/chat-agent.js";
+import { createSlackChatAgent } from "../src/slack-agent.js";
 
 function createPtyStub() {
   return {
