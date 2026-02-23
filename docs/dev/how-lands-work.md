@@ -1,6 +1,6 @@
 # How lands works in Sila
 
-Lands as stored in a directory with a stucture similar to this:
+Lands as stored in directories with a stucture similar to this:
 ```text
 land/
   config.json
