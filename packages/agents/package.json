@@ -5,7 +5,12 @@
   "main": "src/index.js",
   "dependencies": {
     "aiwrapper": "^3.0.2",
-    "node-pty": "^1.1.0"
+    "docx": "^9.5.3",
+    "exceljs": "^4.4.0",
+    "hyperformula": "^3.2.0",
+    "mammoth": "^1.11.0",
+    "node-pty": "^1.1.0",
+    "pdfjs-dist": "^5.4.624"
   },
   "scripts": {
     "test": "node --test tests/*.test.js"

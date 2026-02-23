@@ -1,10 +1,25 @@
 import { after, before, describe, it } from "node:test";
-import { ok, strictEqual } from "node:assert";
+import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import ExcelJS from "exceljs";
+import { Document, Packer, Paragraph } from "docx";
 import { createToolReadDocument } from "../src/tools/read-tool.js";
+
+async function writeDocx(filePath, lines) {
+  const document = new Document({
+    sections: [
+      {
+        properties: {},
+        children: lines.map((line) => new Paragraph(line)),
+      },
+    ],
+  });
+  const buffer = await Packer.toBuffer(document);
+  await fs.promises.writeFile(filePath, buffer);
+}
 
 describe("readTool", () => {
   let tempDir;
@@ -62,5 +77,45 @@ describe("readTool", () => {
 
     strictEqual(result.type, "url");
     ok(result.content.includes("Hello world"));
+  });
+
+  it("reads spreadsheet rows and computes formulas", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const summary = workbook.addWorksheet("Summary");
+    summary.addRow(["Item", "A", "B", "Total"]);
+    summary.addRow(["One", 2, 3, { formula: "B2+C2" }]);
+    summary.addRow(["Two", 7, 5, { formula: "B3+C3" }]);
+    workbook.addWorksheet("Raw");
+    await workbook.xlsx.writeFile(path.join(tempDir, "metrics.xlsx"));
+
+    const tool = createToolReadDocument({ baseDir: tempDir });
+    const list = await tool.handler({ path: "metrics.xlsx", listSheets: true });
+    strictEqual(list.type, "excel");
+    deepStrictEqual(list.sheets, ["Summary", "Raw"]);
+
+    const result = await tool.handler({
+      path: "metrics.xlsx",
+      sheet: "Summary",
+      asObjects: true,
+      headerRow: "1",
+      valueMode: "compute",
+    });
+
+    strictEqual(result.type, "excel");
+    strictEqual(result.sheet, "Summary");
+    strictEqual(result.data[0].Total, 5);
+    strictEqual(result.data[1].Total, 12);
+  });
+
+  it("reads Word documents", async () => {
+    await writeDocx(path.join(tempDir, "notes.docx"), ["Alpha", "Beta", "Gamma"]);
+
+    const tool = createToolReadDocument({ baseDir: tempDir });
+    const result = await tool.handler({ path: "notes.docx", start: 0, limit: 20 });
+
+    strictEqual(result.type, "word");
+    ok(result.content.includes("Alpha"));
+    ok(result.content.includes("Beta"));
+    ok(result.content.includes("Gamma"));
   });
 });

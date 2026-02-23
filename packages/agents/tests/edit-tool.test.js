@@ -3,6 +3,8 @@ import { ok, strictEqual } from "node:assert";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import ExcelJS from "exceljs";
+import mammoth from "mammoth";
 import { createToolEditDocument } from "../src/tools/edit-tool.js";
 
 describe("editTool", () => {
@@ -68,5 +70,90 @@ describe("editTool", () => {
 
     strictEqual(result.status, "failed");
     ok(result.output.includes("Search text not found"));
+  });
+
+  it("writes, appends row, and updates cells in spreadsheets", async () => {
+    const tool = createToolEditDocument({ baseDir: tempDir });
+    const filePath = path.join(tempDir, "budget.xlsx");
+
+    const write = await tool.handler({
+      path: "budget.xlsx",
+      type: "excel",
+      operation: "write",
+      content: JSON.stringify([
+        ["Item", "Amount"],
+        ["Hosting", 10],
+      ]),
+    });
+    strictEqual(write.status, "completed");
+
+    const append = await tool.handler({
+      path: "budget.xlsx",
+      type: "excel",
+      operation: "append_row",
+      content: JSON.stringify(["Storage", 5]),
+    });
+    strictEqual(append.status, "completed");
+
+    const update = await tool.handler({
+      path: "budget.xlsx",
+      type: "excel",
+      operation: "update_cell",
+      cell: "B2",
+      content: "15",
+    });
+    strictEqual(update.status, "completed");
+
+    const formula = await tool.handler({
+      path: "budget.xlsx",
+      type: "excel",
+      operation: "update_cell",
+      cell: "B4",
+      content: "=B2+B3",
+    });
+    strictEqual(formula.status, "completed");
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    const sheet = workbook.worksheets[0];
+    strictEqual(sheet.getCell("A2").value, "Hosting");
+    strictEqual(sheet.getCell("B2").value, 15);
+    strictEqual(sheet.getCell("A3").value, "Storage");
+    strictEqual(sheet.getCell("B3").value, 5);
+    strictEqual(sheet.getCell("B4").value.formula, "B2+B3");
+  });
+
+  it("writes, appends, and replaces content in Word documents", async () => {
+    const tool = createToolEditDocument({ baseDir: tempDir });
+    const wordPath = path.join(tempDir, "notes.docx");
+
+    const write = await tool.handler({
+      path: "notes.docx",
+      type: "word",
+      operation: "write",
+      content: "Alpha",
+    });
+    strictEqual(write.status, "completed");
+
+    const append = await tool.handler({
+      path: "notes.docx",
+      type: "word",
+      operation: "append",
+      content: "Beta",
+    });
+    strictEqual(append.status, "completed");
+
+    const replace = await tool.handler({
+      path: "notes.docx",
+      type: "word",
+      operation: "replace",
+      search: "Beta",
+      replace: "Gamma",
+    });
+    strictEqual(replace.status, "completed");
+
+    const extracted = await mammoth.extractRawText({ buffer: await fs.promises.readFile(wordPath) });
+    ok(extracted.value.includes("Alpha"));
+    ok(extracted.value.includes("Gamma"));
   });
 });
