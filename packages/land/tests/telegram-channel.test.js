@@ -156,6 +156,9 @@ function createMockBot() {
       async getFileLink(fileId) {
         return { href: `https://example.test/files/${fileId}` };
       },
+      async getMe() {
+        return { id: 999001, username: "test_bot" };
+      },
     },
     on(eventName, handler) {
       handlers.set(eventName, handler);

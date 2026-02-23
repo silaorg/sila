@@ -45,6 +45,8 @@ export class TelegramChannel {
   #agentRuntime = null;
   /** @type {string} */
   #landPath = process.cwd();
+  /** @type {null | Promise<void>} */
+  #launchPromise = null;
   #isRunning = false;
   /** @type {{
    *  createBot: (token: string) => Promise<any>;
@@ -124,9 +126,15 @@ export class TelegramChannel {
     bot.on("audio", async (ctx) => this.#handleAudioMessage(ctx, "audio"));
     bot.on("voice", async (ctx) => this.#handleAudioMessage(ctx, "voice"));
 
-    await bot.launch();
+    const botInfo = await bot.telegram.getMe();
+    const botIdentity = botInfo?.username ? `@${botInfo.username}` : `id=${botInfo?.id ?? "unknown"}`;
+    console.log(`Telegram bot authenticated as ${botIdentity}.`);
+
     this.#bot = bot;
     this.#isRunning = true;
+    this.#launchPromise = bot.launch({ dropPendingUpdates: false }).catch((error) => {
+      console.error("Telegram channel launch failed:", error);
+    });
     console.log(`Telegram channel connected at: ${this.#path}`);
   }
 
@@ -140,6 +148,7 @@ export class TelegramChannel {
       this.#bot.stop("shutdown");
     }
 
+    this.#launchPromise = null;
     this.#bot = null;
     this.#lang = null;
     this.#openai = null;
