@@ -76,7 +76,7 @@ export class SlackAgent {
   }
 }
 
-export class InProcessSlackAgentRuntime {
+export class InProcessChatAgentRuntime {
   /** @type {import("aiwrapper").LanguageProvider} */
   #lang;
   /** @type {string} */
@@ -134,6 +134,11 @@ export class InProcessSlackAgentRuntime {
     return manager;
   }
 }
+
+/**
+ * Backward-compatible alias. Use InProcessChatAgentRuntime for new code.
+ */
+export class InProcessSlackAgentRuntime extends InProcessChatAgentRuntime {}
 
 async function decideShouldRespond(lang, agent) {
   if (!lang || agent.messages.length === 0) {

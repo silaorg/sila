@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { InProcessSlackAgentRuntime, defaultSlackInstructions } from "@sila/agents";
+import { InProcessChatAgentRuntime, defaultSlackInstructions } from "@sila/agents";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 
 const OptionalTokenSchema = z
@@ -40,7 +40,7 @@ export class SlackChannel {
   #botUserId = null;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
-  /** @type {null | import("@sila/agents").InProcessSlackAgentRuntime} */
+  /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
   #isRunning = false;
 
@@ -85,7 +85,7 @@ export class SlackChannel {
     const landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(landPath);
     const instructions = appendSkillCatalogInstructions(defaultSlackInstructions(), skills);
-    this.#agentRuntime = new InProcessSlackAgentRuntime({
+    this.#agentRuntime = new InProcessChatAgentRuntime({
       lang: this.#lang,
       defaultCwd: landPath,
       instructions,

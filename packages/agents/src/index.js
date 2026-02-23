@@ -1,4 +1,5 @@
 export {
+  InProcessChatAgentRuntime,
   InProcessSlackAgentRuntime,
   SlackAgent,
   createSlackChatAgent,

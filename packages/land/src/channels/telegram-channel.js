@@ -6,7 +6,7 @@ import { pipeline } from "node:stream/promises";
 import { Lang } from "aiwrapper";
 import OpenAI from "openai";
 import { z } from "zod";
-import { InProcessSlackAgentRuntime, defaultTelegramInstructions } from "@sila/agents";
+import { InProcessChatAgentRuntime, defaultTelegramInstructions } from "@sila/agents";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 
 const OptionalTokenSchema = z
@@ -42,7 +42,7 @@ export class TelegramChannel {
   #openai = null;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
-  /** @type {null | import("@sila/agents").InProcessSlackAgentRuntime} */
+  /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
   /** @type {string} */
   #landPath = process.cwd();
@@ -86,7 +86,7 @@ export class TelegramChannel {
     this.#landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(this.#landPath);
     const instructions = appendSkillCatalogInstructions(defaultTelegramInstructions(), skills);
-    this.#agentRuntime = new InProcessSlackAgentRuntime({
+    this.#agentRuntime = new InProcessChatAgentRuntime({
       lang: this.#lang,
       defaultCwd: this.#landPath,
       instructions,
