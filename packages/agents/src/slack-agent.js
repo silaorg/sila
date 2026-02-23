@@ -10,6 +10,7 @@ import {
   createToolSeeImage,
   createToolSearchReplacePatch,
 } from "./tools/index.js";
+import { defaultSlackInstructions } from "./instructions.js";
 
 const THREAD_MESSAGES_FILE_NAME = "messages.json";
 
@@ -235,18 +236,4 @@ export function createSlackChatAgent(lang, options) {
   ];
 
   return new ChatAgent(lang, { tools });
-}
-
-export function defaultSlackInstructions() {
-  return [
-    "You are a concise assistant in Slack.",
-    "Use short, direct answers.",
-    "If context is missing, ask one clear follow-up question.",
-    "Use web_search for current events or facts likely to change.",
-    "Use see to inspect images from URLs or local files.",
-    "Use read_document/edit_document/apply_patch/apply_search_replace_patch for file work.",
-    "Use execute_command for CLI work.",
-    "For stateful CLI tasks, run shell start first, then commands, then shell stop when done.",
-    "Avoid interactive terminal apps like vim, nano, less, and htop.",
-  ].join("\n");
 }
