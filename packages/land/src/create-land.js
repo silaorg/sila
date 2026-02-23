@@ -88,6 +88,15 @@ function buildChannelConfig(channel) {
     };
   }
 
+  if (channel === "telegram") {
+    return {
+      channel: "telegram",
+      enabled: true,
+      botToken: "",
+      aiModel: "gpt-5.2",
+    };
+  }
+
   return { channel };
 }
 

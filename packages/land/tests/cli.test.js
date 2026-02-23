@@ -49,6 +49,21 @@ test("create then run land succeeds", async () => {
   assert.match(runResult.stdout, /Running land:/);
 });
 
+test("create then run land with default Telegram channel succeeds", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-test-"));
+  const landDir = path.join(tempRoot, "telegram-land");
+
+  const createResult = await runCli(["create", landDir, "--openai-api-key", "sk-test"]);
+  assert.equal(createResult.code, 0);
+  assert.match(createResult.stdout, /Scaffolded channel: telegram/);
+
+  const runResult = await runCli(["run", landDir]);
+  assert.equal(runResult.code, 0);
+  assert.match(runResult.stdout, /Starting Telegram channel at:/);
+  assert.match(runResult.stdout, /Telegram channel missing bot token/);
+  assert.match(runResult.stdout, /Running land:/);
+});
+
 test("create and run return errors for invalid paths", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-test-"));
 

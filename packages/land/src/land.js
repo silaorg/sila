@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { SlackChannel } from "./channels/slack-channel.js";
+import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
 
 export class Land {
@@ -10,7 +11,7 @@ export class Land {
   #name;
   /** @type {Promise<void>} */
   #readConfigPromise;
-  /** @type {Array<SlackChannel>} */
+  /** @type {Array<SlackChannel | TelegramChannel>} */
   #channels = [];
 
   #isRunning = false;
@@ -74,6 +75,13 @@ export class Land {
 
       if (channelConfig.channel === "slack") {
         const channel = new SlackChannel(channelPath, channelConfig);
+        this.#channels.push(channel);
+        await channel.run();
+        continue;
+      }
+
+      if (channelConfig.channel === "telegram") {
+        const channel = new TelegramChannel(channelPath, channelConfig);
         this.#channels.push(channel);
         await channel.run();
       }
