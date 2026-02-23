@@ -8,17 +8,13 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { InProcessChatAgentRuntime, defaultTelegramInstructions } from "@sila/agents";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
-
-const OptionalTokenSchema = z
-  .string()
-  .optional()
-  .transform((value) => {
-    if (typeof value !== "string") {
-      return undefined;
-    }
-    const trimmed = value.trim();
-    return trimmed.length ? trimmed : undefined;
-  });
+import {
+  OptionalTokenSchema,
+  enqueueSerialTask,
+  readOpenAiApiKey,
+  sanitizeThreadId,
+  saveThreadState,
+} from "./channel-utils.js";
 
 const TelegramChannelConfigSchema = z.looseObject({
   channel: z.literal("telegram"),
@@ -26,8 +22,6 @@ const TelegramChannelConfigSchema = z.looseObject({
   botToken: OptionalTokenSchema,
   aiModel: z.string().min(1).default("gpt-5.2"),
 });
-
-const THREAD_STATE_FILE_NAME = "state.json";
 
 export class TelegramChannel {
   /** @type {string} */
@@ -268,16 +262,7 @@ export class TelegramChannel {
    * @param {() => Promise<void>} task
    */
   async #enqueueThread(threadId, task) {
-    const previous = this.#processingThreads.get(threadId) ?? Promise.resolve();
-    const current = previous.catch(() => {}).then(task);
-    this.#processingThreads.set(threadId, current);
-    try {
-      await current;
-    } finally {
-      if (this.#processingThreads.get(threadId) === current) {
-        this.#processingThreads.delete(threadId);
-      }
-    }
+    await enqueueSerialTask(this.#processingThreads, threadId, task);
   }
 
   /**
@@ -521,10 +506,6 @@ function getAudioInfo(ctx, kind) {
   return null;
 }
 
-function sanitizeThreadId(input) {
-  return input.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
-
 function sanitizeFileName(input) {
   const normalized = String(input || "").trim();
   if (!normalized) {
@@ -576,52 +557,4 @@ async function downloadFileToPath(url, destinationPath) {
 
   const writeStream = fsSync.createWriteStream(destinationPath, { flags: "wx" });
   await pipeline(Readable.fromWeb(response.body), writeStream);
-}
-
-async function saveThreadState(threadDir, state) {
-  const filePath = path.join(threadDir, THREAD_STATE_FILE_NAME);
-  await fs.writeFile(filePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
-}
-
-async function readOpenAiApiKey(channelPath) {
-  const providerPath = path.resolve(channelPath, "..", "..", "providers", "openai.json");
-  const fromConfig = await readProviderApiKey(providerPath);
-  if (fromConfig) {
-    return fromConfig;
-  }
-  if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) {
-    return process.env.OPENAI_API_KEY.trim();
-  }
-  return null;
-}
-
-async function readProviderApiKey(providerPath) {
-  let raw;
-  try {
-    raw = await fs.readFile(providerPath, "utf8");
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (error) {
-    console.warn(`Invalid OpenAI provider config at ${providerPath}:`, error.message);
-    return null;
-  }
-
-  if (!parsed || typeof parsed !== "object") {
-    return null;
-  }
-
-  const value = parsed.apiKey;
-  if (typeof value !== "string") {
-    return null;
-  }
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed : null;
 }

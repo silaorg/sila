@@ -8,7 +8,7 @@ import {
   createToolSearchReplacePatch,
 } from "./tools/index.js";
 
-export function createSlackChatAgent(lang, options) {
+export function createChatAgent(lang, options) {
   const tools = [
     { name: "web_search" },
     createToolExecuteCommand({
@@ -27,4 +27,8 @@ export function createSlackChatAgent(lang, options) {
   ];
 
   return new ChatAgent(lang, { tools });
+}
+
+export function createSlackChatAgent(lang, options) {
+  return createChatAgent(lang, options);
 }

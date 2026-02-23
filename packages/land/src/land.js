@@ -4,6 +4,11 @@ import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
 
+const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
+  slack: SlackChannel,
+  telegram: TelegramChannel,
+});
+
 export class Land {
   /** @type {string} */
   #path;
@@ -73,18 +78,16 @@ export class Land {
         continue;
       }
 
-      if (channelConfig.channel === "slack") {
-        const channel = new SlackChannel(channelPath, channelConfig);
-        this.#channels.push(channel);
-        await channel.run();
+      const channelType = typeof channelConfig.channel === "string" ? channelConfig.channel : "";
+      const ChannelRuntime = CHANNEL_RUNTIME_BY_TYPE[channelType];
+      if (!ChannelRuntime) {
+        console.warn(`Skipping unsupported channel type "${channelType || "unknown"}" at ${channelPath}.`);
         continue;
       }
 
-      if (channelConfig.channel === "telegram") {
-        const channel = new TelegramChannel(channelPath, channelConfig);
-        this.#channels.push(channel);
-        await channel.run();
-      }
+      const channel = new ChannelRuntime(channelPath, channelConfig);
+      this.#channels.push(channel);
+      await channel.run();
     }
 
     console.log(`Loaded ${this.#channels.length} channel(s).`);

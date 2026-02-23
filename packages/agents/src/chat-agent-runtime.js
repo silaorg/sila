@@ -3,7 +3,7 @@ import path from "node:path";
 import { LangMessage, z as aiZ } from "aiwrapper";
 import { defaultSlackInstructions } from "./instructions.js";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
-import { createSlackChatAgent } from "./slack-agent.js";
+import { createChatAgent } from "./slack-agent.js";
 
 const THREAD_MESSAGES_FILE_NAME = "messages.json";
 
@@ -174,7 +174,7 @@ ${historyText}
 }
 
 async function loadThreadAgent(threadDir, lang, options) {
-  const agent = createSlackChatAgent(lang, options);
+  const agent = createChatAgent(lang, options);
   const messages = await loadThreadMessages(threadDir);
   if (messages.length > 0) {
     agent.messages.push(...messages);

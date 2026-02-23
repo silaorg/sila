@@ -4,7 +4,7 @@ export {
   SlackAgent,
   ThreadAgent,
 } from "./chat-agent-runtime.js";
-export { createSlackChatAgent } from "./slack-agent.js";
+export { createChatAgent, createSlackChatAgent } from "./slack-agent.js";
 export {
   buildManagedInstructionBlocks,
   defaultAgentInstructions,
