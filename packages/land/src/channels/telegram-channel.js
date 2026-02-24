@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import OpenAI from "openai";
+import { Input } from "telegraf";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "@sila/agents";
 import { loadLandAgentInstructions } from "../agent-instructions.js";
@@ -52,7 +53,11 @@ export class TelegramChannel {
   /** @type {{
    *  createBot: (token: string) => Promise<any>;
    *  createOpenAiClient: (apiKey: string) => any;
-   *  createAgentRuntime: (options: { lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd: string }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  createAgentRuntime: (options: {
+   *    lang: import("aiwrapper").LanguageProvider;
+   *    instructions: string;
+   *    defaultCwd: string;
+   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
    *  transcribeAudioFile: typeof transcribeAudioFile;
    * }} */
@@ -64,7 +69,11 @@ export class TelegramChannel {
    * @param {Partial<{
    *  createBot: (token: string) => Promise<any>;
    *  createOpenAiClient: (apiKey: string) => any;
-   *  createAgentRuntime: (options: { lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd: string }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  createAgentRuntime: (options: {
+   *    lang: import("aiwrapper").LanguageProvider;
+   *    instructions: string;
+   *    defaultCwd: string;
+   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
    *  transcribeAudioFile: typeof transcribeAudioFile;
    * }>} [dependencies]
@@ -323,6 +332,7 @@ export class TelegramChannel {
       threadDir,
       userId,
       text,
+      sendTelegramFile: async (payload) => this.#sendTelegramFile(thread.chatId, payload),
     });
 
     await saveThreadState(threadDir, {
@@ -346,6 +356,43 @@ export class TelegramChannel {
   #toAgentRelativePath(absolutePath) {
     const relative = path.relative(this.#landPath, absolutePath);
     return relative.split(path.sep).join("/");
+  }
+
+  /**
+   * @param {string} chatId
+   * @param {{ path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }} payload
+   */
+  async #sendTelegramFile(chatId, payload) {
+    if (!this.#bot) {
+      throw new Error(`Telegram channel is not connected: ${this.#path}`);
+    }
+
+    const { path: filePath, kind, caption } = payload;
+    const input = Input.fromLocalFile(filePath);
+    const extra = caption ? { caption } : undefined;
+
+    if (kind === "photo") {
+      const sent = await this.#bot.telegram.sendPhoto(chatId, input, extra);
+      return { messageId: sent?.message_id ?? null };
+    }
+
+    if (kind === "video") {
+      const sent = await this.#bot.telegram.sendVideo(chatId, input, extra);
+      return { messageId: sent?.message_id ?? null };
+    }
+
+    if (kind === "audio") {
+      const sent = await this.#bot.telegram.sendAudio(chatId, input, extra);
+      return { messageId: sent?.message_id ?? null };
+    }
+
+    if (kind === "voice") {
+      const sent = await this.#bot.telegram.sendVoice(chatId, input, extra);
+      return { messageId: sent?.message_id ?? null };
+    }
+
+    const sent = await this.#bot.telegram.sendDocument(chatId, input, extra);
+    return { messageId: sent?.message_id ?? null };
   }
 }
 

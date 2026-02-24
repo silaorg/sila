@@ -5,6 +5,7 @@ import {
   createToolExecuteCommand,
   createToolReadDocument,
   createToolSeeImage,
+  createToolSendTelegramFile,
   createToolSearchReplacePatch,
 } from "./tools/index.js";
 
@@ -25,6 +26,10 @@ export function createChatAgent(lang, options) {
     createToolApplyPatch({ baseDir: options.defaultCwd }),
     createToolSearchReplacePatch({ baseDir: options.defaultCwd }),
   ];
+
+  if (options.sendTelegramFile) {
+    tools.push(createToolSendTelegramFile(options.sendTelegramFile, { baseDir: options.defaultCwd }));
+  }
 
   return new ChatAgent(lang, { tools });
 }

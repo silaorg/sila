@@ -127,6 +127,70 @@ test("telegram audio upload includes transcription and sends response", async ()
   assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-42", text: "processed" });
 });
 
+test("telegram runtime can send files through send_telegram_file callback", async () => {
+  const { channelPath, landPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const sentFilePath = path.join(landPath, "assets", "report.txt");
+  await fs.mkdir(path.dirname(sentFilePath), { recursive: true });
+  await fs.writeFile(sentFilePath, "report", "utf8");
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            await input.sendTelegramFile?.({
+              path: sentFilePath,
+              kind: "document",
+              caption: "generated",
+            });
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-send-1" },
+    from: { id: 19, is_bot: false },
+    message: {
+      text: "send the report",
+      date: toUnixSeconds(new Date("2026-11-20T16:00:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(mockBot.sentFiles.length, 1);
+  assert.deepEqual(mockBot.sentFiles[0], {
+    chatId: "chat-send-1",
+    kind: "document",
+    caption: "generated",
+  });
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-telegram-channel-"));
   const landPath = path.join(root, "land");
@@ -141,13 +205,35 @@ function createMockBot() {
   /** @type {Map<string, (ctx: any) => Promise<void>>} */
   const handlers = new Map();
   const sentMessages = [];
+  const sentFiles = [];
 
   return {
     handlers,
     sentMessages,
+    sentFiles,
     telegram: {
       async sendMessage(chatId, text) {
         sentMessages.push({ chatId, text });
+      },
+      async sendPhoto(chatId, _input, extra) {
+        sentFiles.push({ chatId, kind: "photo", caption: extra?.caption });
+        return { message_id: 1 };
+      },
+      async sendVideo(chatId, _input, extra) {
+        sentFiles.push({ chatId, kind: "video", caption: extra?.caption });
+        return { message_id: 2 };
+      },
+      async sendAudio(chatId, _input, extra) {
+        sentFiles.push({ chatId, kind: "audio", caption: extra?.caption });
+        return { message_id: 3 };
+      },
+      async sendVoice(chatId, _input, extra) {
+        sentFiles.push({ chatId, kind: "voice", caption: extra?.caption });
+        return { message_id: 4 };
+      },
+      async sendDocument(chatId, _input, extra) {
+        sentFiles.push({ chatId, kind: "document", caption: extra?.caption });
+        return { message_id: 5 };
       },
       async getFileLink(fileId) {
         return { href: `https://example.test/files/${fileId}` };

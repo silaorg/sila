@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { ok } from "node:assert";
+import { deepEqual, ok } from "node:assert";
 import { Lang } from "aiwrapper";
 import { createChatAgent } from "../src/chat-agent.js";
 import { createSlackChatAgent } from "../src/slack-agent.js";
@@ -71,5 +71,32 @@ describe("createChatAgent", () => {
     ok(toolNames.includes("edit_document"));
     ok(toolNames.includes("apply_patch"));
     ok(toolNames.includes("apply_search_replace_patch"));
+  });
+
+  it("adds send_telegram_file only when sender is provided", () => {
+    const lang = Lang.mockOpenAI();
+
+    const withoutSender = createChatAgent(lang, {
+      threadId: "thread-1",
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+    });
+    const withSender = createChatAgent(lang, {
+      threadId: "thread-1",
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      sendTelegramFile: async () => ({ messageId: 1 }),
+    });
+
+    const namesWithoutSender = (withoutSender.messages.availableTools || []).map((tool) => tool.name);
+    const namesWithSender = (withSender.messages.availableTools || []).map((tool) => tool.name);
+
+    ok(!namesWithoutSender.includes("send_telegram_file"));
+    ok(namesWithSender.includes("send_telegram_file"));
+
+    deepEqual(
+      namesWithoutSender.filter((name) => name !== "send_telegram_file"),
+      namesWithSender.filter((name) => name !== "send_telegram_file"),
+    );
   });
 });

@@ -22,6 +22,7 @@ export {
   createToolExecuteCommand,
   createToolReadDocument,
   createToolSeeImage,
+  createToolSendTelegramFile,
   createToolSearchReplacePatch,
   createToolWebSearch,
 } from "./tools/index.js";

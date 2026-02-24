@@ -19,6 +19,8 @@ export class ThreadAgent {
   #ptyManager;
   /** @type {string} */
   #defaultCwd;
+  /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
+  #sendTelegramFile;
 
   /**
    * @param {{
@@ -27,6 +29,7 @@ export class ThreadAgent {
    *  lang: import("aiwrapper").LanguageProvider;
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
+   *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  instructions: string;
    * }} options
    */
@@ -36,6 +39,7 @@ export class ThreadAgent {
     this.#lang = options.lang;
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
+    this.#sendTelegramFile = options.sendTelegramFile;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
 
@@ -48,6 +52,7 @@ export class ThreadAgent {
       threadId: this.#threadId,
       ptyManager: this.#ptyManager,
       defaultCwd: this.#defaultCwd,
+      sendTelegramFile: this.#sendTelegramFile,
     });
     agent.messages.instructions = this.#instructions;
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
@@ -93,7 +98,13 @@ export class InProcessChatAgentRuntime {
   }
 
   /**
-   * @param {{ threadId: string; threadDir: string; userId: string; text: string }} input
+   * @param {{
+   *  threadId: string;
+   *  threadDir: string;
+   *  userId: string;
+   *  text: string;
+   *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
+   * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async handleThreadMessage(input) {
@@ -105,6 +116,7 @@ export class InProcessChatAgentRuntime {
       lang: this.#lang,
       ptyManager,
       defaultCwd: this.#defaultCwd,
+      sendTelegramFile: input.sendTelegramFile,
       instructions: this.#instructions,
     });
     return agent.processUserMessage({
