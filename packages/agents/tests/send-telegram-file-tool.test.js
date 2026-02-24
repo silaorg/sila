@@ -46,14 +46,26 @@ describe("createToolSendTelegramFile", () => {
     deepEqual(result.result, { messageId: 77 });
   });
 
-  it("rejects files outside ./assets", async () => {
+  it("allows sending files outside assets", async () => {
     const fixture = await createFixture();
     const outsidePath = path.join(fixture.root, "notes.txt");
     await fs.writeFile(outsidePath, "test", "utf8");
 
+    let payload;
     const tool = createToolSendTelegramFile(async () => ({ messageId: 1 }), { baseDir: fixture.root });
     const result = await tool.handler({ path: outsidePath });
-    strictEqual(result.error, "Only files from ./assets can be sent.");
+    strictEqual(result.status, "sent");
+    strictEqual(result.file, outsidePath);
+
+    const toolWithCapture = createToolSendTelegramFile(
+      async (input) => {
+        payload = input;
+        return { messageId: 2 };
+      },
+      { baseDir: fixture.root },
+    );
+    await toolWithCapture.handler({ path: outsidePath });
+    strictEqual(payload.path, outsidePath);
   });
 
   it("returns missing file error", async () => {
@@ -62,5 +74,34 @@ describe("createToolSendTelegramFile", () => {
 
     const result = await tool.handler({ path: "assets/missing.txt" });
     strictEqual(result.error, "File not found: assets/missing.txt");
+  });
+
+  it("accepts thread-relative paths", async () => {
+    const fixture = await createFixture();
+    const threadDir = path.join(fixture.root, "channels", "telegram", "thread-1");
+    await fs.mkdir(threadDir, { recursive: true });
+
+    const relativePath = path.join("..", "..", "..", "assets", "docs", "guide.txt");
+    const fullPath = path.join(fixture.root, "assets", "docs", "guide.txt");
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, "guide", "utf8");
+
+    let payload;
+    const tool = createToolSendTelegramFile(
+      async (input) => {
+        payload = input;
+        return { messageId: 88 };
+      },
+      { baseDir: threadDir },
+    );
+
+    const result = await tool.handler({ path: relativePath, kind: "auto" });
+    deepEqual(payload, {
+      path: fullPath,
+      kind: "document",
+      caption: undefined,
+    });
+    strictEqual(result.status, "sent");
+    strictEqual(result.file, relativePath);
   });
 });

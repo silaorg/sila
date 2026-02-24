@@ -19,6 +19,8 @@ export class ThreadAgent {
   #ptyManager;
   /** @type {string} */
   #defaultCwd;
+  /** @type {string} */
+  #landPath;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
   #sendTelegramFile;
 
@@ -29,6 +31,7 @@ export class ThreadAgent {
    *  lang: import("aiwrapper").LanguageProvider;
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
+   *  landPath?: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  instructions: string;
    * }} options
@@ -39,6 +42,7 @@ export class ThreadAgent {
     this.#lang = options.lang;
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
+    this.#landPath = options.landPath ?? this.#defaultCwd;
     this.#sendTelegramFile = options.sendTelegramFile;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
@@ -52,6 +56,7 @@ export class ThreadAgent {
       threadId: this.#threadId,
       ptyManager: this.#ptyManager,
       defaultCwd: this.#defaultCwd,
+      landPath: this.#landPath,
       sendTelegramFile: this.#sendTelegramFile,
     });
     agent.messages.instructions = this.#instructions;
@@ -108,14 +113,15 @@ export class InProcessChatAgentRuntime {
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async handleThreadMessage(input) {
-    const ptyManager = this.#getOrCreatePtyManager(input.threadId);
+    const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
 
     const agent = new ThreadAgent({
       threadId: input.threadId,
       threadDir: input.threadDir,
       lang: this.#lang,
       ptyManager,
-      defaultCwd: this.#defaultCwd,
+      defaultCwd: input.threadDir,
+      landPath: this.#defaultCwd,
       sendTelegramFile: input.sendTelegramFile,
       instructions: this.#instructions,
     });
@@ -131,14 +137,14 @@ export class InProcessChatAgentRuntime {
     await Promise.all(managers.map((manager) => manager.stopAll()));
   }
 
-  #getOrCreatePtyManager(threadId) {
+  #getOrCreatePtyManager(threadId, defaultCwd = this.#defaultCwd) {
     const key = String(threadId);
     const existing = this.#ptyManagersByThread.get(key);
     if (existing) {
       return existing;
     }
 
-    const manager = new PTYShellSessionManager({ defaultCwd: this.#defaultCwd });
+    const manager = new PTYShellSessionManager({ defaultCwd });
     this.#ptyManagersByThread.set(key, manager);
     return manager;
   }

@@ -61,7 +61,7 @@ test("telegram document upload is forwarded as relative dated path", async () =>
   assert.equal(forwarded.userId, "77");
   assert.match(
     forwarded.text,
-    /channels\/telegram\/-10012345\/files\/2026\/11\/20\/report\.pdf/,
+    /files\/2026\/11\/20\/report\.pdf/,
   );
   assert.match(forwarded.text, /please review/);
 });
@@ -120,7 +120,7 @@ test("telegram audio upload includes transcription and sends response", async ()
   const forwarded = runtimeCalls[0];
   assert.match(
     forwarded.text,
-    /channels\/telegram\/chat-42\/files\/2026\/11\/20\/voice-note\.mp3/,
+    /files\/2026\/11\/20\/voice-note\.mp3/,
   );
   assert.match(forwarded.text, /\[Audio transcription\]\nthe transcribed text/);
   assert.equal(mockBot.sentMessages.length, 1);

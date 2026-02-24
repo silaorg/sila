@@ -7,16 +7,6 @@ const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".webm", ".mkv", ".avi"]);
 const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"]);
 
 /**
- * @param {string} root
- * @param {string} target
- * @returns {boolean}
- */
-function isWithin(root, target) {
-  const relative = path.relative(root, target);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-/**
  * @param {string} filePath
  * @returns {"photo" | "video" | "audio" | "document"}
  */
@@ -30,17 +20,16 @@ function inferKind(filePath) {
 
 export function createToolSendTelegramFile(sendFile, options = {}) {
   const baseDir = options.baseDir ?? process.cwd();
-  const allowedRoot = path.resolve(baseDir, "assets");
 
   return {
     name: "send_telegram_file",
-    description: "Send a local file to Telegram chat. Use paths only from ./assets.",
+    description: "Send a local file to Telegram chat.",
     parameters: {
       type: "object",
       properties: {
         path: {
           type: "string",
-          description: "Path to a local file in ./assets.",
+          description: "Path to a local file.",
         },
         kind: {
           type: "string",
@@ -66,9 +55,6 @@ export function createToolSendTelegramFile(sendFile, options = {}) {
         }
 
         const fullPath = normalizePath(filePath, baseDir);
-        if (!isWithin(allowedRoot, fullPath)) {
-          return { error: "Only files from ./assets can be sent." };
-        }
 
         if (!fs.existsSync(fullPath)) {
           return { error: `File not found: ${filePath}` };

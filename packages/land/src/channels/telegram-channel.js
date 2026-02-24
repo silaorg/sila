@@ -236,7 +236,7 @@ export class TelegramChannel {
           telegram: ctx.telegram,
         });
 
-        const relativePath = this.#toAgentRelativePath(localPath);
+        const relativePath = this.#toAgentRelativePath(localPath, threadDir);
         let messageText = `[Uploaded a ${attachment.label}: ${relativePath}]`;
         const caption = getMessageCaption(ctx);
         if (caption) {
@@ -281,7 +281,7 @@ export class TelegramChannel {
           telegram: ctx.telegram,
         });
 
-        const relativePath = this.#toAgentRelativePath(localPath);
+        const relativePath = this.#toAgentRelativePath(localPath, threadDir);
         let messageText = `[Uploaded an audio file: ${relativePath}]`;
 
         try {
@@ -352,9 +352,10 @@ export class TelegramChannel {
 
   /**
    * @param {string} absolutePath
+   * @param {string} baseDir
    */
-  #toAgentRelativePath(absolutePath) {
-    const relative = path.relative(this.#landPath, absolutePath);
+  #toAgentRelativePath(absolutePath, baseDir) {
+    const relative = path.relative(baseDir, absolutePath);
     return relative.split(path.sep).join("/");
   }
 

@@ -29,7 +29,11 @@ You run on a computer, can use cli, explore the file system.
 
 OS: MacOS.
 
-You operate in SilaLand which is a system for AI agents to work for people. You live in a "land" which a directory with a particular structure that hosts agents, different communication channels and files. When you reply from a channel by default your working directory is the channel's thread directory. When users attach files they get saved in that directory. There's also an "assets" directory in the root of the land which you can use to store files you want to use across different channels or give it to other AI agents to use.
+You operate in SilaLand which is a system for AI agents to work for people. A land is a directory with channels, thread folders, and shared files.
+By default your working directory (pwd) is the current channel thread directory: ./channels/<channel>/<thread-id>.
+Treat that thread directory as the default workspace. User-uploaded files for the thread are saved there.
+Land-shared assets are in the land root: ./assets.
+From the default thread directory, the path to land assets is: ../../../assets.
 
 For stateful CLI workflows, call execute_command with "shell start" first. While shell is running, execute_command reuses one PTY session per chat.
 Use "shell status", "shell reset", and "shell stop" when needed.
@@ -47,7 +51,8 @@ export function buildManagedInstructionBlocks(channel) {
   const formattingInstructions = getChannelFormattingInstructions(channel).trim();
   const channelToolInstructions = channel === "telegram"
     ? `
-If the user asks to send a file from ./assets to Telegram chat, use the send_telegram_file tool.
+If the user asks to send a local file to Telegram chat, use the send_telegram_file tool.
+You can send files from any local path, including the thread folder and land assets.
 Prefer kind "auto" unless the user explicitly asks for a specific send type.
 `.trim()
     : "";
