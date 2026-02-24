@@ -9,3 +9,4 @@
 *.log
 
 **/test-land
+**/test-land-**

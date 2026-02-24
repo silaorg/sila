@@ -3,7 +3,8 @@ import path from "node:path";
 import { Lang } from "aiwrapper";
 import OpenAI from "openai";
 import { z } from "zod";
-import { InProcessChatAgentRuntime, defaultTelegramInstructions } from "@sila/agents";
+import { InProcessChatAgentRuntime } from "@sila/agents";
+import { loadLandAgentInstructions } from "../agent-instructions.js";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 import { OptionalTokenSchema, enqueueSerialTask, readOpenAiApiKey, saveThreadState } from "./channel-utils.js";
 import {
@@ -105,7 +106,8 @@ export class TelegramChannel {
     this.#openai = this.#dependencies.createOpenAiClient(openAiApiKey);
     this.#landPath = path.resolve(this.#path, "..", "..");
     const skills = await loadSkillIndex(this.#landPath);
-    const instructions = appendSkillCatalogInstructions(defaultTelegramInstructions(), skills);
+    const baseInstructions = await loadLandAgentInstructions(this.#landPath, "telegram");
+    const instructions = appendSkillCatalogInstructions(baseInstructions, skills);
     this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,
       defaultCwd: this.#landPath,
