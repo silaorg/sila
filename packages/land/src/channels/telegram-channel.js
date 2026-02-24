@@ -5,9 +5,13 @@ import OpenAI from "openai";
 import { Input } from "telegraf";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "@sila/agents";
-import { loadLandAgentInstructions } from "../agent-instructions.js";
-import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
-import { OptionalTokenSchema, enqueueSerialTask, readOpenAiApiKey, saveThreadState } from "./channel-utils.js";
+import {
+  OptionalTokenSchema,
+  enqueueSerialTask,
+  loadChannelInstructions,
+  readOpenAiApiKey,
+  saveThreadState,
+} from "./channel-utils.js";
 import {
   getAttachmentInfo,
   getAudioInfo,
@@ -45,8 +49,6 @@ export class TelegramChannel {
   #processingThreads = new Map();
   /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
-  /** @type {string} */
-  #landPath = process.cwd();
   /** @type {null | Promise<void>} */
   #launchPromise = null;
   #isRunning = false;
@@ -56,6 +58,7 @@ export class TelegramChannel {
    *  createAgentRuntime: (options: {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
+   *    loadInstructions?: () => Promise<string>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -72,6 +75,7 @@ export class TelegramChannel {
    *  createAgentRuntime: (options: {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
+   *    loadInstructions?: () => Promise<string>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -113,14 +117,13 @@ export class TelegramChannel {
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
     this.#openai = this.#dependencies.createOpenAiClient(openAiApiKey);
-    this.#landPath = path.resolve(this.#path, "..", "..");
-    const skills = await loadSkillIndex(this.#landPath);
-    const baseInstructions = await loadLandAgentInstructions(this.#landPath, "telegram");
-    const instructions = appendSkillCatalogInstructions(baseInstructions, skills);
+    const landPath = path.resolve(this.#path, "..", "..");
+    const instructions = await loadChannelInstructions(landPath, "telegram");
     this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,
-      defaultCwd: this.#landPath,
+      defaultCwd: landPath,
       instructions,
+      loadInstructions: () => loadChannelInstructions(landPath, "telegram"),
     });
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);

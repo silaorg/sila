@@ -88,18 +88,28 @@ export class InProcessChatAgentRuntime {
   #lang;
   /** @type {string} */
   #instructions;
+  /** @type {null | (() => Promise<string>)} */
+  #loadInstructions = null;
   /** @type {string} */
   #defaultCwd;
   /** @type {Map<string, PTYShellSessionManager>} */
   #ptyManagersByThread = new Map();
 
   /**
-   * @param {{ lang: import("aiwrapper").LanguageProvider; instructions: string; defaultCwd?: string }} options
+   * @param {{
+   *  lang: import("aiwrapper").LanguageProvider;
+   *  instructions: string;
+   *  loadInstructions?: () => Promise<string>;
+   *  defaultCwd?: string;
+   * }} options
    */
   constructor(options) {
     this.#lang = options.lang;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
+    if (typeof options.loadInstructions === "function") {
+      this.#loadInstructions = options.loadInstructions;
+    }
   }
 
   /**
@@ -114,6 +124,7 @@ export class InProcessChatAgentRuntime {
    */
   async handleThreadMessage(input) {
     const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
+    const instructions = await this.#resolveInstructions();
 
     const agent = new ThreadAgent({
       threadId: input.threadId,
@@ -123,12 +134,22 @@ export class InProcessChatAgentRuntime {
       defaultCwd: input.threadDir,
       landPath: this.#defaultCwd,
       sendTelegramFile: input.sendTelegramFile,
-      instructions: this.#instructions,
+      instructions,
     });
     return agent.processUserMessage({
       userId: input.userId,
       text: input.text,
     });
+  }
+
+  async #resolveInstructions() {
+    if (!this.#loadInstructions) {
+      return this.#instructions;
+    }
+
+    const loaded = await this.#loadInstructions();
+    this.#instructions = requireInstructions(loaded, "InProcessChatAgentRuntime.loadInstructions");
+    return this.#instructions;
   }
 
   async stop() {

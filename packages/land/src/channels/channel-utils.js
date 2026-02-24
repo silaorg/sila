@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { loadLandAgentInstructions } from "../agent-instructions.js";
 import { loadLandEnvironment, readEnvValue } from "../env.js";
+import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 
 export const OptionalTokenSchema = z
   .string()
@@ -52,4 +54,10 @@ export async function readExaApiKey(channelPath) {
   const landPath = path.resolve(channelPath, "..", "..");
   await loadLandEnvironment(landPath);
   return readEnvValue("EXA_API_KEY");
+}
+
+export async function loadChannelInstructions(landPath, channel) {
+  const skills = await loadSkillIndex(landPath);
+  const baseInstructions = await loadLandAgentInstructions(landPath, channel);
+  return appendSkillCatalogInstructions(baseInstructions, skills);
 }

@@ -191,6 +191,76 @@ test("telegram runtime can send files through send_telegram_file callback", asyn
   });
 });
 
+test("telegram reloads skills into instructions on each message", async () => {
+  const { channelPath, landPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const loadedInstructions = [];
+  const skillFilePath = path.join(landPath, "skills", "dynamic-skill", "SKILL.md");
+  await writeSkillFile(skillFilePath, "first description");
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime(options) {
+        assert.equal(typeof options.loadInstructions, "function");
+        return {
+          async handleThreadMessage() {
+            loadedInstructions.push(await options.loadInstructions());
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-skill-refresh" },
+    from: { id: 55, is_bot: false },
+    message: {
+      text: "first message",
+      date: toUnixSeconds(new Date("2026-11-20T18:00:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+
+  await writeSkillFile(skillFilePath, "second description");
+
+  await mockBot.emit("text", {
+    chat: { id: "chat-skill-refresh" },
+    from: { id: 55, is_bot: false },
+    message: {
+      text: "second message",
+      date: toUnixSeconds(new Date("2026-11-20T18:05:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(loadedInstructions.length, 2);
+  assert.match(loadedInstructions[0], /dynamic-skill: first description/);
+  assert.match(loadedInstructions[1], /dynamic-skill: second description/);
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-telegram-channel-"));
   const landPath = path.join(root, "land");
@@ -267,6 +337,20 @@ async function writeFakeStoredFile(threadDir, createdAt, fileName) {
   const fullPath = path.join(dirPath, fileName);
   await fs.writeFile(fullPath, "test\n", "utf8");
   return fullPath;
+}
+
+async function writeSkillFile(skillFilePath, description) {
+  await fs.mkdir(path.dirname(skillFilePath), { recursive: true });
+  await fs.writeFile(
+    skillFilePath,
+    `---
+name: dynamic-skill
+description: ${description}
+---
+# Dynamic skill
+`,
+    "utf8",
+  );
 }
 
 function toUnixSeconds(date) {

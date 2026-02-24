@@ -3,11 +3,10 @@ import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "@sila/agents";
-import { loadLandAgentInstructions } from "../agent-instructions.js";
-import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 import {
   OptionalTokenSchema,
   enqueueSerialTask,
+  loadChannelInstructions,
   readOpenAiApiKey,
   sanitizeThreadId,
   saveThreadState,
@@ -78,13 +77,12 @@ export class SlackChannel {
 
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
     const landPath = path.resolve(this.#path, "..", "..");
-    const skills = await loadSkillIndex(landPath);
-    const baseInstructions = await loadLandAgentInstructions(landPath, "slack");
-    const instructions = appendSkillCatalogInstructions(baseInstructions, skills);
+    const instructions = await loadChannelInstructions(landPath, "slack");
     this.#agentRuntime = new InProcessChatAgentRuntime({
       lang: this.#lang,
       defaultCwd: landPath,
       instructions,
+      loadInstructions: () => loadChannelInstructions(landPath, "slack"),
     });
 
     const { App, LogLevel } = await import("@slack/bolt");
