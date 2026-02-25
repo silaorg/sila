@@ -3,6 +3,11 @@ import path from "node:path";
 import { z } from "zod";
 import { loadLandAgentInstructions } from "../agent-instructions.js";
 import { loadLandEnvironment, readEnvValue } from "../env.js";
+import {
+  applyRuntimePathEnvironment,
+  buildRuntimePathsInstructionBlock,
+  resolveRuntimePaths,
+} from "../runtime-paths.js";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
 
 export const OptionalTokenSchema = z
@@ -56,8 +61,11 @@ export async function readExaApiKey(channelPath) {
   return readEnvValue("EXA_API_KEY");
 }
 
-export async function loadChannelInstructions(landPath, channel) {
+export async function loadChannelInstructions(landPath, channel, threadPath) {
   const skills = await loadSkillIndex(landPath);
   const baseInstructions = await loadLandAgentInstructions(landPath, channel);
-  return appendSkillCatalogInstructions(baseInstructions, skills);
+  const runtimePaths = await resolveRuntimePaths({ landPath, threadPath });
+  applyRuntimePathEnvironment(runtimePaths);
+  const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
+  return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
 }

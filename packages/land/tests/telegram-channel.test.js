@@ -410,8 +410,10 @@ test("telegram reloads skills into instructions on each message", async () => {
       createAgentRuntime(options) {
         assert.equal(typeof options.loadInstructions, "function");
         return {
-          async handleThreadMessage() {
-            loadedInstructions.push(await options.loadInstructions());
+          async handleThreadMessage(input) {
+            loadedInstructions.push(
+              await options.loadInstructions({ threadId: input.threadId, threadDir: input.threadDir }),
+            );
             return { responded: false, answer: "" };
           },
           async stop() {},

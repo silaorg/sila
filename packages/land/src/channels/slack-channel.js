@@ -82,7 +82,7 @@ export class SlackChannel {
       lang: this.#lang,
       defaultCwd: landPath,
       instructions,
-      loadInstructions: () => loadChannelInstructions(landPath, "slack"),
+      loadInstructions: (input = {}) => loadChannelInstructions(landPath, "slack", input.threadDir),
     });
 
     const { App, LogLevel } = await import("@slack/bolt");

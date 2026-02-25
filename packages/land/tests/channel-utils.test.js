@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import {
   enqueueSerialTask,
+  loadChannelInstructions,
   readExaApiKey,
   readOpenAiApiKey,
   sanitizeThreadId,
@@ -105,6 +106,111 @@ test("saveThreadState writes JSON state file", async () => {
   assert.deepEqual(parsed, { responded: true, userId: "u1" });
 });
 
+test("loadChannelInstructions appends runtime path anchors", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const landPath = path.join(tempRoot, "land");
+  const channelPath = path.join(landPath, "channels", "telegram");
+  const threadPath = path.join(channelPath, "thread-1");
+  await fs.mkdir(threadPath, { recursive: true });
+  const expectedLandPath = await fs.realpath(landPath);
+  const expectedThreadPath = await fs.realpath(threadPath);
+
+  const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+  assert.match(instructions, /<environment_runtime_paths>/);
+  assert.match(instructions, new RegExp(escapeRegex(`Land root (absolute): ${expectedLandPath}`)));
+  assert.match(instructions, new RegExp(escapeRegex(`Current thread root (absolute): ${expectedThreadPath}`)));
+  assert.match(instructions, /Source repo root \(absolute\): \[not set\]/);
+});
+
+test("loadChannelInstructions sets thread root to [not set] when omitted", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const landPath = path.join(tempRoot, "land");
+  await fs.mkdir(path.join(landPath, "channels", "telegram"), { recursive: true });
+
+  const instructions = await loadChannelInstructions(landPath, "telegram");
+  assert.match(instructions, /Current thread root \(absolute\): \[not set\]/);
+});
+
+test("loadChannelInstructions detects source repo root from .git", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const repoPath = path.join(tempRoot, "repo");
+  const landPath = path.join(repoPath, "land");
+  const channelPath = path.join(landPath, "channels", "telegram");
+  const threadPath = path.join(channelPath, "thread-1");
+  await fs.mkdir(path.join(repoPath, ".git"), { recursive: true });
+  await fs.mkdir(threadPath, { recursive: true });
+  const expectedRepoPath = await fs.realpath(repoPath);
+
+  const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+  assert.match(instructions, new RegExp(escapeRegex(`Source repo root (absolute): ${expectedRepoPath}`)));
+});
+
+test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const landPath = path.join(tempRoot, "land");
+  const channelPath = path.join(landPath, "channels", "telegram");
+  const threadPath = path.join(channelPath, "thread-1");
+  const sourcePath = path.join(tempRoot, "source");
+  await fs.mkdir(threadPath, { recursive: true });
+  await fs.mkdir(sourcePath, { recursive: true });
+  const expectedSourcePath = await fs.realpath(sourcePath);
+
+  const previous = process.env.SOURCE_PATH;
+  process.env.SOURCE_PATH = sourcePath;
+  try {
+    const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+    assert.match(instructions, new RegExp(escapeRegex(`Source repo root (absolute): ${expectedSourcePath}`)));
+  } finally {
+    if (typeof previous === "string") {
+      process.env.SOURCE_PATH = previous;
+    } else {
+      delete process.env.SOURCE_PATH;
+    }
+  }
+});
+
+test("loadChannelInstructions exports runtime paths into process env", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-channel-utils-"));
+  const landPath = path.join(tempRoot, "land");
+  const channelPath = path.join(landPath, "channels", "telegram");
+  const threadPath = path.join(channelPath, "thread-1");
+  const sourcePath = path.join(tempRoot, "source");
+  await fs.mkdir(threadPath, { recursive: true });
+  await fs.mkdir(sourcePath, { recursive: true });
+
+  const previousLandPath = process.env.LAND_PATH;
+  const previousThreadPath = process.env.THREAD_PATH;
+  const previousSourcePath = process.env.SOURCE_PATH;
+  process.env.SOURCE_PATH = sourcePath;
+
+  try {
+    await loadChannelInstructions(landPath, "telegram", threadPath);
+    assert.equal(process.env.LAND_PATH, await fs.realpath(landPath));
+    assert.equal(process.env.THREAD_PATH, await fs.realpath(threadPath));
+    assert.equal(process.env.SOURCE_PATH, await fs.realpath(sourcePath));
+  } finally {
+    if (typeof previousLandPath === "string") {
+      process.env.LAND_PATH = previousLandPath;
+    } else {
+      delete process.env.LAND_PATH;
+    }
+    if (typeof previousThreadPath === "string") {
+      process.env.THREAD_PATH = previousThreadPath;
+    } else {
+      delete process.env.THREAD_PATH;
+    }
+    if (typeof previousSourcePath === "string") {
+      process.env.SOURCE_PATH = previousSourcePath;
+    } else {
+      delete process.env.SOURCE_PATH;
+    }
+  }
+});
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

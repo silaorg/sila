@@ -88,7 +88,7 @@ export class InProcessChatAgentRuntime {
   #lang;
   /** @type {string} */
   #instructions;
-  /** @type {null | (() => Promise<string>)} */
+  /** @type {null | ((input: { threadId: string; threadDir: string }) => Promise<string>)} */
   #loadInstructions = null;
   /** @type {string} */
   #defaultCwd;
@@ -99,7 +99,7 @@ export class InProcessChatAgentRuntime {
    * @param {{
    *  lang: import("aiwrapper").LanguageProvider;
    *  instructions: string;
-   *  loadInstructions?: () => Promise<string>;
+   *  loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *  defaultCwd?: string;
    * }} options
    */
@@ -124,7 +124,10 @@ export class InProcessChatAgentRuntime {
    */
   async handleThreadMessage(input) {
     const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
-    const instructions = await this.#resolveInstructions();
+    const instructions = await this.#resolveInstructions({
+      threadId: input.threadId,
+      threadDir: input.threadDir,
+    });
 
     const agent = new ThreadAgent({
       threadId: input.threadId,
@@ -142,12 +145,12 @@ export class InProcessChatAgentRuntime {
     });
   }
 
-  async #resolveInstructions() {
+  async #resolveInstructions(input) {
     if (!this.#loadInstructions) {
       return this.#instructions;
     }
 
-    const loaded = await this.#loadInstructions();
+    const loaded = await this.#loadInstructions(input);
     this.#instructions = requireInstructions(loaded, "InProcessChatAgentRuntime.loadInstructions");
     return this.#instructions;
   }

@@ -59,7 +59,7 @@ export class TelegramChannel {
    *  createAgentRuntime: (options: {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
-   *    loadInstructions?: () => Promise<string>;
+   *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -76,7 +76,7 @@ export class TelegramChannel {
    *  createAgentRuntime: (options: {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
-   *    loadInstructions?: () => Promise<string>;
+   *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -124,7 +124,7 @@ export class TelegramChannel {
       lang: this.#lang,
       defaultCwd: landPath,
       instructions,
-      loadInstructions: () => loadChannelInstructions(landPath, "telegram"),
+      loadInstructions: (input = {}) => loadChannelInstructions(landPath, "telegram", input.threadDir),
     });
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);
