@@ -7,7 +7,9 @@ land/
   .env
   agents/
     default/
-      instructions.md
+      instructions/
+        01-base.md
+        02-channel.md
   assets/
   channels/
     telegram/
@@ -25,4 +27,5 @@ At a minimum a land should have its root config.json that contains a name and a 
 
 For a land to work, it needs AI provider keys in `.env` (for example `OPENAI_API_KEY` and `EXA_API_KEY`) and a channel to communicate between a user and an agent.
 
-To override default agent instructions, place `agents/default/instructions.md` in the land. Formatting and environment instruction blocks are still injected automatically.
+To add custom agent instructions, place text files under `agents/default/instructions/` in the land. Each file is injected as `<instruction src="...">...</instruction>`.
+When custom files exist, they replace the default base assistant text (`defaultInstructions`), while managed channel formatting and environment blocks are still appended automatically.

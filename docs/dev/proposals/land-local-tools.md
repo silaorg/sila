@@ -45,7 +45,8 @@ Directory layout:
     jira-search.js
   agents/
     default/
-      instructions.md
+      instructions/
+        01-base.md
       tools/
         send-invoice.js
 ```
