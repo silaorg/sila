@@ -174,11 +174,6 @@ export class InProcessChatAgentRuntime {
   }
 }
 
-/**
- * Backward-compatible alias. Use InProcessChatAgentRuntime for new code.
- */
-export class InProcessSlackAgentRuntime extends InProcessChatAgentRuntime {}
-
 function requireInstructions(instructions, contextName) {
   if (typeof instructions !== "string" || !instructions.trim().length) {
     throw new Error(`${contextName} requires explicit non-empty instructions.`);
