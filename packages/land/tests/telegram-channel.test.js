@@ -127,6 +127,201 @@ test("telegram audio upload includes transcription and sends response", async ()
   assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-42", text: "processed" });
 });
 
+test("telegram text reply includes replied message context", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const runtimeCalls = [];
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            runtimeCalls.push(input);
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-reply-1" },
+    from: { id: 78, is_bot: false },
+    message: {
+      text: "what should we do next?",
+      date: toUnixSeconds(new Date("2026-11-20T16:05:00Z")),
+      reply_to_message: {
+        message_id: 44,
+        text: "ship the fix in 10 minutes",
+        from: { id: 91, username: "alice" },
+      },
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(runtimeCalls.length, 1);
+  const forwarded = runtimeCalls[0];
+  assert.match(forwarded.text, /\[Reply context: #44 from @alice\]/);
+  assert.match(forwarded.text, /ship the fix in 10 minutes/);
+  assert.match(forwarded.text, /what should we do next\?/);
+});
+
+test("telegram external reply uses quote text instead of current message text", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const runtimeCalls = [];
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            runtimeCalls.push(input);
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-external-reply-1" },
+    from: { id: 101, is_bot: false },
+    message: {
+      text: "please answer this",
+      date: toUnixSeconds(new Date("2026-11-20T16:10:00Z")),
+      quote: {
+        text: "status update from upstream",
+        position: 0,
+      },
+      external_reply: {
+        message_id: 88,
+        origin: {
+          type: "user",
+          date: toUnixSeconds(new Date("2026-11-20T16:00:00Z")),
+          sender_user: { id: 202, username: "upstream" },
+        },
+      },
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(runtimeCalls.length, 1);
+  const forwarded = runtimeCalls[0];
+  assert.match(forwarded.text, /\[Reply context: #88 from @upstream\]/);
+  assert.match(forwarded.text, /status update from upstream/);
+  assert.match(forwarded.text, /please answer this/);
+});
+
+test("telegram external reply keeps metadata when reply content is unavailable", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const runtimeCalls = [];
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            runtimeCalls.push(input);
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-external-reply-2" },
+    from: { id: 101, is_bot: false },
+    message: {
+      text: "follow up",
+      date: toUnixSeconds(new Date("2026-11-20T16:12:00Z")),
+      external_reply: {
+        message_id: 89,
+        origin: {
+          type: "hidden_user",
+          date: toUnixSeconds(new Date("2026-11-20T16:00:00Z")),
+          sender_user_name: "Anonymous",
+        },
+      },
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(runtimeCalls.length, 1);
+  const forwarded = runtimeCalls[0];
+  assert.match(forwarded.text, /\[Reply context: #89 from Anonymous\]/);
+  assert.match(forwarded.text, /follow up/);
+});
+
 test("telegram runtime can send files through send_telegram_file callback", async () => {
   const { channelPath, landPath } = await createLandFixture();
   const mockBot = createMockBot();

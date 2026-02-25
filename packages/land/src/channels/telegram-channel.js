@@ -18,6 +18,7 @@ import {
   getMessageCaption,
   getMessageDate,
   getMessageText,
+  prependReplyContext,
   getThreadContext,
   getUserId,
   isTelegramAttachmentMessage,
@@ -193,6 +194,7 @@ export class TelegramChannel {
       if (!text) {
         return;
       }
+      const textWithReplyContext = prependReplyContext(ctx, text);
 
       const userId = getUserId(ctx);
       if (!userId) {
@@ -201,7 +203,7 @@ export class TelegramChannel {
 
       const thread = getThreadContext(ctx);
       await this.#enqueueThread(thread.threadId, async () => {
-        await this.#processThreadMessage(thread, userId, text, "text");
+        await this.#processThreadMessage(thread, userId, textWithReplyContext, "text");
       });
     } catch (error) {
       console.error("Failed to process Telegram inbound message:", error);
@@ -245,6 +247,7 @@ export class TelegramChannel {
         if (caption) {
           messageText += `\n\n${caption}`;
         }
+        messageText = prependReplyContext(ctx, messageText);
 
         await this.#processThreadMessage(thread, userId, messageText, "upload");
       });
@@ -300,6 +303,7 @@ export class TelegramChannel {
         if (caption) {
           messageText += `\n\n${caption}`;
         }
+        messageText = prependReplyContext(ctx, messageText);
 
         await this.#processThreadMessage(thread, userId, messageText, "audio");
       });
