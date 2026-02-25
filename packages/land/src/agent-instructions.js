@@ -1,13 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {
-  buildManagedInstructionBlocks,
-  defaultAgentInstructions,
-  defaultSlackInstructions,
-  defaultTelegramInstructions,
-} from "@sila/agents";
+import { buildManagedInstructionBlocks, defaultAgentInstructions } from "@sila/agents";
 
-const DEFAULT_INSTRUCTIONS_PATH = path.join("agents", "default", "instructions.md");
+const DEFAULT_INSTRUCTIONS_DIR = path.join("agents", "default", "instructions");
+const NULL_BYTE = "\u0000";
 
 /**
  * @param {string} landPath
@@ -15,29 +11,78 @@ const DEFAULT_INSTRUCTIONS_PATH = path.join("agents", "default", "instructions.m
  * @returns {Promise<string>}
  */
 export async function loadLandAgentInstructions(landPath, channel) {
-  const overridePath = path.join(landPath, DEFAULT_INSTRUCTIONS_PATH);
-  const override = await readFileOrNull(overridePath);
-  if (override && override.trim().length) {
-    return [override.trim(), buildManagedInstructionBlocks(channel).trim()].join("\n\n");
+  const normalizedChannel = normalizeChannel(channel);
+  const defaults = defaultAgentInstructions({ channel: normalizedChannel });
+  const customInstructionBlocks = await loadCustomInstructionBlocks(landPath);
+  if (!customInstructionBlocks.length) {
+    return defaults;
   }
 
-  const normalizedChannel = typeof channel === "string" ? channel.trim().toLowerCase() : "";
-  if (normalizedChannel === "slack") {
-    return defaultSlackInstructions();
-  }
-  if (normalizedChannel === "telegram") {
-    return defaultTelegramInstructions();
-  }
-  return defaultAgentInstructions();
+  return [customInstructionBlocks.join("\n\n"), buildManagedInstructionBlocks(normalizedChannel).trim()].join("\n\n");
 }
 
-async function readFileOrNull(filePath) {
+function normalizeChannel(channel) {
+  return typeof channel === "string" ? channel.trim().toLowerCase() : "";
+}
+
+async function loadCustomInstructionBlocks(landPath) {
+  const directoryPath = path.join(landPath, DEFAULT_INSTRUCTIONS_DIR);
+  const filePaths = await listFilesRecursivelyOrNull(directoryPath);
+  if (!filePaths || !filePaths.length) {
+    return [];
+  }
+
+  const instructionBlocks = await Promise.all(
+    filePaths.map(async (filePath) => {
+      const content = await readTextFileOrNull(filePath);
+      if (!content || !content.trim().length) {
+        return null;
+      }
+      const relativePath = toPosixPath(path.relative(landPath, filePath));
+      return `<instruction src="${relativePath}">${content}</instruction>`;
+    }),
+  );
+  return instructionBlocks.filter(Boolean);
+}
+
+async function listFilesRecursivelyOrNull(directoryPath) {
+  let entries;
   try {
-    return await fs.readFile(filePath, "utf8");
+    entries = await fs.readdir(directoryPath, { withFileTypes: true });
   } catch (error) {
     if (error && error.code === "ENOENT") {
       return null;
     }
     throw error;
   }
+
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+
+  const filePaths = [];
+  for (const entry of entries) {
+    const entryPath = path.join(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      const nestedPaths = await listFilesRecursivelyOrNull(entryPath);
+      if (nestedPaths && nestedPaths.length) {
+        filePaths.push(...nestedPaths);
+      }
+      continue;
+    }
+    if (entry.isFile()) {
+      filePaths.push(entryPath);
+    }
+  }
+  return filePaths;
+}
+
+async function readTextFileOrNull(filePath) {
+  const content = await fs.readFile(filePath, "utf8");
+  if (content.includes(NULL_BYTE)) {
+    return null;
+  }
+  return content;
+}
+
+function toPosixPath(value) {
+  return value.split(path.sep).join("/");
 }
