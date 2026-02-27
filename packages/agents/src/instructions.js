@@ -12,8 +12,10 @@ Avoid em-dashes.
 
 const CHANNEL_FORMATTING_INSTRUCTIONS = Object.freeze({
   slack: `
-Slack supports Markdown formatting (mrkdwn).
-Use lightweight Markdown when it helps readability (lists, bold text, inline code).
+Slack message text uses mrkdwn formatting (Slack style, not GitHub/CommonMark).
+For bold text, use single asterisks: *bold*.
+Do not use double asterisks for bold in Slack text: **bold**.
+Use lightweight formatting when it helps readability (lists, bold text, inline code).
 Do not over-format.
 Avoid em-dashes.
 `,

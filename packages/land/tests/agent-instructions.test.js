@@ -18,7 +18,7 @@ test("loadLandAgentInstructions overrides default base instructions with custom 
   const instructions = await loadLandAgentInstructions(landPath, "slack");
   assert.equal(instructions.includes("You're an assistant for the user."), false);
   assert.match(instructions, /<formatting>/);
-  assert.match(instructions, /Slack supports Markdown formatting/);
+  assert.match(instructions, /uses mrkdwn formatting/);
   assert.match(instructions, /<environment>/);
   assert.match(
     instructions,

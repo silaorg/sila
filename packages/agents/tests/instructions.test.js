@@ -10,7 +10,9 @@ import {
 describe("getChannelFormattingInstructions", () => {
   it("returns Slack-specific formatting instructions", () => {
     const instructions = getChannelFormattingInstructions("slack");
-    match(instructions, /Slack supports Markdown formatting/);
+    match(instructions, /uses mrkdwn formatting/);
+    match(instructions, /single asterisks: \*bold\*/);
+    match(instructions, /Do not use double asterisks/);
   });
 
   it("returns Telegram-specific formatting instructions", () => {
@@ -33,7 +35,7 @@ describe("defaultAgentInstructions", () => {
 
   it("uses Slack formatting for Slack default instructions", () => {
     const instructions = defaultSlackInstructions();
-    match(instructions, /Slack supports Markdown formatting/);
+    match(instructions, /uses mrkdwn formatting/);
     match(instructions, /send_slack_file/);
     ok(instructions.includes("<formatting>"));
   });
