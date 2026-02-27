@@ -77,7 +77,70 @@ test("appendSkillCatalogInstructions appends a skills catalog block", () => {
     },
   ]);
 
+  assert.match(result, /Agent Skills are available in two directories:/);
+  assert.match(result, /Built-in skills: <source repo root>\/packages\/skills/);
   assert.match(result, /Available skills:/);
   assert.match(result, /pdf-processing: Handles PDF extraction and form filling tasks\./);
   assert.match(result, /skills\/pdf-processing\/SKILL\.md/);
+});
+
+test("loadSkillIndex merges built-in and land skills, with land overriding duplicates", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-builtins-"));
+  const sourceRoot = path.join(tempRoot, "source");
+  const landRoot = path.join(tempRoot, "land");
+
+  await fs.mkdir(path.join(sourceRoot, "packages", "skills", "how-to-create-skills"), { recursive: true });
+  await fs.writeFile(
+    path.join(sourceRoot, "packages", "skills", "how-to-create-skills", "SKILL.md"),
+    [
+      "---",
+      "name: how-to-create-skills",
+      "description: Built-in guidance for creating repeatable skills.",
+      "---",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  await fs.mkdir(path.join(sourceRoot, "packages", "skills", "duplicate-skill"), { recursive: true });
+  await fs.writeFile(
+    path.join(sourceRoot, "packages", "skills", "duplicate-skill", "SKILL.md"),
+    [
+      "---",
+      "name: duplicate-skill",
+      "description: Built-in duplicate description.",
+      "---",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  await fs.mkdir(path.join(landRoot, "skills", "duplicate-skill"), { recursive: true });
+  await fs.writeFile(
+    path.join(landRoot, "skills", "duplicate-skill", "SKILL.md"),
+    [
+      "---",
+      "name: duplicate-skill",
+      "description: Land override description.",
+      "---",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const skills = await loadSkillIndex(landRoot, { sourcePath: sourceRoot });
+
+  assert.equal(skills.length, 2);
+  assert.deepEqual(skills, [
+    {
+      name: "duplicate-skill",
+      description: "Land override description.",
+      relativeSkillFilePath: "skills/duplicate-skill/SKILL.md",
+    },
+    {
+      name: "how-to-create-skills",
+      description: "Built-in guidance for creating repeatable skills.",
+      relativeSkillFilePath: "packages/skills/how-to-create-skills/SKILL.md",
+    },
+  ]);
 });

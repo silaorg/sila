@@ -4,13 +4,35 @@ import path from "node:path";
 const SKILLS_DIR_NAME = "skills";
 const SKILL_FILE_NAME = "SKILL.md";
 const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const BUILTIN_SKILLS_PATH_SEGMENTS = ["packages", "skills"];
 
 /**
  * @param {string} landPath
+ * @param {{ sourcePath?: string }} [options]
  * @returns {Promise<Array<{name: string; description: string; relativeSkillFilePath: string}>>}
  */
-export async function loadSkillIndex(landPath) {
-  const skillsDirPath = path.join(landPath, SKILLS_DIR_NAME);
+export async function loadSkillIndex(landPath, options = {}) {
+  const sourcePath = typeof options.sourcePath === "string" ? options.sourcePath.trim() : "";
+  const builtinSkills = sourcePath.length
+    ? await loadSkillsFromDirectory(
+      path.join(sourcePath, ...BUILTIN_SKILLS_PATH_SEGMENTS),
+      path.posix.join(...BUILTIN_SKILLS_PATH_SEGMENTS),
+    )
+    : [];
+  const landSkills = await loadSkillsFromDirectory(path.join(landPath, SKILLS_DIR_NAME), SKILLS_DIR_NAME);
+
+  const skillByName = new Map();
+  for (const skill of builtinSkills) {
+    skillByName.set(skill.name, skill);
+  }
+  for (const skill of landSkills) {
+    skillByName.set(skill.name, skill);
+  }
+
+  return Array.from(skillByName.values()).sort((left, right) => left.name.localeCompare(right.name));
+}
+
+async function loadSkillsFromDirectory(skillsDirPath, relativeRootPath) {
   const entries = await readDirectoryEntriesOrEmpty(skillsDirPath);
   const sortedEntries = entries
     .filter((entry) => entry.isDirectory())
@@ -32,7 +54,7 @@ export async function loadSkillIndex(landPath) {
       skills.push({
         name: parsed.name,
         description: parsed.description,
-        relativeSkillFilePath: path.posix.join(SKILLS_DIR_NAME, entry.name, SKILL_FILE_NAME),
+        relativeSkillFilePath: path.posix.join(relativeRootPath, entry.name, SKILL_FILE_NAME),
       });
     } catch (error) {
       console.warn(`Skipping invalid skill at ${skillFilePath}: ${error.message}`);
@@ -54,7 +76,9 @@ export function appendSkillCatalogInstructions(baseInstructions, skills) {
   const lines = [
     baseInstructions,
     "",
-    "Agent Skills are available under the land's skills directory.",
+    "Agent Skills are available in two directories:",
+    "- Land skills: <land root>/skills",
+    "- Built-in skills: <source repo root>/packages/skills",
     "Use each skill name and description below to decide relevance.",
     "When a skill is relevant, read its SKILL.md with read_document exactly once before acting.",
     "After activation, read referenced files only as needed.",

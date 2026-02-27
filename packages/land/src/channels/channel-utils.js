@@ -62,10 +62,10 @@ export async function readExaApiKey(channelPath) {
 }
 
 export async function loadChannelInstructions(landPath, channel, threadPath) {
-  const skills = await loadSkillIndex(landPath);
   const baseInstructions = await loadLandAgentInstructions(landPath, channel);
   const runtimePaths = await resolveRuntimePaths({ landPath, threadPath });
   applyRuntimePathEnvironment(runtimePaths);
+  const skills = await loadSkillIndex(landPath, { sourcePath: runtimePaths.sourcePath ?? undefined });
   const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
   return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
 }
