@@ -34,12 +34,14 @@ describe("defaultAgentInstructions", () => {
   it("uses Slack formatting for Slack default instructions", () => {
     const instructions = defaultSlackInstructions();
     match(instructions, /Slack supports Markdown formatting/);
+    match(instructions, /send_slack_file/);
     ok(instructions.includes("<formatting>"));
   });
 
   it("uses Telegram formatting for Telegram default instructions", () => {
     const instructions = defaultTelegramInstructions();
     match(instructions, /Telegram should be plain text/);
+    match(instructions, /send_telegram_file/);
   });
 
   it("matches Slack helper with channel-based builder", () => {

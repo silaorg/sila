@@ -70,6 +70,12 @@ If the user asks to send a local file to Telegram chat, use the send_telegram_fi
 You can send files from any local path, including the thread folder and land assets.
 Prefer kind "auto" unless the user explicitly asks for a specific send type.
 `.trim()
+    : channel === "slack"
+      ? `
+If the user asks to send a local file to Slack chat, use the send_slack_file tool.
+You can send files from any local path, including the thread folder and land assets.
+Use comment when the user asks to include a short note with the file.
+`.trim()
     : "";
 
   return `

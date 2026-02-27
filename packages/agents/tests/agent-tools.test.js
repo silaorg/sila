@@ -99,4 +99,31 @@ describe("createChatAgent", () => {
       namesWithSender.filter((name) => name !== "send_telegram_file"),
     );
   });
+
+  it("adds send_slack_file only when sender is provided", () => {
+    const lang = Lang.mockOpenAI();
+
+    const withoutSender = createChatAgent(lang, {
+      threadId: "thread-1",
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+    });
+    const withSender = createChatAgent(lang, {
+      threadId: "thread-1",
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      sendSlackFile: async () => ({ fileId: "F1" }),
+    });
+
+    const namesWithoutSender = (withoutSender.messages.availableTools || []).map((tool) => tool.name);
+    const namesWithSender = (withSender.messages.availableTools || []).map((tool) => tool.name);
+
+    ok(!namesWithoutSender.includes("send_slack_file"));
+    ok(namesWithSender.includes("send_slack_file"));
+
+    deepEqual(
+      namesWithoutSender.filter((name) => name !== "send_slack_file"),
+      namesWithSender.filter((name) => name !== "send_slack_file"),
+    );
+  });
 });

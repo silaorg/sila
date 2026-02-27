@@ -36,15 +36,38 @@ export class SlackChannel {
   #processingThreads = new Map();
   /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
+  /** @type {{
+   *  createSlackApp: (input: { botUserOAuthToken: string; appLevelToken: string }) => Promise<any>;
+   *  createAgentRuntime: (options: {
+   *    lang: import("aiwrapper").LanguageProvider;
+   *    instructions: string;
+   *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    defaultCwd: string;
+   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   * }} */
+  #dependencies;
   #isRunning = false;
 
   /**
    * @param {string} channelPath
    * @param {Record<string, unknown>} rawConfig
+   * @param {Partial<{
+   *  createSlackApp: (input: { botUserOAuthToken: string; appLevelToken: string }) => Promise<any>;
+   *  createAgentRuntime: (options: {
+   *    lang: import("aiwrapper").LanguageProvider;
+   *    instructions: string;
+   *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    defaultCwd: string;
+   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   * }>} [dependencies]
    */
-  constructor(channelPath, rawConfig) {
+  constructor(channelPath, rawConfig, dependencies = {}) {
     this.#path = channelPath;
     this.#config = parseChannelConfig(rawConfig);
+    this.#dependencies = {
+      ...createDefaultDependencies(),
+      ...dependencies,
+    };
   }
 
   async run() {
@@ -78,19 +101,16 @@ export class SlackChannel {
     this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
     const landPath = path.resolve(this.#path, "..", "..");
     const instructions = await loadChannelInstructions(landPath, "slack");
-    this.#agentRuntime = new InProcessChatAgentRuntime({
+    this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,
       defaultCwd: landPath,
       instructions,
       loadInstructions: (input = {}) => loadChannelInstructions(landPath, "slack", input.threadDir),
     });
 
-    const { App, LogLevel } = await import("@slack/bolt");
-    const app = new App({
-      token: botUserOAuthToken,
-      appToken: appLevelToken,
-      socketMode: true,
-      logLevel: LogLevel.INFO,
+    const app = await this.#dependencies.createSlackApp({
+      botUserOAuthToken,
+      appLevelToken,
     });
 
     app.message(async ({ message }) => {
@@ -134,6 +154,30 @@ export class SlackChannel {
       text,
       ...(threadTs ? { thread_ts: threadTs } : {}),
     });
+  }
+
+  /**
+   * @param {{ threadId: string; channelId: string; threadTs: string | null }} thread
+   * @param {{ path: string; title?: string; comment?: string }} payload
+   */
+  async #sendSlackFile(thread, payload) {
+    if (!this.#app) {
+      throw new Error(`Slack channel is not connected: ${this.#path}`);
+    }
+
+    const { path: filePath, title, comment } = payload;
+    const upload = await this.#app.client.files.uploadV2({
+      channel_id: thread.channelId,
+      file: filePath,
+      ...(thread.threadTs ? { thread_ts: thread.threadTs } : {}),
+      ...(title ? { title } : {}),
+      ...(comment ? { initial_comment: comment } : {}),
+    });
+    const firstFile = Array.isArray(upload?.files) ? upload.files[0] : null;
+    return {
+      fileId: firstFile?.id ?? null,
+      permalink: firstFile?.permalink ?? null,
+    };
   }
 
   /**
@@ -194,6 +238,7 @@ export class SlackChannel {
       threadDir,
       userId,
       text,
+      sendSlackFile: async (payload) => this.#sendSlackFile(thread, payload),
     });
 
     await saveThreadState(threadDir, {
@@ -275,5 +320,22 @@ function getThreadContext(message) {
     threadId: sanitizeThreadId(`${channelId}_${rootTs}`),
     channelId,
     threadTs: rootTs,
+  };
+}
+
+function createDefaultDependencies() {
+  return {
+    async createSlackApp({ botUserOAuthToken, appLevelToken }) {
+      const { App, LogLevel } = await import("@slack/bolt");
+      return new App({
+        token: botUserOAuthToken,
+        appToken: appLevelToken,
+        socketMode: true,
+        logLevel: LogLevel.INFO,
+      });
+    },
+    createAgentRuntime(options) {
+      return new InProcessChatAgentRuntime(options);
+    },
   };
 }

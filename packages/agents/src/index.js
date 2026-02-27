@@ -21,6 +21,7 @@ export {
   createToolExecuteCommand,
   createToolReadDocument,
   createToolSeeImage,
+  createToolSendSlackFile,
   createToolSendTelegramFile,
   createToolSearchReplacePatch,
   createToolWebSearch,

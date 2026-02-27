@@ -23,6 +23,8 @@ export class ThreadAgent {
   #landPath;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
   #sendTelegramFile;
+  /** @type {undefined | ((payload: { path: string; title?: string; comment?: string }) => Promise<any>)} */
+  #sendSlackFile;
 
   /**
    * @param {{
@@ -33,6 +35,7 @@ export class ThreadAgent {
    *  defaultCwd?: string;
    *  landPath?: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
+   *  sendSlackFile?: (payload: { path: string; title?: string; comment?: string }) => Promise<any>;
    *  instructions: string;
    * }} options
    */
@@ -44,6 +47,7 @@ export class ThreadAgent {
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#landPath = options.landPath ?? this.#defaultCwd;
     this.#sendTelegramFile = options.sendTelegramFile;
+    this.#sendSlackFile = options.sendSlackFile;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
 
@@ -58,6 +62,7 @@ export class ThreadAgent {
       defaultCwd: this.#defaultCwd,
       landPath: this.#landPath,
       sendTelegramFile: this.#sendTelegramFile,
+      sendSlackFile: this.#sendSlackFile,
     });
     agent.messages.instructions = this.#instructions;
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
@@ -119,6 +124,7 @@ export class InProcessChatAgentRuntime {
    *  userId: string;
    *  text: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
+   *  sendSlackFile?: (payload: { path: string; title?: string; comment?: string }) => Promise<any>;
    * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
@@ -137,6 +143,7 @@ export class InProcessChatAgentRuntime {
       defaultCwd: input.threadDir,
       landPath: this.#defaultCwd,
       sendTelegramFile: input.sendTelegramFile,
+      sendSlackFile: input.sendSlackFile,
       instructions,
     });
     return agent.processUserMessage({
