@@ -273,6 +273,63 @@ test("slack runtime posts plain DM replies without thread_ts", async () => {
   });
 });
 
+test("slack file uploads are forwarded as relative dated paths", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+  const runtimeCalls = [];
+  const storedFiles = [];
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            runtimeCalls.push(input);
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeSlackFile(input) {
+        storedFiles.push(input);
+        return await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C777",
+    user: "U123",
+    subtype: "file_share",
+    ts: toSlackTimestamp(new Date("2026-11-20T09:30:00Z")),
+    files: [
+      {
+        id: "F900",
+        name: "report.pdf",
+        mimetype: "application/pdf",
+        url_private_download: "https://example.test/file/F900/download",
+      },
+    ],
+  });
+  await channel.stop();
+
+  assert.equal(storedFiles.length, 1);
+  assert.equal(storedFiles[0].fileUrl, "https://example.test/file/F900/download");
+  assert.equal(runtimeCalls.length, 1);
+  assert.match(runtimeCalls[0].text, /files\/2026\/11\/20\/report\.pdf/);
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-slack-channel-"));
   const landPath = path.join(root, "land");
@@ -342,4 +399,19 @@ function createMockSlackApp() {
       await messageHandler({ message });
     },
   };
+}
+
+async function writeFakeStoredFile(threadDir, createdAt, fileName) {
+  const year = String(createdAt.getFullYear());
+  const month = String(createdAt.getMonth() + 1).padStart(2, "0");
+  const day = String(createdAt.getDate()).padStart(2, "0");
+  const dirPath = path.join(threadDir, "files", year, month, day);
+  await fs.mkdir(dirPath, { recursive: true });
+  const fullPath = path.join(dirPath, fileName);
+  await fs.writeFile(fullPath, "test\n", "utf8");
+  return fullPath;
+}
+
+function toSlackTimestamp(date) {
+  return `${Math.floor(date.getTime() / 1000)}.000001`;
 }
