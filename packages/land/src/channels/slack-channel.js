@@ -324,6 +324,17 @@ function normalizeIncomingText(text, botUserId) {
 
 function getThreadContext(message) {
   const channelId = String(message.channel);
+  const rootTs = message.thread_ts === undefined || message.thread_ts === null || message.thread_ts === ""
+    ? null
+    : String(message.thread_ts);
+  if (rootTs) {
+    return {
+      threadId: sanitizeThreadId(`${channelId}_${rootTs}`),
+      channelId,
+      threadTs: rootTs,
+    };
+  }
+
   if (message.channel_type === "im") {
     return {
       threadId: sanitizeThreadId(channelId),
@@ -332,19 +343,10 @@ function getThreadContext(message) {
     };
   }
 
-  if (!message.thread_ts) {
-    return {
-      threadId: sanitizeThreadId(`${channelId}_main`),
-      channelId,
-      threadTs: null,
-    };
-  }
-
-  const rootTs = String(message.thread_ts);
   return {
-    threadId: sanitizeThreadId(`${channelId}_${rootTs}`),
+    threadId: sanitizeThreadId(`${channelId}_main`),
     channelId,
-    threadTs: rootTs,
+    threadTs: null,
   };
 }
 

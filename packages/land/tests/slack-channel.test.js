@@ -183,6 +183,96 @@ test("slack runtime posts replies with mrkdwn enabled", async () => {
   });
 });
 
+test("slack runtime keeps DM thread replies in the same thread", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: true, answer: "dm thread reply" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "D444",
+    channel_type: "im",
+    user: "U123",
+    text: "reply in dm thread",
+    thread_ts: "1710000010.000001",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.postedMessages.length, 1);
+  assert.deepEqual(mockApp.postedMessages[0], {
+    channel: "D444",
+    text: "dm thread reply",
+    mrkdwn: true,
+    thread_ts: "1710000010.000001",
+  });
+});
+
+test("slack runtime posts plain DM replies without thread_ts", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: true, answer: "dm main reply" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "D555",
+    channel_type: "im",
+    user: "U123",
+    text: "reply in dm",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.postedMessages.length, 1);
+  assert.deepEqual(mockApp.postedMessages[0], {
+    channel: "D555",
+    text: "dm main reply",
+    mrkdwn: true,
+  });
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-slack-channel-"));
   const landPath = path.join(root, "land");
