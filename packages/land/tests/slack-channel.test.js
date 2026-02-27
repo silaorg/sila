@@ -8,6 +8,7 @@ import { SlackChannel } from "../src/channels/slack-channel.js";
 test("slack runtime can upload files through send_slack_file callback", async () => {
   const { channelPath, landPath } = await createLandFixture();
   const mockApp = createMockSlackApp();
+  let uploadResult = null;
   const sentFilePath = path.join(landPath, "assets", "report.txt");
   await fs.mkdir(path.dirname(sentFilePath), { recursive: true });
   await fs.writeFile(sentFilePath, "report", "utf8");
@@ -27,7 +28,7 @@ test("slack runtime can upload files through send_slack_file callback", async ()
       createAgentRuntime() {
         return {
           async handleThreadMessage(input) {
-            await input.sendSlackFile?.({
+            uploadResult = await input.sendSlackFile?.({
               path: sentFilePath,
               title: "Weekly report",
               comment: "Generated file",
@@ -53,11 +54,88 @@ test("slack runtime can upload files through send_slack_file callback", async ()
   assert.deepEqual(mockApp.uploadCalls[0], {
     channel_id: "C111",
     file: sentFilePath,
+    filename: "report.txt",
     thread_ts: "1710000000.123456",
     title: "Weekly report",
     initial_comment: "Generated file",
   });
+  assert.deepEqual(uploadResult, {
+    fileId: "F123",
+    permalink: "https://example.test/file/F123",
+    fileIds: ["F123"],
+    permalinks: ["https://example.test/file/F123"],
+  });
   assert.equal(mockApp.postedMessages.length, 0);
+});
+
+test("slack runtime can upload multiple files in one message", async () => {
+  const { channelPath, landPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+  let uploadResult = null;
+  const fileOnePath = path.join(landPath, "assets", "one.txt");
+  const fileTwoPath = path.join(landPath, "assets", "two.txt");
+  await fs.mkdir(path.dirname(fileOnePath), { recursive: true });
+  await fs.writeFile(fileOnePath, "one", "utf8");
+  await fs.writeFile(fileTwoPath, "two", "utf8");
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            uploadResult = await input.sendSlackFile?.({
+              files: [
+                { path: fileOnePath },
+                { path: fileTwoPath, filename: "renamed-two.txt" },
+              ],
+              comment: "Generated files",
+            });
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C222",
+    user: "U123",
+    text: "send all",
+    thread_ts: "1710000000.888888",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.uploadCalls.length, 1);
+  assert.deepEqual(mockApp.uploadCalls[0], {
+    channel_id: "C222",
+    file_uploads: [
+      { file: fileOnePath, filename: "one.txt" },
+      { file: fileTwoPath, filename: "renamed-two.txt" },
+    ],
+    thread_ts: "1710000000.888888",
+    initial_comment: "Generated files",
+  });
+  assert.deepEqual(uploadResult, {
+    fileId: "F123",
+    permalink: "https://example.test/file/F123",
+    fileIds: ["F123", "F124"],
+    permalinks: [
+      "https://example.test/file/F123",
+      "https://example.test/file/F124/download",
+    ],
+  });
 });
 
 async function createLandFixture() {
@@ -88,7 +166,27 @@ function createMockSlackApp() {
       files: {
         async uploadV2(input) {
           uploadCalls.push(input);
-          return { files: [{ id: "F123", permalink: "https://example.test/file/F123" }] };
+          if (Array.isArray(input.file_uploads)) {
+            return {
+              files: [
+                {
+                  ok: true,
+                  files: [
+                    { id: "F123", permalink: "https://example.test/file/F123" },
+                    { id: "F124", url_private_download: "https://example.test/file/F124/download" },
+                  ],
+                },
+              ],
+            };
+          }
+          return {
+            files: [
+              {
+                ok: true,
+                files: [{ id: "F123", permalink: "https://example.test/file/F123" }],
+              },
+            ],
+          };
         },
       },
       chat: {

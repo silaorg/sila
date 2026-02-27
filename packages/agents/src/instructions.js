@@ -74,6 +74,7 @@ Prefer kind "auto" unless the user explicitly asks for a specific send type.
       ? `
 If the user asks to send a local file to Slack chat, use the send_slack_file tool.
 You can send files from any local path, including the thread folder and land assets.
+Use "paths" when sending multiple files in one Slack message.
 Use comment when the user asks to include a short note with the file.
 `.trim()
     : "";

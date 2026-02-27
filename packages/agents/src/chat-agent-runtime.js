@@ -23,7 +23,7 @@ export class ThreadAgent {
   #landPath;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
   #sendTelegramFile;
-  /** @type {undefined | ((payload: { path: string; title?: string; comment?: string }) => Promise<any>)} */
+  /** @type {undefined | ((payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>)} */
   #sendSlackFile;
 
   /**
@@ -35,7 +35,7 @@ export class ThreadAgent {
    *  defaultCwd?: string;
    *  landPath?: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
-   *  sendSlackFile?: (payload: { path: string; title?: string; comment?: string }) => Promise<any>;
+   *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  instructions: string;
    * }} options
    */
@@ -124,7 +124,7 @@ export class InProcessChatAgentRuntime {
    *  userId: string;
    *  text: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
-   *  sendSlackFile?: (payload: { path: string; title?: string; comment?: string }) => Promise<any>;
+   *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */

@@ -158,25 +158,49 @@ export class SlackChannel {
 
   /**
    * @param {{ threadId: string; channelId: string; threadTs: string | null }} thread
-   * @param {{ path: string; title?: string; comment?: string }} payload
+   * @param {{ path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }} payload
    */
   async #sendSlackFile(thread, payload) {
     if (!this.#app) {
       throw new Error(`Slack channel is not connected: ${this.#path}`);
     }
 
-    const { path: filePath, title, comment } = payload;
-    const upload = await this.#app.client.files.uploadV2({
-      channel_id: thread.channelId,
-      file: filePath,
-      ...(thread.threadTs ? { thread_ts: thread.threadTs } : {}),
-      ...(title ? { title } : {}),
-      ...(comment ? { initial_comment: comment } : {}),
-    });
-    const firstFile = Array.isArray(upload?.files) ? upload.files[0] : null;
+    const { path: filePath, files, title, comment } = payload;
+    const hasManyFiles = Array.isArray(files) && files.length > 0;
+    let upload;
+
+    if (hasManyFiles) {
+      upload = await this.#app.client.files.uploadV2({
+        channel_id: thread.channelId,
+        file_uploads: files.map((fileEntry) => ({
+          file: fileEntry.path,
+          filename: fileEntry.filename || path.basename(fileEntry.path),
+          ...(fileEntry.title ? { title: fileEntry.title } : {}),
+        })),
+        ...(thread.threadTs ? { thread_ts: thread.threadTs } : {}),
+        ...(comment ? { initial_comment: comment } : {}),
+      });
+    } else {
+      if (!filePath) {
+        throw new Error("Missing file path for Slack upload.");
+      }
+      upload = await this.#app.client.files.uploadV2({
+        channel_id: thread.channelId,
+        file: filePath,
+        filename: path.basename(filePath),
+        ...(thread.threadTs ? { thread_ts: thread.threadTs } : {}),
+        ...(title ? { title } : {}),
+        ...(comment ? { initial_comment: comment } : {}),
+      });
+    }
+
+    const uploadedFiles = collectUploadedFiles(upload);
+    const firstFile = uploadedFiles[0] ?? null;
     return {
       fileId: firstFile?.id ?? null,
-      permalink: firstFile?.permalink ?? null,
+      permalink: getFileLink(firstFile),
+      fileIds: uploadedFiles.map((file) => file?.id).filter(Boolean),
+      permalinks: uploadedFiles.map((file) => getFileLink(file)).filter(Boolean),
     };
   }
 
@@ -321,6 +345,51 @@ function getThreadContext(message) {
     channelId,
     threadTs: rootTs,
   };
+}
+
+function collectUploadedFiles(uploadResponse) {
+  const outerFiles = Array.isArray(uploadResponse?.files) ? uploadResponse.files : [];
+
+  // Some clients expose files directly as [{ id, permalink, ... }].
+  const directFiles = outerFiles.filter((entry) => isSlackUploadedFile(entry));
+  if (directFiles.length > 0) {
+    return directFiles;
+  }
+
+  // Slack WebClient filesUploadV2 often returns { files: [{ ok, files: [...] }] }.
+  const nestedFiles = [];
+  for (const entry of outerFiles) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+    if (!Array.isArray(entry.files)) {
+      continue;
+    }
+    for (const nestedEntry of entry.files) {
+      if (isSlackUploadedFile(nestedEntry)) {
+        nestedFiles.push(nestedEntry);
+      }
+    }
+  }
+
+  return nestedFiles;
+}
+
+function isSlackUploadedFile(entry) {
+  if (!entry || typeof entry !== "object") {
+    return false;
+  }
+  return typeof entry.id === "string"
+    || typeof entry.permalink === "string"
+    || typeof entry.url_private === "string"
+    || typeof entry.url_private_download === "string";
+}
+
+function getFileLink(file) {
+  if (!file || typeof file !== "object") {
+    return null;
+  }
+  return file.permalink ?? file.url_private_download ?? file.url_private ?? null;
 }
 
 function createDefaultDependencies() {
