@@ -138,6 +138,51 @@ test("slack runtime can upload multiple files in one message", async () => {
   });
 });
 
+test("slack runtime posts replies with mrkdwn enabled", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: true, answer: "*bold* message" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C333",
+    user: "U123",
+    text: "reply please",
+    thread_ts: "1710000001.000001",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.postedMessages.length, 1);
+  assert.deepEqual(mockApp.postedMessages[0], {
+    channel: "C333",
+    text: "*bold* message",
+    mrkdwn: true,
+    thread_ts: "1710000001.000001",
+  });
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-slack-channel-"));
   const landPath = path.join(root, "land");

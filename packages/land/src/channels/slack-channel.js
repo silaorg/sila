@@ -152,6 +152,7 @@ export class SlackChannel {
     await this.#app.client.chat.postMessage({
       channel,
       text,
+      mrkdwn: true,
       ...(threadTs ? { thread_ts: threadTs } : {}),
     });
   }
