@@ -47,6 +47,8 @@ describe("createSlackChatAgent", () => {
     ok(toolNames.includes("web_search"));
     ok(toolNames.includes("execute_command"));
     ok(toolNames.includes("see"));
+    ok(toolNames.includes("generate_image"));
+    ok(toolNames.includes("generate_video"));
     ok(toolNames.includes("read_document"));
     ok(toolNames.includes("edit_document"));
     ok(toolNames.includes("apply_patch"));
@@ -67,6 +69,8 @@ describe("createChatAgent", () => {
     ok(toolNames.includes("web_search"));
     ok(toolNames.includes("execute_command"));
     ok(toolNames.includes("see"));
+    ok(toolNames.includes("generate_image"));
+    ok(toolNames.includes("generate_video"));
     ok(toolNames.includes("read_document"));
     ok(toolNames.includes("edit_document"));
     ok(toolNames.includes("apply_patch"));

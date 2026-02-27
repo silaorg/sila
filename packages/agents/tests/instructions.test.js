@@ -10,7 +10,6 @@ import {
 describe("getChannelFormattingInstructions", () => {
   it("returns Slack-specific formatting instructions", () => {
     const instructions = getChannelFormattingInstructions("slack");
-    match(instructions, /mrkdwn enabled/);
     match(instructions, /Use Slack mrkdwn syntax/);
     match(instructions, /Do not use CommonMark bold/);
     match(instructions, /Do not use headings/);
@@ -32,11 +31,14 @@ describe("defaultAgentInstructions", () => {
     const instructions = defaultAgentInstructions();
     match(instructions, /<environment>/);
     match(instructions, /You run on a computer, can use cli, explore the file system\./);
+    match(instructions, /generate_image/);
+    match(instructions, /generate_video/);
+    match(instructions, /FAL_AI_API_KEY/);
   });
 
   it("uses Slack formatting for Slack default instructions", () => {
     const instructions = defaultSlackInstructions();
-    match(instructions, /mrkdwn enabled/);
+    match(instructions, /Use Slack mrkdwn syntax/);
     match(instructions, /send_slack_file/);
     ok(instructions.includes("<formatting>"));
   });
