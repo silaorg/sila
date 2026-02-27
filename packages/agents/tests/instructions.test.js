@@ -7,6 +7,20 @@ import {
   getChannelFormattingInstructions,
 } from "../src/instructions.js";
 
+const PLATFORM_DISPLAY_NAMES = Object.freeze({
+  darwin: "macOS",
+  linux: "Linux",
+  win32: "Windows",
+});
+
+function getExpectedOSName(platform = process.platform) {
+  if (typeof platform !== "string" || platform.length === 0) {
+    return "Unknown";
+  }
+
+  return PLATFORM_DISPLAY_NAMES[platform] ?? platform;
+}
+
 describe("getChannelFormattingInstructions", () => {
   it("returns Slack-specific formatting instructions", () => {
     const instructions = getChannelFormattingInstructions("slack");
@@ -31,6 +45,9 @@ describe("defaultAgentInstructions", () => {
     const instructions = defaultAgentInstructions();
     match(instructions, /<environment>/);
     match(instructions, /You run on a computer, can use cli, explore the file system\./);
+    match(instructions, new RegExp(`OS: ${getExpectedOSName()}\\.`));
+    match(instructions, /Throwaway scratch files: prefer the OS temporary directory\./);
+    ok(!instructions.includes("OS: {$OS}."), "instructions should not contain unresolved OS placeholder");
     match(instructions, /generate_image/);
     match(instructions, /generate_video/);
     match(instructions, /FAL_AI_API_KEY/);

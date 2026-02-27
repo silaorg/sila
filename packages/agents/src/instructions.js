@@ -5,6 +5,28 @@ Write like you're texting on a phone.
 Don't go into technical details about your internals or how you used your tools unless the user asks for it.
 `;
 
+const PLATFORM_DISPLAY_NAMES = Object.freeze({
+  darwin: "macOS",
+  linux: "Linux",
+  win32: "Windows",
+});
+
+function getRuntimeOSName(platform = process.platform) {
+  if (typeof platform !== "string" || platform.length === 0) {
+    return "Unknown";
+  }
+
+  return PLATFORM_DISPLAY_NAMES[platform] ?? platform;
+}
+
+function renderEnvironmentInstructions(template, values = {}) {
+  let rendered = String(template ?? "");
+  for (const [key, value] of Object.entries(values)) {
+    rendered = rendered.replaceAll(`{$${key}}`, String(value));
+  }
+  return rendered;
+}
+
 const DEFAULT_FORMATTING_INSTRUCTIONS = `
 Use plain text formatting by default.
 Avoid em-dashes.
@@ -28,10 +50,10 @@ Avoid em-dashes.
 `,
 });
 
-export const defaultEnvironmentInstructions = `
+const DEFAULT_ENVIRONMENT_INSTRUCTIONS_TEMPLATE = `
 You run on a computer, can use cli, explore the file system.
 
-OS: MacOS.
+OS: {$OS}.
 
 You operate in SilaLand which is a system for AI agents to work for people. A land is a directory with channels, thread folders, and shared files.
 By default your working directory (pwd) is the current channel thread directory: ./channels/<channel>/<thread-id>.
@@ -66,6 +88,11 @@ Media generation tools
 - These tools require FAL_AI_API_KEY in the environment.
 - Generated media files are saved to local paths in the current workspace unless output_path is provided.
 `;
+
+export const defaultEnvironmentInstructions = renderEnvironmentInstructions(
+  DEFAULT_ENVIRONMENT_INSTRUCTIONS_TEMPLATE,
+  { OS: getRuntimeOSName() },
+);
 
 export function getChannelFormattingInstructions(channel) {
   const normalizedChannel = typeof channel === "string" ? channel.trim().toLowerCase() : "";
