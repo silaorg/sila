@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "land": "node packages/land/src/cli.js",
     "dev": "node packages/land/src/cli.js run packages/land/test-land --watch",
     "test": "npm run --workspaces --if-present test"
   }
