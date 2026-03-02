@@ -39,6 +39,10 @@ Supported in this mode: *bold*, _italic_, ~strike~, \`inline code\`, \`\`\`code 
 Lists are plain text lines, not true markdown list syntax.
 Do not use CommonMark bold (**bold**) in normal Slack text. Use *bold*.
 Do not use headings (#), tables, task lists, HTML, or markdown images (![alt](url)) in normal Slack text.
+Links: do NOT use CommonMark links like [label](https://example.com). Use Slack link formatting:
+- <https://example.com>
+- <https://example.com|label>
+Avoid pasting tool-style “source/citation” blocks that embed CommonMark links; rewrite them into Slack links.
 Use lightweight formatting when it helps readability.
 Do not over-format.
 Avoid em-dashes.
