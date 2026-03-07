@@ -2,6 +2,8 @@
 
 Skills are instruction packages for [agents](agents.md).
 
+In Sila, skills follow the open [skill.md / Agent Skills](https://skill.md/) format.
+
 A skill teaches an agent how to handle a kind of task. It can include domain knowledge, a checklist, a workflow, or guidance about which files, scripts, or CLI programs to use.
 
 Skills are useful when the agent mostly needs better judgment or a clearer process.
