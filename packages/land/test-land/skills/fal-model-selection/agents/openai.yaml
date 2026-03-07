@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fal Model Selection"
+  short_description: "Pick the right Fal model and endpoint"
+  default_prompt: "Use $fal-model-selection to choose the right Fal endpoint for this media task."

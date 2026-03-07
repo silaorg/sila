@@ -19,8 +19,6 @@ export {
   createToolApplyPatch,
   createToolEditDocument,
   createToolExecuteCommand,
-  createToolGenerateImage,
-  createToolGenerateVideo,
   createToolReadDocument,
   createToolSeeImage,
   createToolSendSlackFile,

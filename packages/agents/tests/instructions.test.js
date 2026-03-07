@@ -48,9 +48,6 @@ describe("defaultAgentInstructions", () => {
     match(instructions, new RegExp(`OS: ${getExpectedOSName()}\\.`));
     match(instructions, /Throwaway scratch files: prefer the OS temporary directory\./);
     ok(!instructions.includes("OS: {$OS}."), "instructions should not contain unresolved OS placeholder");
-    match(instructions, /generate_image/);
-    match(instructions, /generate_video/);
-    match(instructions, /FAL_AI_API_KEY/);
   });
 
   it("uses Slack formatting for Slack default instructions", () => {

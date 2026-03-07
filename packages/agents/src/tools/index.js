@@ -1,8 +1,6 @@
 export { createToolApplyPatch } from "./apply-patch-tool.js";
 export { createToolEditDocument } from "./edit-tool.js";
 export { createToolExecuteCommand } from "./execute-tool.js";
-export { createToolGenerateImage } from "./generate-image-tool.js";
-export { createToolGenerateVideo } from "./generate-video-tool.js";
 export { createToolSearchReplacePatch } from "./patch-tool.js";
 export { createToolReadDocument } from "./read-tool.js";
 export { createToolSeeImage } from "./see-tool.js";

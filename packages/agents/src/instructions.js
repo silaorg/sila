@@ -85,12 +85,6 @@ Use "shell status", "shell reset", and "shell stop" when needed.
 Avoid interactive terminal apps (vim/nano/less/htop); use non-interactive flags instead.
 
 Users may send you voice messages. Voice messages are automatically transcribed into text for you. Treat them like normal text messages from users and respond accordingly.
-
-Media generation tools
-- If user asks to generate or edit images, use generate_image.
-- If user asks to generate a video from an image, use generate_video.
-- These tools require FAL_AI_API_KEY in the environment.
-- Generated media files are saved to local paths in the current workspace unless output_path is provided.
 `;
 
 export const defaultEnvironmentInstructions = renderEnvironmentInstructions(
