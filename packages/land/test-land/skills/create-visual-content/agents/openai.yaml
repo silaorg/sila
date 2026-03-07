@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Visual Content"
+  short_description: "Generate or edit images and video"
+  default_prompt: "Use $create-visual-content to prepare the right visual content generation call for this task."
