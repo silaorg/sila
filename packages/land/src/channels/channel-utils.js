@@ -9,6 +9,7 @@ import {
   resolveRuntimePaths,
 } from "../runtime-paths.js";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
+import { loadLandTools } from "../tools.js";
 
 export const OptionalTokenSchema = z
   .string()
@@ -68,4 +69,16 @@ export async function loadChannelInstructions(landPath, channel, threadPath) {
   const skills = await loadSkillIndex(landPath, { sourcePath: runtimePaths.sourcePath ?? undefined });
   const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
   return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
+}
+
+export async function loadChannelTools(landPath, channel, input = {}) {
+  const runtimePaths = await resolveRuntimePaths({ landPath, threadPath: input.threadDir });
+  applyRuntimePathEnvironment(runtimePaths);
+  return loadLandTools(landPath, {
+    channel,
+    threadDir: input.threadDir,
+    threadId: input.threadId,
+    sourcePath: runtimePaths.sourcePath,
+    defaultCwd: input.threadDir ?? landPath,
+  });
 }

@@ -458,6 +458,88 @@ test("telegram reloads skills into instructions on each message", async () => {
   assert.match(loadedInstructions[1], /dynamic-skill: second description/);
 });
 
+test("telegram reloads packaged land tools on each message", async () => {
+  const { channelPath, landPath } = await createLandFixture();
+  const mockBot = createMockBot();
+  const loadedToolDescriptions = [];
+  const toolDirPath = path.join(landPath, "tools", "dynamic-tool");
+
+  await fs.mkdir(toolDirPath, { recursive: true });
+  await fs.writeFile(
+    path.join(toolDirPath, "package.json"),
+    JSON.stringify({
+      name: "@test/dynamic-tool",
+      private: true,
+      type: "module",
+      main: "./index.js",
+    }, null, 2),
+    "utf8",
+  );
+  await writeDynamicToolFile(path.join(toolDirPath, "index.js"), "first tool version");
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime(options) {
+        assert.equal(typeof options.loadTools, "function");
+        return {
+          async handleThreadMessage(input) {
+            const tools = await options.loadTools({ threadId: input.threadId, threadDir: input.threadDir });
+            loadedToolDescriptions.push(tools.map((tool) => tool.description).join(", "));
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-tool-refresh" },
+    from: { id: 56, is_bot: false },
+    message: {
+      text: "first tool message",
+      date: toUnixSeconds(new Date("2026-11-20T18:10:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+
+  await waitForFileTimestampTick();
+  await writeDynamicToolFile(path.join(toolDirPath, "index.js"), "second tool version");
+
+  await mockBot.emit("text", {
+    chat: { id: "chat-tool-refresh" },
+    from: { id: 56, is_bot: false },
+    message: {
+      text: "second tool message",
+      date: toUnixSeconds(new Date("2026-11-20T18:15:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.deepEqual(loadedToolDescriptions, ["first tool version", "second tool version"]);
+});
+
 async function createLandFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "silaland-telegram-channel-"));
   const landPath = path.join(root, "land");
@@ -548,6 +630,28 @@ description: ${description}
 `,
     "utf8",
   );
+}
+
+async function writeDynamicToolFile(toolFilePath, description) {
+  await fs.writeFile(
+    toolFilePath,
+    [
+      "export default {",
+      "  name: 'dynamic_tool',",
+      `  description: '${description}',`,
+      "  parameters: { type: 'object', properties: {} },",
+      "  async handler() {",
+      "    return { ok: true };",
+      "  },",
+      "};",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+}
+
+async function waitForFileTimestampTick() {
+  await new Promise((resolve) => setTimeout(resolve, 20));
 }
 
 function toUnixSeconds(date) {

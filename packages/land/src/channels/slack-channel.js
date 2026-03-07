@@ -7,6 +7,7 @@ import {
   OptionalTokenSchema,
   enqueueSerialTask,
   loadChannelInstructions,
+  loadChannelTools,
   readOpenAiApiKey,
   sanitizeThreadId,
   saveThreadState,
@@ -44,6 +45,7 @@ export class SlackChannel {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    * }} */
@@ -60,6 +62,7 @@ export class SlackChannel {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    * }>} [dependencies]
@@ -109,6 +112,7 @@ export class SlackChannel {
       defaultCwd: landPath,
       instructions,
       loadInstructions: (input = {}) => loadChannelInstructions(landPath, "slack", input.threadDir),
+      loadTools: (input = {}) => loadChannelTools(landPath, "slack", input),
     });
 
     const app = await this.#dependencies.createSlackApp({

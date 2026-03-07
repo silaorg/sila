@@ -9,6 +9,7 @@ import {
   OptionalTokenSchema,
   enqueueSerialTask,
   loadChannelInstructions,
+  loadChannelTools,
   readOpenAiApiKey,
   saveThreadState,
 } from "./channel-utils.js";
@@ -60,6 +61,7 @@ export class TelegramChannel {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -77,6 +79,7 @@ export class TelegramChannel {
    *    lang: import("aiwrapper").LanguageProvider;
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
    *  }) => import("@sila/agents").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -125,6 +128,7 @@ export class TelegramChannel {
       defaultCwd: landPath,
       instructions,
       loadInstructions: (input = {}) => loadChannelInstructions(landPath, "telegram", input.threadDir),
+      loadTools: (input = {}) => loadChannelTools(landPath, "telegram", input),
     });
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);

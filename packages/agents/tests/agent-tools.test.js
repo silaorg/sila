@@ -130,4 +130,27 @@ describe("createChatAgent", () => {
       namesWithSender.filter((name) => name !== "send_slack_file"),
     );
   });
+
+  it("appends custom tools after built-in tools", () => {
+    const lang = Lang.mockOpenAI();
+    const agent = createChatAgent(lang, {
+      threadId: "thread-1",
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      customTools: [
+        {
+          name: "jira_search",
+          description: "Search Jira issues.",
+          parameters: { type: "object", properties: {} },
+          async handler() {
+            return { ok: true };
+          },
+        },
+      ],
+    });
+
+    const toolNames = (agent.messages.availableTools || []).map((tool) => tool.name);
+    ok(toolNames.includes("jira_search"));
+    ok(toolNames.indexOf("jira_search") > toolNames.indexOf("apply_search_replace_patch"));
+  });
 });

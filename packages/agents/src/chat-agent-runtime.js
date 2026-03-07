@@ -21,6 +21,8 @@ export class ThreadAgent {
   #defaultCwd;
   /** @type {string} */
   #landPath;
+  /** @type {Array<any>} */
+  #customTools;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
   #sendTelegramFile;
   /** @type {undefined | ((payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>)} */
@@ -34,6 +36,7 @@ export class ThreadAgent {
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
    *  landPath?: string;
+   *  customTools?: Array<any>;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  instructions: string;
@@ -46,6 +49,7 @@ export class ThreadAgent {
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#landPath = options.landPath ?? this.#defaultCwd;
+    this.#customTools = Array.isArray(options.customTools) ? options.customTools : [];
     this.#sendTelegramFile = options.sendTelegramFile;
     this.#sendSlackFile = options.sendSlackFile;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
@@ -61,6 +65,7 @@ export class ThreadAgent {
       ptyManager: this.#ptyManager,
       defaultCwd: this.#defaultCwd,
       landPath: this.#landPath,
+      customTools: this.#customTools,
       sendTelegramFile: this.#sendTelegramFile,
       sendSlackFile: this.#sendSlackFile,
     });
@@ -95,6 +100,8 @@ export class InProcessChatAgentRuntime {
   #instructions;
   /** @type {null | ((input: { threadId: string; threadDir: string }) => Promise<string>)} */
   #loadInstructions = null;
+  /** @type {null | ((input: { threadId: string; threadDir: string }) => Promise<Array<any>>)} */
+  #loadTools = null;
   /** @type {string} */
   #defaultCwd;
   /** @type {Map<string, PTYShellSessionManager>} */
@@ -105,6 +112,7 @@ export class InProcessChatAgentRuntime {
    *  lang: import("aiwrapper").LanguageProvider;
    *  instructions: string;
    *  loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
+   *  loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *  defaultCwd?: string;
    * }} options
    */
@@ -114,6 +122,9 @@ export class InProcessChatAgentRuntime {
     this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
     if (typeof options.loadInstructions === "function") {
       this.#loadInstructions = options.loadInstructions;
+    }
+    if (typeof options.loadTools === "function") {
+      this.#loadTools = options.loadTools;
     }
   }
 
@@ -134,6 +145,10 @@ export class InProcessChatAgentRuntime {
       threadId: input.threadId,
       threadDir: input.threadDir,
     });
+    const customTools = await this.#resolveTools({
+      threadId: input.threadId,
+      threadDir: input.threadDir,
+    });
 
     const agent = new ThreadAgent({
       threadId: input.threadId,
@@ -142,6 +157,7 @@ export class InProcessChatAgentRuntime {
       ptyManager,
       defaultCwd: input.threadDir,
       landPath: this.#defaultCwd,
+      customTools,
       sendTelegramFile: input.sendTelegramFile,
       sendSlackFile: input.sendSlackFile,
       instructions,
@@ -160,6 +176,15 @@ export class InProcessChatAgentRuntime {
     const loaded = await this.#loadInstructions(input);
     this.#instructions = requireInstructions(loaded, "InProcessChatAgentRuntime.loadInstructions");
     return this.#instructions;
+  }
+
+  async #resolveTools(input) {
+    if (!this.#loadTools) {
+      return [];
+    }
+
+    const loaded = await this.#loadTools(input);
+    return Array.isArray(loaded) ? loaded : [];
   }
 
   async stop() {
