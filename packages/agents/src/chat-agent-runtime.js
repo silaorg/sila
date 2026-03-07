@@ -70,20 +70,24 @@ export class ThreadAgent {
       sendSlackFile: this.#sendSlackFile,
     });
     agent.messages.instructions = this.#instructions;
+    console.log(`[thread ${this.#threadId}] user <@${input.userId}>: ${input.text}`);
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
     await saveThreadMessages(this.#threadDir, agent.messages);
 
     const shouldSendReply = await decideShouldRespond(this.#lang, agent);
     if (!shouldSendReply) {
+      console.log(`[thread ${this.#threadId}] assistant: [no response]`);
       return { responded: false, answer: "" };
     }
 
     const result = await agent.run([]);
     await saveThreadMessages(this.#threadDir, agent.messages);
+    const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
+    console.log(`[thread ${this.#threadId}] assistant: ${answer}`);
 
     return {
       responded: true,
-      answer: typeof result?.answer === "string" ? result.answer.trim() : "",
+      answer,
     };
   }
 }
