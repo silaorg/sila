@@ -125,4 +125,57 @@ describe("ThreadAgent", () => {
       "[thread thread-2] assistant: [no response]",
     ]);
   });
+
+  it("stores thread messages as json lines", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
+    const lang = Lang.mockOpenAI();
+    lang.askForObject = async () => ({ object: { respond: false } });
+    const agent = new ThreadAgent({
+      threadDir,
+      threadId: "thread-jsonl",
+      lang,
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      instructions: "Be helpful.",
+    });
+
+    await agent.processUserMessage({ userId: "user-3", text: "hello jsonl" });
+
+    const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
+    const lines = raw.trim().split("\n").map((line) => JSON.parse(line));
+    equal(lines.length, 1);
+    deepEqual(lines[0], {
+      role: "user",
+      items: [{ type: "text", text: "<@user-3>: hello jsonl" }],
+    });
+  });
+
+  it("loads legacy messages.json and rewrites history to messages.jsonl", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
+    await fs.writeFile(
+      path.join(threadDir, "messages.json"),
+      `${JSON.stringify([{ role: "user", items: [{ type: "text", text: "legacy message" }] }], null, 2)}\n`,
+      "utf8",
+    );
+
+    const lang = Lang.mockOpenAI();
+    lang.askForObject = async () => ({ object: { respond: false } });
+    const agent = new ThreadAgent({
+      threadDir,
+      threadId: "thread-legacy",
+      lang,
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      instructions: "Be helpful.",
+    });
+
+    await agent.processUserMessage({ userId: "user-4", text: "new message" });
+
+    const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
+    const lines = raw.trim().split("\n").map((line) => JSON.parse(line));
+    equal(lines.length, 2);
+    deepEqual(lines.map((line) => line.role), ["user", "user"]);
+    equal(lines[0].items[0].text, "legacy message");
+    equal(lines[1].items[0].text, "<@user-4>: new message");
+  });
 });

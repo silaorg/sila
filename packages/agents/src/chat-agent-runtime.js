@@ -4,7 +4,8 @@ import { LangMessage, z as aiZ } from "aiwrapper";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
 import { createChatAgent } from "./chat-agent.js";
 
-const THREAD_MESSAGES_FILE_NAME = "messages.json";
+const THREAD_MESSAGES_FILE_NAME = "messages.jsonl";
+const LEGACY_THREAD_MESSAGES_FILE_NAME = "messages.json";
 
 export class ThreadAgent {
   /** @type {string} */
@@ -262,39 +263,99 @@ async function loadThreadAgent(threadDir, lang, options) {
 }
 
 async function loadThreadMessages(threadDir) {
-  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
-  let raw;
-  try {
-    raw = await fs.readFile(filePath, "utf8");
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
+  const primaryPath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
+  const primaryRaw = await readFileOrNull(primaryPath);
+  if (typeof primaryRaw === "string") {
+    return parseThreadMessages(primaryRaw, primaryPath, THREAD_MESSAGES_FILE_NAME);
   }
 
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    console.error(`Invalid ${THREAD_MESSAGES_FILE_NAME} at ${filePath}, starting with empty history.`);
-    return [];
+  const legacyPath = path.join(threadDir, LEGACY_THREAD_MESSAGES_FILE_NAME);
+  const legacyRaw = await readFileOrNull(legacyPath);
+  if (typeof legacyRaw === "string") {
+    const messages = parseThreadMessages(legacyRaw, legacyPath, LEGACY_THREAD_MESSAGES_FILE_NAME);
+    await migrateLegacyThreadMessagesToJsonl(threadDir, messages);
+    return messages;
   }
 
-  if (!Array.isArray(parsed)) {
-    console.error(`Invalid ${THREAD_MESSAGES_FILE_NAME} format at ${filePath}, expected array.`);
-    return [];
-  }
-
-  return parsed.map((item) => new LangMessage(item.role, item.items, item.meta));
+  return [];
 }
 
 async function saveThreadMessages(threadDir, messages) {
   const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
-  const serializable = Array.from(messages).map((message) => ({
-    role: message.role,
-    items: message.items,
-    meta: message.meta,
-  }));
-  await fs.writeFile(filePath, `${JSON.stringify(serializable, null, 2)}\n`, "utf8");
+  const serialized = serializeThreadMessages(messages);
+  await fs.writeFile(filePath, serialized ? `${serialized}\n` : "", "utf8");
+}
+
+async function readFileOrNull(filePath) {
+  try {
+    return await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function parseThreadMessages(raw, filePath, fileName) {
+  const trimmed = raw.trim();
+  if (!trimmed.length) {
+    return [];
+  }
+
+  if (trimmed.startsWith("[")) {
+    return parseLegacyThreadMessages(raw, filePath, fileName);
+  }
+
+  try {
+    return trimmed
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0)
+      .map((line) => JSON.parse(line))
+      .map(deserializeThreadMessage);
+  } catch {
+    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
+    return [];
+  }
+}
+
+function parseLegacyThreadMessages(raw, filePath, fileName) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    console.error(`Invalid ${fileName} format at ${filePath}, expected array.`);
+    return [];
+  }
+
+  return parsed.map(deserializeThreadMessage);
+}
+
+function deserializeThreadMessage(item) {
+  return new LangMessage(item.role, item.items, item.meta);
+}
+
+function serializeThreadMessages(messages) {
+  return Array.from(messages)
+    .map((message) =>
+      JSON.stringify({
+        role: message.role,
+        items: message.items,
+        meta: message.meta,
+      }),
+    )
+    .join("\n");
+}
+
+// Temporary migration logic. Remove this once all active threads have been
+// rewritten from messages.json to messages.jsonl.
+async function migrateLegacyThreadMessagesToJsonl(threadDir, messages) {
+  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
+  const serialized = serializeThreadMessages(messages);
+  await fs.writeFile(filePath, serialized ? `${serialized}\n` : "", "utf8");
 }
