@@ -1,9 +1,0 @@
-{
-  "name": "@land-test/fal-run",
-  "private": true,
-  "type": "module",
-  "main": "./index.js",
-  "dependencies": {
-    "@fal-ai/client": "^1.9.4"
-  }
-}

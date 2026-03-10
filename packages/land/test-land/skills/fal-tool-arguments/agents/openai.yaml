@@ -1,4 +1,0 @@
-interface:
-  display_name: "Fal Tool Arguments"
-  short_description: "Build correct fal_run tool calls"
-  default_prompt: "Use $fal-tool-arguments to prepare a correct fal_run call for this endpoint."

@@ -1,7 +1,0 @@
-{
-  "name": "test-land",
-  "private": true,
-  "workspaces": [
-    "tools/*"
-  ]
-}
