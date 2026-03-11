@@ -52,13 +52,15 @@ test("loadSkillIndex returns valid skills and skips invalid ones", async () => {
     "utf8",
   );
 
-  const skills = await loadSkillIndex(landDir);
+  const skills = await loadSkillIndex(landDir, {
+    builtinSkillsPath: path.join(tempRoot, "missing-builtins"),
+  });
 
   assert.equal(skills.length, 1);
   assert.deepEqual(skills[0], {
     name: "code-review",
     description: "Reviews code changes for bugs and regressions when users ask for review help.",
-    relativeSkillFilePath: "skills/code-review/SKILL.md",
+    skillFilePath: path.join(landDir, "skills", "code-review", "SKILL.md"),
   });
 });
 
@@ -73,15 +75,15 @@ test("appendSkillCatalogInstructions appends a skills catalog block", () => {
     {
       name: "pdf-processing",
       description: "Handles PDF extraction and form filling tasks.",
-      relativeSkillFilePath: "skills/pdf-processing/SKILL.md",
+      skillFilePath: "/tmp/skills/pdf-processing/SKILL.md",
     },
   ]);
 
   assert.match(result, /Agent Skills are available in two directories:/);
-  assert.match(result, /Built-in skills: <source repo root>\/packages\/skills/);
+  assert.match(result, /Built-in skills:/);
   assert.match(result, /Available skills:/);
   assert.match(result, /pdf-processing: Handles PDF extraction and form filling tasks\./);
-  assert.match(result, /skills\/pdf-processing\/SKILL\.md/);
+  assert.match(result, /\/tmp\/skills\/pdf-processing\/SKILL\.md/);
 });
 
 test("loadSkillIndex merges built-in and land skills, with land overriding duplicates", async () => {
@@ -135,12 +137,12 @@ test("loadSkillIndex merges built-in and land skills, with land overriding dupli
     {
       name: "duplicate-skill",
       description: "Land override description.",
-      relativeSkillFilePath: "skills/duplicate-skill/SKILL.md",
+      skillFilePath: path.join(landRoot, "skills", "duplicate-skill", "SKILL.md"),
     },
     {
       name: "how-to-create-skills",
       description: "Built-in guidance for creating repeatable skills.",
-      relativeSkillFilePath: "packages/skills/how-to-create-skills/SKILL.md",
+      skillFilePath: path.join(sourceRoot, "packages", "skills", "how-to-create-skills", "SKILL.md"),
     },
   ]);
 });

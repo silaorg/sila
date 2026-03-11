@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { defaultSlackInstructions } from "@sila/agents";
+import { defaultSlackInstructions } from "../src/agent-runtime/index.js";
 import { loadLandAgentInstructions } from "../src/agent-instructions.js";
 
 test("loadLandAgentInstructions overrides default base instructions with custom files", async () => {

@@ -1,11 +1,49 @@
 {
+  "name": "silaland",
+  "version": "0.1.0",
   "type": "module",
-  "main": "src/cli.js",
+  "description": "CLI and runtime package for creating and running Sila lands",
+  "main": "./src/index.js",
+  "bin": {
+    "silaland": "./src/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./cli": "./src/cli.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "src/",
+    "builtin-skills/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/silaorg/sila.git"
+  },
+  "bugs": {
+    "url": "https://github.com/silaorg/sila/issues"
+  },
+  "homepage": "https://github.com/silaorg/sila#readme",
+  "keywords": [
+    "ai",
+    "agent",
+    "cli",
+    "land",
+    "silaland",
+    "slack",
+    "telegram"
+  ],
   "dependencies": {
-    "@sila/agents": "*",
     "@slack/bolt": "^4.6.0",
     "aiwrapper": "^3.0.2",
+    "docx": "^9.5.3",
+    "exceljs": "^4.4.0",
+    "hyperformula": "^3.2.0",
+    "mammoth": "^1.11.0",
+    "node-pty": "^1.1.0",
     "openai": "^6.22.0",
+    "pdfjs-dist": "^5.4.624",
     "picocolors": "^1.1.1",
     "telegraf": "^4.16.3",
     "zod": "^4.1.5"

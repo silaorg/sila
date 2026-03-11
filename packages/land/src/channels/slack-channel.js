@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { InProcessChatAgentRuntime } from "@sila/agents";
+import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
   loadChannelInstructions,
@@ -33,7 +33,7 @@ export class SlackChannel {
   #lang = null;
   /** @type {string | null} */
   #botUserId = null;
-  /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
+  /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
   #agentRuntime = null;
   /** @type {ThreadedChannelRuntime} */
   #threadRuntime;
@@ -46,7 +46,7 @@ export class SlackChannel {
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
-   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    * }} */
   #dependencies;
   #isRunning = false;
@@ -63,7 +63,7 @@ export class SlackChannel {
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
-   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    * }>} [dependencies]
    */
   constructor(channelPath, rawConfig, dependencies = {}) {

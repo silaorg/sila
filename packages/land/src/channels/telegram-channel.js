@@ -4,7 +4,7 @@ import { Lang } from "aiwrapper";
 import OpenAI from "openai";
 import { Input } from "telegraf";
 import { z } from "zod";
-import { InProcessChatAgentRuntime } from "@sila/agents";
+import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
   loadChannelInstructions,
@@ -46,7 +46,7 @@ export class TelegramChannel {
   #lang = null;
   /** @type {null | any} */
   #openai = null;
-  /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
+  /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
   #agentRuntime = null;
   /** @type {ThreadedChannelRuntime} */
   #threadRuntime;
@@ -62,7 +62,7 @@ export class TelegramChannel {
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
-   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
    *  transcribeAudioFile: typeof transcribeAudioFile;
    * }} */
@@ -80,7 +80,7 @@ export class TelegramChannel {
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *    defaultCwd: string;
-   *  }) => import("@sila/agents").InProcessChatAgentRuntime;
+   *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
    *  transcribeAudioFile: typeof transcribeAudioFile;
    * }>} [dependencies]

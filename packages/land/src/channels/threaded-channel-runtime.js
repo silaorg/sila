@@ -5,13 +5,13 @@ import { enqueueSerialTask, saveThreadState } from "./channel-utils.js";
 export class ThreadedChannelRuntime {
   /** @type {string} */
   #channelPath;
-  /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
+  /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
   #agentRuntime = null;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
 
   /**
-   * @param {{ channelPath: string; agentRuntime?: import("@sila/agents").InProcessChatAgentRuntime | null }} options
+   * @param {{ channelPath: string; agentRuntime?: import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime | null }} options
    */
   constructor(options) {
     this.#channelPath = options.channelPath;
@@ -19,7 +19,7 @@ export class ThreadedChannelRuntime {
   }
 
   /**
-   * @param {import("@sila/agents").InProcessChatAgentRuntime | null} agentRuntime
+   * @param {import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime | null} agentRuntime
    */
   setAgentRuntime(agentRuntime) {
     this.#agentRuntime = agentRuntime ?? null;

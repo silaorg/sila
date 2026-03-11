@@ -1,25 +1,21 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SKILLS_DIR_NAME = "skills";
 const SKILL_FILE_NAME = "SKILL.md";
 const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const BUILTIN_SKILLS_PATH_SEGMENTS = ["packages", "skills"];
+const BUILTIN_SKILLS_DIR_PATH = fileURLToPath(new URL("../builtin-skills", import.meta.url));
 
 /**
  * @param {string} landPath
- * @param {{ sourcePath?: string }} [options]
- * @returns {Promise<Array<{name: string; description: string; relativeSkillFilePath: string}>>}
+ * @param {{ sourcePath?: string; builtinSkillsPath?: string }} [options]
+ * @returns {Promise<Array<{name: string; description: string; skillFilePath: string}>>}
  */
 export async function loadSkillIndex(landPath, options = {}) {
-  const sourcePath = typeof options.sourcePath === "string" ? options.sourcePath.trim() : "";
-  const builtinSkills = sourcePath.length
-    ? await loadSkillsFromDirectory(
-      path.join(sourcePath, ...BUILTIN_SKILLS_PATH_SEGMENTS),
-      path.posix.join(...BUILTIN_SKILLS_PATH_SEGMENTS),
-    )
-    : [];
-  const landSkills = await loadSkillsFromDirectory(path.join(landPath, SKILLS_DIR_NAME), SKILLS_DIR_NAME);
+  const builtinSkillsPath = resolveBuiltinSkillsPath(options);
+  const builtinSkills = await loadSkillsFromDirectory(builtinSkillsPath);
+  const landSkills = await loadSkillsFromDirectory(path.join(landPath, SKILLS_DIR_NAME));
 
   const skillByName = new Map();
   for (const skill of builtinSkills) {
@@ -32,13 +28,25 @@ export async function loadSkillIndex(landPath, options = {}) {
   return Array.from(skillByName.values()).sort((left, right) => left.name.localeCompare(right.name));
 }
 
-async function loadSkillsFromDirectory(skillsDirPath, relativeRootPath) {
+function resolveBuiltinSkillsPath(options) {
+  if (typeof options.builtinSkillsPath === "string" && options.builtinSkillsPath.trim().length) {
+    return options.builtinSkillsPath.trim();
+  }
+
+  if (typeof options.sourcePath === "string" && options.sourcePath.trim().length) {
+    return path.join(options.sourcePath.trim(), "packages", "skills");
+  }
+
+  return BUILTIN_SKILLS_DIR_PATH;
+}
+
+async function loadSkillsFromDirectory(skillsDirPath) {
   const entries = await readDirectoryEntriesOrEmpty(skillsDirPath);
   const sortedEntries = entries
     .filter((entry) => entry.isDirectory())
     .sort((left, right) => left.name.localeCompare(right.name));
 
-  /** @type {Array<{name: string; description: string; relativeSkillFilePath: string}>} */
+  /** @type {Array<{name: string; description: string; skillFilePath: string}>} */
   const skills = [];
   for (const entry of sortedEntries) {
     const skillDirPath = path.join(skillsDirPath, entry.name);
@@ -54,7 +62,7 @@ async function loadSkillsFromDirectory(skillsDirPath, relativeRootPath) {
       skills.push({
         name: parsed.name,
         description: parsed.description,
-        relativeSkillFilePath: path.posix.join(relativeRootPath, entry.name, SKILL_FILE_NAME),
+        skillFilePath,
       });
     } catch (error) {
       console.warn(`Skipping invalid skill at ${skillFilePath}: ${error.message}`);
@@ -66,7 +74,7 @@ async function loadSkillsFromDirectory(skillsDirPath, relativeRootPath) {
 
 /**
  * @param {string} baseInstructions
- * @param {Array<{name: string; description: string; relativeSkillFilePath: string}>} skills
+ * @param {Array<{name: string; description: string; skillFilePath: string}>} skills
  */
 export function appendSkillCatalogInstructions(baseInstructions, skills) {
   if (!skills.length) {
@@ -78,7 +86,7 @@ export function appendSkillCatalogInstructions(baseInstructions, skills) {
     "",
     "Agent Skills are available in two directories:",
     "- Land skills: <land root>/skills",
-    "- Built-in skills: <source repo root>/packages/skills",
+    `- Built-in skills: ${toPosixPath(BUILTIN_SKILLS_DIR_PATH)}`,
     "Use each skill name and description below to decide relevance.",
     "When a skill is relevant, read its SKILL.md with read_document exactly once before acting.",
     "After activation, read referenced files only as needed.",
@@ -87,7 +95,7 @@ export function appendSkillCatalogInstructions(baseInstructions, skills) {
   ];
 
   for (const skill of skills) {
-    lines.push(`- ${skill.name}: ${skill.description} (file: ${skill.relativeSkillFilePath})`);
+    lines.push(`- ${skill.name}: ${skill.description} (file: ${toPosixPath(skill.skillFilePath)})`);
   }
 
   return lines.join("\n");
@@ -201,4 +209,8 @@ async function readFileOrNull(filePath) {
     }
     throw error;
   }
+}
+
+function toPosixPath(filePath) {
+  return String(filePath).split(path.sep).join("/");
 }

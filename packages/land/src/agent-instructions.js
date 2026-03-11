@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { buildManagedInstructionBlocks, defaultAgentInstructions } from "@sila/agents";
+import { buildManagedInstructionBlocks, defaultAgentInstructions } from "./agent-runtime/index.js";
 
 const DEFAULT_INSTRUCTIONS_DIR = path.join("agents", "default", "instructions");
 const NULL_BYTE = "\u0000";

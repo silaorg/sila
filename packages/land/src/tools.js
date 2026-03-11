@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createChatAgent } from "@sila/agents";
+import { createChatAgent } from "./agent-runtime/index.js";
 
 const TOOLS_DIR_NAME = "tools";
 const PACKAGE_FILE_NAME = "package.json";
