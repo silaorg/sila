@@ -4,8 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
-import { createToolEditDocument } from "../src/tools/edit-tool.js";
-import { createToolReadDocument } from "../src/tools/read-tool.js";
+import { createToolEditDocument } from "../../src/agent-runtime/tools/edit-tool.js";
+import { createToolReadDocument } from "../../src/agent-runtime/tools/read-tool.js";
 
 async function withForcedPrimaryXlsxLoadFailure(run) {
   const xlsxProto = Object.getPrototypeOf(new ExcelJS.Workbook().xlsx);

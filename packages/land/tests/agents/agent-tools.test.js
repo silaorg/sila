@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import { deepEqual, ok } from "node:assert";
 import { Lang } from "aiwrapper";
-import { createChatAgent } from "../src/chat-agent.js";
-import { createSlackChatAgent } from "../src/slack-agent.js";
+import { createChatAgent } from "../../src/agent-runtime/chat-agent.js";
+import { createSlackChatAgent } from "../../src/agent-runtime/slack-agent.js";
 
 function createPtyStub() {
   return {

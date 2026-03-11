@@ -3,7 +3,7 @@ import { deepEqual, strictEqual } from "node:assert";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createToolSendTelegramFile } from "../src/tools/send-telegram-file-tool.js";
+import { createToolSendTelegramFile } from "../../src/agent-runtime/tools/send-telegram-file-tool.js";
 
 async function createFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "sila-send-telegram-file-"));

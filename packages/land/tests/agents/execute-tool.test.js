@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
-import { createToolExecuteCommand } from "../src/tools/execute-tool.js";
+import { createToolExecuteCommand } from "../../src/agent-runtime/tools/execute-tool.js";
 
 describe("executeTool", () => {
   it("has expected name and description", () => {

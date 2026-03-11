@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createToolWebSearch } from "../src/tools/web-search-tool.js";
+import { createToolWebSearch } from "../../src/agent-runtime/tools/web-search-tool.js";
 
 describe("createToolWebSearch", () => {
   it("returns a clear error when EXA_API_KEY is missing", async () => {

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import mammoth from "mammoth";
-import { createToolEditDocument } from "../src/tools/edit-tool.js";
+import { createToolEditDocument } from "../../src/agent-runtime/tools/edit-tool.js";
 
 describe("editTool", () => {
   let tempDir;

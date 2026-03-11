@@ -5,7 +5,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { LangMessages } from "aiwrapper";
-import { createToolSeeImage } from "../src/tools/see-tool.js";
+import { createToolSeeImage } from "../../src/agent-runtime/tools/see-tool.js";
 
 const ONE_PIXEL_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/aB8AAAAASUVORK5CYII=";

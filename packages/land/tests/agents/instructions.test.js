@@ -5,7 +5,7 @@ import {
   defaultSlackInstructions,
   defaultTelegramInstructions,
   getChannelFormattingInstructions,
-} from "../src/instructions.js";
+} from "../../src/agent-runtime/instructions.js";
 
 const PLATFORM_DISPLAY_NAMES = Object.freeze({
   darwin: "macOS",

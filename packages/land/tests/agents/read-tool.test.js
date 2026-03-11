@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import ExcelJS from "exceljs";
 import { Document, Packer, Paragraph } from "docx";
-import { createToolReadDocument } from "../src/tools/read-tool.js";
+import { createToolReadDocument } from "../../src/agent-runtime/tools/read-tool.js";
 
 async function writeDocx(filePath, lines) {
   const document = new Document({

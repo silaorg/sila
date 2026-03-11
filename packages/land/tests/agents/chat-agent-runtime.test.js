@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Lang } from "aiwrapper";
-import { InProcessChatAgentRuntime, ThreadAgent } from "../src/index.js";
+import { InProcessChatAgentRuntime, ThreadAgent } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
   return {

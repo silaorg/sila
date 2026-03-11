@@ -3,7 +3,7 @@ import { ok, strictEqual } from "node:assert";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createToolSearchReplacePatch } from "../src/tools/patch-tool.js";
+import { createToolSearchReplacePatch } from "../../src/agent-runtime/tools/patch-tool.js";
 
 describe("patchTool", () => {
   let tempDir;

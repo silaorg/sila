@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { LangMessage } from "aiwrapper";
-import { ThreadStore } from "../src/thread-store.js";
+import { ThreadStore } from "../../src/agent-runtime/thread-store.js";
 
 describe("ThreadStore", () => {
   it("saves and loads messages.jsonl", async () => {

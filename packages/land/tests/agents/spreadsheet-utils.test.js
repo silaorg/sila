@@ -10,7 +10,7 @@ import {
   loadWorkbookWithFallback,
   normalizeWorksheetName,
   resolveWorksheet,
-} from "../src/tools/spreadsheet-utils.js";
+} from "../../src/agent-runtime/tools/spreadsheet-utils.js";
 
 describe("spreadsheetUtils", () => {
   let tempDir;

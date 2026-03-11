@@ -3,7 +3,7 @@ import { strictEqual } from "node:assert";
 import {
   looksInteractiveCommand,
   parseShellControlCommand,
-} from "../src/pty-shell-session-manager.js";
+} from "../../src/agent-runtime/pty-shell-session-manager.js";
 
 describe("ptyShellSessionManager helpers", () => {
   it("parses shell control commands", () => {

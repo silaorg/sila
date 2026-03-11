@@ -3,7 +3,7 @@ import { deepEqual, strictEqual } from "node:assert";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createToolSendSlackFile } from "../src/tools/send-slack-file-tool.js";
+import { createToolSendSlackFile } from "../../src/agent-runtime/tools/send-slack-file-tool.js";
 
 async function createFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "sila-send-slack-file-"));
