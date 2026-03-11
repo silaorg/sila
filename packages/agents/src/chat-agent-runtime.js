@@ -1,11 +1,7 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { LangMessage, z as aiZ } from "aiwrapper";
+import { z as aiZ } from "aiwrapper";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
 import { createChatAgent } from "./chat-agent.js";
-
-const THREAD_MESSAGES_FILE_NAME = "messages.jsonl";
-const LEGACY_THREAD_MESSAGES_FILE_NAME = "messages.json";
+import { ThreadStore } from "./thread-store.js";
 
 export class ThreadAgent {
   /** @type {string} */
@@ -24,6 +20,8 @@ export class ThreadAgent {
   #landPath;
   /** @type {Array<any>} */
   #customTools;
+  /** @type {ThreadStore} */
+  #threadStore;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
   #sendTelegramFile;
   /** @type {undefined | ((payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>)} */
@@ -38,6 +36,7 @@ export class ThreadAgent {
    *  defaultCwd?: string;
    *  landPath?: string;
    *  customTools?: Array<any>;
+   *  threadStore?: ThreadStore;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  instructions: string;
@@ -51,6 +50,7 @@ export class ThreadAgent {
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#landPath = options.landPath ?? this.#defaultCwd;
     this.#customTools = Array.isArray(options.customTools) ? options.customTools : [];
+    this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#sendTelegramFile = options.sendTelegramFile;
     this.#sendSlackFile = options.sendSlackFile;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
@@ -67,13 +67,14 @@ export class ThreadAgent {
       defaultCwd: this.#defaultCwd,
       landPath: this.#landPath,
       customTools: this.#customTools,
+      threadStore: this.#threadStore,
       sendTelegramFile: this.#sendTelegramFile,
       sendSlackFile: this.#sendSlackFile,
     });
     agent.messages.instructions = this.#instructions;
     console.log(`[thread ${this.#threadId}] user <@${input.userId}>: ${input.text}`);
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
-    await saveThreadMessages(this.#threadDir, agent.messages);
+    await this.#threadStore.saveMessages(this.#threadDir, agent.messages);
 
     const shouldSendReply = await decideShouldRespond(this.#lang, agent);
     if (!shouldSendReply) {
@@ -82,7 +83,7 @@ export class ThreadAgent {
     }
 
     const result = await agent.run([]);
-    await saveThreadMessages(this.#threadDir, agent.messages);
+    await this.#threadStore.saveMessages(this.#threadDir, agent.messages);
     const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
     console.log(`[thread ${this.#threadId}] assistant: ${answer}`);
 
@@ -92,6 +93,11 @@ export class ThreadAgent {
     };
   }
 }
+
+/**
+ * Backward-compatible alias. Prefer ThreadAgent for new code.
+ */
+export class SlackAgent extends ThreadAgent {}
 
 export class InProcessChatAgentRuntime {
   /** @type {import("aiwrapper").LanguageProvider} */
@@ -104,6 +110,8 @@ export class InProcessChatAgentRuntime {
   #loadTools = null;
   /** @type {string} */
   #defaultCwd;
+  /** @type {ThreadStore} */
+  #threadStore;
   /** @type {Map<string, PTYShellSessionManager>} */
   #ptyManagersByThread = new Map();
 
@@ -114,11 +122,13 @@ export class InProcessChatAgentRuntime {
    *  loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *  loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *  defaultCwd?: string;
+   *  threadStore?: ThreadStore;
    * }} options
    */
   constructor(options) {
     this.#lang = options.lang;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
+    this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
     if (typeof options.loadInstructions === "function") {
       this.#loadInstructions = options.loadInstructions;
@@ -158,6 +168,7 @@ export class InProcessChatAgentRuntime {
       defaultCwd: input.threadDir,
       landPath: this.#defaultCwd,
       customTools,
+      threadStore: this.#threadStore,
       sendTelegramFile: input.sendTelegramFile,
       sendSlackFile: input.sendSlackFile,
       instructions,
@@ -250,107 +261,10 @@ ${historyText}
 
 async function loadThreadAgent(threadDir, lang, options) {
   const agent = createChatAgent(lang, options);
-  const messages = await loadThreadMessages(threadDir);
+  const threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
+  const messages = await threadStore.loadMessages(threadDir);
   if (messages.length > 0) {
     agent.messages.push(...messages);
   }
   return agent;
-}
-
-async function loadThreadMessages(threadDir) {
-  const primaryPath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
-  const primaryRaw = await readFileOrNull(primaryPath);
-  if (typeof primaryRaw === "string") {
-    return parseThreadMessages(primaryRaw, primaryPath, THREAD_MESSAGES_FILE_NAME);
-  }
-
-  const legacyPath = path.join(threadDir, LEGACY_THREAD_MESSAGES_FILE_NAME);
-  const legacyRaw = await readFileOrNull(legacyPath);
-  if (typeof legacyRaw === "string") {
-    const messages = parseThreadMessages(legacyRaw, legacyPath, LEGACY_THREAD_MESSAGES_FILE_NAME);
-    await migrateLegacyThreadMessagesToJsonl(threadDir, messages);
-    return messages;
-  }
-
-  return [];
-}
-
-async function saveThreadMessages(threadDir, messages) {
-  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
-  const serialized = serializeThreadMessages(messages);
-  await fs.writeFile(filePath, serialized ? `${serialized}\n` : "", "utf8");
-}
-
-async function readFileOrNull(filePath) {
-  try {
-    return await fs.readFile(filePath, "utf8");
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-}
-
-function parseThreadMessages(raw, filePath, fileName) {
-  const trimmed = raw.trim();
-  if (!trimmed.length) {
-    return [];
-  }
-
-  if (trimmed.startsWith("[")) {
-    return parseLegacyThreadMessages(raw, filePath, fileName);
-  }
-
-  try {
-    return trimmed
-      .split(/\r?\n/)
-      .filter((line) => line.trim().length > 0)
-      .map((line) => JSON.parse(line))
-      .map(deserializeThreadMessage);
-  } catch {
-    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
-    return [];
-  }
-}
-
-function parseLegacyThreadMessages(raw, filePath, fileName) {
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
-    return [];
-  }
-
-  if (!Array.isArray(parsed)) {
-    console.error(`Invalid ${fileName} format at ${filePath}, expected array.`);
-    return [];
-  }
-
-  return parsed.map(deserializeThreadMessage);
-}
-
-function deserializeThreadMessage(item) {
-  return new LangMessage(item.role, item.items, item.meta);
-}
-
-function serializeThreadMessages(messages) {
-  return Array.from(messages)
-    .map((message) =>
-      JSON.stringify({
-        role: message.role,
-        items: message.items,
-        meta: message.meta,
-      }),
-    )
-    .join("\n");
-}
-
-// Temporary migration logic. Remove this once all active threads have been
-// rewritten from messages.json to messages.jsonl.
-async function migrateLegacyThreadMessagesToJsonl(threadDir, messages) {
-  const filePath = path.join(threadDir, THREAD_MESSAGES_FILE_NAME);
-  const serialized = serializeThreadMessages(messages);
-  await fs.writeFile(filePath, serialized ? `${serialized}\n` : "", "utf8");
 }

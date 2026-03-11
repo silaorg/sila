@@ -11,12 +11,13 @@ The current land runtime is already small and understandable:
 
 The main problem is not overall size. The problem is that thread orchestration, persistence, and provider delivery are still mixed across layers.
 
-This proposal simplifies the shape in two steps:
+Part of this proposal is now implemented:
 
-1. extract a shared threaded channel runtime so Slack and Telegram stop duplicating the same flow
-2. extract a real thread store with append-only events so persistence becomes explicit and robust
+- `ThreadStore` now owns thread message file persistence and legacy `messages.json` migration
+- `ThreadedChannelRuntime` now owns the shared per-thread queue, thread dir setup, runtime call, state save, and reply-send flow
+- Slack and Telegram channel adapters are thinner and mostly transport-specific
 
-This keeps the architecture easy to explain while improving crash recovery, streaming persistence, and provider parity.
+The remaining work is to move from snapshot-style `messages.jsonl` writes to a true append-only event log and use runtime events for continuous persistence.
 
 ## Current Shape
 
@@ -40,24 +41,30 @@ Current responsibilities:
 - `packages/land/src/channels/slack-channel.js`
   - Slack auth and event handlers
   - thread id resolution
-  - per-thread in-memory queue
   - attachment normalization
-  - state save
   - outbound Slack send
 - `packages/land/src/channels/telegram-channel.js`
   - same shape as Slack, but for Telegram
+- `packages/land/src/channels/threaded-channel-runtime.js`
+  - per-thread in-memory queue
+  - create `threadDir`
+  - call `handleThreadMessage`
+  - save `state.json`
+  - send outbound reply through provider API callback
 - `packages/agents/src/chat-agent-runtime.js`
-  - load thread messages
   - append inbound user message
   - decide whether to respond
   - run the agentic loop
+- `packages/agents/src/thread-store.js`
+  - load thread messages
   - save thread messages
+  - migrate legacy `messages.json`
 
 ## Current Problems
 
-### 1. Channel runtimes duplicate the same orchestration
+### 1. Channel runtimes used to duplicate the same orchestration
 
-Slack and Telegram both do this:
+This was the main duplication:
 
 - normalize inbound provider message
 - resolve `threadId`
@@ -67,7 +74,8 @@ Slack and Telegram both do this:
 - save `state.json`
 - send outbound reply through provider API
 
-That duplication makes it harder to add another provider and harder to keep behavior aligned.
+This part is now mostly fixed by `ThreadedChannelRuntime`.
+The remaining issue is that inbound normalization is still provider-specific, which is expected.
 
 ### 2. Persistence is snapshot-oriented, not event-oriented
 
@@ -85,14 +93,15 @@ That creates awkward behavior for:
 The agent creates an answer, then the channel sends it.
 If send fails, thread history does not clearly represent that delivery failure as part of the same thread lifecycle.
 
-### 4. Thread logic and storage logic are coupled
+### 4. Thread logic and storage logic used to be coupled
 
-`ThreadAgent` currently owns both:
+This was previously true in `ThreadAgent`:
 
 - conversation policy and model execution
 - file format details and legacy migration
 
-That makes it harder to evolve persistence independently.
+This part is now mostly fixed by `ThreadStore`.
+The remaining coupling is that `ThreadAgent` still decides when persistence happens.
 
 ## Goals
 
@@ -112,7 +121,9 @@ That makes it harder to evolve persistence independently.
 
 ## Proposed Shape
 
-### 1. Add a shared threaded channel runtime
+### 1. Shared threaded channel runtime
+
+Status: implemented in a minimal form.
 
 Introduce a shared runtime layer in `packages/land/src/channels/` that owns the common thread flow.
 
@@ -149,9 +160,12 @@ Provider-specific adapters become thinner:
   - Telegram file fetch/store/transcription
   - Telegram message send
 
-Everything else moves into the shared runtime.
+This is now the current direction.
+The existing implementation is intentionally small and does not try to normalize all provider behaviors into one generic event format yet.
 
-### 2. Add a dedicated thread store
+### 2. Dedicated thread store
+
+Status: implemented in a minimal form.
 
 Introduce a small thread store abstraction in `packages/agents/src/` or `packages/land/src/channels/`.
 
@@ -160,15 +174,17 @@ Example shape:
 ```js
 class ThreadStore {
   async loadMessages(threadDir) {}
-  async appendEvent(threadDir, event) {}
-  async saveState(threadDir, state) {}
+  async saveMessages(threadDir, messages) {}
   async migrateLegacyFiles(threadDir) {}
 }
 ```
 
 This removes file format details from `ThreadAgent`.
+The current implementation still saves full message snapshots rather than append-only events.
 
 ### 3. Make `messages.jsonl` a real append-only event log
+
+Status: not implemented yet.
 
 Instead of rewriting the full conversation history, append structured thread events.
 
@@ -197,6 +213,8 @@ Read-side reconstruction can still build a `LangMessages` conversation for the m
 
 ### 4. Split thread execution from delivery execution
 
+Status: partially implemented.
+
 The thread runtime should return outbound intents, not perform provider sends directly.
 
 Example:
@@ -216,7 +234,10 @@ Example:
 }
 ```
 
-Then the channel runtime:
+Today the channel runtime already owns the actual provider send.
+The missing part is durable persistence of `pending_send`, `sent`, and `send_failed` around that delivery lifecycle.
+
+Target flow:
 
 1. persists `pending_send`
 2. sends to provider
@@ -225,6 +246,8 @@ Then the channel runtime:
 This makes delivery failures explicit and replayable.
 
 ### 5. Subscribe to agent runtime events for continuous persistence
+
+Status: not implemented yet.
 
 `aiwrapper` already emits streaming events during the run loop.
 We should use that boundary instead of saving only before and after `agent.run()`.
@@ -258,11 +281,11 @@ That is enough to avoid long silent gaps without introducing noisy token-level e
 ### `packages/agents`
 
 - `InProcessChatAgentRuntime`
-  - runs thread agents and exposes agent events
+  - runs thread agents
 - `ThreadAgent`
-  - policy and model execution only
+  - policy and model execution
 - `ThreadStore`
-  - thread history/state read-write
+  - thread message history read-write
 - `MessageProjector`
   - rebuild `LangMessages` from event log for model context
 
@@ -271,8 +294,10 @@ That is enough to avoid long silent gaps without introducing noisy token-level e
 ### Phase 1
 
 - add `ThreadStore`
-- move current `messages.jsonl` and `state.json` read/write into it
+- move current `messages.jsonl` read/write into it
 - keep current external behavior
+
+Status: done.
 
 ### Phase 2
 
@@ -280,15 +305,21 @@ That is enough to avoid long silent gaps without introducing noisy token-level e
 - move shared queue/state/reply flow out of Slack and Telegram channel classes
 - keep provider-specific adapters thin
 
+Status: done.
+
 ### Phase 3
 
 - switch `messages.jsonl` from rewritten message snapshots to structured append-only events
 - add projector that builds `LangMessages` from events
 
+Status: next recommended step.
+
 ### Phase 4
 
 - persist outbound delivery lifecycle explicitly with `pending_send`, `sent`, `send_failed`
 - use agent runtime event subscription for continuous persistence at message boundaries
+
+Status: next after Phase 3, though message-boundary persistence could also begin before full event-log migration if we want a smaller intermediate step.
 
 ## Benefits
 
@@ -332,10 +363,11 @@ Mitigation:
 
 ## Recommendation
 
-Do this in two concrete implementation steps:
+The first structural cleanup is already in place.
+The next concrete implementation steps should be:
 
-1. extract `ThreadStore` and shared threaded channel orchestration first
-2. then move thread history to a true append-only event model with explicit delivery events
+1. move `messages.jsonl` from snapshot rewrites to append-only structured events
+2. add explicit outbound delivery events
+3. subscribe to runtime message boundaries for continuous persistence during long agent runs
 
 That gives us the biggest simplification without over-engineering the system.
-

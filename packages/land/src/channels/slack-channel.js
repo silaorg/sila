@@ -5,14 +5,13 @@ import { z } from "zod";
 import { InProcessChatAgentRuntime } from "@sila/agents";
 import {
   OptionalTokenSchema,
-  enqueueSerialTask,
   loadChannelInstructions,
   loadChannelTools,
   readOpenAiApiKey,
   sanitizeThreadId,
-  saveThreadState,
 } from "./channel-utils.js";
 import { storeSlackFile } from "./slack/slack-file-store.js";
+import { ThreadedChannelRuntime } from "./threaded-channel-runtime.js";
 
 const SlackChannelConfigSchema = z.looseObject({
   channel: z.literal("slack"),
@@ -34,10 +33,10 @@ export class SlackChannel {
   #lang = null;
   /** @type {string | null} */
   #botUserId = null;
-  /** @type {Map<string, Promise<void>>} */
-  #processingThreads = new Map();
   /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
+  /** @type {ThreadedChannelRuntime} */
+  #threadRuntime;
   /** @type {{
    *  createSlackApp: (input: { botUserOAuthToken: string; appLevelToken: string }) => Promise<any>;
    *  storeSlackFile: typeof storeSlackFile;
@@ -70,6 +69,7 @@ export class SlackChannel {
   constructor(channelPath, rawConfig, dependencies = {}) {
     this.#path = channelPath;
     this.#config = parseChannelConfig(rawConfig);
+    this.#threadRuntime = new ThreadedChannelRuntime({ channelPath });
     this.#dependencies = {
       ...createDefaultDependencies(),
       ...dependencies,
@@ -114,6 +114,7 @@ export class SlackChannel {
       loadInstructions: (input = {}) => loadChannelInstructions(landPath, "slack", input.threadDir),
       loadTools: (input = {}) => loadChannelTools(landPath, "slack", input),
     });
+    this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
     const app = await this.#dependencies.createSlackApp({
       botUserOAuthToken,
@@ -145,8 +146,8 @@ export class SlackChannel {
     this.#app = null;
     this.#lang = null;
     this.#agentRuntime = null;
+    this.#threadRuntime.clear();
     this.#botUserId = null;
-    this.#processingThreads.clear();
     this.#isRunning = false;
     console.log(`Slack channel stopped at: ${this.#path}`);
   }
@@ -232,7 +233,7 @@ export class SlackChannel {
       }
 
       const thread = getThreadContext(message);
-      await this.#enqueueThread(thread.threadId, async () => {
+      await this.#threadRuntime.enqueue(thread.threadId, async () => {
         const inboundText = await this.#buildInboundMessageText(thread, message, text);
         if (!inboundText) {
           return;
@@ -325,47 +326,31 @@ export class SlackChannel {
   }
 
   /**
-   * @param {string} threadId
-   * @param {() => Promise<void>} task
-   */
-  async #enqueueThread(threadId, task) {
-    await enqueueSerialTask(this.#processingThreads, threadId, task);
-  }
-
-  /**
    * @param {{ threadId: string; channelId: string; threadTs: string | null }} thread
    * @param {string} userId
    * @param {string} text
    */
   async #processThreadMessage(thread, userId, text) {
-    if (!this.#lang || !this.#agentRuntime) {
+    if (!this.#lang) {
       return;
     }
 
-    const threadDir = path.join(this.#path, thread.threadId);
-    await fs.mkdir(threadDir, { recursive: true });
-
-    const result = await this.#agentRuntime.handleThreadMessage({
-      threadId: thread.threadId,
-      threadDir,
+    await this.#threadRuntime.handleThreadMessage({
+      thread,
       userId,
       text,
-      sendSlackFile: async (payload) => this.#sendSlackFile(thread, payload),
+      agentInput: {
+        sendSlackFile: async (payload) => this.#sendSlackFile(thread, payload),
+      },
+      state: (input) => ({
+        channelId: thread.channelId,
+        threadTs: thread.threadTs,
+        updatedAt: new Date().toISOString(),
+        lastUserId: userId,
+        responded: input.result.responded,
+      }),
+      sendReply: async (answer) => this.sendMessage(thread.channelId, answer, thread.threadTs ?? undefined),
     });
-
-    await saveThreadState(threadDir, {
-      channelId: thread.channelId,
-      threadTs: thread.threadTs,
-      updatedAt: new Date().toISOString(),
-      lastUserId: userId,
-      responded: result.responded,
-    });
-
-    if (!result.responded || !result.answer) {
-      return;
-    }
-
-    await this.sendMessage(thread.channelId, result.answer, thread.threadTs ?? undefined);
   }
 
   /**

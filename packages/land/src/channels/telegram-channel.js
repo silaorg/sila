@@ -7,11 +7,9 @@ import { z } from "zod";
 import { InProcessChatAgentRuntime } from "@sila/agents";
 import {
   OptionalTokenSchema,
-  enqueueSerialTask,
   loadChannelInstructions,
   loadChannelTools,
   readOpenAiApiKey,
-  saveThreadState,
 } from "./channel-utils.js";
 import {
   getAttachmentInfo,
@@ -28,6 +26,7 @@ import {
 } from "./telegram/telegram-input-parser.js";
 import { storeTelegramFile } from "./telegram/telegram-file-store.js";
 import { transcribeAudioFile } from "./telegram/telegram-transcriber.js";
+import { ThreadedChannelRuntime } from "./threaded-channel-runtime.js";
 
 const TelegramChannelConfigSchema = z.looseObject({
   channel: z.literal("telegram"),
@@ -47,10 +46,10 @@ export class TelegramChannel {
   #lang = null;
   /** @type {null | any} */
   #openai = null;
-  /** @type {Map<string, Promise<void>>} */
-  #processingThreads = new Map();
   /** @type {null | import("@sila/agents").InProcessChatAgentRuntime} */
   #agentRuntime = null;
+  /** @type {ThreadedChannelRuntime} */
+  #threadRuntime;
   /** @type {null | Promise<void>} */
   #launchPromise = null;
   #isRunning = false;
@@ -89,6 +88,7 @@ export class TelegramChannel {
   constructor(channelPath, rawConfig, dependencies = {}) {
     this.#path = channelPath;
     this.#config = parseChannelConfig(rawConfig);
+    this.#threadRuntime = new ThreadedChannelRuntime({ channelPath });
     this.#dependencies = {
       ...createDefaultDependencies(),
       ...dependencies,
@@ -130,6 +130,7 @@ export class TelegramChannel {
       loadInstructions: (input = {}) => loadChannelInstructions(landPath, "telegram", input.threadDir),
       loadTools: (input = {}) => loadChannelTools(landPath, "telegram", input),
     });
+    this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);
     if (typeof bot.catch === "function") {
@@ -172,7 +173,7 @@ export class TelegramChannel {
     this.#lang = null;
     this.#openai = null;
     this.#agentRuntime = null;
-    this.#processingThreads.clear();
+    this.#threadRuntime.clear();
     this.#isRunning = false;
     console.log(`Telegram channel stopped at: ${this.#path}`);
   }
@@ -206,7 +207,7 @@ export class TelegramChannel {
       }
 
       const thread = getThreadContext(ctx);
-      await this.#enqueueThread(thread.threadId, async () => {
+      await this.#threadRuntime.enqueue(thread.threadId, async () => {
         await this.#processThreadMessage(thread, userId, textWithReplyContext, "text");
       });
     } catch (error) {
@@ -230,7 +231,7 @@ export class TelegramChannel {
       }
 
       const thread = getThreadContext(ctx);
-      await this.#enqueueThread(thread.threadId, async () => {
+      await this.#threadRuntime.enqueue(thread.threadId, async () => {
         const attachment = getAttachmentInfo(ctx, kind);
         if (!attachment) {
           return;
@@ -276,7 +277,7 @@ export class TelegramChannel {
       }
 
       const thread = getThreadContext(ctx);
-      await this.#enqueueThread(thread.threadId, async () => {
+      await this.#threadRuntime.enqueue(thread.threadId, async () => {
         const audioInfo = getAudioInfo(ctx, kind);
         if (!audioInfo) {
           return;
@@ -317,48 +318,32 @@ export class TelegramChannel {
   }
 
   /**
-   * @param {string} threadId
-   * @param {() => Promise<void>} task
-   */
-  async #enqueueThread(threadId, task) {
-    await enqueueSerialTask(this.#processingThreads, threadId, task);
-  }
-
-  /**
    * @param {{ threadId: string; chatId: string }} thread
    * @param {string} userId
    * @param {string} text
    * @param {"text" | "upload" | "audio"} inputType
    */
   async #processThreadMessage(thread, userId, text, inputType) {
-    if (!this.#lang || !this.#agentRuntime) {
+    if (!this.#lang) {
       return;
     }
 
-    const threadDir = path.join(this.#path, thread.threadId);
-    await fs.mkdir(threadDir, { recursive: true });
-
-    const result = await this.#agentRuntime.handleThreadMessage({
-      threadId: thread.threadId,
-      threadDir,
+    await this.#threadRuntime.handleThreadMessage({
+      thread,
       userId,
       text,
-      sendTelegramFile: async (payload) => this.#sendTelegramFile(thread.chatId, payload),
+      agentInput: {
+        sendTelegramFile: async (payload) => this.#sendTelegramFile(thread.chatId, payload),
+      },
+      state: (input) => ({
+        chatId: thread.chatId,
+        updatedAt: new Date().toISOString(),
+        lastUserId: userId,
+        inputType,
+        responded: input.result.responded,
+      }),
+      sendReply: async (answer) => this.sendMessage(thread.chatId, answer),
     });
-
-    await saveThreadState(threadDir, {
-      chatId: thread.chatId,
-      updatedAt: new Date().toISOString(),
-      lastUserId: userId,
-      inputType,
-      responded: result.responded,
-    });
-
-    if (!result.responded || !result.answer) {
-      return;
-    }
-
-    await this.sendMessage(thread.chatId, result.answer);
   }
 
   /**

@@ -1,7 +1,13 @@
 export {
   InProcessChatAgentRuntime,
+  SlackAgent,
   ThreadAgent,
 } from "./chat-agent-runtime.js";
+export {
+  LEGACY_THREAD_MESSAGES_FILE_NAME,
+  THREAD_MESSAGES_FILE_NAME,
+  ThreadStore,
+} from "./thread-store.js";
 export { createChatAgent } from "./chat-agent.js";
 export { createSlackChatAgent } from "./slack-agent.js";
 export {
