@@ -12,6 +12,19 @@ Sila2 uses a filesystem-first thread runtime:
 
 This keeps behavior simple, explicit, and auditable.
 
+Part of this proposal is now implemented:
+
+- land state lives on disk under `channels/<provider>/<thread-id>/`
+- Slack and Telegram channel adapters are the provider-facing entrypoints
+- per-thread work is serialized and routed through a shared in-process thread runtime
+
+The remaining gap is the process boundary and event model:
+
+- there is no separate `workspace-gateway` process yet
+- thread agents still run in-process, not as child processes
+- outbound delivery still happens directly in channel code instead of over IPC
+- `messages.jsonl` is not yet a true append-only delivery event log
+
 ## Directory Layout
 
 ```text

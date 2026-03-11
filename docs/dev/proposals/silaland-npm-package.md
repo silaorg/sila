@@ -17,6 +17,12 @@ Part of this proposal is now implemented:
 - built-in skills now live inside `packages/silaland`
 - the package now exposes both a CLI entrypoint and a JS entrypoint
 
+Still not implemented:
+
+- a `silain` compatibility stub package for the rename
+- explicit `npm pack` / tarball install verification in tests
+- a separate browser-safe export surface
+
 ## Current State
 
 - The CLI already exists in `packages/silaland/src/cli.js`.

@@ -18,6 +18,18 @@ The agent should own thread logic:
 This follows the direction in `docs/dev/proposals/architecture-v2.md` and gives us a clean provider gateway <-> thread agent boundary.
 For v1, behavior and message handling should stay the same as today, and runtime stays in-process.
 
+Part of this proposal is now implemented:
+
+- `slack-channel.js` is thinner and more transport-focused
+- shared thread orchestration now lives in `ThreadedChannelRuntime`
+- generic agent execution now lives in the in-process chat runtime and thread agent layer
+
+What is still missing is the dedicated Slack-specific runtime boundary:
+
+- `slack-agent.js` is only a thin alias today, not a real Slack-specific agent module
+- there is no `InProcessSlackAgentRuntime` / `ChildProcessSlackAgentRuntime` split yet
+- the provider <-> agent boundary is still generic and in-process rather than a distinct Slack contract
+
 ## Current Problem
 
 `packages/silaland/src/channels/slack-channel.js` currently mixes:
