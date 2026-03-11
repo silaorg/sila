@@ -6,8 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "land": "node packages/land/src/cli.js",
-    "dev": "node packages/land/src/cli.js run test-land --watch",
+    "land": "node packages/silaland/src/cli.js",
+    "dev": "node packages/silaland/src/cli.js run test-land --watch",
     "test": "npm run --workspaces --if-present test"
   }
 }

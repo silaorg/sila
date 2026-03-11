@@ -34,18 +34,18 @@ Land
 
 Current responsibilities:
 
-- `packages/land/src/land.js`
+- `packages/silaland/src/land.js`
   - load env
   - discover channel folders
   - start channel runtimes
-- `packages/land/src/channels/slack-channel.js`
+- `packages/silaland/src/channels/slack-channel.js`
   - Slack auth and event handlers
   - thread id resolution
   - attachment normalization
   - outbound Slack send
-- `packages/land/src/channels/telegram-channel.js`
+- `packages/silaland/src/channels/telegram-channel.js`
   - same shape as Slack, but for Telegram
-- `packages/land/src/channels/threaded-channel-runtime.js`
+- `packages/silaland/src/channels/threaded-channel-runtime.js`
   - per-thread in-memory queue
   - create `threadDir`
   - call `handleThreadMessage`
@@ -125,7 +125,7 @@ The remaining coupling is that `ThreadAgent` still decides when persistence happ
 
 Status: implemented in a minimal form.
 
-Introduce a shared runtime layer in `packages/land/src/channels/` that owns the common thread flow.
+Introduce a shared runtime layer in `packages/silaland/src/channels/` that owns the common thread flow.
 
 Example shape:
 
@@ -167,7 +167,7 @@ The existing implementation is intentionally small and does not try to normalize
 
 Status: implemented in a minimal form.
 
-Introduce a small thread store abstraction in `packages/agents/src/` or `packages/land/src/channels/`.
+Introduce a small thread store abstraction in `packages/agents/src/` or `packages/silaland/src/channels/`.
 
 Example shape:
 
@@ -269,7 +269,7 @@ That is enough to avoid long silent gaps without introducing noisy token-level e
 
 ## Proposed Module Boundaries
 
-### `packages/land`
+### `packages/silaland`
 
 - `Land`
   - process manager only

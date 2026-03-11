@@ -142,7 +142,7 @@ That is enough for most land-local business tools without introducing a second a
 
 ## Runtime Wiring
 
-Add a land tool loader in `packages/land/src/tools.js`, parallel to `packages/land/src/skills.js`.
+Add a land tool loader in `packages/silaland/src/tools.js`, parallel to `packages/silaland/src/skills.js`.
 
 Responsibilities:
 
@@ -228,7 +228,7 @@ We should document this explicitly.
 
 ## Rollout Plan
 
-1. Add `packages/land/src/tools.js` with discovery, import, validation, and cache logic.
+1. Add `packages/silaland/src/tools.js` with discovery, import, validation, and cache logic.
 2. Extend `InProcessChatAgentRuntime`, `ThreadAgent`, and `createChatAgent` to accept `customTools`.
 3. Wire `loadTools` from Slack and Telegram channel runtime creation.
 4. Add tests for discovery, loading, collisions, bad packages, and reload behavior.

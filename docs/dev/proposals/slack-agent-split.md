@@ -20,7 +20,7 @@ For v1, behavior and message handling should stay the same as today, and runtime
 
 ## Current Problem
 
-`packages/land/src/channels/slack-channel.js` currently mixes:
+`packages/silaland/src/channels/slack-channel.js` currently mixes:
 
 - Slack transport (`@slack/bolt`, auth, inbound handlers, outbound send)
 - thread storage (`messages.json`, `state.json`)

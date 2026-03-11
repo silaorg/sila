@@ -8,7 +8,7 @@ This keeps update logic out of channel code and gives us one place to manage res
 
 ## Current State
 
-- `silaland run` starts `Land` directly from `packages/land/src/cli.js`.
+- `silaland run` starts `Land` directly from `packages/silaland/src/cli.js`.
 - `Land` starts channel runtimes (`SlackChannel`, `TelegramChannel`) in-process.
 - Each channel already serializes work per thread (`#processingThreads` map + `enqueueSerialTask`).
 - Channel runtimes can stop cleanly (`channel.stop()`), but `Land` does not expose a full stop/drain API yet.
@@ -41,7 +41,7 @@ We need automatic updates with a simple and explainable "restart when least busy
 Run a new command:
 
 ```bash
-node packages/land/src/cli.js supervise <land-path>
+node packages/silaland/src/cli.js supervise <land-path>
 ```
 
 Supervisor responsibilities:
@@ -145,12 +145,12 @@ Log key events:
 
 ## Implementation Plan
 
-1. Add `supervise` command in `packages/land/src/cli.js`.
-2. Add `packages/land/src/supervisor.js` for process + git orchestration.
-3. Add worker IPC entrypoint (`packages/land/src/worker.js`).
-4. Add `Land.stop()` and `Land.getStatus()` in `packages/land/src/land.js`.
+1. Add `supervise` command in `packages/silaland/src/cli.js`.
+2. Add `packages/silaland/src/supervisor.js` for process + git orchestration.
+3. Add worker IPC entrypoint (`packages/silaland/src/worker.js`).
+4. Add `Land.stop()` and `Land.getStatus()` in `packages/silaland/src/land.js`.
 5. Add `getStatus()` and `setDrainMode()` hooks in Slack and Telegram channels.
-6. Add update config parsing/validation in `packages/land/src/config.js`.
+6. Add update config parsing/validation in `packages/silaland/src/config.js`.
 7. Add docs for running supervised mode in `docs/land.md`.
 
 ## Test Plan

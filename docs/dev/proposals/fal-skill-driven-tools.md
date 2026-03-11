@@ -14,7 +14,7 @@ This keeps architecture simple:
 
 - `packages/agents/src/chat-agent.js` always registers `generate_image` and `generate_video`.
 - `packages/agents/src/tools/generate-image-tool.js` and `generate-video-tool.js` hardcode model ids and endpoint-specific parameter rules.
-- skills are already loaded from built-in and land paths (`packages/land/src/skills.js`) and listed in instructions with file paths.
+- skills are already loaded from built-in and land paths (`packages/silaland/src/skills.js`) and listed in instructions with file paths.
 - skills currently guide behavior only, they do not add new executable capabilities.
 
 Result: adding one more Fal workflow requires code changes in core tools, tests, and deployment.

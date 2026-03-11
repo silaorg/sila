@@ -2,7 +2,7 @@
 
 ## Summary
 
-Publish `packages/land` to npm as `silaland` so users can install it globally and run the existing CLI commands directly:
+Publish `packages/silaland` to npm as `silaland` so users can install it globally and run the existing CLI commands directly:
 
 ```bash
 npm install -g silaland
@@ -12,18 +12,18 @@ silaland run my-land
 
 Part of this proposal is now implemented:
 
-- `packages/land` is now a publishable npm package named `silaland`
+- `packages/silaland` is now a publishable npm package named `silaland`
 - the land runtime no longer depends on `@sila/agents` in the publish path
-- built-in skills now live inside `packages/land`
+- built-in skills now live inside `packages/silaland`
 - the package now exposes both a CLI entrypoint and a JS entrypoint
 
 ## Current State
 
-- The CLI already exists in `packages/land/src/cli.js`.
+- The CLI already exists in `packages/silaland/src/cli.js`.
 - The current commands are `silaland create` and `silaland run`.
 - The repo root is private and is the main entrypoint during development.
-- `packages/land/package.json` is now publishable as `silaland` and exposes a `bin` plus JS entrypoint.
-- `packages/land` now carries the runtime code and built-in skills it needs for publishing.
+- `packages/silaland/package.json` is now publishable as `silaland` and exposes a `bin` plus JS entrypoint.
+- `packages/silaland` now carries the runtime code and built-in skills it needs for publishing.
 - `~/repos/aiwrapper` is a useful reference package here. It is published with normal npm metadata, a tight `files` allowlist, and an explicit `npm pack` verification path.
 
 ## Problem
@@ -46,14 +46,14 @@ That makes the first-run experience heavier than it should be. Someone who just 
 ## Non-Goals
 
 - Full hosted deployment or process management.
-- Preserving the current `packages/land` -> `@sila/agents` split if that makes publishing harder to explain.
+- Preserving the current `packages/silaland` -> `@sila/agents` split if that makes publishing harder to explain.
 - Changing the land config format as part of this work.
 
 ## Proposed Design
 
-### 1) Make `packages/land` the publishable CLI package
+### 1) Make `packages/silaland` the publishable CLI package
 
-Update `packages/land/package.json` to include at least:
+Update `packages/silaland/package.json` to include at least:
 
 - `name: "silaland"`
 - `version`
@@ -62,7 +62,7 @@ Update `packages/land/package.json` to include at least:
 - `exports` for supported library entrypoints
 - `files` so npm publishes only the runtime files we need
 
-The shebang already exists in `packages/land/src/cli.js`, so the command shape stays the same.
+The shebang already exists in `packages/silaland/src/cli.js`, so the command shape stays the same.
 
 Unlike `aiwrapper`, `silaland` is already plain JS, so we should avoid adding a build step unless we find a real packaging need for one.
 
@@ -115,11 +115,11 @@ This means global install gives the same developer experience we already test lo
 - `silaland create [path]`
 - `silaland run [path]`
 
-### 3) Move agent runtime and built-in skills into `packages/land`
+### 3) Move agent runtime and built-in skills into `packages/silaland`
 
 For simplicity, `silaland` should become self-contained.
 
-Instead of publishing `@sila/agents` as a second npm package, move the runtime code and built-in skills that `silaland` needs into `packages/land`.
+Instead of publishing `@sila/agents` as a second npm package, move the runtime code and built-in skills that `silaland` needs into `packages/silaland`.
 
 That gives us a simpler story:
 
@@ -154,8 +154,8 @@ Add short docs for:
 
 ## Implementation Plan
 
-1. Make `packages/land/package.json` publishable as `silaland`.
-2. Move the agent runtime code and built-in skills from `@sila/agents` into `packages/land`.
+1. Make `packages/silaland/package.json` publishable as `silaland`.
+2. Move the agent runtime code and built-in skills from `@sila/agents` into `packages/silaland`.
 3. Remove the `@sila/agents` dependency from the published CLI path.
 4. Add package entrypoints for CLI, Node API, and browser-safe exports.
 5. Keep Node-only runtime code out of browser exports.
@@ -174,5 +174,5 @@ Add short docs for:
 
 ## Open Questions
 
-- After moving the runtime into `packages/land`, is there any meaningful responsibility left for a separate `@sila/agents` package?
+- After moving the runtime into `packages/silaland`, is there any meaningful responsibility left for a separate `@sila/agents` package?
 - What is the smallest useful browser-safe API we want to support in v1?

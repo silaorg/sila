@@ -50,10 +50,10 @@ When set, values should be normalized to absolute real paths.
 
 ## Wiring Plan
 
-1. Add `packages/land/src/runtime-paths.js` to resolve and validate runtime path context.
+1. Add `packages/silaland/src/runtime-paths.js` to resolve and validate runtime path context.
 2. In `loadChannelInstructions(...)`, resolve runtime paths from `landPath` and optional `threadPath`.
 3. Append a managed runtime-path instruction block generated from resolved paths.
-4. Keep `@sila/agents` instruction APIs unchanged in v1; do injection in `packages/land` layer.
+4. Keep `@sila/agents` instruction APIs unchanged in v1; do injection in `packages/silaland` layer.
 
 ## Why this approach
 
