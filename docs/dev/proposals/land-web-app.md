@@ -4,7 +4,7 @@ Draft note: this proposal is a reference for direction and architecture discussi
 
 ## Summary
 
-Add `packages/app` as a thin SvelteKit web app for hosted lands.
+Add `packages/client` as the shared frontend client package and `packages/web` as a thin SvelteKit wrapper for hosted lands.
 
 Serve its data from a small land web API that lives with `packages/silaland` and uses `neorest` for both request/response and live updates.
 
@@ -43,7 +43,7 @@ If we add a normal REST API plus a separate WebSocket protocol, we will recreate
 
 ## Goals
 
-- add a hosted web UI in `packages/app`
+- add a hosted web UI in `packages/web`
 - keep the UI thin and easy to explain
 - use one API model for reads, writes, and live updates
 - keep the filesystem thread runtime as the source of truth
@@ -60,9 +60,14 @@ If we add a normal REST API plus a separate WebSocket protocol, we will recreate
 
 ## Proposed Design
 
-### 1. `packages/app` is a thin SvelteKit app
+### 1. `packages/client` and `packages/web`
 
-Make `packages/app` a SvelteKit app, similar in spirit to v1 `packages/web`:
+Keep the same frontend split as old Sila:
+
+- `packages/client` for shared UI and app logic
+- `packages/web` as the thin SvelteKit wrapper
+
+`packages/web` should stay small, similar in spirit to v1 `packages/web`:
 
 - routing
 - auth screen
@@ -70,7 +75,7 @@ Make `packages/app` a SvelteKit app, similar in spirit to v1 `packages/web`:
 - thread detail view
 - small app state around the current session and selected thread
 
-It should not own durable business logic.
+Most durable frontend logic should move into `packages/client` over time, only as needed.
 The server API should stay in `packages/silaland`.
 
 The first product split should be:
@@ -95,7 +100,8 @@ This keeps the architecture small:
 
 - one land runtime
 - one web API surface
-- one browser app
+- one browser app wrapper
+- one shared client package
 
 It should also understand both:
 
@@ -193,7 +199,7 @@ This is enough for the first version without introducing a full account system.
 
 Recommended first deployment:
 
-- build `packages/app`
+- build `packages/web`
 - serve the built app with nginx or Caddy
 - proxy API and `/.neorest` traffic to the land process
 
@@ -230,7 +236,7 @@ We should not reuse:
 2. Add a small internal event bus so thread changes can broadcast to the API.
 3. Define the `users/<user-id>/` land layout for per-user channels and future user-scoped resources.
 4. Add an `app` channel runtime with user-scoped threads under each user.
-5. Create `packages/app` as a thin SvelteKit app with user and admin views.
+5. Create `packages/client` for shared frontend logic and `packages/web` as the thin SvelteKit wrapper with user and admin views.
 6. Expose a first API for `status`, `me`, `threads`, `thread detail`, and `messages`.
 7. Align the API with append-only thread events so live updates become event-driven instead of snapshot-driven.
 8. Document reverse-proxy deployment for the app and `/.neorest`.
@@ -250,4 +256,5 @@ The main mitigation is to route all browser writes back through the land runtime
 - the first web app is for both end users and admins
 - browser-originated chats are their own user-scoped `app` channel
 - the land should grow a `users/` directory for user-scoped channels and future assistants, skills, and config
-- `packages/app` should use SvelteKit
+- `packages/web` should use SvelteKit
+- `packages/client` should hold shared frontend logic we may later reuse in desktop and mobile wrappers

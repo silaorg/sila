@@ -7,9 +7,9 @@
   ],
   "scripts": {
     "land": "node packages/silaland/src/cli.js",
-    "dev": "concurrently --kill-others-on-fail -n land,app -c yellow,cyan \"npm run dev:land\" \"npm run dev:app\"",
+    "dev": "concurrently --kill-others-on-fail -n land,web -c yellow,cyan \"npm run dev:land\" \"npm run dev:web\"",
     "dev:land": "node packages/silaland/src/cli.js run test-land --watch",
-    "dev:app": "npm run dev -w app",
+    "dev:web": "npm run dev -w web",
     "test": "npm run --workspaces --if-present test"
   },
   "devDependencies": {

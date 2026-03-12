@@ -1,0 +1,28 @@
+{
+  "name": "@sila/client",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Shared Svelte client package for Sila frontends",
+  "type": "module",
+  "main": "./src/lib/index.ts",
+  "types": "./src/lib/index.ts",
+  "exports": {
+    ".": "./src/lib/index.ts",
+    "./*": "./src/lib/*"
+  },
+  "scripts": {
+    "dev": "tailwindcss -i ./src/app.css -o ./src/lib/compiled-style.css --watch",
+    "build": "tailwindcss -i ./src/app.css -o ./src/lib/compiled-style.css",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@skeletonlabs/skeleton": "^4.12.1",
+    "@skeletonlabs/skeleton-svelte": "^4.12.1",
+    "@tailwindcss/cli": "^4.1.18",
+    "@typescript-eslint/types": "^8.46.1",
+    "svelte": "^5.51.0",
+    "svelte-check": "^4.4.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
+  }
+}

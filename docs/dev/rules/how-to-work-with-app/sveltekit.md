@@ -1,6 +1,6 @@
 # SvelteKit
 
-The app uses Svelte 5 and SvelteKit 2.
+The web wrapper uses Svelte 5 and SvelteKit 2.
 
 Prefer current Svelte 5 patterns:
 
@@ -32,4 +32,4 @@ Notes:
 - do not use `$props<T>()` for prop typing
 - keep components small and easy to scan
 
-For package-specific context, also check `packages/app/README.md`.
+For package-specific context, also check `packages/web/README.md` and `packages/client/README.md`.

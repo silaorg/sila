@@ -1,18 +1,18 @@
 # Skeleton
 
-The app uses Skeleton with SvelteKit and Tailwind.
+The frontend uses Skeleton with SvelteKit and Tailwind.
 
 Current setup lives in:
 
-- `packages/app/src/routes/layout.css`
-- `packages/app/src/app.html`
+- `packages/client/src/app.css`
+- `packages/web/src/app.html`
 
 Rules for writing UI:
 
 - use Skeleton color tokens for surfaces, borders, and text instead of raw Tailwind colors when possible
 - prefer paired tokens like `bg-surface-50-950`, `border-surface-200-800`, and `text-surface-900-50`
 - layout, spacing, sizing, and typography can still use normal Tailwind utilities like `flex`, `grid`, `gap-*`, `p-*`, and `text-*`
-- keep the theme imports in `layout.css`
+- keep the shared theme imports in `packages/client/src/app.css`
 - set the active theme with `data-theme` in `app.html`
 
 Examples:
@@ -31,6 +31,6 @@ Avoid:
 
 When unsure:
 
-- copy patterns from existing frontend files in `packages/app`
+- copy patterns from existing frontend files in `packages/client` and `packages/web`
 - check the Skeleton docs
 - use the Skeleton Svelte reference: https://www.skeleton.dev/llms-svelte.txt

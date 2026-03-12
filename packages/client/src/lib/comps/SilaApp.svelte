@@ -1,12 +1,6 @@
-<svelte:head>
-	<title>Silaland App</title>
-	<meta
-		name="description"
-		content="Simple SvelteKit and Skeleton starter for the hosted Silaland app."
-	/>
-</svelte:head>
-
 <script lang="ts">
+	import '../compiled-style.css';
+
 	const pillars = [
 		'Browser chat lives in its own app channel.',
 		'Users see only their own threads.',
@@ -22,16 +16,16 @@
 					Silaland
 				</p>
 				<h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-					SvelteKit app starter with Skeleton wired in.
+					Shared client starter with Skeleton wired in.
 				</h1>
 				<p class="mt-4 max-w-2xl text-base leading-7 text-surface-700-300">
-					This is a minimal base for the hosted land app. It keeps the first screen small while
-					establishing the theme, layout, and package setup we can build on.
+					This shared client package is the place for frontend logic and UI we want to reuse
+					across web, desktop, and mobile wrappers.
 				</p>
 			</div>
 
 			<div class="rounded-full border border-surface-200-800 bg-surface-100-900 px-4 py-2 text-sm text-surface-700-300">
-				Draft UI shell
+				Draft client shell
 			</div>
 		</header>
 
@@ -42,7 +36,7 @@
 						<p class="text-sm font-medium uppercase tracking-[0.22em] text-surface-600-400">
 							First slice
 						</p>
-						<h2 class="mt-3 text-2xl font-semibold">Keep the first implementation narrow.</h2>
+						<h2 class="mt-3 text-2xl font-semibold">Keep the shared client surface narrow.</h2>
 					</div>
 
 					<div class="grid gap-4 sm:grid-cols-3">
@@ -55,15 +49,15 @@
 							<p class="mt-2 text-lg font-medium">Cerberus</p>
 						</div>
 						<div class="rounded-2xl border border-surface-200-800 bg-surface-50-950 p-4">
-							<p class="text-sm text-surface-600-400">Runtime</p>
-							<p class="mt-2 text-lg font-medium">SvelteKit</p>
+							<p class="text-sm text-surface-600-400">Wrapper</p>
+							<p class="mt-2 text-lg font-medium">SvelteKit web</p>
 						</div>
 					</div>
 
 					<div class="rounded-2xl border border-dashed border-surface-300-700 p-5">
 						<p class="text-sm leading-7 text-surface-700-300">
-							Next up: auth, current-user loading, thread list, thread detail, and the first
-							Neorest-backed chat flow.
+							Next up: move only the shared pieces we actually need, instead of porting the old
+							client all at once.
 						</p>
 					</div>
 				</div>
