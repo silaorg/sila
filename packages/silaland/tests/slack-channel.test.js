@@ -337,7 +337,7 @@ test("slack runtime keeps DM thread replies in the same thread", async () => {
   });
 });
 
-test("slack runtime posts plain DM replies without thread_ts", async () => {
+test("slack runtime replies to top-level DM messages in a new thread", async () => {
   const { channelPath } = await createLandFixture();
   const mockApp = createMockSlackApp();
 
@@ -370,6 +370,7 @@ test("slack runtime posts plain DM replies without thread_ts", async () => {
     channel_type: "im",
     user: "U123",
     text: "reply in dm",
+    ts: "1710000011.000001",
   });
   await channel.stop();
 
@@ -378,6 +379,7 @@ test("slack runtime posts plain DM replies without thread_ts", async () => {
     channel: "D555",
     text: "dm main reply",
     mrkdwn: true,
+    thread_ts: "1710000011.000001",
   });
 });
 

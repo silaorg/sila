@@ -481,14 +481,6 @@ function getThreadContext(message) {
     };
   }
 
-  if (message.channel_type === "im") {
-    return {
-      threadId: sanitizeThreadId(channelId),
-      channelId,
-      threadTs: null,
-    };
-  }
-
   const messageTs = typeof message.ts === "string" && message.ts.trim().length
     ? message.ts.trim()
     : null;
