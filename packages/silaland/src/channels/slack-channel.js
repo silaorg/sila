@@ -154,11 +154,24 @@ export class SlackChannel {
       throw new Error(`Slack channel is not connected: ${this.#path}`);
     }
 
-    await this.#app.client.chat.postMessage({
+    return await this.#app.client.chat.postMessage({
       channel,
       text,
       mrkdwn: true,
       ...(threadTs ? { thread_ts: threadTs } : {}),
+    });
+  }
+
+  async updateMessage(channel, ts, text) {
+    if (!this.#app) {
+      throw new Error(`Slack channel is not connected: ${this.#path}`);
+    }
+
+    return await this.#app.client.chat.update({
+      channel,
+      ts,
+      text,
+      mrkdwn: true,
     });
   }
 
@@ -332,6 +345,21 @@ export class SlackChannel {
       return;
     }
 
+    let progressMessageTs = null;
+    const ensureProgressMessage = async () => {
+      if (progressMessageTs) {
+        return progressMessageTs;
+      }
+
+      const posted = await this.sendMessage(
+        thread.channelId,
+        "🤔 Thinking...",
+        thread.threadTs ?? undefined,
+      );
+      progressMessageTs = posted?.ts || null;
+      return progressMessageTs;
+    };
+
     await this.#threadRuntime.handleThreadMessage({
       thread,
       userId,
@@ -346,12 +374,23 @@ export class SlackChannel {
         lastUserId: userId,
         responded: input.result.responded,
       }),
-      sendIntermediateReply: async (payload) => this.sendMessage(
-        thread.channelId,
-        payload.text,
-        thread.threadTs ?? undefined,
-      ),
-      sendReply: async (answer) => this.sendMessage(thread.channelId, answer, thread.threadTs ?? undefined),
+      onRespondStart: ensureProgressMessage,
+      sendIntermediateReply: async (payload) => {
+        const workingText = formatWorkingMessage(payload.text);
+        const messageTs = await ensureProgressMessage();
+        if (messageTs) {
+          await this.updateMessage(thread.channelId, messageTs, workingText);
+          return;
+        }
+        await this.sendMessage(thread.channelId, workingText, thread.threadTs ?? undefined);
+      },
+      sendReply: async (answer) => {
+        if (progressMessageTs) {
+          await this.updateMessage(thread.channelId, progressMessageTs, answer);
+          return;
+        }
+        await this.sendMessage(thread.channelId, answer, thread.threadTs ?? undefined);
+      },
     });
   }
 
@@ -374,6 +413,14 @@ function parseChannelConfig(rawConfig) {
     throw new Error(`Invalid Slack channel config: ${details}`);
   }
   return result.data;
+}
+
+function formatWorkingMessage(text) {
+  const body = String(text || "").trim();
+  if (!body) {
+    return "🔄 Working...";
+  }
+  return `🔄 Working...\n\n${body}`;
 }
 
 function isSlackUserMessage(message) {

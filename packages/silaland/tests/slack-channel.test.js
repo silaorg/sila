@@ -202,6 +202,7 @@ test("slack runtime posts intermediate assistant loop messages in thread", async
       createAgentRuntime() {
         return {
           async handleThreadMessage(input) {
+            await input.onAssistantResponding?.();
             await input.onAssistantLoopMessage?.({
               text: "I am checking that now.",
               toolNames: ["execute_command"],
@@ -223,18 +224,25 @@ test("slack runtime posts intermediate assistant loop messages in thread", async
   });
   await channel.stop();
 
-  assert.equal(mockApp.postedMessages.length, 2);
+  assert.equal(mockApp.postedMessages.length, 1);
   assert.deepEqual(mockApp.postedMessages[0], {
     channel: "C334",
-    text: "I am checking that now.",
+    text: "🤔 Thinking...",
     mrkdwn: true,
     thread_ts: "1710000001.000002",
   });
-  assert.deepEqual(mockApp.postedMessages[1], {
+  assert.equal(mockApp.updatedMessages.length, 2);
+  assert.deepEqual(mockApp.updatedMessages[0], {
     channel: "C334",
+    ts: "1710000001.000002-reply-1",
+    text: "🔄 Working...\n\nI am checking that now.",
+    mrkdwn: true,
+  });
+  assert.deepEqual(mockApp.updatedMessages[1], {
+    channel: "C334",
+    ts: "1710000001.000002-reply-1",
     text: "done",
     mrkdwn: true,
-    thread_ts: "1710000001.000002",
   });
 });
 
@@ -400,10 +408,12 @@ function createMockSlackApp() {
   let messageHandler = null;
   const uploadCalls = [];
   const postedMessages = [];
+  const updatedMessages = [];
 
   return {
     uploadCalls,
     postedMessages,
+    updatedMessages,
     client: {
       auth: {
         async test() {
@@ -439,6 +449,17 @@ function createMockSlackApp() {
       chat: {
         async postMessage(input) {
           postedMessages.push(input);
+          return {
+            ok: true,
+            ts: `${input.thread_ts || "dm"}-reply-${postedMessages.length}`,
+          };
+        },
+        async update(input) {
+          updatedMessages.push(input);
+          return {
+            ok: true,
+            ts: input.ts,
+          };
         },
       },
     },

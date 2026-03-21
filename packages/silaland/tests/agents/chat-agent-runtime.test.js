@@ -162,12 +162,16 @@ describe("ThreadAgent", () => {
   it("logs intermediate assistant text when the agent uses tools", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const loopMessages = [];
+    let respondStartCount = 0;
     const agent = new ThreadAgent({
       threadDir,
       threadId: "thread-tools",
       lang: createLoopingLang(),
       ptyManager: createPtyStub(),
       defaultCwd: process.cwd(),
+      onAssistantResponding: async () => {
+        respondStartCount += 1;
+      },
       onAssistantLoopMessage: async (payload) => {
         loopMessages.push(payload);
       },
@@ -195,6 +199,7 @@ describe("ThreadAgent", () => {
     deepEqual(loopMessages, [
       { text: "I will check that first.", toolNames: ["execute_command"] },
     ]);
+    equal(respondStartCount, 1);
   });
 
   it("stores thread messages as json lines", async () => {

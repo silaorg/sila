@@ -182,7 +182,15 @@ export class TelegramChannel {
       throw new Error(`Telegram channel is not connected: ${this.#path}`);
     }
 
-    await this.#bot.telegram.sendMessage(chatId, text);
+    return await this.#bot.telegram.sendMessage(chatId, text);
+  }
+
+  async updateMessage(chatId, messageId, text) {
+    if (!this.#bot) {
+      throw new Error(`Telegram channel is not connected: ${this.#path}`);
+    }
+
+    return await this.#bot.telegram.editMessageText(chatId, messageId, undefined, text);
   }
 
   /**
@@ -327,6 +335,17 @@ export class TelegramChannel {
       return;
     }
 
+    let progressMessageId = null;
+    const ensureProgressMessage = async () => {
+      if (progressMessageId) {
+        return progressMessageId;
+      }
+
+      const sent = await this.sendMessage(thread.chatId, "🤔 Thinking...");
+      progressMessageId = sent?.message_id ?? null;
+      return progressMessageId;
+    };
+
     await this.#threadRuntime.handleThreadMessage({
       thread,
       userId,
@@ -341,8 +360,23 @@ export class TelegramChannel {
         inputType,
         responded: input.result.responded,
       }),
-      sendIntermediateReply: async (payload) => this.sendMessage(thread.chatId, payload.text),
-      sendReply: async (answer) => this.sendMessage(thread.chatId, answer),
+      onRespondStart: ensureProgressMessage,
+      sendIntermediateReply: async (payload) => {
+        const workingText = formatWorkingMessage(payload.text);
+        const messageId = await ensureProgressMessage();
+        if (messageId) {
+          await this.updateMessage(thread.chatId, messageId, workingText);
+          return;
+        }
+        await this.sendMessage(thread.chatId, workingText);
+      },
+      sendReply: async (answer) => {
+        if (progressMessageId) {
+          await this.updateMessage(thread.chatId, progressMessageId, answer);
+          return;
+        }
+        await this.sendMessage(thread.chatId, answer);
+      },
     });
   }
 
@@ -419,4 +453,12 @@ function createDefaultDependencies() {
     storeTelegramFile,
     transcribeAudioFile,
   };
+}
+
+function formatWorkingMessage(text) {
+  const body = String(text || "").trim();
+  if (!body) {
+    return "🔄 Working...";
+  }
+  return `🔄 Working...\n\n${body}`;
 }

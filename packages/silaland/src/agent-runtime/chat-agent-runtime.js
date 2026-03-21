@@ -28,6 +28,8 @@ export class ThreadAgent {
   #sendSlackFile;
   /** @type {undefined | ((payload: { text: string; toolNames: string[] }) => Promise<void>)} */
   #onAssistantLoopMessage;
+  /** @type {undefined | (() => Promise<void>)} */
+  #onAssistantResponding;
 
   /**
    * @param {{
@@ -42,6 +44,7 @@ export class ThreadAgent {
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
+   *  onAssistantResponding?: () => Promise<void>;
    *  instructions: string;
    * }} options
    */
@@ -58,6 +61,9 @@ export class ThreadAgent {
     this.#sendSlackFile = options.sendSlackFile;
     this.#onAssistantLoopMessage = typeof options.onAssistantLoopMessage === "function"
       ? options.onAssistantLoopMessage
+      : undefined;
+    this.#onAssistantResponding = typeof options.onAssistantResponding === "function"
+      ? options.onAssistantResponding
       : undefined;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
@@ -86,6 +92,10 @@ export class ThreadAgent {
     if (!shouldSendReply) {
       console.log(`[thread ${this.#threadId}] assistant: [no response]`);
       return { responded: false, answer: "" };
+    }
+
+    if (this.#onAssistantResponding) {
+      await this.#onAssistantResponding();
     }
 
     const loopLogger = subscribeToAgentLoopLogs(this.#threadId, agent, this.#onAssistantLoopMessage);
@@ -158,6 +168,7 @@ export class InProcessChatAgentRuntime {
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
+   *  onAssistantResponding?: () => Promise<void>;
    * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
@@ -184,6 +195,7 @@ export class InProcessChatAgentRuntime {
       sendTelegramFile: input.sendTelegramFile,
       sendSlackFile: input.sendSlackFile,
       onAssistantLoopMessage: input.onAssistantLoopMessage,
+      onAssistantResponding: input.onAssistantResponding,
       instructions,
     });
     return agent.processUserMessage({

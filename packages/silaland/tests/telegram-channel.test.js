@@ -148,6 +148,7 @@ test("telegram runtime sends intermediate assistant loop messages before the fin
       createAgentRuntime() {
         return {
           async handleThreadMessage(input) {
+            await input.onAssistantResponding?.();
             await input.onAssistantLoopMessage?.({
               text: "I am checking that now.",
               toolNames: ["execute_command"],
@@ -179,9 +180,19 @@ test("telegram runtime sends intermediate assistant loop messages before the fin
   });
   await channel.stop();
 
-  assert.equal(mockBot.sentMessages.length, 2);
-  assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-loop-1", text: "I am checking that now." });
-  assert.deepEqual(mockBot.sentMessages[1], { chatId: "chat-loop-1", text: "processed" });
+  assert.equal(mockBot.sentMessages.length, 1);
+  assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-loop-1", text: "🤔 Thinking..." });
+  assert.equal(mockBot.updatedMessages.length, 2);
+  assert.deepEqual(mockBot.updatedMessages[0], {
+    chatId: "chat-loop-1",
+    messageId: 1,
+    text: "🔄 Working...\n\nI am checking that now.",
+  });
+  assert.deepEqual(mockBot.updatedMessages[1], {
+    chatId: "chat-loop-1",
+    messageId: 1,
+    text: "processed",
+  });
 });
 
 test("telegram text reply includes replied message context", async () => {
@@ -611,15 +622,22 @@ function createMockBot() {
   /** @type {Map<string, (ctx: any) => Promise<void>>} */
   const handlers = new Map();
   const sentMessages = [];
+  const updatedMessages = [];
   const sentFiles = [];
 
   return {
     handlers,
     sentMessages,
+    updatedMessages,
     sentFiles,
     telegram: {
       async sendMessage(chatId, text) {
         sentMessages.push({ chatId, text });
+        return { message_id: sentMessages.length };
+      },
+      async editMessageText(chatId, messageId, _inlineMessageId, text) {
+        updatedMessages.push({ chatId, messageId, text });
+        return { message_id: messageId, text };
       },
       async sendPhoto(chatId, _input, extra) {
         sentFiles.push({ chatId, kind: "photo", caption: extra?.caption });

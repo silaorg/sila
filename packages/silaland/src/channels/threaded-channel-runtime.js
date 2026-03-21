@@ -51,6 +51,7 @@ export class ThreadedChannelRuntime {
    *    text: string;
    *    result: { responded: boolean; answer: string };
    *  }) => Record<string, unknown> | Promise<Record<string, unknown>>);
+   *  onRespondStart?: () => Promise<void>;
    *  sendIntermediateReply?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
    *  sendReply?: (answer: string, result: { responded: boolean; answer: string }) => Promise<void>;
    * }} input
@@ -69,6 +70,7 @@ export class ThreadedChannelRuntime {
       threadDir,
       userId: input.userId,
       text: input.text,
+      onAssistantResponding: input.onRespondStart,
       onAssistantLoopMessage: input.sendIntermediateReply,
       ...input.agentInput,
     });
