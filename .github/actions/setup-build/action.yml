@@ -11,12 +11,14 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: npm ci
+      run: |
+        # aiwrapper runs `npx airul gen` in preinstall. Running lifecycle scripts
+        # in the foreground avoids concurrent npx cache races on Windows.
+        npm ci --foreground-scripts
 
     - name: Build desktop application
       shell: bash
       run: |
         cd packages/desktop
         npm run build
-
 

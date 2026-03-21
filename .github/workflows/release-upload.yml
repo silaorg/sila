@@ -37,8 +37,22 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           lfs: true
-      - name: Setup and build
-        uses: ./.github/actions/setup-build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        shell: bash
+        run: |
+          # aiwrapper runs `npx airul gen` in preinstall. Running lifecycle scripts
+          # in the foreground avoids concurrent npx cache races on Windows.
+          npm ci --foreground-scripts
+      - name: Build desktop application
+        shell: bash
+        run: |
+          cd packages/desktop
+          npm run build
       - name: Package + upload (linux)
         uses: ./.github/actions/package-upload
         env:
@@ -57,8 +71,22 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           lfs: true
-      - name: Setup and build
-        uses: ./.github/actions/setup-build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        shell: bash
+        run: |
+          # aiwrapper runs `npx airul gen` in preinstall. Running lifecycle scripts
+          # in the foreground avoids concurrent npx cache races on Windows.
+          npm ci --foreground-scripts
+      - name: Build desktop application
+        shell: bash
+        run: |
+          cd packages/desktop
+          npm run build
       - name: Package + upload (windows)
         uses: ./.github/actions/package-upload
         env:
@@ -77,8 +105,22 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
           lfs: true
-      - name: Setup and build
-        uses: ./.github/actions/setup-build
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        shell: bash
+        run: |
+          # aiwrapper runs `npx airul gen` in preinstall. Running lifecycle scripts
+          # in the foreground avoids concurrent npx cache races on Windows.
+          npm ci --foreground-scripts
+      - name: Build desktop application
+        shell: bash
+        run: |
+          cd packages/desktop
+          npm run build
 
       - name: Setup macOS certificate
         env:
