@@ -1,6 +1,5 @@
 export {
   InProcessChatAgentRuntime,
-  SlackAgent,
   ThreadAgent,
 } from "./chat-agent-runtime.js";
 export {

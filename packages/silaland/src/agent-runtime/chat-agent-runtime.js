@@ -94,11 +94,6 @@ export class ThreadAgent {
   }
 }
 
-/**
- * Backward-compatible alias. Prefer ThreadAgent for new code.
- */
-export class SlackAgent extends ThreadAgent {}
-
 export class InProcessChatAgentRuntime {
   /** @type {import("aiwrapper").LanguageProvider} */
   #lang;
