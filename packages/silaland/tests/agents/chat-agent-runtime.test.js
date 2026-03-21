@@ -3,7 +3,7 @@ import { deepEqual, equal, throws } from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Lang } from "aiwrapper";
+import { Lang, LangMessages } from "aiwrapper";
 import { InProcessChatAgentRuntime, ThreadAgent } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
@@ -32,6 +32,39 @@ function createPtyStub() {
         truncated: false,
         timedOut: false,
       };
+    },
+  };
+}
+
+function createLoopingLang() {
+  return {
+    async askForObject() {
+      return { object: { respond: true } };
+    },
+    async chat(messages, options = {}) {
+      const result = messages instanceof LangMessages
+        ? messages
+        : new LangMessages(messages);
+      const lastMessage = result[result.length - 1];
+
+      if (lastMessage?.role === "tool-results") {
+        result.addAssistantMessage("final answer");
+        options.onResult?.(result[result.length - 1]);
+        return result;
+      }
+
+      result.addAssistantItems([
+        { type: "text", text: "I will check that first." },
+        { type: "tool", name: "execute_command", callId: "call-1", arguments: { command: "shell status" } },
+      ]);
+      options.onResult?.(result[result.length - 1]);
+
+      const toolResultsMessage = await result.executeRequestedTools();
+      if (toolResultsMessage) {
+        options.onResult?.(toolResultsMessage);
+      }
+
+      return result;
     },
   };
 }
@@ -123,6 +156,44 @@ describe("ThreadAgent", () => {
     deepEqual(logs, [
       "[thread thread-2] user <@user-2>: thanks",
       "[thread thread-2] assistant: [no response]",
+    ]);
+  });
+
+  it("logs intermediate assistant text when the agent uses tools", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
+    const loopMessages = [];
+    const agent = new ThreadAgent({
+      threadDir,
+      threadId: "thread-tools",
+      lang: createLoopingLang(),
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      onAssistantLoopMessage: async (payload) => {
+        loopMessages.push(payload);
+      },
+      instructions: "Be helpful.",
+    });
+    const logs = [];
+    const originalConsoleLog = console.log;
+    console.log = (message) => {
+      logs.push(String(message));
+    };
+
+    try {
+      const result = await agent.processUserMessage({ userId: "user-tools", text: "check that" });
+      equal(result.responded, true);
+      equal(result.answer, "final answer");
+    } finally {
+      console.log = originalConsoleLog;
+    }
+
+    deepEqual(logs, [
+      "[thread thread-tools] user <@user-tools>: check that",
+      "[thread thread-tools] assistant [loop][tools: execute_command]: I will check that first.",
+      "[thread thread-tools] assistant: final answer",
+    ]);
+    deepEqual(loopMessages, [
+      { text: "I will check that first.", toolNames: ["execute_command"] },
     ]);
   });
 

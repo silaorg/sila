@@ -26,6 +26,8 @@ export class ThreadAgent {
   #sendTelegramFile;
   /** @type {undefined | ((payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>)} */
   #sendSlackFile;
+  /** @type {undefined | ((payload: { text: string; toolNames: string[] }) => Promise<void>)} */
+  #onAssistantLoopMessage;
 
   /**
    * @param {{
@@ -39,6 +41,7 @@ export class ThreadAgent {
    *  threadStore?: ThreadStore;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
+   *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
    *  instructions: string;
    * }} options
    */
@@ -53,6 +56,9 @@ export class ThreadAgent {
     this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#sendTelegramFile = options.sendTelegramFile;
     this.#sendSlackFile = options.sendSlackFile;
+    this.#onAssistantLoopMessage = typeof options.onAssistantLoopMessage === "function"
+      ? options.onAssistantLoopMessage
+      : undefined;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
 
@@ -82,7 +88,17 @@ export class ThreadAgent {
       return { responded: false, answer: "" };
     }
 
-    const result = await agent.run([]);
+    const loopLogger = subscribeToAgentLoopLogs(this.#threadId, agent, this.#onAssistantLoopMessage);
+    let result;
+    try {
+      result = await agent.run([]);
+    } catch (error) {
+      loopLogger.flushPending();
+      throw error;
+    } finally {
+      loopLogger.unsubscribe();
+    }
+    await loopLogger.waitForPending();
     await this.#threadStore.saveMessages(this.#threadDir, agent.messages);
     const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
     console.log(`[thread ${this.#threadId}] assistant: ${answer}`);
@@ -141,6 +157,7 @@ export class InProcessChatAgentRuntime {
    *  text: string;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
+   *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
    * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
@@ -166,6 +183,7 @@ export class InProcessChatAgentRuntime {
       threadStore: this.#threadStore,
       sendTelegramFile: input.sendTelegramFile,
       sendSlackFile: input.sendSlackFile,
+      onAssistantLoopMessage: input.onAssistantLoopMessage,
       instructions,
     });
     return agent.processUserMessage({
@@ -217,6 +235,81 @@ function requireInstructions(instructions, contextName) {
     throw new Error(`${contextName} requires explicit non-empty instructions.`);
   }
   return instructions;
+}
+
+function subscribeToAgentLoopLogs(threadId, agent, onAssistantLoopMessage) {
+  let pendingAssistantIdx = null;
+  let pendingAssistantMessage = null;
+  let pendingLoopSends = Promise.resolve();
+
+  function flushPending() {
+    if (pendingAssistantMessage == null) {
+      return;
+    }
+
+    const payload = getIntermediateAssistantPayload(pendingAssistantMessage);
+    pendingAssistantIdx = null;
+    pendingAssistantMessage = null;
+
+    if (!payload) {
+      return;
+    }
+
+    console.log(formatIntermediateAssistantLog(threadId, payload));
+    if (typeof onAssistantLoopMessage === "function") {
+      pendingLoopSends = pendingLoopSends
+        .then(() => onAssistantLoopMessage(payload))
+        .catch((error) => {
+          console.error(`[thread ${threadId}] failed to send assistant loop message:`, error);
+        });
+    }
+  }
+
+  const unsubscribe = agent.subscribe((event) => {
+    if (event?.type !== "streaming") {
+      return;
+    }
+
+    const streamIdx = Number(event.data?.idx);
+    const message = event.data?.msg;
+
+    if (pendingAssistantMessage != null && streamIdx !== pendingAssistantIdx) {
+      flushPending();
+    }
+
+    if (message?.role !== "assistant") {
+      return;
+    }
+
+    pendingAssistantIdx = streamIdx;
+    pendingAssistantMessage = message;
+  });
+
+  return {
+    unsubscribe,
+    flushPending,
+    waitForPending() {
+      return pendingLoopSends;
+    },
+  };
+}
+
+function getIntermediateAssistantPayload(message) {
+  const text = typeof message?.text === "string" ? message.text.trim() : "";
+  if (!text) {
+    return null;
+  }
+
+  const toolNames = Array.isArray(message.toolRequests)
+    ? message.toolRequests.map((tool) => tool?.name).filter(Boolean)
+    : [];
+  return { text, toolNames };
+}
+
+function formatIntermediateAssistantLog(threadId, payload) {
+  const { text, toolNames } = payload;
+  const toolSuffix = toolNames.length ? `[tools: ${toolNames.join(", ")}]` : "";
+  return `[thread ${threadId}] assistant [loop]${toolSuffix}: ${text}`;
 }
 
 async function decideShouldRespond(lang, agent) {

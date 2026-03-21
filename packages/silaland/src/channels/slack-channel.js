@@ -346,6 +346,11 @@ export class SlackChannel {
         lastUserId: userId,
         responded: input.result.responded,
       }),
+      sendIntermediateReply: async (payload) => this.sendMessage(
+        thread.channelId,
+        payload.text,
+        thread.threadTs ?? undefined,
+      ),
       sendReply: async (answer) => this.sendMessage(thread.channelId, answer, thread.threadTs ?? undefined),
     });
   }

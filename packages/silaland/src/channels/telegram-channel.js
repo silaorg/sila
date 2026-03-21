@@ -341,6 +341,7 @@ export class TelegramChannel {
         inputType,
         responded: input.result.responded,
       }),
+      sendIntermediateReply: async (payload) => this.sendMessage(thread.chatId, payload.text),
       sendReply: async (answer) => this.sendMessage(thread.chatId, answer),
     });
   }

@@ -127,6 +127,63 @@ test("telegram audio upload includes transcription and sends response", async ()
   assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-42", text: "processed" });
 });
 
+test("telegram runtime sends intermediate assistant loop messages before the final reply", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockBot = createMockBot();
+
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            await input.onAssistantLoopMessage?.({
+              text: "I am checking that now.",
+              toolNames: ["execute_command"],
+            });
+            return { responded: true, answer: "processed" };
+          },
+          async stop() {},
+        };
+      },
+      async storeTelegramFile(input) {
+        const targetPath = await writeFakeStoredFile(input.threadDir, input.createdAt, input.originalName);
+        return targetPath;
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await channel.run();
+  await mockBot.emit("text", {
+    chat: { id: "chat-loop-1" },
+    from: { id: 12, is_bot: false },
+    message: {
+      text: "check it",
+      date: toUnixSeconds(new Date("2026-11-20T15:05:00Z")),
+    },
+    telegram: mockBot.telegram,
+  });
+  await channel.stop();
+
+  assert.equal(mockBot.sentMessages.length, 2);
+  assert.deepEqual(mockBot.sentMessages[0], { chatId: "chat-loop-1", text: "I am checking that now." });
+  assert.deepEqual(mockBot.sentMessages[1], { chatId: "chat-loop-1", text: "processed" });
+});
+
 test("telegram text reply includes replied message context", async () => {
   const { channelPath } = await createLandFixture();
   const mockBot = createMockBot();

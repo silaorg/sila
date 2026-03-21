@@ -183,6 +183,61 @@ test("slack runtime posts replies with mrkdwn enabled", async () => {
   });
 });
 
+test("slack runtime posts intermediate assistant loop messages in thread", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            await input.onAssistantLoopMessage?.({
+              text: "I am checking that now.",
+              toolNames: ["execute_command"],
+            });
+            return { responded: true, answer: "done" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C334",
+    user: "U123",
+    text: "run it",
+    thread_ts: "1710000001.000002",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.postedMessages.length, 2);
+  assert.deepEqual(mockApp.postedMessages[0], {
+    channel: "C334",
+    text: "I am checking that now.",
+    mrkdwn: true,
+    thread_ts: "1710000001.000002",
+  });
+  assert.deepEqual(mockApp.postedMessages[1], {
+    channel: "C334",
+    text: "done",
+    mrkdwn: true,
+    thread_ts: "1710000001.000002",
+  });
+});
+
 test("slack runtime keeps DM thread replies in the same thread", async () => {
   const { channelPath } = await createLandFixture();
   const mockApp = createMockSlackApp();
