@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Lang } from "aiwrapper";
 import OpenAI from "openai";
 import { Input } from "telegraf";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
+  loadChannelLanguageProvider,
   loadChannelInstructions,
   loadChannelTools,
   readOpenAiApiKey,
@@ -33,8 +33,6 @@ const TelegramChannelConfigSchema = z.looseObject({
   enabled: z.boolean().default(true),
   botToken: OptionalTokenSchema,
 });
-const OPENAI_MODEL = "gpt-5.2";
-
 export class TelegramChannel {
   /** @type {string} */
   #path;
@@ -111,17 +109,18 @@ export class TelegramChannel {
       return;
     }
 
-    const openAiApiKey = await readOpenAiApiKey(this.#path);
-    if (!openAiApiKey) {
-      console.log(
-        `Telegram channel missing OpenAI API key for ${this.#path}. Set OPENAI_API_KEY in land .env or process env.`,
-      );
+    const landPath = path.resolve(this.#path, "..", "..");
+    let languageProvider;
+    try {
+      languageProvider = await loadChannelLanguageProvider(this.#path);
+    } catch (error) {
+      console.log(`Telegram channel ${error.message}`);
       return;
     }
 
-    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
-    this.#openai = this.#dependencies.createOpenAiClient(openAiApiKey);
-    const landPath = path.resolve(this.#path, "..", "..");
+    this.#lang = languageProvider.lang;
+    const openAiApiKey = await readOpenAiApiKey(this.#path);
+    this.#openai = openAiApiKey ? this.#dependencies.createOpenAiClient(openAiApiKey) : null;
     const instructions = await loadChannelInstructions(landPath, "telegram");
     this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,

@@ -42,12 +42,29 @@ test("create then run land succeeds", async () => {
   assert.match(createResult.stdout, /Created land at:/);
   const landEnv = await fs.readFile(path.join(landDir, ".env"), "utf8");
   assert.match(landEnv, /OPENAI_API_KEY=sk-test/);
+  assert.match(landEnv, /ANTHROPIC_API_KEY=/);
+  assert.match(landEnv, /GOOGLE_API_KEY=/);
+  assert.match(landEnv, /KIMI_API_KEY=/);
+  assert.match(landEnv, /XAI_API_KEY=/);
+  assert.match(landEnv, /OPENROUTER_API_KEY=/);
+  assert.match(landEnv, /DEEPSEEK_API_KEY=/);
+  assert.match(landEnv, /GROQ_API_KEY=/);
+  assert.match(landEnv, /COHERE_API_KEY=/);
+  assert.match(landEnv, /MISTRAL_API_KEY=/);
+  assert.match(landEnv, /FAL_KEY=/);
   assert.match(landEnv, /EXA_API_KEY=/);
   const skillsStat = await fs.stat(path.join(landDir, "skills"));
   assert.equal(skillsStat.isDirectory(), true);
+  const defaultAgentConfig = JSON.parse(await fs.readFile(path.join(landDir, "agents", "default", "config.json"), "utf8"));
+  assert.equal(defaultAgentConfig.provider, "auto");
+  assert.equal(defaultAgentConfig.model, "auto");
+  const providerConfig = JSON.parse(await fs.readFile(path.join(landDir, "providers", "openai", "config.json"), "utf8"));
+  assert.equal(providerConfig.provider, "openai");
+  assert.equal(providerConfig.enabled, true);
 
   const runResult = await runCli(["run", landDir]);
   assert.equal(runResult.code, 0);
+  assert.match(runResult.stdout, /Default agent language model: openai\/gpt-5\.4/);
   assert.match(runResult.stdout, /Starting Slack channel at:/);
   assert.match(runResult.stdout, /Running land:/);
 });
@@ -62,6 +79,7 @@ test("create then run land with default Telegram channel succeeds", async () => 
 
   const runResult = await runCli(["run", landDir]);
   assert.equal(runResult.code, 0);
+  assert.match(runResult.stdout, /Default agent language model: openai\/gpt-5\.4/);
   assert.match(runResult.stdout, /Starting Telegram channel at:/);
   assert.match(runResult.stdout, /Telegram channel missing bot token/);
   assert.match(runResult.stdout, /Running land:/);

@@ -4,6 +4,7 @@ import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
 import { loadLandEnvironment } from "./env.js";
+import { resolveLandLanguageSelection } from "./providers.js";
 
 const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
   slack: SlackChannel,
@@ -57,6 +58,7 @@ export class Land {
 
     await this.#readConfigPromise;
     await loadLandEnvironment(this.#path);
+    await this.logDefaultAgentLanguageSelection();
 
     await this.runChannels();
 
@@ -93,6 +95,15 @@ export class Land {
     }
 
     console.log(`Loaded ${this.#channels.length} channel(s).`);
+  }
+
+  async logDefaultAgentLanguageSelection() {
+    try {
+      const selection = await resolveLandLanguageSelection(this.#path);
+      console.log(`Default agent language model: ${selection.provider}/${selection.model}`);
+    } catch (error) {
+      console.log(`Default agent language model unavailable: ${error.message}`);
+    }
   }
 }
 

@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { CONFIG_FILE_NAME, createDefaultConfig } from "./config.js";
 import { getLandEnvPath } from "./env.js";
+import { createDefaultAgentConfig, createProviderConfig } from "./providers.js";
 
 export const CreateLandOptionsSchema = z.object({
   path: z.string().min(1),
@@ -44,15 +45,21 @@ export async function createLand(options) {
   await createDefaultConfig(landPath);
 
   const agentsPath = path.join(landPath, "agents");
+  const defaultAgentPath = path.join(agentsPath, "default");
   const skillsPath = path.join(landPath, "skills");
   const assetsPath = path.join(landPath, "assets");
+  const providersPath = path.join(landPath, "providers");
   const channelPath = path.join(landPath, "channels", parsedOptions.channel);
 
   await fs.mkdir(agentsPath, { recursive: true });
+  await fs.mkdir(defaultAgentPath, { recursive: true });
   await fs.mkdir(skillsPath, { recursive: true });
   await fs.mkdir(assetsPath, { recursive: true });
+  await fs.mkdir(providersPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
+  await createDefaultAgentConfig(landPath);
+  await createProviderConfig(landPath, "openai");
   await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
   await fs.writeFile(getLandEnvPath(landPath), buildLandEnv(parsedOptions), "utf8");
 
@@ -99,6 +106,16 @@ function buildLandEnv(options) {
   return [
     "# AI provider keys for this land",
     `OPENAI_API_KEY=${openAiApiKey}`,
+    "ANTHROPIC_API_KEY=",
+    "GOOGLE_API_KEY=",
+    "KIMI_API_KEY=",
+    "XAI_API_KEY=",
+    "OPENROUTER_API_KEY=",
+    "DEEPSEEK_API_KEY=",
+    "GROQ_API_KEY=",
+    "COHERE_API_KEY=",
+    "MISTRAL_API_KEY=",
+    "FAL_KEY=",
     "EXA_API_KEY=",
     "",
   ].join("\n");

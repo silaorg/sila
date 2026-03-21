@@ -1,13 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Lang } from "aiwrapper";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
+  loadChannelLanguageProvider,
   loadChannelInstructions,
   loadChannelTools,
-  readOpenAiApiKey,
   sanitizeThreadId,
 } from "./channel-utils.js";
 import { storeSlackFile } from "./slack/slack-file-store.js";
@@ -20,8 +19,6 @@ const SlackChannelConfigSchema = z.looseObject({
   botUserOAuthToken: OptionalTokenSchema,
   appLevelToken: OptionalTokenSchema,
 });
-const OPENAI_MODEL = "gpt-5.2";
-
 export class SlackChannel {
   /** @type {string} */
   #path;
@@ -96,16 +93,16 @@ export class SlackChannel {
       return;
     }
 
-    const openAiApiKey = await readOpenAiApiKey(this.#path);
-    if (!openAiApiKey) {
-      console.log(
-        `Slack channel missing OpenAI API key for ${this.#path}. Set OPENAI_API_KEY in land .env or process env.`,
-      );
+    const landPath = path.resolve(this.#path, "..", "..");
+    let languageProvider;
+    try {
+      languageProvider = await loadChannelLanguageProvider(this.#path);
+    } catch (error) {
+      console.log(`Slack channel ${error.message}`);
       return;
     }
 
-    this.#lang = Lang.openai({ apiKey: openAiApiKey, model: OPENAI_MODEL });
-    const landPath = path.resolve(this.#path, "..", "..");
+    this.#lang = languageProvider.lang;
     const instructions = await loadChannelInstructions(landPath, "slack");
     this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,

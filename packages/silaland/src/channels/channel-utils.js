@@ -3,6 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import { loadLandAgentInstructions } from "../agent-instructions.js";
 import { loadLandEnvironment, readEnvValue } from "../env.js";
+import { loadLandLanguageProvider } from "../providers.js";
 import {
   applyRuntimePathEnvironment,
   buildRuntimePathsInstructionBlock,
@@ -60,6 +61,11 @@ export async function readExaApiKey(channelPath) {
   const landPath = path.resolve(channelPath, "..", "..");
   await loadLandEnvironment(landPath);
   return readEnvValue("EXA_API_KEY");
+}
+
+export async function loadChannelLanguageProvider(channelPath) {
+  const landPath = path.resolve(channelPath, "..", "..");
+  return loadLandLanguageProvider(landPath);
 }
 
 export async function loadChannelInstructions(landPath, channel, threadPath) {
