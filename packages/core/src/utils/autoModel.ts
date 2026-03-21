@@ -90,6 +90,7 @@ export async function resolveMostCapableLanguageModel(
       "openai",
       "anthropic",
       "google",
+      "kimi",
       "xai",
       "openrouter",
       "deepseek",
@@ -113,6 +114,15 @@ export async function resolveMostCapableLanguageModel(
     const providerConfig = providerConfigs.find((c) => c.id === providerId);
     if (!providerConfig) continue;
     if (!isLanguageProviderId(providerId)) continue;
+
+    // OpenRouter model ids are entered manually and do not map cleanly to Lang.models.
+    if (providerId === "openrouter") {
+      const staticProvider = providers.find((p) => p.id === providerId);
+      if (staticProvider?.defaultModel) {
+        return { provider: providerId, model: staticProvider.defaultModel };
+      }
+      continue;
+    }
 
     // Custom providers: configured model id is stored on the config.
     if (providerId.startsWith("custom-")) {
@@ -151,14 +161,6 @@ export async function resolveMostCapableLanguageModel(
       // Fall back to static provider config
     }
 
-    // Special case for OpenRouter - use static provider config since models are entered manually
-    if (providerId === "openrouter") {
-      const staticProvider = providers.find((p) => p.id === providerId);
-      if (staticProvider?.defaultModel) {
-        return { provider: providerId, model: staticProvider.defaultModel };
-      }
-    }
-
     // Fall back to static provider config for other providers
     const staticProvider = providers.find((p) => p.id === providerId);
     if (staticProvider?.defaultModel) {
@@ -168,4 +170,3 @@ export async function resolveMostCapableLanguageModel(
 
   return null;
 }
-

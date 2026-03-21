@@ -2,7 +2,7 @@
   import { Markdown } from "@markpage/svelte";
   import { chatMarkdownOptions } from "../markdown/chatMarkdownOptions";
   import ModelProviderApiKeyForm from "./ModelProviderApiKeyForm.svelte";
-  import type { ModelProvider } from "@sila/core";
+  import { englishTexts, type ModelProvider } from "@sila/core";
   import { useClientState } from "@sila/client/state/clientStateContext";
   import { i18n } from "@sila/client";
   const clientState = useClientState();
@@ -26,6 +26,8 @@
         return i18n.texts.modelProviderSetup.deepseek;
       case "google":
         return i18n.texts.modelProviderSetup.google;
+      case "kimi":
+        return i18n.texts.modelProviderSetup.kimi ?? englishTexts.modelProviderSetup.kimi;
       case "xai":
         return i18n.texts.modelProviderSetup.xai;
       case "cohere":

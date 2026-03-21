@@ -63,6 +63,10 @@ export function getProviderModels(
       return getProviderModels_groq(key, signal);
     case "anthropic":
       return getProviderModels_anthropic(key, signal);
+    case "google":
+      return Promise.resolve([]);
+    case "kimi":
+      return getProviderModels_kimi(key, signal);
     case "ollama":
       return getProviderModels_ollama();
     case "deepseek":
@@ -182,6 +186,14 @@ async function getProviderModels_deepseek(key: string, signal?: AbortSignal): Pr
     }
     return [];
   }
+}
+
+function getProviderModels_kimi(key: string, signal?: AbortSignal) {
+  return getProviderModels_openaiLikeApi(
+    "https://api.moonshot.ai/v1",
+    key,
+    signal,
+  );
 }
 
 // For custom OpenAI-like providers

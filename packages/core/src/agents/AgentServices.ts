@@ -106,7 +106,7 @@ export class AgentServices {
     }
     let useApplyPatch = false;
 
-    if (model && model.provider === "openai" && model.model.includes("gpt-5.1")) {
+    if (model && model.provider === "openai" && model.model.startsWith("gpt-5")) {
       useApplyPatch = true;
     }
 

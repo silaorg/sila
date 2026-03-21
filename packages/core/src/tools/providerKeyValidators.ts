@@ -16,6 +16,8 @@ export function validateKey(
       return validateKey_deepseek(key, signal);
     case "google":
       return validateKey_gemini(key, signal);
+    case "kimi":
+      return validateKey_kimi(key, signal);
     case "xai":
       return validateKey_xai(key, signal);
     case "cohere":
@@ -126,6 +128,13 @@ async function validateKey_gemini(
     
     return false;
   }
+}
+
+async function validateKey_kimi(
+  key: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  return validateKey_openaiLikeApi("https://api.moonshot.ai/v1", key, signal);
 }
 
 async function validateKey_xai(

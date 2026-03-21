@@ -7,7 +7,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openrouter.ai/",
     logoUrl: "/providers/openrouter.png",
-    defaultModel: "openai/gpt-5.2"
+    defaultModel: "openai/gpt-5.4"
   },
   {
     id: "openai",
@@ -15,7 +15,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openai.com/",
     logoUrl: "/providers/openai.png",
-    defaultModel: "gpt-5.2"
+    defaultModel: "gpt-5.4"
   },
   {
     id: "anthropic",
@@ -23,7 +23,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://anthropic.com/",
     logoUrl: "/providers/anthropic.png",
-    defaultModel: "claude-sonnet-4-5-20250929"
+    defaultModel: "claude-sonnet-4-6"
   },
   /*
   {
@@ -41,7 +41,15 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://gemini.google.com/",
     logoUrl: "/providers/google.png",
-    defaultModel: "gemini-3-pro-preview"
+    defaultModel: "gemini-2.5-pro"
+  },
+  {
+    id: "kimi",
+    name: "Kimi",
+    access: "cloud",
+    url: "https://platform.moonshot.ai/",
+    logoUrl: "/providers/kimi.svg",
+    defaultModel: "kimi-k2.5"
   },
   /*
   {

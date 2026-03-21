@@ -286,6 +286,7 @@ export interface Texts {
     groq: string;
     deepseek: string;
     google: string;
+    kimi?: string;
     xai: string;
     cohere: string;
     mistral: string;
