@@ -489,6 +489,17 @@ function getThreadContext(message) {
     };
   }
 
+  const messageTs = typeof message.ts === "string" && message.ts.trim().length
+    ? message.ts.trim()
+    : null;
+  if (messageTs) {
+    return {
+      threadId: sanitizeThreadId(`${channelId}_${messageTs}`),
+      channelId,
+      threadTs: messageTs,
+    };
+  }
+
   return {
     threadId: sanitizeThreadId(`${channelId}_main`),
     channelId,

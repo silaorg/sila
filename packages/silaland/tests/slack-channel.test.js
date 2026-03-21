@@ -183,6 +183,51 @@ test("slack runtime posts replies with mrkdwn enabled", async () => {
   });
 });
 
+test("slack runtime replies to top-level channel messages in a new thread", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: true, answer: "threaded reply" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C333",
+    user: "U123",
+    text: "reply here",
+    ts: "1710000001.000099",
+  });
+  await channel.stop();
+
+  assert.equal(mockApp.postedMessages.length, 1);
+  assert.deepEqual(mockApp.postedMessages[0], {
+    channel: "C333",
+    text: "threaded reply",
+    mrkdwn: true,
+    thread_ts: "1710000001.000099",
+  });
+});
+
 test("slack runtime posts intermediate assistant loop messages in thread", async () => {
   const { channelPath } = await createLandFixture();
   const mockApp = createMockSlackApp();
@@ -391,6 +436,57 @@ test("slack file uploads are forwarded as relative dated paths", async () => {
   assert.equal(storedFiles[0].fileUrl, "https://example.test/file/F900/download");
   assert.equal(runtimeCalls.length, 1);
   assert.match(runtimeCalls[0].text, /files\/2026\/11\/20\/report\.pdf/);
+});
+
+test("slack runtime keeps top-level channel messages in separate local conversations", async () => {
+  const { channelPath } = await createLandFixture();
+  const mockApp = createMockSlackApp();
+  const runtimeCalls = [];
+
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage(input) {
+            runtimeCalls.push({
+              threadId: input.threadId,
+              text: input.text,
+            });
+            return { responded: false, answer: "" };
+          },
+          async stop() {},
+        };
+      },
+    },
+  );
+
+  await channel.run();
+  await mockApp.emitMessage({
+    channel: "C888",
+    user: "U123",
+    text: "first top-level message",
+    ts: "1710000099.000001",
+  });
+  await mockApp.emitMessage({
+    channel: "C888",
+    user: "U123",
+    text: "second top-level message",
+    ts: "1710000100.000001",
+  });
+  await channel.stop();
+
+  assert.equal(runtimeCalls.length, 2);
+  assert.notEqual(runtimeCalls[0].threadId, runtimeCalls[1].threadId);
 });
 
 async function createLandFixture() {
