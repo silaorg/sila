@@ -36,7 +36,7 @@
   ],
   "dependencies": {
     "@slack/bolt": "^4.6.0",
-    "aiwrapper": "^3.0.2",
+    "aiwrapper": "^3.0.5",
     "docx": "^9.5.3",
     "exceljs": "^4.4.0",
     "hyperformula": "^3.2.0",
