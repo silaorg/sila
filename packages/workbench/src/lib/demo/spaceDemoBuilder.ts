@@ -21,6 +21,11 @@ export class DemoSpace {
       this.name = opts.name;
       this.space.name = opts.name;
     }
+    this.space.saveModelProviderConfig({
+      id: "mock",
+      type: "local",
+      apiUrl: "mock://local",
+    });
   }
 
   getSpace(): Space {
@@ -62,4 +67,3 @@ export class DemoSpace {
 export function createDemoSpace(opts?: { name?: string }): DemoSpace {
   return new DemoSpace(opts);
 }
-
