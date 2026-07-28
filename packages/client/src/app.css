@@ -49,3 +49,29 @@ textarea {
 	background: color-mix(in oklab, var(--anchor-font-color-dark) 18%, transparent);
 	color: var(--anchor-font-color-dark);
 }
+
+@keyframes loading-dots {
+	0%,
+	20% {
+		content: '.';
+	}
+	40% {
+		content: '..';
+	}
+	60%,
+	100% {
+		content: '...';
+	}
+}
+
+.loading-dots::after {
+	content: '.';
+	animation: loading-dots 1.5s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.loading-dots::after {
+		content: '...';
+		animation: none;
+	}
+}

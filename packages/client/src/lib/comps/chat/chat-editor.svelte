@@ -232,6 +232,12 @@
 	}
 
 	$effect(() => syncExternalValue(value));
+	$effect(() => {
+		const editable = !disabled;
+		if (!view) return;
+		view.setProps({ editable: () => editable });
+		if (!editable) closeMention();
+	});
 	onMount(initializeEditor);
 	onDestroy(() => view?.destroy());
 </script>

@@ -187,6 +187,7 @@ describe("ThreadAgent", () => {
   it("logs intermediate assistant text when the agent uses tools", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const loopMessages = [];
+    const progressMessages = [];
     let respondStartCount = 0;
     const agent = new ThreadAgent({
       threadDir,
@@ -199,6 +200,9 @@ describe("ThreadAgent", () => {
       },
       onAssistantLoopMessage: async (payload) => {
         loopMessages.push(payload);
+      },
+      onAssistantProgress: async (payload) => {
+        progressMessages.push(payload);
       },
       instructions: "Be helpful.",
     });
@@ -224,6 +228,14 @@ describe("ThreadAgent", () => {
     deepEqual(loopMessages, [
       { text: "I will check that first.", toolNames: ["execute_command"] },
     ]);
+    deepEqual(progressMessages, [{
+      text: "I will check that first.",
+      toolNames: ["execute_command"],
+      tools: [{
+        name: "execute_command",
+        arguments: { command: "shell status" },
+      }],
+    }]);
     equal(respondStartCount, 1);
   });
 

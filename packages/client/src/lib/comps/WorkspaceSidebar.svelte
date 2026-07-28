@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FolderOpen from 'lucide-svelte/icons/folder-open';
 	import LogOut from 'lucide-svelte/icons/log-out';
 	import SquarePen from 'lucide-svelte/icons/square-pen';
 	import { useWorkspaceUi } from '../workspace-ui-context';
@@ -39,6 +40,17 @@
 			</span>
 			<span class="min-w-0 flex-1 truncate text-sm">New thread</span>
 			<span class="pr-1 text-[11px] text-surface-500">⌘T</span>
+		</button>
+		<button
+			type="button"
+			class="mt-1 flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
+			disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
+			onclick={workspaceUi.openFiles}
+		>
+			<span class="flex h-6 w-6 shrink-0 items-center justify-center">
+				<FolderOpen size={18} />
+			</span>
+			<span class="min-w-0 flex-1 truncate text-sm">Files</span>
 		</button>
 	</div>
 

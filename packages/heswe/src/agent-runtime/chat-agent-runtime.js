@@ -28,6 +28,8 @@ export class ThreadAgent {
   #sendSlackFile;
   /** @type {undefined | ((payload: { text: string; toolNames: string[] }) => Promise<void>)} */
   #onAssistantLoopMessage;
+  /** @type {undefined | ((payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>)} */
+  #onAssistantProgress;
   /** @type {undefined | (() => Promise<void>)} */
   #onAssistantResponding;
   /** @type {boolean} */
@@ -46,6 +48,7 @@ export class ThreadAgent {
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
+   *  onAssistantProgress?: (payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>;
    *  onAssistantResponding?: () => Promise<void>;
    *  alwaysRespond?: boolean;
    *  instructions: string;
@@ -64,6 +67,9 @@ export class ThreadAgent {
     this.#sendSlackFile = options.sendSlackFile;
     this.#onAssistantLoopMessage = typeof options.onAssistantLoopMessage === "function"
       ? options.onAssistantLoopMessage
+      : undefined;
+    this.#onAssistantProgress = typeof options.onAssistantProgress === "function"
+      ? options.onAssistantProgress
       : undefined;
     this.#onAssistantResponding = typeof options.onAssistantResponding === "function"
       ? options.onAssistantResponding
@@ -117,7 +123,12 @@ export class ThreadAgent {
       await this.#onAssistantResponding();
     }
 
-    const loopLogger = subscribeToAgentLoopLogs(this.#threadId, agent, this.#onAssistantLoopMessage);
+    const loopLogger = subscribeToAgentLoopLogs(
+      this.#threadId,
+      agent,
+      this.#onAssistantLoopMessage,
+      this.#onAssistantProgress,
+    );
     const persistedMessageCount = agent.messages.length;
     let result;
     try {
@@ -205,6 +216,7 @@ export class InProcessChatAgentRuntime {
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
+   *  onAssistantProgress?: (payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>;
    *  onAssistantResponding?: () => Promise<void>;
    * }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
@@ -239,6 +251,7 @@ export class InProcessChatAgentRuntime {
         sendTelegramFile: input.sendTelegramFile,
         sendSlackFile: input.sendSlackFile,
         onAssistantLoopMessage: input.onAssistantLoopMessage,
+        onAssistantProgress: input.onAssistantProgress,
         onAssistantResponding: input.onAssistantResponding,
         alwaysRespond: this.#alwaysRespond,
         instructions,
@@ -332,10 +345,17 @@ function requireInstructions(instructions, contextName) {
   return instructions;
 }
 
-function subscribeToAgentLoopLogs(threadId, agent, onAssistantLoopMessage) {
+function subscribeToAgentLoopLogs(
+  threadId,
+  agent,
+  onAssistantLoopMessage,
+  onAssistantProgress,
+) {
   let pendingAssistantIdx = null;
   let pendingAssistantMessage = null;
   let pendingLoopSends = Promise.resolve();
+  let pendingProgressSends = Promise.resolve();
+  let lastProgressSignature = "";
 
   function flushPending() {
     if (pendingAssistantMessage == null) {
@@ -353,7 +373,10 @@ function subscribeToAgentLoopLogs(threadId, agent, onAssistantLoopMessage) {
     console.log(formatIntermediateAssistantLog(threadId, payload));
     if (typeof onAssistantLoopMessage === "function") {
       pendingLoopSends = pendingLoopSends
-        .then(() => onAssistantLoopMessage(payload))
+        .then(() => onAssistantLoopMessage({
+          text: payload.text,
+          toolNames: payload.toolNames,
+        }))
         .catch((error) => {
           console.error(`[thread ${threadId}] failed to send assistant loop message:`, error);
         });
@@ -376,6 +399,22 @@ function subscribeToAgentLoopLogs(threadId, agent, onAssistantLoopMessage) {
       return;
     }
 
+    const progressPayload = getIntermediateAssistantPayload(message);
+    if (
+      progressPayload?.toolNames.length
+      && typeof onAssistantProgress === "function"
+    ) {
+      const signature = `${streamIdx}:${progressPayload.toolNames.join(",")}`;
+      if (signature !== lastProgressSignature) {
+        lastProgressSignature = signature;
+        pendingProgressSends = pendingProgressSends
+          .then(() => onAssistantProgress(progressPayload))
+          .catch((error) => {
+            console.error(`[thread ${threadId}] failed to publish assistant progress:`, error);
+          });
+      }
+    }
+
     pendingAssistantIdx = streamIdx;
     pendingAssistantMessage = message;
   });
@@ -384,7 +423,7 @@ function subscribeToAgentLoopLogs(threadId, agent, onAssistantLoopMessage) {
     unsubscribe,
     flushPending,
     waitForPending() {
-      return pendingLoopSends;
+      return Promise.all([pendingLoopSends, pendingProgressSends]);
     },
   };
 }
@@ -398,7 +437,15 @@ function getIntermediateAssistantPayload(message) {
   const toolNames = Array.isArray(message.toolRequests)
     ? message.toolRequests.map((tool) => tool?.name).filter(Boolean)
     : [];
-  return { text, toolNames };
+  const tools = Array.isArray(message.toolRequests)
+    ? message.toolRequests
+      .filter((tool) => typeof tool?.name === "string")
+      .map((tool) => ({
+        name: tool.name,
+        arguments: tool.arguments,
+      }))
+    : [];
+  return { text, toolNames, tools };
 }
 
 function formatIntermediateAssistantLog(threadId, payload) {

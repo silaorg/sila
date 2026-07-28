@@ -34,6 +34,7 @@ export class AppWorkspaceService {
   #agentRuntimePromise = null;
   #onChange;
   #queues = new Map();
+  #progressByThread = new Map();
 
   constructor(options) {
     if (!options?.workspacePath) {
@@ -90,9 +91,8 @@ export class AppWorkspaceService {
     const { summary, events } = await this.#threads.get(userId, threadId);
     return {
       ...summary,
-      messages: events
-        .filter((event) => event.type === "message")
-        .map(projectMessage),
+      messages: projectThreadMessages(events),
+      progress: this.#progressByThread.get(threadQueueKey(userId, threadId)) ?? null,
     };
   }
 
@@ -104,6 +104,48 @@ export class AppWorkspaceService {
   async uploadFiles(userId, threadId, files) {
     const threadDir = await this.#threads.require(userId, threadId);
     return this.#files.upload(threadDir, files);
+  }
+
+  browseWorkspaceFiles(_userId, relativeDirectory = "") {
+    return this.#files.browse(relativeDirectory);
+  }
+
+  async uploadWorkspaceFiles(userId, relativeDirectory, files) {
+    const uploaded = await this.#files.uploadWorkspaceFiles(relativeDirectory, files);
+    await this.#emitChange({ type: "workspace.files.changed", userId });
+    return uploaded;
+  }
+
+  async createWorkspaceDirectory(userId, relativeDirectory, name) {
+    const directory = await this.#files.createWorkspaceDirectory(relativeDirectory, name);
+    await this.#emitChange({ type: "workspace.files.changed", userId });
+    return directory;
+  }
+
+  async renameWorkspaceEntry(userId, relativePath, name) {
+    const entry = await this.#files.renameWorkspaceEntry(relativePath, name);
+    await this.#emitChange({ type: "workspace.files.changed", userId });
+    return entry;
+  }
+
+  async moveWorkspaceEntries(userId, relativePaths, destinationPath) {
+    const entries = await this.#files.moveWorkspaceEntries(
+      relativePaths,
+      destinationPath,
+    );
+    if (entries.length > 0) {
+      await this.#emitChange({ type: "workspace.files.changed", userId });
+    }
+    return entries;
+  }
+
+  async removeWorkspaceEntry(userId, relativePath) {
+    await this.#files.removeWorkspaceEntry(relativePath);
+    await this.#emitChange({ type: "workspace.files.changed", userId });
+  }
+
+  getWorkspaceFile(_userId, relativePath) {
+    return this.#files.resolveWorkspaceFile(relativePath);
   }
 
   async getFile(userId, threadId, reference) {
@@ -165,12 +207,34 @@ export class AppWorkspaceService {
             attachments: referencedFiles
               .filter((file) => file.attached)
               .map(toPersistedFile),
+            onAssistantResponding: async () => {
+              this.#setThreadProgress(userId, threadId, {
+                status: "processing",
+                text: "",
+                activities: [],
+              });
+              await this.#emitChange({ type: "thread.changed", userId, threadId });
+            },
+            onAssistantProgress: async ({ text, toolNames, tools }) => {
+              this.#setThreadProgress(userId, threadId, {
+                status: toolNames.length ? "acting" : "thinking",
+                text,
+                activities: (tools ?? toolNames.map((name) => ({ name }))).map((tool, index) => ({
+                  id: `running:${tool.name}:${index}`,
+                  name: tool.name,
+                  preview: getToolPreview(tool.arguments),
+                  status: "running",
+                })),
+              });
+              await this.#emitChange({ type: "thread.changed", userId, threadId });
+            },
           });
         } catch (error) {
           runtimeFailed = true;
           runtimeError = error;
         }
 
+        this.#progressByThread.delete(threadQueueKey(userId, threadId));
         try {
           await this.#threads.touch(userId, threadId);
           await this.#emitChange({ type: "thread.changed", userId, threadId });
@@ -191,6 +255,7 @@ export class AppWorkspaceService {
 
   async stop() {
     await Promise.allSettled(this.#queues.values());
+    this.#progressByThread.clear();
     if (!this.#agentRuntimePromise) {
       return;
     }
@@ -227,6 +292,10 @@ export class AppWorkspaceService {
     } catch (error) {
       console.error(`Failed to publish ${change.type}:`, error);
     }
+  }
+
+  #setThreadProgress(userId, threadId, progress) {
+    this.#progressByThread.set(threadQueueKey(userId, threadId), progress);
   }
 }
 
@@ -340,6 +409,39 @@ function toPersistedFile(file) {
   };
 }
 
+function projectThreadMessages(events) {
+  const messages = [];
+  let activities = [];
+
+  for (const event of events) {
+    if (event.type !== "message") continue;
+    const role = event.message.role;
+
+    if (role === "user") {
+      activities = [];
+      const projected = projectMessage(event);
+      if (isPublicAppMessage(projected)) messages.push(projected);
+      continue;
+    }
+
+    if (role === "assistant") {
+      const requestedTools = projectToolActivities(event);
+      if (requestedTools.length > 0) {
+        activities.push(...requestedTools);
+        continue;
+      }
+
+      const projected = projectMessage(event);
+      if (!isPublicAppMessage(projected)) continue;
+      if (activities.length > 0) projected.activities = activities;
+      messages.push(projected);
+      activities = [];
+    }
+  }
+
+  return messages;
+}
+
 function projectMessage(event) {
   const attachments = Array.isArray(event.message.meta?.app?.attachments)
     ? event.message.meta.app.attachments
@@ -351,4 +453,36 @@ function projectMessage(event) {
     text: getPublicMessageText(event.message),
     attachments,
   };
+}
+
+function isPublicAppMessage(message) {
+  return (
+    (message.role === "user" || message.role === "assistant")
+    && (message.text.trim() || message.attachments.length > 0)
+  );
+}
+
+function projectToolActivities(event) {
+  return (event.message.items ?? [])
+    .filter((item) => item?.type === "tool" && typeof item.name === "string")
+    .map((item, index) => ({
+      id: `${event.id ?? "tool"}:${item.callId ?? index}`,
+      name: item.name,
+      preview: getToolPreview(item.arguments),
+      status: "complete",
+    }));
+}
+
+function getToolPreview(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const keys = ["query", "q", "path", "uri", "url", "command", "prompt", "name"];
+  for (const key of keys) {
+    if (typeof value[key] === "string" && value[key].trim()) {
+      return value[key].trim().slice(0, 160);
+    }
+  }
+  const firstString = Object.values(value).find(
+    (entry) => typeof entry === "string" && entry.trim(),
+  );
+  return typeof firstString === "string" ? firstString.trim().slice(0, 160) : "";
 }

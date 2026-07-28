@@ -4,6 +4,20 @@ export type AppMessage = {
   role: string;
   text: string;
   attachments: AppFile[];
+  activities?: AppActivity[];
+};
+
+export type AppActivity = {
+  id: string;
+  name: string;
+  preview: string;
+  status: "running" | "complete";
+};
+
+export type AppThreadProgress = {
+  status: "processing" | "thinking" | "acting";
+  text: string;
+  activities: AppActivity[];
 };
 
 export type AppFile = {
@@ -16,6 +30,18 @@ export type AppFile = {
   kind: "image" | "text" | "file";
 };
 
+export type AppWorkspaceEntry =
+  | {
+    path: string;
+    name: string;
+    type: "directory";
+    size: 0;
+  }
+  | (AppFile & {
+    path: string;
+    type: "file";
+  });
+
 export type AppThreadSummary = {
   id: string;
   title: string;
@@ -27,11 +53,13 @@ export type AppThreadSummary = {
 
 export type AppThread = AppThreadSummary & {
   messages: AppMessage[];
+  progress: AppThreadProgress | null;
 };
 
 export type AppWorkspaceChange = {
   type: string;
   userId: string;
+  workspaceId?: string;
   threadId?: string;
 };
 
@@ -65,6 +93,38 @@ export class AppWorkspaceService {
     threadId: string,
     files: Array<{ name: string; data: Uint8Array | ArrayBuffer }>,
   ): Promise<AppFile[]>;
+  browseWorkspaceFiles(
+    userId: string,
+    relativeDirectory?: string,
+  ): Promise<AppWorkspaceEntry[]>;
+  uploadWorkspaceFiles(
+    userId: string,
+    relativeDirectory: string,
+    files: Array<{ name: string; data: Uint8Array | ArrayBuffer }>,
+  ): Promise<AppWorkspaceEntry[]>;
+  createWorkspaceDirectory(
+    userId: string,
+    relativeDirectory: string,
+    name: unknown,
+  ): Promise<AppWorkspaceEntry>;
+  renameWorkspaceEntry(
+    userId: string,
+    relativePath: string,
+    name: unknown,
+  ): Promise<AppWorkspaceEntry>;
+  moveWorkspaceEntries(
+    userId: string,
+    relativePaths: unknown,
+    destinationPath: unknown,
+  ): Promise<AppWorkspaceEntry[]>;
+  removeWorkspaceEntry(
+    userId: string,
+    relativePath: string,
+  ): Promise<void>;
+  getWorkspaceFile(
+    userId: string,
+    relativePath: string,
+  ): Promise<AppFile & { absolutePath: string }>;
   getFile(
     userId: string,
     threadId: string,

@@ -20,6 +20,20 @@ export type ThreadMessage = {
 	role: string;
 	text: string;
 	attachments: WorkspaceFile[];
+	activities?: ThreadActivity[];
+};
+
+export type ThreadActivity = {
+	id: string;
+	name: string;
+	preview: string;
+	status: 'running' | 'complete';
+};
+
+export type ThreadProgress = {
+	status: 'processing' | 'thinking' | 'acting';
+	text: string;
+	activities: ThreadActivity[];
 };
 
 export type WorkspaceFile = {
@@ -32,12 +46,25 @@ export type WorkspaceFile = {
 	kind: 'image' | 'text' | 'file';
 };
 
+export type WorkspaceFsEntry =
+	| {
+			path: string;
+			name: string;
+			type: 'directory';
+			size: 0;
+	  }
+	| (WorkspaceFile & {
+			path: string;
+			type: 'file';
+	  });
+
 export type ThreadDetail = ThreadSummary & {
 	messages: ThreadMessage[];
+	progress: ThreadProgress | null;
 };
 
 export type WorkspaceChange = {
-	type: 'thread.created' | 'thread.changed' | 'workspace.changed';
+	type: 'thread.created' | 'thread.changed' | 'workspace.changed' | 'workspace.files.changed';
 	workspaceId?: string;
 	threadId?: string;
 };
@@ -128,6 +155,66 @@ export function listWorkspaceFiles(workspaceId: string, threadId: string, query 
 	);
 }
 
+export function listWorkspaceDirectory(workspaceId: string, path = '') {
+	const params = path ? `?${new URLSearchParams({ path })}` : '';
+	return requestJson<WorkspaceFsEntry[]>(
+		`${workspaceUrl(workspaceId, '/filesystem')}${params}`
+	);
+}
+
+export function uploadWorkspaceFiles(workspaceId: string, path: string, files: File[]) {
+	const form = new FormData();
+	for (const file of files) form.append('files', file);
+	const params = path ? `?${new URLSearchParams({ path })}` : '';
+	return requestJson<WorkspaceFsEntry[]>(
+		`${workspaceUrl(workspaceId, '/filesystem/files')}${params}`,
+		{ method: 'POST', body: form }
+	);
+}
+
+export function createWorkspaceDirectory(workspaceId: string, path: string, name: string) {
+	return requestJson<WorkspaceFsEntry>(workspaceUrl(workspaceId, '/filesystem'), {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ path, name })
+	});
+}
+
+export function renameWorkspaceEntry(workspaceId: string, path: string, name: string) {
+	return requestJson<WorkspaceFsEntry>(workspaceUrl(workspaceId, '/filesystem'), {
+		method: 'PATCH',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ path, name })
+	});
+}
+
+export function moveWorkspaceEntries(
+	workspaceId: string,
+	paths: string[],
+	destinationPath: string
+) {
+	return requestJson<WorkspaceFsEntry[]>(
+		workspaceUrl(workspaceId, '/filesystem/move'),
+		{
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ paths, destinationPath })
+		}
+	);
+}
+
+export function removeWorkspaceEntry(workspaceId: string, path: string) {
+	return requestEmpty(workspaceUrl(workspaceId, '/filesystem'), {
+		method: 'DELETE',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ path })
+	});
+}
+
+export function getWorkspaceAssetUrl(workspaceId: string, path: string) {
+	return `${workspaceUrl(workspaceId, '/filesystem/content')}?${new URLSearchParams({ path })}`;
+}
+
 export function uploadThreadFiles(
 	workspaceId: string,
 	threadId: string,
@@ -198,7 +285,8 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 				typeof change === 'object' &&
 				(change.type === 'thread.created' ||
 					change.type === 'thread.changed' ||
-					change.type === 'workspace.changed') &&
+					change.type === 'workspace.changed' ||
+					change.type === 'workspace.files.changed') &&
 				(change.workspaceId === undefined || typeof change.workspaceId === 'string')
 			) {
 				onChange(change);
@@ -210,6 +298,7 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 	events.addEventListener('thread.created', receive);
 	events.addEventListener('thread.changed', receive);
 	events.addEventListener('workspace.changed', receive);
+	events.addEventListener('workspace.files.changed', receive);
 	return () => events.close();
 }
 

@@ -1,37 +1,48 @@
 import {
+	createWorkspaceDirectory as createWorkspaceDirectoryRequest,
 	createThread as createThreadRequest,
 	createWorkspace as createWorkspaceRequest,
 	getThread as getThreadRequest,
+	getWorkspaceAssetUrl,
 	getWorkspaceFileUrl,
+	listWorkspaceDirectory,
 	listThreads,
 	listWorkspaceFiles,
 	listWorkspaces,
+	moveWorkspaceEntries as moveWorkspaceEntriesRequest,
+	removeWorkspaceEntry as removeWorkspaceEntryRequest,
 	removeThreadFile,
+	renameWorkspaceEntry as renameWorkspaceEntryRequest,
 	selectWorkspace as selectWorkspaceRequest,
 	sendMessage as sendMessageRequest,
 	subscribeToWorkspaceChanges,
 	uploadThreadFiles,
+	uploadWorkspaceFiles as uploadWorkspaceFilesRequest,
 	type ThreadDetail,
 	type ThreadSummary,
 	type WorkspaceChange,
 	type WorkspaceFile,
+	type WorkspaceFsEntry,
 	type WorkspaceSummary
 } from './api-client';
 import { authClient } from './auth-client';
+import { AssetViewer } from './asset-viewer/asset-viewer.svelte';
 import { WorkspaceLayout } from './workspace-layout.svelte';
+import { setupSwins, swinsLayout } from './swins/swins-layout';
 import type { WorkspaceUiContext, WorkspaceUser } from './workspace-ui-context';
 
 export class WorkspaceController implements WorkspaceUiContext {
 	readonly layout = new WorkspaceLayout();
+	readonly swins = setupSwins();
+	readonly assetViewer = new AssetViewer();
 
 	currentWorkspaceId = $state<string | null>(null);
 	workspaces = $state<WorkspaceSummary[]>([]);
 	threads = $state<ThreadSummary[]>([]);
 	loading = $state(true);
 	switchingWorkspace = $state(false);
+	filesystemVersion = $state(0);
 	errorMessage = $state('');
-	createWorkspaceOpen = $state(false);
-	settingsOpen = $state(false);
 
 	private threadDetails = $state<Record<string, ThreadDetail>>({});
 	private workspaceLoadRequest = 0;
@@ -50,19 +61,13 @@ export class WorkspaceController implements WorkspaceUiContext {
 	}
 
 	openCreateWorkspace = () => {
-		this.createWorkspaceOpen = true;
-	};
-
-	closeCreateWorkspace = () => {
-		this.createWorkspaceOpen = false;
+		this.swins.open(swinsLayout.createWorkspace.key, {}, 'Create workspace');
 	};
 
 	openSettings = () => {
-		if (this.currentWorkspaceId) this.settingsOpen = true;
-	};
-
-	closeSettings = () => {
-		this.settingsOpen = false;
+		if (this.currentWorkspaceId) {
+			this.swins.open(swinsLayout.settings.key, {}, 'Model Providers');
+		}
 	};
 
 	selectWorkspace = async (workspaceId: string) => {
@@ -108,10 +113,23 @@ export class WorkspaceController implements WorkspaceUiContext {
 		}
 	};
 
+	openFiles = () => {
+		if (this.currentWorkspaceId && !this.swins.current) {
+			this.swins.open(swinsLayout.files.key, {}, 'Files');
+		}
+	};
+
+	openWorkspaceFile = (entry: Extract<WorkspaceFsEntry, { type: 'file' }>) => {
+		if (this.currentWorkspaceId) this.assetViewer.open(entry);
+	};
+
+	openWorkspaceFileInTab = (entry: Extract<WorkspaceFsEntry, { type: 'file' }>) => {
+		if (this.currentWorkspaceId) this.layout.openFileTab(entry);
+	};
+
 	createWorkspace = async (name: string) => {
 		this.clearError();
 		await createWorkspaceRequest(name);
-		this.closeCreateWorkspace();
 		await this.load();
 	};
 
@@ -141,6 +159,46 @@ export class WorkspaceController implements WorkspaceUiContext {
 		return workspaceId
 			? getWorkspaceFileUrl(workspaceId, threadId, reference)
 			: '';
+	};
+
+	listWorkspaceDirectory = async (path = '') => {
+		const workspaceId = this.currentWorkspaceId;
+		return workspaceId ? listWorkspaceDirectory(workspaceId, path) : [];
+	};
+
+	uploadWorkspaceFiles = async (path: string, files: File[]) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId || files.length === 0) return [] satisfies WorkspaceFsEntry[];
+		return uploadWorkspaceFilesRequest(workspaceId, path, files);
+	};
+
+	createWorkspaceDirectory = async (path: string, name: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId) throw new Error('Choose a workspace first.');
+		return createWorkspaceDirectoryRequest(workspaceId, path, name);
+	};
+
+	renameWorkspaceEntry = async (path: string, name: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId) throw new Error('Choose a workspace first.');
+		return renameWorkspaceEntryRequest(workspaceId, path, name);
+	};
+
+	moveWorkspaceEntries = async (paths: string[], destinationPath: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId) throw new Error('Choose a workspace first.');
+		return moveWorkspaceEntriesRequest(workspaceId, paths, destinationPath);
+	};
+
+	removeWorkspaceEntry = async (path: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId) throw new Error('Choose a workspace first.');
+		await removeWorkspaceEntryRequest(workspaceId, path);
+	};
+
+	getWorkspaceAssetUrl = (path: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		return workspaceId ? getWorkspaceAssetUrl(workspaceId, path) : '';
 	};
 
 	sendMessage = async (
@@ -211,6 +269,8 @@ export class WorkspaceController implements WorkspaceUiContext {
 	private setCurrentWorkspace(workspaceId: string | null) {
 		if (workspaceId === this.currentWorkspaceId) return;
 		this.currentWorkspaceId = workspaceId;
+		this.swins.clear();
+		this.assetViewer.close();
 		this.threadListRequest += 1;
 		this.threadDetailRequests.clear();
 		this.threadDetails = {};
@@ -269,6 +329,13 @@ export class WorkspaceController implements WorkspaceUiContext {
 	}
 
 	private handleWorkspaceChange(change: WorkspaceChange) {
+		if (
+			change.type === 'workspace.files.changed' &&
+			change.workspaceId === this.currentWorkspaceId
+		) {
+			this.filesystemVersion += 1;
+			return;
+		}
 		if (change.type === 'workspace.changed') {
 			void this.load();
 			return;

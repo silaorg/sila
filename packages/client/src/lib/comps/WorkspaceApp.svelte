@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { WorkspaceController } from '../workspace-controller.svelte';
 	import { setWorkspaceUiContext, type WorkspaceUser } from '../workspace-ui-context';
-	import CreateWorkspaceModal from './CreateWorkspaceModal.svelte';
-	import WorkspaceSettingsModal from './workspace-settings-modal.svelte';
+	import AssetViewerModal from '../asset-viewer/asset-viewer-modal.svelte';
+	import SwinsContainer from '../swins/swins-container.svelte';
 	import WorkspaceTTabsLayout from './WorkspaceTTabsLayout.svelte';
 
 	let { user }: { user: WorkspaceUser } = $props();
@@ -20,13 +20,5 @@
 	<WorkspaceTTabsLayout />
 </main>
 
-{#if workspace.createWorkspaceOpen}
-	<CreateWorkspaceModal
-		onCreate={workspace.createWorkspace}
-		onClose={workspace.closeCreateWorkspace}
-	/>
-{/if}
-
-{#if workspace.settingsOpen}
-	<WorkspaceSettingsModal onClose={workspace.closeSettings} />
-{/if}
+<SwinsContainer />
+<AssetViewerModal />

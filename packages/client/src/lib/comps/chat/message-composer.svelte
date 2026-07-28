@@ -1,12 +1,12 @@
 <script lang="ts">
 	import FolderOpen from 'lucide-svelte/icons/folder-open';
 	import ImageIcon from 'lucide-svelte/icons/image';
-	import Loader2 from 'lucide-svelte/icons/loader-circle';
 	import Plus from 'lucide-svelte/icons/plus';
-	import Search from 'lucide-svelte/icons/search';
 	import Send from 'lucide-svelte/icons/send';
-	import type { WorkspaceFile } from '../../api-client';
+	import type { WorkspaceFile, WorkspaceFsEntry } from '../../api-client';
+	import { swinsLayout } from '../../swins/swins-layout';
 	import { useWorkspaceUi } from '../../workspace-ui-context';
+	import ContextMenu from '../ui/context-menu.svelte';
 	import AttachmentPreviewItem from './attachment-preview-item.svelte';
 	import ChatEditor from './chat-editor.svelte';
 	import type { FileMention } from './chat-mention-plugin';
@@ -30,7 +30,6 @@
 	const workspaceUi = useWorkspaceUi();
 	let query = $state('');
 	let attachmentMenuOpen = $state(false);
-	let workspaceBrowserOpen = $state(false);
 	let fileInput: HTMLInputElement | null = $state(null);
 	let editor: { insertFileMentionAtCursor: (file: FileMention) => void } | null = $state(null);
 	let attachments = $state<Array<{
@@ -38,10 +37,6 @@
 		url: string;
 		loading: boolean;
 	}>>([]);
-	let browserFiles = $state<FileMention[]>([]);
-	let browserQuery = $state('');
-	let browserLoading = $state(false);
-	let browserSearchToken = 0;
 
 	let canSend = $derived(
 		!disabled
@@ -66,29 +61,30 @@
 		}
 	}
 
-	async function searchBrowser(search: string) {
-		const token = ++browserSearchToken;
-		browserLoading = true;
-		const files = await searchFiles(search);
-		if (token !== browserSearchToken) return;
-		browserFiles = files;
-		browserLoading = false;
-	}
-
-	function openWorkspaceBrowser() {
+	function openWorkspaceFilePicker() {
 		attachmentMenuOpen = false;
-		workspaceBrowserOpen = true;
-		browserQuery = '';
-		void searchBrowser('');
+		workspaceUi.swins.open(
+			swinsLayout.filePicker.key,
+			{ onPick: insertWorkspaceFiles },
+			'Workspace files'
+		);
 	}
 
-	function updateBrowserSearch() {
-		void searchBrowser(browserQuery);
-	}
-
-	function insertWorkspaceFile(file: FileMention) {
-		editor?.insertFileMentionAtCursor(file);
-		workspaceBrowserOpen = false;
+	function insertWorkspaceFiles(
+		files: Array<Extract<WorkspaceFsEntry, { type: 'file' }>>
+	) {
+		for (const file of files) {
+			editor?.insertFileMentionAtCursor({
+				reference: file.reference,
+				scope: file.scope,
+				path: file.path,
+				name: file.name,
+				size: file.size,
+				mimeType: file.mimeType,
+				kind: file.kind,
+				url: workspaceUi.getWorkspaceAssetUrl(file.path)
+			});
+		}
 	}
 
 	async function addFiles(files: File[]) {
@@ -177,10 +173,16 @@
 	async function send() {
 		if (!canSend) return;
 		const text = query;
+		const sentAttachments = attachments;
 		const references = attachments.map((attachment) => attachment.file.reference);
-		await onSend(text, references);
 		query = '';
 		attachments = [];
+		try {
+			await onSend(text, references);
+		} catch {
+			query = text;
+			attachments = sentAttachments;
+		}
 	}
 
 	function openFilePicker() {
@@ -192,6 +194,10 @@
 		if (files.length === 0) return;
 		event.preventDefault();
 		void addFiles(files);
+	}
+
+	export function handleFiles(files: FileList | File[]) {
+		void addFiles(Array.from(files));
 	}
 
 	function errorMessage(error: unknown, fallback: string) {
@@ -241,29 +247,26 @@
 			/>
 
 			<div class="flex items-center justify-between p-2 pt-0 text-sm">
-				<div class="relative flex items-center gap-2">
-					<button
-						type="button"
-						class="flex size-9 items-center justify-center transition-colors"
-						aria-label="Add attachments"
-						disabled={disabled}
-						onclick={(event) => {
-							event.stopPropagation();
-							attachmentMenuOpen = !attachmentMenuOpen;
-							workspaceBrowserOpen = false;
-						}}
+				<div class="flex items-center gap-2">
+					<ContextMenu
+						open={attachmentMenuOpen}
+						onOpenChange={(event) => (attachmentMenuOpen = event.open)}
+						placement="top"
+						maxWidth="280px"
 					>
-						<Plus size={20} />
-					</button>
-
-					{#if attachmentMenuOpen}
-						<div
-							class="context-menu card absolute bottom-11 left-0 z-30 w-64 space-y-2 rounded-md border border-surface-100-900 bg-surface-50-950 p-2 shadow-lg"
-							onclick={(event) => event.stopPropagation()}
-							onkeydown={(event) => event.stopPropagation()}
-							role="menu"
-							tabindex="-1"
-						>
+						{#snippet trigger(attributes)}
+							<button
+								{...attributes}
+								type="button"
+								class="flex size-9 items-center justify-center transition-colors"
+								aria-label="Add attachments"
+								disabled={disabled}
+							>
+								<Plus size={20} />
+							</button>
+						{/snippet}
+						{#snippet content()}
+							<div class="space-y-2">
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-surface-300-700/30"
@@ -275,56 +278,14 @@
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 rounded px-2 py-1 text-left hover:bg-surface-300-700/30"
-								onclick={openWorkspaceBrowser}
+								onclick={openWorkspaceFilePicker}
 							>
 								<FolderOpen size={18} />
 								<span>Browse workspace files</span>
 							</button>
-						</div>
-					{/if}
-
-					{#if workspaceBrowserOpen}
-						<div
-							class="card absolute bottom-11 left-0 z-30 w-80 rounded-md border border-surface-100-900 bg-surface-50-950 p-2 shadow-lg"
-							onclick={(event) => event.stopPropagation()}
-							onkeydown={(event) => event.stopPropagation()}
-							role="dialog"
-							tabindex="-1"
-							aria-label="Browse workspace files"
-						>
-							<p class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide">Workspace files</p>
-							<label class="mb-2 flex items-center gap-2 rounded border border-surface-300-700 px-2">
-								<Search size={15} class="opacity-50" />
-								<input
-									class="h-8 min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
-									placeholder="Search files"
-									bind:value={browserQuery}
-									oninput={updateBrowserSearch}
-								/>
-							</label>
-							<div class="max-h-64 overflow-y-auto">
-								{#if browserLoading}
-									<div class="flex items-center gap-2 px-2 py-3 text-xs opacity-60">
-										<Loader2 size={14} class="animate-spin" />
-										Loading files…
-									</div>
-								{:else if browserFiles.length === 0}
-									<div class="px-2 py-3 text-xs opacity-60">No files found</div>
-								{:else}
-									{#each browserFiles as file (file.reference)}
-										<button
-											type="button"
-											class="block w-full rounded px-2 py-1 text-left hover:bg-surface-100-900"
-											onclick={() => insertWorkspaceFile(file)}
-										>
-											<span class="block truncate text-sm">{file.name}</span>
-											<span class="block truncate text-[11px] opacity-50">{file.path}</span>
-										</button>
-									{/each}
-								{/if}
 							</div>
-						</div>
-					{/if}
+						{/snippet}
+					</ContextMenu>
 
 					<input
 						type="file"
@@ -353,10 +314,3 @@
 		</div>
 	</div>
 </form>
-
-<svelte:window
-	onclick={() => {
-		attachmentMenuOpen = false;
-		workspaceBrowserOpen = false;
-	}}
-/>

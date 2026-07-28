@@ -27,6 +27,11 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
               type: "text",
               text: `<@${input.userId}>: ${input.text}`,
             }]),
+            new LangMessage("assistant", []),
+            new LangMessage("tool-results", [{
+              type: "text",
+              text: "internal tool output",
+            }]),
             new LangMessage("assistant", [{ type: "text", text: "Hello from Heswe" }]),
           ]);
           return { responded: true, answer: "Hello from Heswe" };
@@ -53,6 +58,7 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
     Object.keys(thread.messages[0]).sort(),
     ["at", "attachments", "id", "role", "text"],
   );
+  assert.equal(thread.progress, null);
   assert.deepEqual(changes.map((change) => change.type), [
     "thread.created",
     "thread.changed",
@@ -61,6 +67,97 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
   await assert.rejects(
     service.getThread("user-b", created.id),
     /Thread not found/,
+  );
+});
+
+test("AppWorkspaceService exposes live progress and groups tool use with the reply", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-progress-"));
+  const store = new ThreadStore();
+  let releaseRuntime;
+  const runtimeReleased = new Promise((resolve) => {
+    releaseRuntime = resolve;
+  });
+  const changes = [];
+  const service = new AppWorkspaceService({
+    workspacePath,
+    threadStore: store,
+    onChange(change) {
+      changes.push(change);
+    },
+    createAgentRuntime() {
+      return {
+        async handleThreadMessage(input) {
+          await store.appendMessages(input.threadDir, [
+            new LangMessage("user", input.text, {
+              app: { text: input.publicText, attachments: [] },
+            }),
+          ]);
+          await input.onAssistantResponding();
+          await input.onAssistantProgress({
+            text: "I will inspect the workspace.",
+            toolNames: ["execute_command"],
+            tools: [{
+              name: "execute_command",
+              arguments: { command: "ls -la" },
+            }],
+          });
+          await runtimeReleased;
+          await store.appendMessages(input.threadDir, [
+            new LangMessage("assistant", [{
+              type: "text",
+              text: "I will inspect the workspace.",
+            }, {
+              type: "tool",
+              name: "execute_command",
+              callId: "call-1",
+              arguments: { command: "ls -la" },
+            }]),
+            new LangMessage("tool-results", [{
+              type: "tool-result",
+              name: "execute_command",
+              callId: "call-1",
+              result: { stdout: "assets\n" },
+            }]),
+            new LangMessage("assistant", [{ type: "text", text: "The workspace is ready." }]),
+          ]);
+          return { responded: true, answer: "The workspace is ready." };
+        },
+      };
+    },
+  });
+  const thread = await service.createThread("user-a");
+  const sending = service.sendMessage("user-a", thread.id, "Check the workspace");
+
+  while (changes.filter((change) => change.type === "thread.changed").length < 2) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+  const inProgress = await service.getThread("user-a", thread.id);
+  assert.equal(inProgress.progress.status, "acting");
+  assert.equal(inProgress.progress.activities[0].name, "execute_command");
+  assert.equal(inProgress.messages[0].text, "Check the workspace");
+
+  releaseRuntime();
+  await sending;
+
+  const completed = await service.getThread("user-a", thread.id);
+  assert.equal(completed.progress, null);
+  assert.deepEqual(completed.messages.map((message) => message.text), [
+    "Check the workspace",
+    "The workspace is ready.",
+  ]);
+  assert.equal(completed.messages[1].activities.length, 1);
+  assert.match(completed.messages[1].activities[0].id, /:call-1$/);
+  assert.deepEqual(
+    {
+      ...completed.messages[1].activities[0],
+      id: "[stable event id]",
+    },
+    {
+      id: "[stable event id]",
+      name: "execute_command",
+      preview: "ls -la",
+      status: "complete",
+    },
   );
 });
 
@@ -271,6 +368,99 @@ test("app files use scoped references for uploads, shared assets, and agent cont
   await assert.rejects(
     service.removeUploadedFile("user-a", thread.id, uploaded.reference),
     /attached to a sent message/,
+  );
+});
+
+test("workspace file browser manages the real assets filesystem safely", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-browser-"));
+  await fs.mkdir(path.join(workspacePath, "assets"), { recursive: true });
+  await fs.writeFile(path.join(workspacePath, "assets", "readme.md"), "# Files\n");
+  await fs.mkdir(path.join(workspacePath, "assets", "Archive"));
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=secret\n");
+  await fs.symlink(
+    path.join(workspacePath, ".env"),
+    path.join(workspacePath, "assets", "secret-link"),
+  );
+  const changes = [];
+  const service = new AppWorkspaceService({
+    workspacePath,
+    onChange(change) {
+      changes.push(change);
+    },
+  });
+
+  assert.deepEqual(
+    (await service.browseWorkspaceFiles("user-a")).map((entry) => entry.name),
+    ["Archive", "readme.md"],
+  );
+
+  const folder = await service.createWorkspaceDirectory("user-a", "", "Research");
+  assert.equal(folder.path, "Research");
+  const [uploaded] = await service.uploadWorkspaceFiles("user-a", folder.path, [{
+    name: "notes.txt",
+    data: new TextEncoder().encode("hello"),
+  }]);
+  assert.equal(uploaded.reference, "workspace:assets/Research/notes.txt");
+  assert.equal(
+    await fs.readFile(
+      (await service.getWorkspaceFile("user-a", uploaded.path)).absolutePath,
+      "utf8",
+    ),
+    "hello",
+  );
+
+  const renamed = await service.renameWorkspaceEntry(
+    "user-a",
+    uploaded.path,
+    "ideas.txt",
+  );
+  assert.equal(renamed.path, "Research/ideas.txt");
+  const archive = await service.createWorkspaceDirectory("user-a", "", "Moved");
+  const moved = await service.moveWorkspaceEntries(
+    "user-a",
+    [renamed.path],
+    archive.path,
+  );
+  assert.equal(moved[0].path, "Moved/ideas.txt");
+  assert.equal(
+    await fs.readFile(path.join(workspacePath, "assets", moved[0].path), "utf8"),
+    "hello",
+  );
+  const nested = await service.createWorkspaceDirectory(
+    "user-a",
+    archive.path,
+    "nested",
+  );
+  await assert.rejects(
+    service.moveWorkspaceEntries("user-a", [archive.path], nested.path),
+    (error) =>
+      error instanceof AppWorkspaceError
+      && error.code === "invalid_input"
+      && /inside itself/.test(error.message),
+  );
+  await service.removeWorkspaceEntry("user-a", "Research");
+  await service.removeWorkspaceEntry("user-a", "Moved");
+  assert.deepEqual(
+    changes.map((change) => change.type),
+    [
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+      "workspace.files.changed",
+    ],
+  );
+
+  await assert.rejects(
+    service.browseWorkspaceFiles("user-a", "../"),
+    (error) => error instanceof AppWorkspaceError && error.code === "invalid_input",
+  );
+  await assert.rejects(
+    service.getWorkspaceFile("user-a", "../.env"),
+    (error) => error instanceof AppWorkspaceError && error.code === "invalid_input",
   );
 });
 

@@ -7,13 +7,15 @@ import {
 } from 'ttabs-svelte';
 import ConversationView from './comps/ConversationView.svelte';
 import DefaultWorkspacePage from './comps/DefaultWorkspacePage.svelte';
+import FileViewerApp from './comps/files/FileViewerApp.svelte';
+import FilesApp from './comps/files/FilesApp.svelte';
 import SidebarToggle from './comps/SidebarToggle.svelte';
 import WorkspaceSidebar from './comps/WorkspaceSidebar.svelte';
 import WorkspaceSettingsButton from './comps/WorkspaceSettingsButton.svelte';
 import TabBarNewThreadButton from './ttabs/TabBarNewThreadButton.svelte';
 import TabCloseButton from './ttabs/TabCloseButton.svelte';
 import { SKELETON_THEME } from './ttabs/theme';
-import type { ThreadSummary } from './api-client';
+import type { ThreadSummary, WorkspaceFsEntry } from './api-client';
 
 type LayoutRefs = {
 	contentGrid?: string;
@@ -50,6 +52,8 @@ export class WorkspaceLayout {
 
 		this.ttabs.registerComponent('sidebar', WorkspaceSidebar);
 		this.ttabs.registerComponent('chat', ConversationView);
+		this.ttabs.registerComponent('files', FilesApp);
+		this.ttabs.registerComponent('fileViewer', FileViewerApp);
 		this.ttabs.registerComponent('sidebarToggle', SidebarToggle);
 		this.ttabs.registerComponent('sidebarSettings', WorkspaceSettingsButton);
 		this.ttabs.registerComponent('noTabsContent', DefaultWorkspacePage);
@@ -85,6 +89,29 @@ export class WorkspaceLayout {
 	openChatTabInNewTab(threadId: string, name: string, targetPanelId?: string) {
 		this.pinFocusedLazyTab();
 		this.openThreadTab(threadId, name, targetPanelId, true);
+	}
+
+	openFilesTab() {
+		const existingTab = this.findTabByComponent('files');
+		if (existingTab) {
+			this.ttabs.setFocusedActiveTab(existingTab);
+			return;
+		}
+		this.openComponentTab('Files', 'files');
+	}
+
+	openFileTab(entry: Extract<WorkspaceFsEntry, { type: 'file' }>) {
+		const existingTab = this.findTabByComponent('fileViewer', entry.path);
+		if (existingTab) {
+			this.ttabs.setFocusedActiveTab(existingTab);
+			return;
+		}
+		this.openComponentTab(entry.name, 'fileViewer', {
+			path: entry.path,
+			name: entry.name,
+			mimeType: entry.mimeType,
+			size: entry.size
+		});
 	}
 
 	private openThreadTab(
@@ -165,6 +192,28 @@ export class WorkspaceLayout {
 			}
 		}
 		return null;
+	}
+
+	private findTabByComponent(componentId: string, path?: string) {
+		for (const tile of Object.values(this.ttabs.getTiles())) {
+			if (tile.type !== 'tab') continue;
+			const content = this.ttabs.getTabContent(tile.id);
+			if (content?.componentId !== componentId) continue;
+			if (path === undefined || content.data?.componentProps?.path === path) return tile.id;
+		}
+		return null;
+	}
+
+	private openComponentTab(
+		name: string,
+		componentId: string,
+		componentProps?: Record<string, unknown>
+	) {
+		if (!this.layoutRefs.contentGrid) this.syncLayout();
+		if (!this.layoutRefs.contentGrid) return;
+		const tabId = this.ttabs.addTab(this.layoutRefs.contentGrid, name, true, false);
+		this.ttabs.setComponent(tabId, componentId, componentProps);
+		this.ttabs.setFocusedActiveTab(tabId);
 	}
 
 	private pinFocusedLazyTab() {
