@@ -2,6 +2,8 @@
 
 Heswe is the npm package for creating and running lands.
 
+Website: [heswe.com](https://heswe.com)
+
 ## Install
 
 ```bash
