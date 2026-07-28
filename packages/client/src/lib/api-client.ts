@@ -19,6 +19,17 @@ export type ThreadMessage = {
 	at: string | null;
 	role: string;
 	text: string;
+	attachments: WorkspaceFile[];
+};
+
+export type WorkspaceFile = {
+	reference: string;
+	scope: 'workspace' | 'thread';
+	path: string;
+	name: string;
+	size: number;
+	mimeType: string;
+	kind: 'image' | 'text' | 'file';
 };
 
 export type ThreadDetail = ThreadSummary & {
@@ -109,7 +120,57 @@ export function getThread(workspaceId: string, threadId: string) {
 	);
 }
 
-export function sendMessage(workspaceId: string, threadId: string, text: string) {
+export function listWorkspaceFiles(workspaceId: string, threadId: string, query = '') {
+	const params = new URLSearchParams({ threadId });
+	if (query) params.set('query', query);
+	return requestJson<WorkspaceFile[]>(
+		`${workspaceUrl(workspaceId, '/files')}?${params}`
+	);
+}
+
+export function uploadThreadFiles(
+	workspaceId: string,
+	threadId: string,
+	files: File[]
+) {
+	const form = new FormData();
+	for (const file of files) form.append('files', file);
+	return requestJson<WorkspaceFile[]>(
+		workspaceUrl(workspaceId, `/threads/${encodeURIComponent(threadId)}/files`),
+		{ method: 'POST', body: form }
+	);
+}
+
+export function removeThreadFile(
+	workspaceId: string,
+	threadId: string,
+	reference: string
+) {
+	return requestEmpty(
+		workspaceUrl(workspaceId, `/threads/${encodeURIComponent(threadId)}/files`),
+		{
+			method: 'DELETE',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ reference })
+		}
+	);
+}
+
+export function getWorkspaceFileUrl(
+	workspaceId: string,
+	threadId: string,
+	reference: string
+) {
+	const params = new URLSearchParams({ threadId, reference });
+	return `${workspaceUrl(workspaceId, '/files/content')}?${params}`;
+}
+
+export function sendMessage(
+	workspaceId: string,
+	threadId: string,
+	text: string,
+	attachments: string[] = []
+) {
 	return requestJson<{ responded: boolean; answer: string }>(
 		workspaceUrl(
 			workspaceId,
@@ -118,7 +179,7 @@ export function sendMessage(workspaceId: string, threadId: string, text: string)
 		{
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
-			body: JSON.stringify({ text })
+			body: JSON.stringify({ text, attachments })
 		}
 	);
 }
@@ -154,9 +215,18 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 	const response = await fetch(url, init);
+	await requireOk(response);
+	return response.json();
+}
+
+async function requestEmpty(url: string, init?: RequestInit) {
+	const response = await fetch(url, init);
+	await requireOk(response);
+}
+
+async function requireOk(response: Response) {
 	if (!response.ok) {
 		const body = await response.json().catch(() => null);
 		throw new Error(body?.message ?? `Request failed with HTTP ${response.status}.`);
 	}
-	return response.json();
 }

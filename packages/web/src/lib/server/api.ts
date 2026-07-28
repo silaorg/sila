@@ -2,6 +2,7 @@ import { error, isHttpError } from '@sveltejs/kit';
 import { AppWorkspaceError } from 'heswe/app-workspace-service';
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
+const MAX_MULTIPART_BODY_BYTES = 42 * 1024 * 1024;
 
 export function requireUser(locals: App.Locals) {
 	if (!locals.user) {
@@ -27,7 +28,7 @@ export function apiError(cause: unknown): never {
 }
 
 export async function readJsonObject(request: Request, options: { optional?: boolean } = {}) {
-	const raw = await readBoundedBody(request);
+	const raw = new TextDecoder().decode(await readBoundedBody(request, MAX_JSON_BODY_BYTES));
 	if (!raw.trim()) {
 		if (options.optional) return {};
 		error(400, 'A JSON request body is required.');
@@ -45,12 +46,32 @@ export async function readJsonObject(request: Request, options: { optional?: boo
 	return value as Record<string, unknown>;
 }
 
-async function readBoundedBody(request: Request) {
+export async function readMultipartFiles(request: Request) {
+	const contentType = request.headers.get('content-type') ?? '';
+	if (!contentType.toLowerCase().startsWith('multipart/form-data;')) {
+		error(415, 'A multipart form upload is required.');
+	}
+	const body = await readBoundedBody(request, MAX_MULTIPART_BODY_BYTES);
+	const bufferedRequest = new Request(request.url, {
+		method: 'POST',
+		headers: { 'content-type': contentType },
+		body
+	});
+	let form: FormData;
+	try {
+		form = await bufferedRequest.formData();
+	} catch {
+		error(400, 'Upload must contain valid multipart form data.');
+	}
+	return form.getAll('files').filter((entry): entry is File => entry instanceof File);
+}
+
+async function readBoundedBody(request: Request, maxBytes: number) {
 	const declaredLength = Number(request.headers.get('content-length'));
-	if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BODY_BYTES) {
+	if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
 		error(413, 'Request body is too large.');
 	}
-	if (!request.body) return '';
+	if (!request.body) return new Uint8Array();
 
 	const reader = request.body.getReader();
 	const chunks: Uint8Array[] = [];
@@ -60,7 +81,7 @@ async function readBoundedBody(request: Request) {
 			const { done, value } = await reader.read();
 			if (done) break;
 			byteLength += value.byteLength;
-			if (byteLength > MAX_JSON_BODY_BYTES) {
+			if (byteLength > maxBytes) {
 				await reader.cancel();
 				error(413, 'Request body is too large.');
 			}
@@ -76,5 +97,5 @@ async function readBoundedBody(request: Request) {
 		body.set(chunk, offset);
 		offset += chunk.byteLength;
 	}
-	return new TextDecoder().decode(body);
+	return body;
 }

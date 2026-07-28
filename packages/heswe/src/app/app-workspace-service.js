@@ -15,6 +15,11 @@ import {
 } from "../providers.js";
 import { enqueueSerialTask } from "../serial-task-queue.js";
 import { getPublicMessageText } from "./app-message.js";
+import {
+  AppFileStore,
+  MAX_APP_FILE_COUNT,
+  MAX_APP_UPLOAD_BYTES,
+} from "./app-file-store.js";
 import { AppThreadRepository } from "./app-thread-repository.js";
 import { AppWorkspaceError } from "./app-workspace-error.js";
 
@@ -24,6 +29,7 @@ const MAX_TITLE_LENGTH = 100;
 export class AppWorkspaceService {
   #workspacePath;
   #threads;
+  #files;
   #createAgentRuntime;
   #agentRuntimePromise = null;
   #onChange;
@@ -41,6 +47,7 @@ export class AppWorkspaceService {
       ? options.threadStore
       : new ThreadStore();
     this.#threads = new AppThreadRepository(this.#workspacePath, threadStore);
+    this.#files = new AppFileStore(this.#workspacePath);
     this.#createAgentRuntime = options.createAgentRuntime
       ?? (() => createDefaultAgentRuntime(this.#workspacePath, threadStore));
     this.#onChange = typeof options.onChange === "function" ? options.onChange : null;
@@ -89,44 +96,97 @@ export class AppWorkspaceService {
     };
   }
 
-  async sendMessage(userId, threadId, text) {
-    const normalizedText = normalizeMessage(text);
-    await this.#threads.require(userId, threadId);
-    const queueKey = JSON.stringify([userId, threadId]);
-    return enqueueSerialTask(this.#queues, queueKey, async () => {
-      const runtime = await this.#getAgentRuntime();
-      const threadDir = this.#threads.getThreadDir(userId, threadId);
-      let result;
-      let runtimeFailed = false;
-      let runtimeError;
+  async listFiles(userId, threadId, query = "") {
+    const threadDir = await this.#threads.require(userId, threadId);
+    return this.#files.list(threadDir, query);
+  }
 
-      try {
-        result = await runtime.handleThreadMessage({
-          threadId,
-          threadDir,
-          userId,
-          text: normalizedText,
-        });
-      } catch (error) {
-        runtimeFailed = true;
-        runtimeError = error;
-      }
+  async uploadFiles(userId, threadId, files) {
+    const threadDir = await this.#threads.require(userId, threadId);
+    return this.#files.upload(threadDir, files);
+  }
 
-      try {
-        await this.#threads.touch(userId, threadId);
-        await this.#emitChange({ type: "thread.changed", userId, threadId });
-      } catch (error) {
-        if (!runtimeFailed) {
-          throw error;
+  async getFile(userId, threadId, reference) {
+    const threadDir = await this.#threads.require(userId, threadId);
+    return this.#files.resolve(threadDir, reference);
+  }
+
+  async removeUploadedFile(userId, threadId, reference) {
+    const threadDir = await this.#threads.require(userId, threadId);
+    return enqueueSerialTask(
+      this.#queues,
+      threadQueueKey(userId, threadId),
+      async () => {
+        const { events } = await this.#threads.get(userId, threadId);
+        const isAttached = events.some((event) =>
+          event.type === "message"
+          && Array.isArray(event.message?.meta?.app?.attachments)
+          && event.message.meta.app.attachments.some(
+            (file) => file?.reference === reference,
+          )
+        );
+        if (isAttached) {
+          throw new AppWorkspaceError(
+            "invalid_input",
+            "A file attached to a sent message cannot be removed.",
+          );
         }
-        console.error(`Failed to update app thread ${threadId} after agent failure:`, error);
-      }
+        await this.#files.removeThreadFile(threadDir, reference);
+      },
+    );
+  }
 
-      if (runtimeFailed) {
-        throw runtimeError;
-      }
-      return result;
-    });
+  async sendMessage(userId, threadId, input) {
+    const message = normalizeMessageInput(input);
+    const threadDir = await this.#threads.require(userId, threadId);
+    return enqueueSerialTask(
+      this.#queues,
+      threadQueueKey(userId, threadId),
+      async () => {
+        const referencedFiles = await resolveMessageFiles(
+          this.#files,
+          threadDir,
+          message.text,
+          message.attachments,
+        );
+        const agentText = buildAgentMessage(message.text, referencedFiles);
+        const runtime = await this.#getAgentRuntime();
+        let result;
+        let runtimeFailed = false;
+        let runtimeError;
+
+        try {
+          result = await runtime.handleThreadMessage({
+            threadId,
+            threadDir,
+            userId,
+            text: agentText,
+            publicText: message.text,
+            attachments: referencedFiles
+              .filter((file) => file.attached)
+              .map(toPersistedFile),
+          });
+        } catch (error) {
+          runtimeFailed = true;
+          runtimeError = error;
+        }
+
+        try {
+          await this.#threads.touch(userId, threadId);
+          await this.#emitChange({ type: "thread.changed", userId, threadId });
+        } catch (error) {
+          if (!runtimeFailed) {
+            throw error;
+          }
+          console.error(`Failed to update app thread ${threadId} after agent failure:`, error);
+        }
+
+        if (runtimeFailed) {
+          throw runtimeError;
+        }
+        return result;
+      },
+    );
   }
 
   async stop() {
@@ -192,10 +252,24 @@ function normalizeTitle(value) {
   return (title || "New thread").slice(0, MAX_TITLE_LENGTH);
 }
 
-function normalizeMessage(value) {
-  const text = typeof value === "string" ? value.trim() : "";
-  if (!text) {
-    throw new AppWorkspaceError("invalid_input", "Message text is required.");
+function normalizeMessageInput(value) {
+  const textValue = typeof value === "string" ? value : value?.text;
+  const text = typeof textValue === "string" ? textValue.trim() : "";
+  const attachmentValues = typeof value === "object" && Array.isArray(value?.attachments)
+    ? value.attachments
+    : [];
+  const attachments = [
+    ...new Set(
+      attachmentValues
+        .map((reference) => String(reference ?? "").trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (!text && attachments.length === 0) {
+    throw new AppWorkspaceError(
+      "invalid_input",
+      "Message text or an attachment is required.",
+    );
   }
   if (text.length > MAX_MESSAGE_LENGTH) {
     throw new AppWorkspaceError(
@@ -203,14 +277,78 @@ function normalizeMessage(value) {
       `Message text cannot exceed ${MAX_MESSAGE_LENGTH.toLocaleString("en-US")} characters.`,
     );
   }
-  return text;
+  if (attachments.length > MAX_APP_FILE_COUNT) {
+    throw new AppWorkspaceError(
+      "invalid_input",
+      `You can attach up to ${MAX_APP_FILE_COUNT} files.`,
+    );
+  }
+  return { text, attachments };
+}
+
+function threadQueueKey(userId, threadId) {
+  return JSON.stringify([userId, threadId]);
+}
+
+async function resolveMessageFiles(fileStore, threadDir, text, attachmentReferences) {
+  const mentionedReferences = extractMentionReferences(text);
+  const attached = new Set(attachmentReferences);
+  const references = [...new Set([...attachmentReferences, ...mentionedReferences])];
+  const files = await Promise.all(references.map(async (reference) => ({
+    ...(await fileStore.resolve(threadDir, reference)),
+    attached: attached.has(reference),
+  })));
+  const attachedBytes = files
+    .filter((file) => file.attached)
+    .reduce((total, file) => total + file.size, 0);
+  if (attachedBytes > MAX_APP_UPLOAD_BYTES) {
+    throw new AppWorkspaceError(
+      "invalid_input",
+      "Attachments must be 40 MB or smaller in total.",
+    );
+  }
+  return files;
+}
+
+function extractMentionReferences(text) {
+  return Array.from(
+    String(text).matchAll(/\]\(<((?:workspace|thread):[^>]+)>\)/g),
+    (match) => match[1],
+  );
+}
+
+function buildAgentMessage(text, files) {
+  const fileLines = files.map((file) => {
+    const action = file.attached ? "Attached" : "Mentioned";
+    return `- ${action} "${file.name}": ${file.agentPath}`;
+  });
+  return [
+    text,
+    fileLines.length ? `<heswe_files>\n${fileLines.join("\n")}\n</heswe_files>` : "",
+  ].filter(Boolean).join("\n\n");
+}
+
+function toPersistedFile(file) {
+  return {
+    reference: file.reference,
+    scope: file.scope,
+    path: file.path,
+    name: file.name,
+    size: file.size,
+    mimeType: file.mimeType,
+    kind: file.kind,
+  };
 }
 
 function projectMessage(event) {
+  const attachments = Array.isArray(event.message.meta?.app?.attachments)
+    ? event.message.meta.app.attachments
+    : [];
   return {
     id: event.id,
     at: event.at,
     role: event.message.role,
     text: getPublicMessageText(event.message),
+    attachments,
   };
 }

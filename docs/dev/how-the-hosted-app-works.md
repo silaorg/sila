@@ -16,6 +16,11 @@ browser
 `packages/web` owns routes, authentication, SQLite, and server-sent events.
 `packages/heswe` owns workspace storage and agent execution.
 
+Shared files live under `workspace/assets/`. App uploads live under the
+authenticated user's thread at `files/YYYY/MM/DD/`. The browser works with
+scoped references such as `workspace:assets/brief.md` and never receives
+absolute server paths.
+
 ## Local development
 
 Run the app from the repository root:
@@ -68,6 +73,11 @@ server environment.
 - `POST /api/workspaces/:id/select` selects an owned workspace.
 - `GET` and `POST /api/workspaces/:id/threads` list and create user threads.
 - `GET /api/workspaces/:id/threads/:threadId` returns one projected thread.
+- `GET /api/workspaces/:id/files` searches shared assets and the current
+  thread's uploads for `@` mentions.
+- `GET /api/workspaces/:id/files/content` streams an authorized file.
+- `POST` and `DELETE /api/workspaces/:id/threads/:threadId/files` add or remove
+  unsent thread uploads.
 - `POST /api/workspaces/:id/threads/:threadId/messages` sends a message through
   the agent runtime.
 - `GET /api/events` opens the authenticated event stream.
@@ -78,10 +88,11 @@ stream sends user- and workspace-scoped invalidation events, and the client
 refetches the affected snapshot. It does not stream private event records or
 model tokens.
 
-Thread API projections expose message IDs, timestamps, roles, and display text.
-They do not expose filesystem paths, raw log events, tool details, or message
-metadata. Server logs record message lengths and lifecycle events, not
-conversation content.
+Thread API projections expose message IDs, timestamps, roles, display text,
+and attachment metadata with scoped references. They do not expose absolute
+filesystem paths, raw log events, tool details, or internal message metadata.
+Server logs record message lengths and lifecycle events, not conversation
+content.
 
 ## Deployment
 

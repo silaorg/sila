@@ -2,14 +2,19 @@ import {
 	createThread as createThreadRequest,
 	createWorkspace as createWorkspaceRequest,
 	getThread as getThreadRequest,
+	getWorkspaceFileUrl,
 	listThreads,
+	listWorkspaceFiles,
 	listWorkspaces,
+	removeThreadFile,
 	selectWorkspace as selectWorkspaceRequest,
 	sendMessage as sendMessageRequest,
 	subscribeToWorkspaceChanges,
+	uploadThreadFiles,
 	type ThreadDetail,
 	type ThreadSummary,
 	type WorkspaceChange,
+	type WorkspaceFile,
 	type WorkspaceSummary
 } from './api-client';
 import { authClient } from './auth-client';
@@ -114,14 +119,42 @@ export class WorkspaceController implements WorkspaceUiContext {
 		return this.threadDetails[threadId] ?? null;
 	}
 
-	sendMessage = async (threadId: string, text: string) => {
+	listFiles = async (threadId: string, query = '') => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId) return [];
+		return listWorkspaceFiles(workspaceId, threadId, query);
+	};
+
+	uploadFiles = async (threadId: string, files: File[]) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (!workspaceId || files.length === 0) return [] satisfies WorkspaceFile[];
+		return uploadThreadFiles(workspaceId, threadId, files);
+	};
+
+	removeUploadedFile = async (threadId: string, reference: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		if (workspaceId) await removeThreadFile(workspaceId, threadId, reference);
+	};
+
+	getFileUrl = (threadId: string, reference: string) => {
+		const workspaceId = this.currentWorkspaceId;
+		return workspaceId
+			? getWorkspaceFileUrl(workspaceId, threadId, reference)
+			: '';
+	};
+
+	sendMessage = async (
+		threadId: string,
+		text: string,
+		attachments: string[] = []
+	) => {
 		const workspaceId = this.currentWorkspaceId;
 		const message = text.trim();
-		if (!workspaceId || !message) return;
+		if (!workspaceId || (!message && attachments.length === 0)) return;
 
 		this.clearError();
 		try {
-			await sendMessageRequest(workspaceId, threadId, message);
+			await sendMessageRequest(workspaceId, threadId, message, attachments);
 			if (this.currentWorkspaceId !== workspaceId) return;
 			await Promise.all([this.refreshThreads(), this.refreshThread(threadId)]);
 		} catch (error) {

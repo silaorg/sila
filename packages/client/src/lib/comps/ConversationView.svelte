@@ -1,11 +1,12 @@
 <script lang="ts">
-	import Send from 'lucide-svelte/icons/send';
 	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import { useWorkspaceUi } from '../workspace-ui-context';
+	import MessageAttachment from './chat/message-attachment.svelte';
+	import MessageComposer from './chat/message-composer.svelte';
+	import MessageText from './chat/message-text.svelte';
 
 	let { threadId }: { threadId: string } = $props();
 	const workspaceUi = useWorkspaceUi();
-	let draft = $state('');
 	let sending = $state(false);
 	let localError = $state('');
 	let thread = $derived(workspaceUi.getThread(threadId));
@@ -17,18 +18,15 @@
 		if (threadSummary && !thread) void workspaceUi.openThread(threadId);
 	});
 
-	async function submitMessage(event: SubmitEvent) {
-		event.preventDefault();
-		const text = draft.trim();
-		if (!text || sending) return;
-		draft = '';
+	async function submitMessage(text: string, attachments: string[]) {
+		if (sending) return;
 		sending = true;
 		localError = '';
 		try {
-			await workspaceUi.sendMessage(threadId, text);
+			await workspaceUi.sendMessage(threadId, text, attachments);
 		} catch (error) {
-			draft = text;
 			localError = error instanceof Error ? error.message : 'Could not send the message.';
+			throw error;
 		} finally {
 			sending = false;
 		}
@@ -63,8 +61,19 @@
 
 				{#each thread.messages as message, index (`${message.id}-${index}`)}
 					{#if message.role === 'user'}
-						<div class="ml-auto max-w-[85%] rounded-2xl bg-surface-100-900 px-4 py-3 text-sm leading-6 whitespace-pre-wrap">
-							{message.text}
+						<div class="ml-auto flex max-w-[85%] flex-col items-end gap-2">
+							{#if message.text}
+								<div class="rounded-2xl bg-surface-100-900 px-4 py-3 text-sm leading-6">
+									<MessageText text={message.text} {threadId} />
+								</div>
+							{/if}
+							{#if message.attachments?.length}
+								<div class="flex flex-wrap justify-end gap-2">
+									{#each message.attachments as attachment (attachment.reference)}
+										<MessageAttachment {attachment} {threadId} />
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{:else}
 						<div class="flex max-w-[90%] gap-3 px-1 py-2">
@@ -90,31 +99,15 @@
 			</div>
 		</div>
 
-		<form class="bg-surface-50-950 px-4 pb-5 pt-2" onsubmit={submitMessage}>
-			<div class="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-surface-300-700 bg-surface-50-950 p-2 shadow-sm focus-within:border-primary-500">
-				<textarea
-					class="min-h-12 flex-1 resize-none border-0 bg-transparent px-2 py-2 outline-none focus:ring-0"
-					rows="1"
-					bind:value={draft}
-					placeholder="Message Heswe…"
+		<div class="bg-surface-50-950 px-4 pb-5 pt-2">
+			<div class="mx-auto max-w-3xl">
+				<MessageComposer
+					{threadId}
 					disabled={sending}
-					onkeydown={(event) => {
-						if (event.key === 'Enter' && !event.shiftKey) {
-							event.preventDefault();
-							event.currentTarget.form?.requestSubmit();
-						}
-					}}
-				></textarea>
-				<button
-					type="submit"
-					class="flex size-10 shrink-0 items-center justify-center rounded-full text-primary-500 hover:preset-tonal disabled:text-surface-400-600"
-					disabled={sending || !draft.trim()}
-					aria-label="Send"
-					title="Send"
-				>
-					<Send size={20} />
-				</button>
+					onSend={submitMessage}
+					onError={(message) => localError = message}
+				/>
 			</div>
-		</form>
+		</div>
 	{/if}
 </section>

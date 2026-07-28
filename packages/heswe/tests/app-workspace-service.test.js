@@ -49,7 +49,10 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
     "Hello from Heswe",
   ]);
   assert.equal("events" in thread, false);
-  assert.deepEqual(Object.keys(thread.messages[0]).sort(), ["at", "id", "role", "text"]);
+  assert.deepEqual(
+    Object.keys(thread.messages[0]).sort(),
+    ["at", "attachments", "id", "role", "text"],
+  );
   assert.deepEqual(changes.map((change) => change.type), [
     "thread.created",
     "thread.changed",
@@ -180,4 +183,171 @@ test("updating model settings restarts the cached agent runtime", async () => {
 
   assert.equal(runtimeCreations, 2);
   assert.equal(runtimeStops, 1);
+});
+
+test("app files use scoped references for uploads, shared assets, and agent context", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-files-"));
+  await fs.mkdir(path.join(workspacePath, "assets"), { recursive: true });
+  await fs.writeFile(path.join(workspacePath, "assets", "brief.md"), "# Brief\n");
+  const store = new ThreadStore();
+  let runtimeInput;
+  const service = new AppWorkspaceService({
+    workspacePath,
+    threadStore: store,
+    createAgentRuntime() {
+      return {
+        async handleThreadMessage(input) {
+          runtimeInput = input;
+          await store.appendMessages(input.threadDir, [
+            new LangMessage(
+              "user",
+              `<@${input.userId}>: ${input.text}`,
+              {
+                app: {
+                  text: input.publicText,
+                  attachments: input.attachments,
+                },
+              },
+            ),
+          ]);
+          return { responded: false, answer: "" };
+        },
+      };
+    },
+  });
+  const thread = await service.createThread("user-a");
+  const [uploaded] = await service.uploadFiles("user-a", thread.id, [{
+    name: "../notes?.txt",
+    type: "image/png",
+    data: new TextEncoder().encode("hello"),
+  }]);
+
+  assert.match(uploaded.reference, /^thread:files\/\d{4}\/\d{2}\/\d{2}\/notes_\.txt$/);
+  assert.equal(uploaded.kind, "text");
+  assert.equal(
+    await fs.readFile(
+      (await service.getFile("user-a", thread.id, uploaded.reference)).absolutePath,
+      "utf8",
+    ),
+    "hello",
+  );
+
+  const listed = await service.listFiles("user-a", thread.id);
+  assert.deepEqual(
+    listed.map((file) => file.reference).sort(),
+    ["thread:" + uploaded.path, "workspace:assets/brief.md"].sort(),
+  );
+  assert.deepEqual(
+    (await service.listFiles("user-a", thread.id, "brief")).map((file) => file.name),
+    ["brief.md"],
+  );
+
+  const [removable] = await service.uploadFiles("user-a", thread.id, [{
+    name: "remove-me.txt",
+    type: "text/plain",
+    data: new TextEncoder().encode("temporary"),
+  }]);
+  await service.removeUploadedFile("user-a", thread.id, removable.reference);
+  await assert.rejects(
+    service.getFile("user-a", thread.id, removable.reference),
+    (error) => error instanceof AppWorkspaceError && error.code === "not_found",
+  );
+  await assert.rejects(
+    service.removeUploadedFile("user-a", thread.id, "workspace:assets/brief.md"),
+    /Only thread uploads/,
+  );
+
+  await service.sendMessage("user-a", thread.id, {
+    text: "Use [brief.md](<workspace:assets/brief.md>)",
+    attachments: [uploaded.reference],
+  });
+  assert.equal(runtimeInput.publicText, "Use [brief.md](<workspace:assets/brief.md>)");
+  assert.equal(runtimeInput.attachments[0].reference, uploaded.reference);
+  assert.match(runtimeInput.text, /Attached "notes_\.txt": files\//);
+  assert.match(runtimeInput.text, /Mentioned "brief\.md": .*assets\/brief\.md/);
+  const sentMessage = (await service.getThread("user-a", thread.id)).messages[0];
+  assert.equal(sentMessage.text, "Use [brief.md](<workspace:assets/brief.md>)");
+  assert.equal(sentMessage.attachments[0].reference, uploaded.reference);
+  await assert.rejects(
+    service.removeUploadedFile("user-a", thread.id, uploaded.reference),
+    /attached to a sent message/,
+  );
+});
+
+test("sending and removing an attachment are serialized for each thread", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-files-"));
+  const store = new ThreadStore();
+  let enterRuntime;
+  const runtimeEntered = new Promise((resolve) => {
+    enterRuntime = resolve;
+  });
+  let releaseRuntime;
+  const runtimeReleased = new Promise((resolve) => {
+    releaseRuntime = resolve;
+  });
+  const service = new AppWorkspaceService({
+    workspacePath,
+    threadStore: store,
+    createAgentRuntime() {
+      return {
+        async handleThreadMessage(input) {
+          enterRuntime();
+          await runtimeReleased;
+          await store.appendMessages(input.threadDir, [
+            new LangMessage("user", input.text, {
+              app: {
+                text: input.publicText,
+                attachments: input.attachments,
+              },
+            }),
+          ]);
+          return { responded: false, answer: "" };
+        },
+      };
+    },
+  });
+  const thread = await service.createThread("user-a");
+  const [uploaded] = await service.uploadFiles("user-a", thread.id, [{
+    name: "keep.txt",
+    data: new TextEncoder().encode("keep"),
+  }]);
+
+  const send = service.sendMessage("user-a", thread.id, {
+    text: "Keep this",
+    attachments: [uploaded.reference],
+  });
+  await runtimeEntered;
+  const remove = service.removeUploadedFile("user-a", thread.id, uploaded.reference);
+  releaseRuntime();
+
+  await send;
+  await assert.rejects(remove, /attached to a sent message/);
+  assert.equal(
+    await fs.readFile(
+      (await service.getFile("user-a", thread.id, uploaded.reference)).absolutePath,
+      "utf8",
+    ),
+    "keep",
+  );
+});
+
+test("app file references cannot escape their workspace or cross thread boundaries", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-files-"));
+  const service = new AppWorkspaceService({ workspacePath });
+  const first = await service.createThread("user-a");
+  const second = await service.createThread("user-a");
+  const [uploaded] = await service.uploadFiles("user-a", first.id, [{
+    name: "private.txt",
+    type: "text/plain",
+    data: new TextEncoder().encode("private"),
+  }]);
+
+  await assert.rejects(
+    service.getFile("user-a", first.id, "workspace:assets/../../secret.txt"),
+    (error) => error instanceof AppWorkspaceError && error.code === "invalid_input",
+  );
+  await assert.rejects(
+    service.getFile("user-a", second.id, uploaded.reference),
+    (error) => error instanceof AppWorkspaceError && error.code === "not_found",
+  );
 });

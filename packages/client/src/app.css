@@ -32,3 +32,20 @@ textarea {
 	-webkit-user-select: text;
 	user-select: text;
 }
+
+.chat-file-mention {
+	display: inline;
+	padding: 0 0.2rem;
+	border-radius: 0.4rem;
+	background: color-mix(in oklab, var(--anchor-font-color) 16%, transparent);
+	color: var(--anchor-font-color);
+	font-size: inherit;
+	font-weight: inherit;
+	line-height: inherit;
+	vertical-align: baseline;
+}
+
+.dark .chat-file-mention {
+	background: color-mix(in oklab, var(--anchor-font-color-dark) 18%, transparent);
+	color: var(--anchor-font-color-dark);
+}

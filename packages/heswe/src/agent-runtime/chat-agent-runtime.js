@@ -73,7 +73,7 @@ export class ThreadAgent {
   }
 
   /**
-   * @param {{ userId: string; text: string }} input
+   * @param {{ userId: string; text: string; publicText?: string; attachments?: Array<Record<string, unknown>> }} input
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async processUserMessage(input) {
@@ -92,8 +92,18 @@ export class ThreadAgent {
       `[thread ${this.#threadId}] user message received (${input.text.length} chars)`,
     );
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
+    const userMessage = agent.messages[agent.messages.length - 1];
+    if (input.publicText !== undefined || input.attachments?.length) {
+      userMessage.meta = {
+        ...(userMessage.meta ?? {}),
+        app: {
+          text: input.publicText ?? input.text,
+          attachments: Array.isArray(input.attachments) ? input.attachments : [],
+        },
+      };
+    }
     await this.#threadStore.appendMessages(this.#threadDir, [
-      agent.messages[agent.messages.length - 1],
+      userMessage,
     ]);
 
     const shouldSendReply = this.#alwaysRespond
@@ -190,6 +200,8 @@ export class InProcessChatAgentRuntime {
    *  threadDir: string;
    *  userId: string;
    *  text: string;
+   *  publicText?: string;
+   *  attachments?: Array<Record<string, unknown>>;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
@@ -234,6 +246,8 @@ export class InProcessChatAgentRuntime {
       return await agent.processUserMessage({
         userId: input.userId,
         text: input.text,
+        publicText: input.publicText,
+        attachments: input.attachments,
       });
     } finally {
       if (

@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   apiError,
   readJsonObject,
+  readMultipartFiles,
   requireUser,
 } from "../src/lib/server/api.ts";
 
@@ -41,5 +42,36 @@ test("rejects unauthenticated requests with 401", () => {
   assert.throws(
     () => requireUser({ session: null, user: null }),
     (error) => hasStatus(error) && error.status === 401,
+  );
+});
+
+test("reads files from bounded multipart requests", async () => {
+  const form = new FormData();
+  form.append("files", new File(["hello"], "hello.txt", { type: "text/plain" }));
+  const request = new Request("http://heswe.local/api/files", {
+    method: "POST",
+    body: form,
+  });
+
+  const files = await readMultipartFiles(request);
+
+  assert.equal(files.length, 1);
+  assert.equal(files[0].name, "hello.txt");
+  assert.equal(await files[0].text(), "hello");
+});
+
+test("rejects multipart requests larger than the upload limit", async () => {
+  const request = new Request("http://heswe.local/api/files", {
+    method: "POST",
+    headers: {
+      "content-length": String(43 * 1024 * 1024),
+      "content-type": "multipart/form-data; boundary=test",
+    },
+    body: "--test--\r\n",
+  });
+
+  await assert.rejects(
+    readMultipartFiles(request),
+    (error) => hasStatus(error) && error.status === 413,
   );
 });

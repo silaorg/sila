@@ -1,14 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { apiError, readJsonObject, requireUser } from '$lib/server/api';
+import { apiError, requireUser } from '$lib/server/api';
 import { getWorkspaceContext } from '$lib/server/workspace-service';
 
-export const POST: RequestHandler = async ({ locals, params, request }) => {
+export const GET: RequestHandler = async ({ locals, params, url }) => {
 	const user = requireUser(locals);
 	try {
-		const body = await readJsonObject(request);
+		const threadId = url.searchParams.get('threadId') ?? '';
+		const query = url.searchParams.get('query') ?? '';
 		const { service } = await getWorkspaceContext(user.id, params.workspaceId);
-		return json(await service.sendMessage(user.id, params.threadId, body));
+		return json(await service.listFiles(user.id, threadId, query));
 	} catch (cause) {
 		apiError(cause);
 	}

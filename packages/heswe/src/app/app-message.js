@@ -6,6 +6,9 @@ export function getMessageText(message) {
 }
 
 export function getPublicMessageText(message) {
+  if (message.role === "user" && typeof message.meta?.app?.text === "string") {
+    return message.meta.app.text;
+  }
   const text = getMessageText(message);
   return message.role === "user"
     ? text.replace(/^<@[^>]+>:\s*/, "")

@@ -3,6 +3,17 @@ export type AppMessage = {
   at: string | null;
   role: string;
   text: string;
+  attachments: AppFile[];
+};
+
+export type AppFile = {
+  reference: string;
+  scope: "workspace" | "thread";
+  path: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  kind: "image" | "text" | "file";
 };
 
 export type AppThreadSummary = {
@@ -48,7 +59,27 @@ export class AppWorkspaceService {
   listThreads(userId: string): Promise<AppThreadSummary[]>;
   createThread(userId: string, input?: { title?: unknown }): Promise<AppThreadSummary>;
   getThread(userId: string, threadId: string): Promise<AppThread>;
-  sendMessage(userId: string, threadId: string, text: unknown): Promise<unknown>;
+  listFiles(userId: string, threadId: string, query?: string): Promise<AppFile[]>;
+  uploadFiles(
+    userId: string,
+    threadId: string,
+    files: Array<{ name: string; data: Uint8Array | ArrayBuffer }>,
+  ): Promise<AppFile[]>;
+  getFile(
+    userId: string,
+    threadId: string,
+    reference: string,
+  ): Promise<AppFile & { absolutePath: string; agentPath: string }>;
+  removeUploadedFile(
+    userId: string,
+    threadId: string,
+    reference: unknown,
+  ): Promise<void>;
+  sendMessage(
+    userId: string,
+    threadId: string,
+    input: unknown,
+  ): Promise<unknown>;
   stop(): Promise<void>;
 }
 
