@@ -1,8 +1,6 @@
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 import path from "node:path";
-import { Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { downloadRemoteFile } from "../../http.js";
 
 /**
  * @param {{
@@ -78,16 +76,9 @@ async function buildUniqueFilePath(directory, fileName) {
 }
 
 async function defaultDownloadFileToPath({ fileUrl, destinationPath, botUserOAuthToken }) {
-  const response = await fetch(fileUrl, {
+  await downloadRemoteFile(fileUrl, destinationPath, {
     headers: {
       Authorization: `Bearer ${botUserOAuthToken}`,
     },
   });
-
-  if (!response.ok || !response.body) {
-    throw new Error(`Failed to fetch Slack file. status=${response.status}`);
-  }
-
-  const writeStream = fsSync.createWriteStream(destinationPath, { flags: "wx" });
-  await pipeline(Readable.fromWeb(response.body), writeStream);
 }

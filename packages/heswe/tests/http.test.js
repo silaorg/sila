@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import { after, before, test } from "node:test";
 import {
+  downloadRemoteFile,
   fetchRemote,
   readResponseBytes,
   readResponseText,
@@ -24,6 +28,10 @@ before(async () => {
     if (request.url === "/streamed-large") {
       response.write("12345");
       response.end("67890");
+      return;
+    }
+    if (request.url === "/download") {
+      response.end("downloaded");
       return;
     }
     response.end("hello");
@@ -55,4 +63,22 @@ test("readResponseBytes rejects declared and streamed oversized responses", asyn
 test("readResponseText returns bounded text", async () => {
   const response = await fetchRemote(baseUrl);
   assert.equal(await readResponseText(response, { maxBytes: 10 }), "hello");
+});
+
+test("downloadRemoteFile writes bounded downloads and removes partial files", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-download-"));
+  const downloadedPath = path.join(directory, "downloaded.txt");
+  const rejectedPath = path.join(directory, "rejected.txt");
+
+  const result = await downloadRemoteFile(`${baseUrl}/download`, downloadedPath, {
+    maxBytes: 20,
+  });
+  assert.equal(result.byteLength, 10);
+  assert.equal(await fs.readFile(downloadedPath, "utf8"), "downloaded");
+
+  await assert.rejects(
+    downloadRemoteFile(`${baseUrl}/streamed-large`, rejectedPath, { maxBytes: 9 }),
+    /9-byte limit/,
+  );
+  await assert.rejects(fs.access(rejectedPath), { code: "ENOENT" });
 });

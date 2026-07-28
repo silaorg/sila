@@ -22,6 +22,11 @@ export type ThreadDetail = ThreadSummary & {
 	messages: ThreadMessage[];
 };
 
+export type WorkspaceChange = {
+	type: 'thread.created' | 'thread.changed';
+	threadId?: string;
+};
+
 export function getWorkspace() {
 	return requestJson<WorkspaceInfo>('/api/workspace');
 }
@@ -51,6 +56,27 @@ export function sendMessage(threadId: string, text: string) {
 			body: JSON.stringify({ text })
 		}
 	);
+}
+
+export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) => void) {
+	const events = new EventSource('/api/events');
+	const receive = (event: MessageEvent<string>) => {
+		try {
+			const change = JSON.parse(event.data);
+			if (
+				change &&
+				typeof change === 'object' &&
+				(change.type === 'thread.created' || change.type === 'thread.changed')
+			) {
+				onChange(change);
+			}
+		} catch {
+			// Ignore malformed events. The next valid invalidation will refresh the snapshots.
+		}
+	};
+	events.addEventListener('thread.created', receive);
+	events.addEventListener('thread.changed', receive);
+	return () => events.close();
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {

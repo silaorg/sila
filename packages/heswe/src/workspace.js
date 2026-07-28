@@ -58,6 +58,23 @@ export class Workspace {
     }
   }
 
+  async stop() {
+    if (!this.#isRunning) {
+      return;
+    }
+
+    const channels = this.#channels.splice(0);
+    const results = await Promise.allSettled(channels.map((channel) => channel.stop()));
+    this.#isRunning = false;
+
+    const failures = results
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason);
+    if (failures.length) {
+      throw new AggregateError(failures, "Failed to stop all workspace channels.");
+    }
+  }
+
   async runChannels() {
     const channelsDir = path.join(this.#path, "channels");
     const channelDirEntries = await readDirectoryEntriesOrEmpty(channelsDir);

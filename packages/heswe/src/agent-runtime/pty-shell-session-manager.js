@@ -135,6 +135,10 @@ export class PTYShellSessionManager {
     return this.sessions.has(String(sessionId));
   }
 
+  hasActiveSessions() {
+    return this.sessions.size > 0;
+  }
+
   getStatus(sessionId) {
     const key = String(sessionId);
     const session = this.sessions.get(key);

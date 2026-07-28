@@ -174,7 +174,7 @@ export class InProcessChatAgentRuntime {
    * @returns {Promise<{ responded: boolean; answer: string }>}
    */
   async handleThreadMessage(input) {
-    const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
+    this.#pruneInactivePtyManagers();
     const instructions = await this.#resolveInstructions({
       threadId: input.threadId,
       threadDir: input.threadDir,
@@ -183,25 +183,35 @@ export class InProcessChatAgentRuntime {
       threadId: input.threadId,
       threadDir: input.threadDir,
     });
+    const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
 
-    const agent = new ThreadAgent({
-      threadId: input.threadId,
-      threadDir: input.threadDir,
-      lang: this.#lang,
-      ptyManager,
-      defaultCwd: input.threadDir,
-      customTools,
-      threadStore: this.#threadStore,
-      sendTelegramFile: input.sendTelegramFile,
-      sendSlackFile: input.sendSlackFile,
-      onAssistantLoopMessage: input.onAssistantLoopMessage,
-      onAssistantResponding: input.onAssistantResponding,
-      instructions,
-    });
-    return agent.processUserMessage({
-      userId: input.userId,
-      text: input.text,
-    });
+    try {
+      const agent = new ThreadAgent({
+        threadId: input.threadId,
+        threadDir: input.threadDir,
+        lang: this.#lang,
+        ptyManager,
+        defaultCwd: input.threadDir,
+        customTools,
+        threadStore: this.#threadStore,
+        sendTelegramFile: input.sendTelegramFile,
+        sendSlackFile: input.sendSlackFile,
+        onAssistantLoopMessage: input.onAssistantLoopMessage,
+        onAssistantResponding: input.onAssistantResponding,
+        instructions,
+      });
+      return await agent.processUserMessage({
+        userId: input.userId,
+        text: input.text,
+      });
+    } finally {
+      if (
+        !ptyManager.hasActiveSessions()
+        && this.#ptyManagersByThread.get(String(input.threadId)) === ptyManager
+      ) {
+        this.#ptyManagersByThread.delete(String(input.threadId));
+      }
+    }
   }
 
   async #resolveInstructions(input) {
@@ -210,8 +220,7 @@ export class InProcessChatAgentRuntime {
     }
 
     const loaded = await this.#loadInstructions(input);
-    this.#instructions = requireInstructions(loaded, "InProcessChatAgentRuntime.loadInstructions");
-    return this.#instructions;
+    return requireInstructions(loaded, "InProcessChatAgentRuntime.loadInstructions");
   }
 
   async #resolveTools(input) {
@@ -239,6 +248,14 @@ export class InProcessChatAgentRuntime {
     const manager = new PTYShellSessionManager({ defaultCwd });
     this.#ptyManagersByThread.set(key, manager);
     return manager;
+  }
+
+  #pruneInactivePtyManagers() {
+    for (const [threadId, manager] of this.#ptyManagersByThread) {
+      if (!manager.hasActiveSessions()) {
+        this.#ptyManagersByThread.delete(threadId);
+      }
+    }
   }
 }
 

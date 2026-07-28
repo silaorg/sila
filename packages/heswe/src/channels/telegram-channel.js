@@ -1,22 +1,13 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import OpenAI from "openai";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
-  formatWorkingMessage,
-  loadChannelLanguageProvider,
-  loadChannelInstructions,
-  loadChannelTools,
   readOpenAiApiKey,
-  toAgentRelativePath,
 } from "./channel-utils.js";
+import { createChannelAgentRuntime } from "./channel-agent-runtime.js";
+import { createProgressReply } from "./progress-reply.js";
 import {
-  getAttachmentInfo,
-  getAudioInfo,
-  getMessageCaption,
-  getMessageDate,
   getMessageText,
   prependReplyContext,
   getThreadContext,
@@ -25,6 +16,10 @@ import {
   isTelegramAudioMessage,
   isTelegramUserTextMessage,
 } from "./telegram/telegram-input-parser.js";
+import {
+  buildTelegramAttachmentContent,
+  buildTelegramAudioContent,
+} from "./telegram/telegram-inbound-content.js";
 import { storeTelegramFile } from "./telegram/telegram-file-store.js";
 import { transcribeAudioFile } from "./telegram/telegram-transcriber.js";
 import { TelegramTransport } from "./telegram/telegram-transport.js";
@@ -44,8 +39,6 @@ export class TelegramChannel {
   #bot = null;
   /** @type {null | TelegramTransport} */
   #transport = null;
-  /** @type {null | import("aiwrapper").LanguageProvider} */
-  #lang = null;
   /** @type {null | any} */
   #openai = null;
   /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
@@ -111,26 +104,19 @@ export class TelegramChannel {
       return;
     }
 
-    const workspacePath = path.resolve(this.#path, "..", "..");
-    let languageProvider;
     try {
-      languageProvider = await loadChannelLanguageProvider(this.#path);
+      this.#agentRuntime = await createChannelAgentRuntime({
+        channelPath: this.#path,
+        channelName: "telegram",
+        createAgentRuntime: this.#dependencies.createAgentRuntime,
+      });
     } catch (error) {
       console.log(`Telegram channel ${error.message}`);
       return;
     }
 
-    this.#lang = languageProvider.lang;
     const openAiApiKey = await readOpenAiApiKey(this.#path);
     this.#openai = openAiApiKey ? this.#dependencies.createOpenAiClient(openAiApiKey) : null;
-    const instructions = await loadChannelInstructions(workspacePath, "telegram");
-    this.#agentRuntime = this.#dependencies.createAgentRuntime({
-      lang: this.#lang,
-      defaultCwd: workspacePath,
-      instructions,
-      loadInstructions: (input = {}) => loadChannelInstructions(workspacePath, "telegram", input.threadDir),
-      loadTools: (input = {}) => loadChannelTools(workspacePath, "telegram", input),
-    });
     this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);
@@ -165,19 +151,31 @@ export class TelegramChannel {
       return;
     }
 
-    await this.#agentRuntime?.stop();
-    if (this.#bot && typeof this.#bot.stop === "function") {
-      this.#bot.stop("shutdown");
+    const failures = [];
+    try {
+      if (this.#bot && typeof this.#bot.stop === "function") {
+        this.#bot.stop("shutdown");
+      }
+    } catch (error) {
+      failures.push(error);
+    }
+    await this.#threadRuntime.drain();
+    try {
+      await this.#agentRuntime?.stop();
+    } catch (error) {
+      failures.push(error);
     }
 
     this.#bot = null;
     this.#transport = null;
-    this.#lang = null;
     this.#openai = null;
     this.#agentRuntime = null;
     this.#threadRuntime.clear();
     this.#isRunning = false;
     console.log(`Telegram channel stopped at: ${this.#path}`);
+    if (failures.length) {
+      throw new AggregateError(failures, "Failed to stop the Telegram channel cleanly.");
+    }
   }
 
   /**
@@ -185,7 +183,7 @@ export class TelegramChannel {
    */
   async #handleTextMessage(ctx) {
     try {
-      if (!this.#bot || !this.#lang || !isTelegramUserTextMessage(ctx)) {
+      if (!this.#bot || !this.#transport || !isTelegramUserTextMessage(ctx)) {
         return;
       }
 
@@ -215,7 +213,7 @@ export class TelegramChannel {
    */
   async #handleAttachmentMessage(ctx, kind) {
     try {
-      if (!this.#bot || !this.#lang || !isTelegramAttachmentMessage(ctx)) {
+      if (!this.#bot || !this.#transport || !isTelegramAttachmentMessage(ctx)) {
         return;
       }
 
@@ -226,28 +224,16 @@ export class TelegramChannel {
 
       const thread = getThreadContext(ctx);
       await this.#threadRuntime.enqueue(thread.threadId, async () => {
-        const attachment = getAttachmentInfo(ctx, kind);
-        if (!attachment) {
+        const messageText = await buildTelegramAttachmentContent({
+          ctx,
+          kind,
+          channelPath: this.#path,
+          threadId: thread.threadId,
+          storeFile: this.#dependencies.storeTelegramFile,
+        });
+        if (!messageText) {
           return;
         }
-
-        const threadDir = path.join(this.#path, thread.threadId);
-        const localPath = await this.#dependencies.storeTelegramFile({
-          fileId: attachment.fileId,
-          originalName: attachment.fileName,
-          threadDir,
-          createdAt: getMessageDate(ctx),
-          telegram: ctx.telegram,
-        });
-
-        const relativePath = toAgentRelativePath(localPath, threadDir);
-        let messageText = `[Uploaded a ${attachment.label}: ${relativePath}]`;
-        const caption = getMessageCaption(ctx);
-        if (caption) {
-          messageText += `\n\n${caption}`;
-        }
-        messageText = prependReplyContext(ctx, messageText);
-
         await this.#processThreadMessage(thread, userId, messageText, "upload");
       });
     } catch (error) {
@@ -261,7 +247,7 @@ export class TelegramChannel {
    */
   async #handleAudioMessage(ctx, kind) {
     try {
-      if (!this.#bot || !this.#lang || !isTelegramAudioMessage(ctx, kind)) {
+      if (!this.#bot || !this.#transport || !isTelegramAudioMessage(ctx, kind)) {
         return;
       }
 
@@ -272,38 +258,18 @@ export class TelegramChannel {
 
       const thread = getThreadContext(ctx);
       await this.#threadRuntime.enqueue(thread.threadId, async () => {
-        const audioInfo = getAudioInfo(ctx, kind);
-        if (!audioInfo) {
+        const messageText = await buildTelegramAudioContent({
+          ctx,
+          kind,
+          channelPath: this.#path,
+          threadId: thread.threadId,
+          storeFile: this.#dependencies.storeTelegramFile,
+          transcribe: this.#dependencies.transcribeAudioFile,
+          openAiClient: this.#openai,
+        });
+        if (!messageText) {
           return;
         }
-
-        const threadDir = path.join(this.#path, thread.threadId);
-        const localPath = await this.#dependencies.storeTelegramFile({
-          fileId: audioInfo.fileId,
-          originalName: audioInfo.fileName,
-          threadDir,
-          createdAt: getMessageDate(ctx),
-          telegram: ctx.telegram,
-        });
-
-        const relativePath = toAgentRelativePath(localPath, threadDir);
-        let messageText = `[Uploaded an audio file: ${relativePath}]`;
-
-        try {
-          const transcription = await this.#dependencies.transcribeAudioFile(this.#openai, localPath);
-          if (transcription) {
-            messageText += `\n\n[Audio transcription]\n${transcription}`;
-          }
-        } catch (error) {
-          console.error("Failed to transcribe Telegram audio:", error);
-        }
-
-        const caption = getMessageCaption(ctx);
-        if (caption) {
-          messageText += `\n\n${caption}`;
-        }
-        messageText = prependReplyContext(ctx, messageText);
-
         await this.#processThreadMessage(thread, userId, messageText, "audio");
       });
     } catch (error) {
@@ -318,21 +284,19 @@ export class TelegramChannel {
    * @param {"text" | "upload" | "audio"} inputType
    */
   async #processThreadMessage(thread, userId, text, inputType) {
-    if (!this.#lang || !this.#transport) {
+    if (!this.#transport) {
       return;
     }
 
     const transport = this.#transport;
-    let progressMessageId = null;
-    const ensureProgressMessage = async () => {
-      if (progressMessageId) {
-        return progressMessageId;
-      }
-
-      const sent = await transport.sendMessage(thread.chatId, "🤔 Thinking...");
-      progressMessageId = sent?.message_id ?? null;
-      return progressMessageId;
-    };
+    const reply = createProgressReply({
+      async send(message) {
+        const sent = await transport.sendMessage(thread.chatId, message);
+        return sent?.message_id ?? null;
+      },
+      update: (messageId, message) =>
+        transport.updateMessage(thread.chatId, Number(messageId), message),
+    });
 
     await this.#threadRuntime.handleThreadMessage({
       thread,
@@ -348,23 +312,9 @@ export class TelegramChannel {
         inputType,
         responded: input.result.responded,
       }),
-      onRespondStart: ensureProgressMessage,
-      sendIntermediateReply: async (payload) => {
-        const workingText = formatWorkingMessage(payload.text);
-        const messageId = await ensureProgressMessage();
-        if (messageId) {
-          await transport.updateMessage(thread.chatId, messageId, workingText);
-          return;
-        }
-        await transport.sendMessage(thread.chatId, workingText);
-      },
-      sendReply: async (answer) => {
-        if (progressMessageId) {
-          await transport.updateMessage(thread.chatId, progressMessageId, answer);
-          return;
-        }
-        await transport.sendMessage(thread.chatId, answer);
-      },
+      onRespondStart: reply.start,
+      sendIntermediateReply: reply.sendWorking,
+      sendReply: reply.sendFinal,
     });
   }
 }

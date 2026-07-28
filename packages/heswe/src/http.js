@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+
 export const DEFAULT_REMOTE_TIMEOUT_MS = 30_000;
 export const DEFAULT_TEXT_RESPONSE_BYTES = 5 * 1024 * 1024;
 export const DEFAULT_BINARY_RESPONSE_BYTES = 25 * 1024 * 1024;
@@ -66,6 +68,67 @@ export async function readResponseText(response, options = {}) {
     maxBytes: options.maxBytes ?? DEFAULT_TEXT_RESPONSE_BYTES,
   });
   return new TextDecoder().decode(bytes);
+}
+
+export async function downloadRemoteFile(input, destinationPath, options = {}) {
+  const maxBytes = positiveNumber(options.maxBytes, DEFAULT_BINARY_RESPONSE_BYTES);
+  const response = await fetchRemote(input, {
+    headers: options.headers,
+  }, {
+    timeoutMs: options.timeoutMs,
+  });
+  if (!response.ok || !response.body) {
+    await response.body?.cancel();
+    throw new Error(`Remote file request failed with HTTP ${response.status}.`);
+  }
+
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    await response.body.cancel();
+    throw responseTooLargeError(maxBytes);
+  }
+
+  const file = await fs.open(destinationPath, "wx");
+  const reader = response.body.getReader();
+  let byteLength = 0;
+  let failure = null;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      byteLength += value.byteLength;
+      if (byteLength > maxBytes) {
+        await reader.cancel();
+        throw responseTooLargeError(maxBytes);
+      }
+      await writeAll(file, value);
+    }
+    return { byteLength };
+  } catch (error) {
+    failure = error;
+    throw error;
+  } finally {
+    reader.releaseLock();
+    await file.close();
+    if (failure) {
+      await fs.rm(destinationPath, { force: true }).catch(() => {});
+    }
+  }
+}
+
+async function writeAll(file, bytes) {
+  let offset = 0;
+  while (offset < bytes.byteLength) {
+    const { bytesWritten } = await file.write(
+      bytes,
+      offset,
+      bytes.byteLength - offset,
+    );
+    if (bytesWritten === 0) {
+      throw new Error("Failed to make progress while writing a remote file.");
+    }
+    offset += bytesWritten;
+  }
 }
 
 function responseTooLargeError(maxBytes) {

@@ -1,16 +1,10 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
-import {
-  OptionalTokenSchema,
-  formatWorkingMessage,
-  loadChannelLanguageProvider,
-  loadChannelInstructions,
-  loadChannelTools,
-  toAgentRelativePath,
-} from "./channel-utils.js";
+import { OptionalTokenSchema } from "./channel-utils.js";
+import { createChannelAgentRuntime } from "./channel-agent-runtime.js";
+import { createProgressReply } from "./progress-reply.js";
 import { storeSlackFile } from "./slack/slack-file-store.js";
+import { buildSlackInboundContent } from "./slack/slack-inbound-content.js";
 import {
   getMessageDate,
   getMessageText,
@@ -37,8 +31,6 @@ export class SlackChannel {
   #app = null;
   /** @type {null | SlackTransport} */
   #transport = null;
-  /** @type {null | import("aiwrapper").LanguageProvider} */
-  #lang = null;
   /** @type {string | null} */
   #botUserId = null;
   /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
@@ -104,24 +96,16 @@ export class SlackChannel {
       return;
     }
 
-    const workspacePath = path.resolve(this.#path, "..", "..");
-    let languageProvider;
     try {
-      languageProvider = await loadChannelLanguageProvider(this.#path);
+      this.#agentRuntime = await createChannelAgentRuntime({
+        channelPath: this.#path,
+        channelName: "slack",
+        createAgentRuntime: this.#dependencies.createAgentRuntime,
+      });
     } catch (error) {
       console.log(`Slack channel ${error.message}`);
       return;
     }
-
-    this.#lang = languageProvider.lang;
-    const instructions = await loadChannelInstructions(workspacePath, "slack");
-    this.#agentRuntime = this.#dependencies.createAgentRuntime({
-      lang: this.#lang,
-      defaultCwd: workspacePath,
-      instructions,
-      loadInstructions: (input = {}) => loadChannelInstructions(workspacePath, "slack", input.threadDir),
-      loadTools: (input = {}) => loadChannelTools(workspacePath, "slack", input),
-    });
     this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
     const app = await this.#dependencies.createSlackApp({
@@ -148,18 +132,28 @@ export class SlackChannel {
       return;
     }
 
-    await this.#agentRuntime?.stop();
-    if (this.#app) {
-      await this.#app.stop();
+    const failures = [];
+    try {
+      await this.#app?.stop();
+    } catch (error) {
+      failures.push(error);
+    }
+    await this.#threadRuntime.drain();
+    try {
+      await this.#agentRuntime?.stop();
+    } catch (error) {
+      failures.push(error);
     }
     this.#app = null;
     this.#transport = null;
-    this.#lang = null;
     this.#agentRuntime = null;
     this.#threadRuntime.clear();
     this.#botUserId = null;
     this.#isRunning = false;
     console.log(`Slack channel stopped at: ${this.#path}`);
+    if (failures.length) {
+      throw new AggregateError(failures, "Failed to stop the Slack channel cleanly.");
+    }
   }
 
   /**
@@ -167,7 +161,7 @@ export class SlackChannel {
    */
   async #handleIncomingMessage(message) {
     try {
-      if (!this.#app || !this.#lang || !isSlackUserMessage(message)) {
+      if (!this.#app || !this.#transport || !isSlackUserMessage(message)) {
         return;
       }
 
@@ -183,7 +177,15 @@ export class SlackChannel {
 
       const thread = getThreadContext(message);
       await this.#threadRuntime.enqueue(thread.threadId, async () => {
-        const inboundText = await this.#buildInboundMessageText(thread, message, text);
+        const inboundText = await buildSlackInboundContent({
+          channelPath: this.#path,
+          threadId: thread.threadId,
+          normalizedText: text,
+          files: await this.#transport.resolveInboundFiles(message),
+          createdAt: getMessageDate(message),
+          botUserOAuthToken: this.#config.botUserOAuthToken ?? "",
+          storeFile: this.#dependencies.storeSlackFile,
+        });
         if (!inboundText) {
           return;
         }
@@ -196,79 +198,27 @@ export class SlackChannel {
 
   /**
    * @param {{ threadId: string; channelId: string; threadTs: string | null }} thread
-   * @param {any} message
-   * @param {string} normalizedText
-   */
-  async #buildInboundMessageText(thread, message, normalizedText) {
-    const inboundFiles = await this.#resolveInboundFiles(message);
-    if (!inboundFiles.length) {
-      return normalizedText;
-    }
-
-    const threadDir = path.join(this.#path, thread.threadId);
-    await fs.mkdir(threadDir, { recursive: true });
-
-    const createdAt = getMessageDate(message);
-    const uploadedLines = [];
-
-    for (const file of inboundFiles) {
-      try {
-        const localPath = await this.#dependencies.storeSlackFile({
-          threadDir,
-          fileUrl: file.fileUrl,
-          originalName: file.fileName,
-          createdAt,
-          botUserOAuthToken: this.#config.botUserOAuthToken ?? "",
-        });
-        const relativePath = toAgentRelativePath(localPath, threadDir);
-        uploadedLines.push(`[Uploaded a ${file.label}: ${relativePath}]`);
-      } catch (error) {
-        console.error(`Failed to store Slack file ${file.fileName}:`, error);
-      }
-    }
-
-    const uploadsText = uploadedLines.join("\n");
-    if (uploadsText && normalizedText) {
-      return `${uploadsText}\n\n${normalizedText}`;
-    }
-    return uploadsText || normalizedText;
-  }
-
-  /**
-   * @param {any} message
-   */
-  async #resolveInboundFiles(message) {
-    if (!this.#transport) {
-      return [];
-    }
-    return this.#transport.resolveInboundFiles(message);
-  }
-
-  /**
-   * @param {{ threadId: string; channelId: string; threadTs: string | null }} thread
    * @param {string} userId
    * @param {string} text
    */
   async #processThreadMessage(thread, userId, text) {
-    if (!this.#lang || !this.#transport) {
+    if (!this.#transport) {
       return;
     }
 
     const transport = this.#transport;
-    let progressMessageTs = null;
-    const ensureProgressMessage = async () => {
-      if (progressMessageTs) {
-        return progressMessageTs;
-      }
-
-      const posted = await transport.sendMessage(
-        thread.channelId,
-        "🤔 Thinking...",
-        thread.threadTs ?? undefined,
-      );
-      progressMessageTs = posted?.ts || null;
-      return progressMessageTs;
-    };
+    const reply = createProgressReply({
+      async send(message) {
+        const posted = await transport.sendMessage(
+          thread.channelId,
+          message,
+          thread.threadTs ?? undefined,
+        );
+        return posted?.ts || null;
+      },
+      update: (messageId, message) =>
+        transport.updateMessage(thread.channelId, String(messageId), message),
+    });
 
     await this.#threadRuntime.handleThreadMessage({
       thread,
@@ -284,23 +234,9 @@ export class SlackChannel {
         lastUserId: userId,
         responded: input.result.responded,
       }),
-      onRespondStart: ensureProgressMessage,
-      sendIntermediateReply: async (payload) => {
-        const workingText = formatWorkingMessage(payload.text);
-        const messageTs = await ensureProgressMessage();
-        if (messageTs) {
-          await transport.updateMessage(thread.channelId, messageTs, workingText);
-          return;
-        }
-        await transport.sendMessage(thread.channelId, workingText, thread.threadTs ?? undefined);
-      },
-      sendReply: async (answer) => {
-        if (progressMessageTs) {
-          await transport.updateMessage(thread.channelId, progressMessageTs, answer);
-          return;
-        }
-        await transport.sendMessage(thread.channelId, answer, thread.threadTs ?? undefined);
-      },
+      onRespondStart: reply.start,
+      sendIntermediateReply: reply.sendWorking,
+      sendReply: reply.sendFinal,
     });
   }
 

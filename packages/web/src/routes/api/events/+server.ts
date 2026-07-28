@@ -1,8 +1,8 @@
 import type { RequestHandler } from './$types';
 import { requireUser } from '$lib/server/api';
-import { createAppEventResponse } from '$lib/server/app-events';
+import { appEvents } from '$lib/server/app-events';
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, request }) => {
 	const user = requireUser(locals);
-	return createAppEventResponse(user.id);
+	return appEvents.createResponse(user.id, request.signal);
 };

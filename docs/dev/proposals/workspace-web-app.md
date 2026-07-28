@@ -34,6 +34,8 @@ browser
 SvelteKit server
   ├── Better Auth + SQLite
   └── AppWorkspaceService
+        ├── app command orchestration
+        └── AppThreadRepository
           │
           ▼
 workspace/users/<user-hash>/channels/app/<thread-id>/
@@ -103,6 +105,8 @@ users/<sha256-user-id>/channels/app/<thread-id>/
 `messages.jsonl` is append-only. Each line is an event with its own ID and
 timestamp. Reading a thread projects messages from those events. `state.json`
 contains small mutable thread metadata such as its title and update time.
+Metadata replacements are atomic, so an interrupted write cannot leave a
+partially written state file.
 
 This avoids a second web-only message database while keeping authentication
 records out of the workspace tree.
@@ -116,6 +120,10 @@ records out of the workspace tree.
 
 The web package depends on the public `AppWorkspaceService` interface. It does
 not reach into channel internals or write thread files directly.
+
+The app service returns only user-facing workspace and message projections. It
+does not expose server filesystem paths, raw event records, tool items, or
+message metadata through the HTTP API.
 
 ## Deployment
 

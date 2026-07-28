@@ -66,3 +66,31 @@ test("ThreadedChannelRuntime records failed delivery before rethrowing", async (
   assert.deepEqual(deliveries.map((event) => event.status), ["pending", "failed"]);
   assert.equal(deliveries[1].error, "provider unavailable");
 });
+
+test("ThreadedChannelRuntime drains in-flight thread work before shutdown", async () => {
+  const channelPath = await fs.mkdtemp(path.join(os.tmpdir(), "threaded-channel-"));
+  const runtime = new ThreadedChannelRuntime({ channelPath });
+  let release;
+  const blocked = new Promise((resolve) => {
+    release = resolve;
+  });
+  let started = false;
+  const task = runtime.enqueue("thread-1", async () => {
+    started = true;
+    await blocked;
+  });
+
+  while (!started) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  let drained = false;
+  const draining = runtime.drain().then(() => {
+    drained = true;
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(drained, false);
+
+  release();
+  await Promise.all([task, draining]);
+  assert.equal(drained, true);
+});

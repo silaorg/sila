@@ -29,3 +29,25 @@ test("Workspace.run rejects malformed channel config instead of silently skippin
   const workspace = new Workspace(workspacePath);
   await assert.rejects(workspace.run(), /Invalid JSON.*channels.*slack/);
 });
+
+test("Workspace.stop releases channels and allows a clean restart", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-workspace-"));
+  const channelPath = path.join(workspacePath, "channels", "slack");
+  await fs.mkdir(channelPath, { recursive: true });
+  await fs.writeFile(
+    path.join(workspacePath, "config.json"),
+    `${JSON.stringify({ version: 1, name: "restartable" })}\n`,
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(channelPath, "config.json"),
+    `${JSON.stringify({ channel: "slack", enabled: false })}\n`,
+    "utf8",
+  );
+
+  const workspace = new Workspace(workspacePath);
+  await workspace.run();
+  await workspace.stop();
+  await workspace.run();
+  await workspace.stop();
+});

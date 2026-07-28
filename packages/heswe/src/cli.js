@@ -151,10 +151,8 @@ async function handleRun(args) {
   }
 
   const workspace = new Workspace(workspaceDir);
-  workspace.run().catch((error) => {
-    logError(`Failed to run workspace: ${error.message}`);
-    process.exitCode = 1;
-  });
+  await workspace.run();
+  registerShutdown(workspace);
 }
 
 function parseCommandArgs(args, options) {
@@ -223,6 +221,25 @@ function logSuccess(message) {
 
 function logError(message) {
   console.error(pc.red(`error: ${message}`));
+}
+
+function registerShutdown(workspace) {
+  let stopping = false;
+  const stop = async (signal) => {
+    if (stopping) {
+      return;
+    }
+    stopping = true;
+    logInfo(`Received ${signal}; stopping workspace.`);
+    try {
+      await workspace.stop();
+    } catch (error) {
+      logError(error.message);
+      process.exitCode = 1;
+    }
+  };
+  process.once("SIGINT", () => void stop("SIGINT"));
+  process.once("SIGTERM", () => void stop("SIGTERM"));
 }
 
 main().catch((error) => {

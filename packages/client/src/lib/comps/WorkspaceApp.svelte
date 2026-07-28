@@ -5,6 +5,7 @@
 		getWorkspace,
 		listThreads,
 		sendMessage,
+		subscribeToWorkspaceChanges,
 		type ThreadDetail,
 		type ThreadSummary
 	} from '../api-client';
@@ -20,23 +21,20 @@
 	let loading = $state(true);
 	let sending = $state(false);
 	let errorMessage = $state('');
+	let threadDetailRequest = 0;
+	let threadListRequest = 0;
 
 	$effect(() => {
 		void loadInitial();
 	});
 
 	$effect(() => {
-		const events = new EventSource('/api/events');
-		const refresh = (event: MessageEvent) => {
-			const change = JSON.parse(event.data);
+		return subscribeToWorkspaceChanges((change) => {
 			void refreshThreads();
 			if (change.threadId === selectedThreadId) {
 				void refreshSelectedThread();
 			}
-		};
-		events.addEventListener('thread.created', refresh);
-		events.addEventListener('thread.changed', refresh);
-		return () => events.close();
+		});
 	});
 
 	async function loadInitial() {
@@ -57,31 +55,61 @@
 	}
 
 	async function refreshThreads() {
+		const request = ++threadListRequest;
 		try {
-			threads = await listThreads();
+			const loaded = await listThreads();
+			if (request === threadListRequest) {
+				threads = loaded;
+			}
 		} catch (error) {
-			setError(error);
+			if (request === threadListRequest) {
+				setError(error);
+			}
 		}
 	}
 
 	async function refreshSelectedThread() {
-		if (!selectedThreadId) return;
+		const threadId = selectedThreadId;
+		if (!threadId) return;
+		const request = ++threadDetailRequest;
 		try {
-			thread = await getThread(selectedThreadId);
+			const loaded = await getThread(threadId);
+			if (request === threadDetailRequest && selectedThreadId === threadId) {
+				thread = loaded;
+			}
 		} catch (error) {
-			setError(error);
+			if (request === threadDetailRequest) {
+				setError(error);
+			}
 		}
 	}
 
 	async function selectThread(threadId: string) {
+		const request = ++threadDetailRequest;
 		selectedThreadId = threadId;
-		thread = await getThread(threadId);
+		try {
+			const loaded = await getThread(threadId);
+			if (request === threadDetailRequest && selectedThreadId === threadId) {
+				thread = loaded;
+			}
+		} catch (error) {
+			if (request === threadDetailRequest) {
+				setError(error);
+			}
+			throw error;
+		}
+	}
+
+	async function chooseThread(threadId: string) {
+		try {
+			await selectThread(threadId);
+		} catch {}
 	}
 
 	async function addThread() {
 		try {
 			const created = await createThread();
-			threads = [created, ...threads];
+			threads = [created, ...threads.filter((thread) => thread.id !== created.id)];
 			await selectThread(created.id);
 		} catch (error) {
 			setError(error);
@@ -110,9 +138,6 @@
 		errorMessage = error instanceof Error ? error.message : 'Something went wrong.';
 	}
 
-	function visibleMessage(text: string) {
-		return text.replace(/^<@[^>]+>:\s*/, '');
-	}
 </script>
 
 <main class="grid min-h-screen bg-surface-100-900 md:grid-cols-[18rem_1fr]">
@@ -148,7 +173,7 @@
 							? 'bg-primary-100-900 text-primary-950-50'
 							: 'hover:bg-surface-100-900'
 					]}
-					onclick={() => selectThread(item.id)}
+					onclick={() => void chooseThread(item.id)}
 				>
 					<span class="block truncate text-sm font-medium">{item.title}</span>
 					<span class="mt-1 block truncate text-xs text-surface-500">{item.preview || 'No messages yet'}</span>
@@ -217,7 +242,7 @@
 										? 'rounded-br-md bg-primary-500 text-white'
 										: 'rounded-bl-md border border-surface-200-800 bg-surface-50-950'
 								]}
-							>{visibleMessage(message.text)}</div>
+							>{message.text}</div>
 						</div>
 					{/each}
 					{#if sending}

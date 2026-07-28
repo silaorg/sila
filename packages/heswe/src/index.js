@@ -1,5 +1,5 @@
 export { loadWorkspaceAgentInstructions } from "./agent-instructions.js";
-export { AppWorkspaceService } from "./app-workspace-service.js";
+export { AppWorkspaceError, AppWorkspaceService } from "./app-workspace-service.js";
 export {
   CONFIG_FILE_NAME,
   WorkspaceConfigError,

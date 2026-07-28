@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { LangMessage } from "aiwrapper";
-import { AppWorkspaceService } from "../src/app-workspace-service.js";
+import {
+  AppWorkspaceError,
+  AppWorkspaceService,
+} from "../src/app-workspace-service.js";
 import { ThreadStore } from "../src/agent-runtime/thread-store.js";
 
 test("AppWorkspaceService scopes API threads to a user and emits changes", async () => {
@@ -20,7 +23,10 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
       return {
         async handleThreadMessage(input) {
           await store.appendMessages(input.threadDir, [
-            new LangMessage("user", [{ type: "text", text: input.text }]),
+            new LangMessage("user", [{
+              type: "text",
+              text: `<@${input.userId}>: ${input.text}`,
+            }]),
             new LangMessage("assistant", [{ type: "text", text: "Hello from Heswe" }]),
           ]);
           return { responded: true, answer: "Hello from Heswe" };
@@ -42,6 +48,8 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
     "Hello",
     "Hello from Heswe",
   ]);
+  assert.equal("events" in thread, false);
+  assert.deepEqual(Object.keys(thread.messages[0]).sort(), ["at", "id", "role", "text"]);
   assert.deepEqual(changes.map((change) => change.type), [
     "thread.created",
     "thread.changed",
@@ -68,4 +76,76 @@ test("AppWorkspaceService rejects unsafe thread ids and oversized messages", asy
     service.sendMessage("user-a", created.id, "x".repeat(50_001)),
     /50,000 characters/,
   );
+});
+
+test("AppWorkspaceService exposes stable error codes", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  const service = new AppWorkspaceService({ workspacePath });
+
+  await assert.rejects(
+    service.getThread("user-a", "../escape"),
+    (error) => error instanceof AppWorkspaceError && error.code === "invalid_input",
+  );
+  await assert.rejects(
+    service.getThread("user-a", "missing"),
+    (error) => error instanceof AppWorkspaceError && error.code === "not_found",
+  );
+});
+
+test("AppWorkspaceService publishes persisted changes even when the agent fails", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  const changes = [];
+  const service = new AppWorkspaceService({
+    workspacePath,
+    onChange(change) {
+      changes.push(change);
+    },
+    createAgentRuntime() {
+      return {
+        async handleThreadMessage() {
+          throw new Error("provider unavailable");
+        },
+      };
+    },
+  });
+  const created = await service.createThread("user-a");
+
+  await assert.rejects(
+    service.sendMessage("user-a", created.id, "Hello"),
+    /provider unavailable/,
+  );
+
+  assert.deepEqual(changes.map((change) => change.type), [
+    "thread.created",
+    "thread.changed",
+  ]);
+});
+
+test("AppWorkspaceService retries runtime creation after a startup failure", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  let attempts = 0;
+  const service = new AppWorkspaceService({
+    workspacePath,
+    createAgentRuntime() {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("temporary startup failure");
+      }
+      return {
+        async handleThreadMessage() {
+          return { responded: false, answer: "" };
+        },
+      };
+    },
+  });
+  const created = await service.createThread("user-a");
+
+  await assert.rejects(
+    service.sendMessage("user-a", created.id, "First"),
+    /temporary startup failure/,
+  );
+  const result = await service.sendMessage("user-a", created.id, "Second");
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(result, { responded: false, answer: "" });
 });

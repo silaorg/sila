@@ -1,15 +1,7 @@
-export type MessageItem = {
-  type: string;
-  text?: string;
-  [key: string]: unknown;
-};
-
 export type AppMessage = {
-  id: string;
-  at: string;
+  id: string | null;
+  at: string | null;
   role: string;
-  items: MessageItem[];
-  meta?: unknown;
   text: string;
 };
 
@@ -23,7 +15,6 @@ export type AppThreadSummary = {
 };
 
 export type AppThread = AppThreadSummary & {
-  events: unknown[];
   messages: AppMessage[];
 };
 
@@ -40,12 +31,16 @@ export type AppWorkspaceServiceOptions = {
   onChange?: (change: AppWorkspaceChange) => void | Promise<void>;
 };
 
+export class AppWorkspaceError extends Error {
+  code: "invalid_input" | "not_found" | "invalid_data";
+}
+
 export class AppWorkspaceService {
   constructor(options: AppWorkspaceServiceOptions);
-  getWorkspace(): Promise<{ name: string; path: string }>;
+  getWorkspace(): Promise<{ name: string }>;
   listThreads(userId: string): Promise<AppThreadSummary[]>;
-  createThread(userId: string, input?: { title?: string }): Promise<AppThreadSummary>;
+  createThread(userId: string, input?: { title?: unknown }): Promise<AppThreadSummary>;
   getThread(userId: string, threadId: string): Promise<AppThread>;
-  sendMessage(userId: string, threadId: string, text: string): Promise<unknown>;
+  sendMessage(userId: string, threadId: string, text: unknown): Promise<unknown>;
   stop(): Promise<void>;
 }
