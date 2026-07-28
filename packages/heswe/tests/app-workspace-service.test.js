@@ -149,3 +149,35 @@ test("AppWorkspaceService retries runtime creation after a startup failure", asy
   assert.equal(attempts, 2);
   assert.deepEqual(result, { responded: false, answer: "" });
 });
+
+test("updating model settings restarts the cached agent runtime", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  let runtimeCreations = 0;
+  let runtimeStops = 0;
+  const service = new AppWorkspaceService({
+    workspacePath,
+    createAgentRuntime() {
+      runtimeCreations += 1;
+      return {
+        async handleThreadMessage() {
+          return { responded: false, answer: "" };
+        },
+        async stop() {
+          runtimeStops += 1;
+        },
+      };
+    },
+  });
+  const created = await service.createThread("user-a");
+
+  await service.sendMessage("user-a", created.id, "Before settings");
+  await service.updateModelSettings({
+    provider: "openai",
+    model: "gpt-5.4",
+    apiKeys: { openai: "workspace-key" },
+  });
+  await service.sendMessage("user-a", created.id, "After settings");
+
+  assert.equal(runtimeCreations, 2);
+  assert.equal(runtimeStops, 1);
+});

@@ -10,12 +10,9 @@
     "dev": "node scripts/dev.mjs",
     "dev:api-only": "node scripts/dev.mjs --api-only",
     "dev:services": "concurrently --kill-others-on-fail -n api,dashboard -c yellow,cyan \"npm run dev:api\" \"npm run dev:dashboard\"",
-    "dev:api-services": "npm run dev:api",
     "dev:api": "npm run dev -w web",
     "dev:dashboard": "npm run dev:dashboard -w web",
     "dev:ports": "node scripts/dev.mjs --ports",
-    "dev:workspace": "node --watch packages/heswe/src/cli.js run test-workspace",
-    "dev:web": "node scripts/dev.mjs",
     "test:dev": "node --test scripts/dev.test.mjs",
     "test": "npm run test:dev && npm run --workspaces --if-present test"
   },

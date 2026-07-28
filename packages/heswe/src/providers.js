@@ -6,12 +6,28 @@ import {
   readEnvValue,
   readWorkspaceEnvironment,
   readWorkspaceEnvValue,
+  updateWorkspaceEnvironment,
 } from "./env.js";
 
 const PROVIDERS_DIR_NAME = "providers";
 const DEFAULT_AGENT_CONFIG_RELATIVE_PATH = path.join("agents", "default", "config.json");
 const PROVIDER_CONFIG_FILE_NAME = "config.json";
 const DEFAULT_PROVIDER_ID = "openai";
+const PROVIDER_LABELS = Object.freeze({
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  google: "Google Gemini",
+  kimi: "Kimi",
+  xai: "xAI",
+  openrouter: "OpenRouter",
+  deepseek: "DeepSeek",
+  groq: "Groq",
+  cohere: "Cohere",
+  mistral: "Mistral",
+  ollama: "Ollama",
+  falai: "Fal.ai",
+  exa: "Exa",
+});
 
 const PROVIDER_SPECS = Object.freeze({
   openai: Object.freeze({
@@ -105,6 +121,15 @@ const WorkspaceProviderConfigSchema = z.looseObject({
   provider: z.string().trim().min(1).optional(),
   enabled: z.boolean().default(true),
   model: z.string().trim().min(1).optional(),
+});
+
+const ModelSettingsUpdateSchema = z.strictObject({
+  provider: z.string().trim().min(1).max(64),
+  model: z.string().trim().min(1).max(200),
+  apiKeys: z.record(
+    z.string(),
+    z.union([z.string().trim().max(10_000), z.null()]),
+  ).default({}),
 });
 
 export class ProviderConfigError extends Error {
@@ -204,6 +229,71 @@ export async function readWorkspaceProviderConfigs(workspacePath) {
   }
 
   return configs;
+}
+
+export async function readWorkspaceModelSettings(workspacePath) {
+  const [agentConfig, providerConfigs, workspaceEnvironment] = await Promise.all([
+    readDefaultAgentConfig(workspacePath),
+    readWorkspaceProviderConfigs(workspacePath),
+    readWorkspaceEnvironment(workspacePath),
+  ]);
+  const configsById = new Map(providerConfigs.map((config) => [config.id, config]));
+
+  return {
+    provider: agentConfig.provider,
+    model: agentConfig.model,
+    providers: Object.entries(PROVIDER_SPECS).map(([id, spec]) => {
+      const workspaceKey = spec.envVarName
+        ? normalizeEnvironmentValue(workspaceEnvironment[spec.envVarName])
+        : null;
+      const serverKey = spec.envVarName ? readEnvValue(spec.envVarName) : null;
+      const config = configsById.get(id);
+      return {
+        id,
+        name: PROVIDER_LABELS[id] ?? id,
+        kind: spec.kind,
+        local: Boolean(spec.local),
+        defaultModel: spec.defaultModel,
+        model: config?.model ?? null,
+        enabled: config?.enabled ?? null,
+        apiKeySource: workspaceKey ? "workspace" : serverKey ? "server" : "none",
+      };
+    }),
+  };
+}
+
+export async function updateWorkspaceModelSettings(workspacePath, input) {
+  const result = ModelSettingsUpdateSchema.safeParse(input);
+  if (!result.success) {
+    throw new ProviderConfigError(
+      result.error.issues.map((issue) => issue.message).join(" "),
+    );
+  }
+
+  const { provider, model, apiKeys } = result.data;
+  if (provider !== "auto") {
+    const providerSpec = getProviderSpec(provider);
+    if (!providerSpec || providerSpec.kind !== "language") {
+      throw new ProviderConfigError(`Unsupported language provider "${provider}".`);
+    }
+    await createProviderConfig(workspacePath, provider);
+  }
+
+  const environmentChanges = {};
+  for (const [providerId, value] of Object.entries(apiKeys)) {
+    const providerSpec = getProviderSpec(providerId);
+    if (!providerSpec?.envVarName) {
+      throw new ProviderConfigError(`Provider "${providerId}" does not accept an API key.`);
+    }
+    environmentChanges[providerSpec.envVarName] = value;
+  }
+
+  await createDefaultAgentConfig(workspacePath, {
+    provider,
+    model: provider === "auto" ? "auto" : model,
+  });
+  await updateWorkspaceEnvironment(workspacePath, environmentChanges);
+  return readWorkspaceModelSettings(workspacePath);
 }
 
 export async function resolveWorkspaceLanguageSelection(workspacePath) {

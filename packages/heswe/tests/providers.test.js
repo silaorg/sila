@@ -7,7 +7,9 @@ import {
   createDefaultAgentConfig,
   createProviderConfig,
   loadWorkspaceLanguageProvider,
+  readWorkspaceModelSettings,
   resolveWorkspaceLanguageSelection,
+  updateWorkspaceModelSettings,
 } from "../src/providers.js";
 
 const PROVIDER_ENV_NAMES = [
@@ -203,4 +205,46 @@ test("explicitly disabled provider stays disabled even when env key exists", asy
     model: "kimi-k2.5",
     apiKeyEnvName: "KIMI_API_KEY",
   });
+});
+
+test("workspace model settings update selection without exposing API keys", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  await createDefaultAgentConfig(workspacePath);
+
+  const settings = await updateWorkspaceModelSettings(workspacePath, {
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    apiKeys: {
+      anthropic: "anthropic-secret",
+      exa: "exa-secret",
+    },
+  });
+
+  assert.equal(settings.provider, "anthropic");
+  assert.equal(settings.model, "claude-sonnet-4-6");
+  assert.equal(
+    settings.providers.find((provider) => provider.id === "anthropic")?.apiKeySource,
+    "workspace",
+  );
+  assert.equal(JSON.stringify(settings).includes("anthropic-secret"), false);
+  assert.deepEqual(await resolveWorkspaceLanguageSelection(workspacePath), {
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    apiKeyEnvName: "ANTHROPIC_API_KEY",
+  });
+
+  await updateWorkspaceModelSettings(workspacePath, {
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    apiKeys: { anthropic: null },
+  });
+  const removed = await readWorkspaceModelSettings(workspacePath);
+  assert.equal(
+    removed.providers.find((provider) => provider.id === "anthropic")?.apiKeySource,
+    "none",
+  );
+  assert.equal(
+    removed.providers.find((provider) => provider.id === "exa")?.apiKeySource,
+    "workspace",
+  );
 });

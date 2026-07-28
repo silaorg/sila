@@ -1,0 +1,58 @@
+import type { TtabsTheme } from 'ttabs-svelte';
+
+// Kept in sync with the original Sila Skeleton theme.
+export const SKELETON_THEME: TtabsTheme = {
+	name: 'skeleton',
+	variables: {
+		'--ttabs-panel-bg': 'var(--color-surface-50-950)',
+		'--ttabs-tab-bar-bg': 'color-mix(in oklab, var(--color-surface-50-950) 50%, var(--color-surface-100-900) 50%)',
+		'--ttabs-active-tab-bg': 'var(--color-surface-50-950)',
+		'--ttabs-active-tab-indicator': 'var(--color-primary-500)',
+		'--ttabs-grid-bg': 'var(--color-surface-200-800)',
+		'--ttabs-grid-border': 'none',
+		'--ttabs-column-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
+		'--ttabs-tab-text-color': 'var(--color-surface-700-300)',
+		'--ttabs-tab-active-text-color': 'var(--color-surface-900-50)',
+		'--ttabs-content-bg': 'var(--color-surface-50-950)',
+		'--ttabs-content-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
+		'--ttabs-content-text-color': 'var(--color-surface-900-50)',
+		'--ttabs-content-padding': 'var(--spacing, 1rem)',
+		'--ttabs-tab-header-padding': '0.65rem 0.75rem 0.6rem 0.75rem',
+		'--ttabs-tab-header-font-size': '0.85rem',
+		'--ttabs-tab-bar-border': '1px solid var(--color-surface-100-900)',
+		'--ttabs-tab-indicator-size': '1px',
+		'--ttabs-tab-indicator-offset': '0',
+		'--ttabs-transition-duration': '0',
+		'--ttabs-transition-timing': 'ease',
+		'--ttabs-show-close-button': 'flex',
+		'--ttabs-close-button-color': 'var(--color-surface-500)',
+		'--ttabs-close-button-hover-color': 'var(--color-surface-700-300)',
+		'--ttabs-close-button-hover-bg': 'var(--color-surface-100-900)',
+		'--ttabs-tab-close-margin': '6px',
+		'--ttabs-tab-close-size': '18px',
+		'--ttabs-tab-close-border-radius': '9999px',
+		'--ttabs-error-bg': 'var(--color-error-100-900)',
+		'--ttabs-error-color': 'var(--color-error-500)',
+		'--ttabs-error-border': 'var(--default-border-width, 1px) solid var(--color-error-500)',
+		'--ttabs-error-padding': 'var(--spacing, 1rem)',
+		'--ttabs-error-border-radius': '0',
+		'--ttabs-empty-state-color': 'var(--color-surface-500)',
+		'--ttabs-resizer-hover-color': 'var(--color-primary-500)',
+		'--ttabs-drop-indicator-color': 'var(--color-primary-500)',
+		'--ttabs-drop-target-outline': '2px dashed color-mix(in oklab, var(--color-primary-500) 50%, transparent)',
+		'--ttabs-split-indicator-color': 'color-mix(in oklab, var(--color-surface-200-800) 70%, transparent)',
+		'--ttabs-row-resizer-size': '6px',
+		'--ttabs-row-resizer-offset': '-3px',
+		'--ttabs-column-resizer-size': '6px',
+		'--ttabs-column-resizer-offset': '-3px',
+		'--ttabs-drop-indicator-width': '4px',
+		'--ttabs-drop-indicator-offset': '-2px',
+		'--ttabs-border-radius': '0',
+		'--ttabs-border-radius-sm': '0'
+	},
+	classes: {
+		panel: 'overflow-hidden',
+		'tab-header-focused': 'focus-visible:outline-none',
+		'tab-bar': '!border-b-0'
+	}
+};

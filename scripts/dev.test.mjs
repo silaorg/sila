@@ -34,6 +34,15 @@ test("reserves an API-first port pair and exports matching URLs", async (context
   assert.equal(environment.HESWE_DASHBOARD_PORT, "43301");
   assert.equal(environment.HESWE_DASHBOARD_URL, "http://127.0.0.1:43301");
   assert.equal(environment.BETTER_AUTH_URL, "http://127.0.0.1:43301");
+  assert.equal(environment.BETTER_AUTH_SECRET.length, 64);
+  assert.equal(
+    environment.WORKSPACES_PATH,
+    join(process.cwd(), ".data", "workspaces"),
+  );
+  assert.equal(
+    environment.HESWE_AUTH_DB_PATH,
+    join(process.cwd(), ".data", "heswe.sqlite"),
+  );
 });
 
 test("API-only mode uses the API origin for authentication", () => {
@@ -44,6 +53,25 @@ test("API-only mode uses the API origin for authentication", () => {
   });
 
   assert.equal(environment.BETTER_AUTH_URL, "http://127.0.0.1:43300");
+});
+
+test("preserves explicit runtime storage paths", () => {
+  const environment = createDevEnvironment({
+    apiPort: 43300,
+    dashboardPort: 43301,
+    environment: {
+      BETTER_AUTH_SECRET: "explicit-local-auth-secret-123456789",
+      WORKSPACES_PATH: "/srv/heswe/workspaces",
+      HESWE_AUTH_DB_PATH: "/srv/heswe/auth.sqlite",
+    },
+  });
+
+  assert.equal(
+    environment.BETTER_AUTH_SECRET,
+    "explicit-local-auth-secret-123456789",
+  );
+  assert.equal(environment.WORKSPACES_PATH, "/srv/heswe/workspaces");
+  assert.equal(environment.HESWE_AUTH_DB_PATH, "/srv/heswe/auth.sqlite");
 });
 
 test("a second launcher advances to the next pair", async (context) => {

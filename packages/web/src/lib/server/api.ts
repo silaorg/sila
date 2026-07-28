@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, isHttpError } from '@sveltejs/kit';
 import { AppWorkspaceError } from 'heswe/app-workspace-service';
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
@@ -11,6 +11,9 @@ export function requireUser(locals: App.Locals) {
 }
 
 export function apiError(cause: unknown): never {
+	if (isHttpError(cause)) {
+		throw cause;
+	}
 	if (cause instanceof AppWorkspaceError) {
 		if (cause.code === 'not_found') {
 			error(404, cause.message);

@@ -18,13 +18,15 @@ To run the hosted app locally:
 
 ```sh
 npm install
-WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev
+npm run dev
 ```
 
 The first instance uses `http://127.0.0.1:39900` for the API and
 `http://127.0.0.1:39901` for the dashboard. If either port is busy, the
 launcher tries the next pair: `39902/39903`, then `39904/39905`, and so on.
 Run `npm run dev:ports` to rediscover the URLs for this checkout.
+
+Local workspaces and authentication data default to `.data/`.
 
 Use `npm run dev:api-only` when the dashboard entry point is not needed.
 

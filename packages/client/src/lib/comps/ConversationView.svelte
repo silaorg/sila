@@ -1,114 +1,99 @@
 <script lang="ts">
-	import Command from 'lucide-svelte/icons/command';
 	import Send from 'lucide-svelte/icons/send';
 	import Sparkles from 'lucide-svelte/icons/sparkles';
-	import type { ThreadDetail } from '../api-client';
+	import { useWorkspaceUi } from '../workspace-ui-context';
 
-	let {
-		thread,
-		currentWorkspaceId,
-		loading,
-		sending,
-		errorMessage,
-		draft = $bindable(),
-		onCreateWorkspace,
-		onCreateThread,
-		onSubmitMessage
-	}: {
-		thread: ThreadDetail | null;
-		currentWorkspaceId: string | null;
-		loading: boolean;
-		sending: boolean;
-		errorMessage: string;
-		draft: string;
-		onCreateWorkspace: () => void;
-		onCreateThread: () => void | Promise<void>;
-		onSubmitMessage: (event: SubmitEvent) => void | Promise<void>;
-	} = $props();
+	let { threadId }: { threadId: string } = $props();
+	const workspaceUi = useWorkspaceUi();
+	let draft = $state('');
+	let sending = $state(false);
+	let localError = $state('');
+	let thread = $derived(workspaceUi.getThread(threadId));
+	let threadSummary = $derived(
+		workspaceUi.threads.find((item) => item.id === threadId) ?? null
+	);
+
+	$effect(() => {
+		if (threadSummary && !thread) void workspaceUi.openThread(threadId);
+	});
+
+	async function submitMessage(event: SubmitEvent) {
+		event.preventDefault();
+		const text = draft.trim();
+		if (!text || sending) return;
+		draft = '';
+		sending = true;
+		localError = '';
+		try {
+			await workspaceUi.sendMessage(threadId, text);
+		} catch (error) {
+			draft = text;
+			localError = error instanceof Error ? error.message : 'Could not send the message.';
+		} finally {
+			sending = false;
+		}
+	}
 </script>
 
-<section class="flex min-h-screen min-w-0 flex-col">
-	<header class="flex h-16 items-center border-b border-surface-200-800 bg-surface-50-950 px-6">
-		<h1 class="truncate font-semibold">{thread?.title ?? 'Heswe'}</h1>
-	</header>
-
-	{#if errorMessage}
-		<div class="m-4 rounded-lg bg-error-50-950 p-3 text-sm text-error-700-300" role="alert">
-			{errorMessage}
+<section class="relative flex h-full min-w-0 flex-col overflow-hidden">
+	{#if workspaceUi.errorMessage || localError}
+		<div class="mx-4 mt-4 rounded-lg bg-error-50-950 p-3 text-sm text-error-700-300" role="alert">
+			{localError || workspaceUi.errorMessage}
 		</div>
 	{/if}
 
-	{#if loading}
-		<div class="flex flex-1 items-center justify-center text-surface-500">Connecting…</div>
-	{:else if !currentWorkspaceId}
-		<div class="flex flex-1 items-center justify-center p-8">
-			<div class="max-w-md text-center">
-				<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
-					<Command size={22} />
-				</div>
-				<h2 class="mt-5 text-2xl font-semibold">Create your first workspace</h2>
-				<p class="mt-2 text-surface-600-400">
-					Keep different teams, projects, or parts of your life in separate workspaces.
-				</p>
-				<button
-					class="btn preset-filled-primary-500 mt-6"
-					type="button"
-					onclick={onCreateWorkspace}
-				>
-					Create workspace
-				</button>
-			</div>
-		</div>
-	{:else if !thread}
-		<div class="flex flex-1 items-center justify-center p-8">
-			<div class="max-w-md text-center">
-				<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
-					<Sparkles size={22} />
-				</div>
-				<h2 class="mt-5 text-2xl font-semibold">Start a new thread</h2>
-				<p class="mt-2 text-surface-600-400">
-					Ask Heswe to research, create, analyze, or handle work for your team.
-				</p>
-				<button
-					class="btn preset-filled-primary-500 mt-6"
-					type="button"
-					onclick={() => void onCreateThread()}
-				>
-					New thread
-				</button>
-			</div>
-		</div>
+	{#if !thread}
+		<div class="flex flex-1 items-center justify-center text-surface-500">Opening thread…</div>
 	{:else}
-		<div class="min-h-0 flex-1 overflow-y-auto">
-			<div class="mx-auto flex max-w-3xl flex-col gap-5 px-5 py-8">
+		<div class="min-h-0 flex-1 overflow-y-auto selectable-text">
+			<div class="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
+				{#if thread.messages.length === 0}
+					<div class="flex min-h-[50vh] items-center justify-center">
+						<div class="max-w-lg text-center">
+							<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
+								<Sparkles size={22} />
+							</div>
+							<h2 class="mt-5 text-2xl font-semibold">Start this thread</h2>
+							<p class="mt-2 text-surface-600-400">
+								Ask Heswe to research, create, analyze, or handle work.
+							</p>
+						</div>
+					</div>
+				{/if}
+
 				{#each thread.messages as message, index (`${message.id}-${index}`)}
 					{#if message.role === 'user'}
-						<div class="ml-auto max-w-[85%] rounded-2xl bg-surface-100-900 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">
+						<div class="ml-auto max-w-[85%] rounded-2xl bg-surface-100-900 px-4 py-3 text-sm leading-6 whitespace-pre-wrap">
 							{message.text}
 						</div>
 					{:else}
-						<div class="flex max-w-[85%] gap-3 px-1 py-2">
-							<Sparkles size={20} class="mt-0.5 shrink-0" />
+						<div class="flex max-w-[90%] gap-3 px-1 py-2">
+							<div class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-100-900">
+								<Sparkles size={16} />
+							</div>
 							<div class="min-w-0">
-								<p class="mb-2 text-sm font-semibold">Heswe</p>
-								<div class="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</div>
+								<p class="mb-1.5 text-sm font-semibold">Heswe</p>
+								<div class="text-sm leading-6 whitespace-pre-wrap">{message.text}</div>
 							</div>
 						</div>
 					{/if}
 				{/each}
+
 				{#if sending}
-					<div class="flex max-w-[85%] gap-3 px-1 py-2 text-surface-500">
-						<Sparkles size={20} class="mt-0.5 shrink-0" />
+					<div class="flex max-w-[90%] gap-3 px-1 py-2 text-surface-500">
+						<div class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary-100-900">
+							<Sparkles size={16} />
+						</div>
 						<div class="text-sm">Heswe is working…</div>
 					</div>
 				{/if}
 			</div>
 		</div>
 
-		<form class="bg-surface-50-950 p-4 pt-2" onsubmit={onSubmitMessage}>
-			<div class="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-surface-300-700 p-2">
+		<form class="bg-surface-50-950 px-4 pb-5 pt-2" onsubmit={submitMessage}>
+			<div class="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-surface-300-700 bg-surface-50-950 p-2 shadow-sm focus-within:border-primary-500">
 				<textarea
-					class="min-h-12 flex-1 resize-none border-0 bg-transparent px-2 py-2 focus:ring-0"
+					class="min-h-12 flex-1 resize-none border-0 bg-transparent px-2 py-2 outline-none focus:ring-0"
 					rows="1"
 					bind:value={draft}
 					placeholder="Message Heswe…"
@@ -121,8 +106,8 @@
 					}}
 				></textarea>
 				<button
-					class="flex size-10 shrink-0 items-center justify-center rounded-full text-primary-500 hover:preset-tonal disabled:text-surface-400-600"
 					type="submit"
+					class="flex size-10 shrink-0 items-center justify-center rounded-full text-primary-500 hover:preset-tonal disabled:text-surface-400-600"
 					disabled={sending || !draft.trim()}
 					aria-label="Send"
 					title="Send"

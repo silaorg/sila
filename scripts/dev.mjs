@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   mkdirSync,
   readFileSync,
@@ -194,9 +194,15 @@ export function createDevEnvironment({
   dashboardEnabled = true,
   host = DEV_HOST,
   environment = process.env,
+  worktree = process.cwd(),
 }) {
   const apiUrl = `http://${host}:${apiPort}`;
   const dashboardUrl = `http://${host}:${dashboardPort}`;
+  const resolvedWorktree = resolve(worktree);
+  const dataPath = join(resolvedWorktree, ".data");
+  const localAuthSecret = createHash("sha256")
+    .update(`heswe-dev:${resolvedWorktree}`)
+    .digest("hex");
 
   return {
     ...environment,
@@ -206,6 +212,11 @@ export function createDevEnvironment({
     HESWE_DASHBOARD_PORT: String(dashboardPort),
     HESWE_DASHBOARD_URL: dashboardUrl,
     BETTER_AUTH_URL: dashboardEnabled ? dashboardUrl : apiUrl,
+    BETTER_AUTH_SECRET: environment.BETTER_AUTH_SECRET || localAuthSecret,
+    WORKSPACES_PATH:
+      environment.WORKSPACES_PATH || join(dataPath, "workspaces"),
+    HESWE_AUTH_DB_PATH:
+      environment.HESWE_AUTH_DB_PATH || join(dataPath, "heswe.sqlite"),
   };
 }
 
@@ -229,7 +240,7 @@ export async function runDev({ dashboardEnabled = true } = {}) {
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   const child = spawn(
     npmCommand,
-    ["run", dashboardEnabled ? "dev:services" : "dev:api-services"],
+    ["run", dashboardEnabled ? "dev:services" : "dev:api"],
     {
       env: createDevEnvironment(reservation),
       stdio: "inherit",

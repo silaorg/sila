@@ -7,7 +7,12 @@ import {
   loadChannelTools,
 } from "../channels/channel-utils.js";
 import { readConfig } from "../config.js";
-import { loadWorkspaceLanguageProvider } from "../providers.js";
+import {
+  loadWorkspaceLanguageProvider,
+  ProviderConfigError,
+  readWorkspaceModelSettings,
+  updateWorkspaceModelSettings,
+} from "../providers.js";
 import { enqueueSerialTask } from "../serial-task-queue.js";
 import { getPublicMessageText } from "./app-message.js";
 import { AppThreadRepository } from "./app-thread-repository.js";
@@ -44,6 +49,24 @@ export class AppWorkspaceService {
   async getWorkspace() {
     const config = await readConfig(this.#workspacePath);
     return { name: config.name };
+  }
+
+  getModelSettings() {
+    return readWorkspaceModelSettings(this.#workspacePath);
+  }
+
+  async updateModelSettings(input) {
+    let settings;
+    try {
+      settings = await updateWorkspaceModelSettings(this.#workspacePath, input);
+    } catch (error) {
+      if (error instanceof ProviderConfigError) {
+        throw new AppWorkspaceError("invalid_input", error.message, { cause: error });
+      }
+      throw error;
+    }
+    await this.#resetAgentRuntime();
+    return settings;
   }
 
   listThreads(userId) {
@@ -113,6 +136,15 @@ export class AppWorkspaceService {
     }
     const runtime = await this.#agentRuntimePromise;
     this.#agentRuntimePromise = null;
+    await runtime?.stop?.();
+  }
+
+  async #resetAgentRuntime() {
+    await Promise.allSettled(this.#queues.values());
+    const runtimePromise = this.#agentRuntimePromise;
+    this.#agentRuntimePromise = null;
+    if (!runtimePromise) return;
+    const runtime = await runtimePromise.catch(() => null);
     await runtime?.stop?.();
   }
 

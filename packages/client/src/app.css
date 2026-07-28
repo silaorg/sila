@@ -9,3 +9,26 @@
 	--heading-font-family: 'Inter', system-ui, sans-serif;
 	--default-font-family: 'Inter', system-ui, sans-serif;
 }
+
+html,
+body {
+	@apply h-full overflow-hidden;
+}
+
+body {
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+button,
+input,
+textarea {
+	font: inherit;
+}
+
+.selectable-text,
+input,
+textarea {
+	-webkit-user-select: text;
+	user-select: text;
+}

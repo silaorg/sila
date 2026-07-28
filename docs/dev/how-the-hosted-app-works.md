@@ -21,7 +21,7 @@ browser
 Run the app from the repository root:
 
 ```sh
-WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev
+npm run dev
 ```
 
 The launcher reserves the first available API/dashboard port pair. The first
@@ -35,6 +35,10 @@ serves the UI, API, authentication, and event stream. The local dashboard port
 is a proxy to that server, which keeps browser requests same-origin without
 duplicating application state. Run `npm run dev:api-only` to omit the dashboard
 proxy.
+
+The launcher keeps local workspaces and authentication data under `.data/`.
+Set `WORKSPACES_PATH` or `HESWE_AUTH_DB_PATH` only when custom locations are
+needed.
 
 ## Authentication
 

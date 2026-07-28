@@ -31,6 +31,23 @@ export type WorkspaceChange = {
 	threadId?: string;
 };
 
+export type WorkspaceProviderSetting = {
+	id: string;
+	name: string;
+	kind: 'language' | 'search' | 'viz';
+	local: boolean;
+	defaultModel: string | null;
+	model: string | null;
+	enabled: boolean | null;
+	apiKeySource: 'workspace' | 'server' | 'none';
+};
+
+export type WorkspaceModelSettings = {
+	provider: string;
+	model: string;
+	providers: WorkspaceProviderSetting[];
+};
+
 export function listWorkspaces() {
 	return requestJson<WorkspaceSummary[]>('/api/workspaces');
 }
@@ -47,6 +64,30 @@ export function selectWorkspace(workspaceId: string) {
 	return requestJson<WorkspaceSummary>(
 		`/api/workspaces/${encodeURIComponent(workspaceId)}/select`,
 		{ method: 'POST' }
+	);
+}
+
+export function getWorkspaceModelSettings(workspaceId: string) {
+	return requestJson<WorkspaceModelSettings>(
+		workspaceUrl(workspaceId, '/settings/models')
+	);
+}
+
+export function updateWorkspaceModelSettings(
+	workspaceId: string,
+	settings: {
+		provider: string;
+		model: string;
+		apiKeys: Record<string, string | null>;
+	}
+) {
+	return requestJson<WorkspaceModelSettings>(
+		workspaceUrl(workspaceId, '/settings/models'),
+		{
+			method: 'PUT',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify(settings)
+		}
 	);
 }
 

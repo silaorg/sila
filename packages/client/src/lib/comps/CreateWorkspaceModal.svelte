@@ -51,7 +51,7 @@
 	></button>
 
 	<div
-		class="relative w-full max-w-lg rounded-xl border border-surface-100-900 bg-surface-50-950 p-6 shadow-xl"
+		class="relative w-full max-w-lg rounded-xl border border-surface-200-800 bg-surface-50-950 p-6 shadow-2xl"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="create-workspace-title"
@@ -60,7 +60,7 @@
 			<div>
 				<h2 id="create-workspace-title" class="text-lg font-semibold">Create workspace</h2>
 				<p class="mt-1 text-sm text-surface-500">
-					Workspaces keep their threads, files, skills, and tools separate.
+					Keep a project, team, or part of your life in its own space.
 				</p>
 			</div>
 			<button
@@ -74,7 +74,7 @@
 
 		<form class="mt-5 space-y-4" onsubmit={submit}>
 			<label class="form-control block">
-				<span class="label-text">Workspace name</span>
+				<span class="label-text text-sm font-medium">Workspace name</span>
 				<input
 					class="input mt-2 w-full"
 					type="text"
@@ -88,7 +88,7 @@
 			</label>
 
 			<div>
-				<p class="text-sm">Choose a simple name that describes its purpose.</p>
+				<p class="text-sm text-surface-600-400">Choose a simple name that describes its purpose.</p>
 				<div class="mt-2 flex flex-wrap gap-2">
 					{#each presets as preset}
 						<button

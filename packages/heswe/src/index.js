@@ -14,9 +14,10 @@ export {
 } from "./create-workspace.js";
 export {
   getWorkspaceEnvPath,
+  readEnvValue,
   readWorkspaceEnvironment,
   readWorkspaceEnvValue,
-  readEnvValue,
+  updateWorkspaceEnvironment,
 } from "./env.js";
 export { Workspace } from "./workspace.js";
 export {
@@ -28,8 +29,10 @@ export {
   getProvidersPath,
   loadWorkspaceLanguageProvider,
   readDefaultAgentConfig,
+  readWorkspaceModelSettings,
   readWorkspaceProviderConfigs,
   resolveWorkspaceLanguageSelection,
+  updateWorkspaceModelSettings,
 } from "./providers.js";
 export {
   buildRuntimePathEnvironment,

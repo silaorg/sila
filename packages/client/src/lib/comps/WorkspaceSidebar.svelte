@@ -1,104 +1,92 @@
 <script lang="ts">
 	import LogOut from 'lucide-svelte/icons/log-out';
-	import MessageSquarePlus from 'lucide-svelte/icons/message-square-plus';
-	import type { ThreadSummary, WorkspaceSummary } from '../api-client';
+	import SquarePen from 'lucide-svelte/icons/square-pen';
+	import { useWorkspaceUi } from '../workspace-ui-context';
+	import SidebarToggle from './SidebarToggle.svelte';
+	import WorkspaceSettingsButton from './WorkspaceSettingsButton.svelte';
 	import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
 
-	let {
-		user,
-		workspaces,
-		currentWorkspaceId,
-		threads,
-		selectedThreadId,
-		loading,
-		switchingWorkspace,
-		onSelectWorkspace,
-		onCreateWorkspace,
-		onSelectThread,
-		onCreateThread,
-		onSignOut
-	}: {
-		user: { name: string; email: string };
-		workspaces: WorkspaceSummary[];
-		currentWorkspaceId: string | null;
-		threads: ThreadSummary[];
-		selectedThreadId: string | null;
-		loading: boolean;
-		switchingWorkspace: boolean;
-		onSelectWorkspace: (workspaceId: string) => void | Promise<void>;
-		onCreateWorkspace: () => void;
-		onSelectThread: (threadId: string) => void | Promise<void>;
-		onCreateThread: () => void | Promise<void>;
-		onSignOut: () => void | Promise<void>;
-	} = $props();
-
-	const avatarLabel = $derived((user.name || user.email).slice(0, 1).toUpperCase());
+	const workspaceUi = useWorkspaceUi();
+	const avatarLabel = $derived(
+		(workspaceUi.user.name || workspaceUi.user.email).slice(0, 1).toUpperCase()
+	);
 </script>
 
-<aside class="flex min-h-0 flex-col border-r border-surface-200-800 bg-surface-100-900/50">
-	<header class="flex h-16 items-center border-b border-surface-200-800 px-3">
-		<div class="min-w-0 flex-1">
-			<WorkspaceSwitcher
-				{workspaces}
-				{currentWorkspaceId}
-				disabled={switchingWorkspace}
-				onSelect={onSelectWorkspace}
-				onCreate={onCreateWorkspace}
-			/>
+<div
+	class="flex h-full flex-col overflow-hidden bg-surface-100-900/50"
+	class:hidden={!workspaceUi.layout.sidebar.isOpen}
+	data-testid="sidebar"
+>
+	<div class="min-h-min px-2 py-2">
+		<div class="flex w-full items-center pb-3">
+			<div class="min-w-0 flex-1">
+				<WorkspaceSwitcher />
+			</div>
+			<div class="flex items-center">
+				<WorkspaceSettingsButton />
+				<SidebarToggle />
+			</div>
 		</div>
-	</header>
 
-	<div class="flex items-center justify-between px-4 pb-3 pt-2">
-		<h2 class="font-semibold">Threads</h2>
 		<button
-			class="rounded p-2 hover:preset-tonal disabled:opacity-40"
 			type="button"
-			onclick={() => void onCreateThread()}
-			aria-label="New thread"
-			title="New thread"
-			disabled={!currentWorkspaceId || switchingWorkspace}
-		><MessageSquarePlus size={18} /></button>
+			class="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
+			disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
+			onclick={() => void workspaceUi.createThread()}
+		>
+			<span class="flex h-6 w-6 shrink-0 items-center justify-center">
+				<SquarePen size={18} />
+			</span>
+			<span class="min-w-0 flex-1 truncate text-sm">New thread</span>
+			<span class="pr-1 text-[11px] text-surface-500">⌘T</span>
+		</button>
 	</div>
 
-	<nav class="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4" aria-label="Threads">
-		{#each threads as thread (thread.id)}
-			<button
-				type="button"
-				class={[
-					'w-full rounded-xl px-3 py-3 text-left transition',
-					selectedThreadId === thread.id
-						? 'bg-surface-200-800'
-						: 'hover:bg-surface-100-900'
-				]}
-				onclick={() => void onSelectThread(thread.id)}
-			>
-				<span class="block truncate text-sm font-medium">{thread.title}</span>
-				<span class="mt-1 block truncate text-xs text-surface-500">
-					{thread.preview || 'No messages yet'}
-				</span>
-			</button>
-		{/each}
-		{#if !loading && currentWorkspaceId && threads.length === 0}
-			<p class="px-3 py-6 text-sm text-surface-500">Create a thread to get started.</p>
-		{/if}
-	</nav>
+	<div class="px-3 pb-2 pt-2">
+		<h2 class="text-xs font-semibold uppercase tracking-wide text-surface-500">Threads</h2>
+	</div>
 
-	<footer class="border-t border-surface-200-800 p-4">
+	<div class="min-h-0 flex-1 overflow-y-auto px-2">
+		<ul class="space-y-1">
+			{#each workspaceUi.threads as thread (thread.id)}
+				<li class="relative">
+					<button
+						type="button"
+						class="w-full truncate rounded px-2 py-1.5 text-left text-sm hover:preset-tonal"
+						title={thread.title}
+						onclick={() => void workspaceUi.openThread(thread.id)}
+					>
+						{thread.title}
+					</button>
+				</li>
+			{/each}
+		</ul>
+
+		{#if !workspaceUi.loading && workspaceUi.currentWorkspaceId && workspaceUi.threads.length === 0}
+			<p class="px-2 py-5 text-sm text-surface-500">Create a thread to get started.</p>
+		{/if}
+	</div>
+
+	<div class="border-t border-surface-200-800 p-3">
 		<div class="flex items-center gap-3">
-			<div class="flex size-9 items-center justify-center rounded-full bg-primary-100-900 font-semibold">
+			<div class="flex size-8 items-center justify-center rounded-full bg-primary-100-900 text-sm font-semibold">
 				{avatarLabel}
 			</div>
 			<div class="min-w-0 flex-1">
-				<p class="truncate text-sm font-medium">{user.name}</p>
-				<p class="truncate text-xs text-surface-500">{user.email}</p>
+				<p class="truncate text-sm font-medium">
+					{workspaceUi.user.name || workspaceUi.user.email}
+				</p>
+				<p class="truncate text-[11px] text-surface-500">{workspaceUi.user.email}</p>
 			</div>
 			<button
-				class="rounded p-2 hover:preset-tonal"
 				type="button"
-				onclick={() => void onSignOut()}
+				class="rounded p-2 hover:preset-tonal"
 				aria-label="Sign out"
 				title="Sign out"
-			><LogOut size={18} /></button>
+				onclick={() => void workspaceUi.signOut()}
+			>
+				<LogOut size={18} />
+			</button>
 		</div>
-	</footer>
-</aside>
+	</div>
+</div>

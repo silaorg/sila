@@ -28,6 +28,7 @@
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
     "better-auth": "^1.6.25",
-    "lucide-svelte": "^0.453.0"
+    "lucide-svelte": "^0.453.0",
+    "ttabs-svelte": "^0.0.15"
   }
 }

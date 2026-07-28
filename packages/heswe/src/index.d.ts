@@ -43,6 +43,8 @@ export class AppWorkspaceError extends Error {
 export class AppWorkspaceService {
   constructor(options: AppWorkspaceServiceOptions);
   getWorkspace(): Promise<{ name: string }>;
+  getModelSettings(): Promise<WorkspaceModelSettings>;
+  updateModelSettings(input: unknown): Promise<WorkspaceModelSettings>;
   listThreads(userId: string): Promise<AppThreadSummary[]>;
   createThread(userId: string, input?: { title?: unknown }): Promise<AppThreadSummary>;
   getThread(userId: string, threadId: string): Promise<AppThread>;
@@ -83,6 +85,37 @@ export function readWorkspaceEnvValue(
 ): Promise<string | null>;
 
 export function readEnvValue(name: string): string | null;
+
+export function updateWorkspaceEnvironment(
+  workspacePath: string,
+  changes: Record<string, string | null>,
+): Promise<void>;
+
+export type WorkspaceProviderSetting = {
+  id: string;
+  name: string;
+  kind: "language" | "search" | "viz";
+  local: boolean;
+  defaultModel: string | null;
+  model: string | null;
+  enabled: boolean | null;
+  apiKeySource: "workspace" | "server" | "none";
+};
+
+export type WorkspaceModelSettings = {
+  provider: string;
+  model: string;
+  providers: WorkspaceProviderSetting[];
+};
+
+export function readWorkspaceModelSettings(
+  workspacePath: string,
+): Promise<WorkspaceModelSettings>;
+
+export function updateWorkspaceModelSettings(
+  workspacePath: string,
+  input: unknown,
+): Promise<WorkspaceModelSettings>;
 
 export type RuntimePaths = {
   workspacePath: string;
