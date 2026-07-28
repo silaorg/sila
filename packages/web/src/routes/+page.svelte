@@ -1,13 +1,13 @@
 <svelte:head>
-	<title>Silaland Web</title>
+	<title>Heswe Web</title>
 	<meta
 		name="description"
-		content="Thin SvelteKit wrapper for the shared Sila client."
+		content="Thin SvelteKit wrapper for the shared Heswe client."
 	/>
 </svelte:head>
 
 <script lang="ts">
-	import { SilaApp } from '@sila/client';
+	import { HesweApp } from '@heswe/client';
 </script>
 
-<SilaApp />
+<HesweApp />

@@ -1,1 +1,1 @@
-# How agents work in Sila
+# How agents work in Heswe

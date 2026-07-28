@@ -1,4 +1,4 @@
-export { default as SilaApp } from './comps/SilaApp.svelte';
+export { default as HesweApp } from './comps/HesweApp.svelte';
 export { default as ClientStateProvider } from './comps/ClientStateProvider.svelte';
 export { default as Loading } from './comps/basic/loading.svelte';
 export { default as LoadingOverlay } from './comps/basic/loading-overlay.svelte';

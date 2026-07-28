@@ -32,7 +32,7 @@ What is still missing is the dedicated Slack-specific runtime boundary:
 
 ## Current Problem
 
-`packages/silaland/src/channels/slack-channel.js` currently mixes:
+`packages/heswe/src/channels/slack-channel.js` currently mixes:
 
 - Slack transport (`@slack/bolt`, auth, inbound handlers, outbound send)
 - thread storage (`messages.json`, `state.json`)
@@ -166,6 +166,6 @@ This keeps rollout safe and keeps the upgrade path open without changing channel
 
 ## Open Questions
 
-- Should we keep a flat agent package API (`@sila/agents`) or expose provider-specific entry points as subpaths?
+- Should we keep a flat agent package API (`@heswe/agents`) or expose provider-specific entry points as subpaths?
 - Do we want one process per thread or a pooled worker model?
 - Should thread files move from `messages.json` to append-only `messages.jsonl` in same change or later?

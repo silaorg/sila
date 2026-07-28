@@ -1,3 +1,5 @@
-# Silaland
+# Heswe
 
-Silaland is AI that does things for teams and businesses. Silaland is hosted on Linux servers with AI agents that can use CLI and different tools to help with tasks - analyzing data, checking logs, reviewing code, support tickets and more. Users communicate with the agents from different channels including Slack and Telegram. It's possible to setup any channel from chats to phone calls and email.
+Heswe means healthy, smart, and wealthy. It is AI that does things for teams and businesses.
+
+Heswe runs on Linux servers with AI agents that can use the CLI and other tools to analyze data, check logs, review code, handle support tickets, and more. Users communicate with agents through channels including Slack and Telegram. Other channels can support chat, phone calls, and email.

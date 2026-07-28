@@ -1,4 +1,4 @@
-# How lands works in Sila
+# How lands works in Heswe
 
 Lands as stored in directories with a stucture similar to this:
 ```text

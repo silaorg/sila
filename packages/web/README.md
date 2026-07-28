@@ -1,6 +1,6 @@
-# Sila Web - SvelteKit app
+# Heswe Web - SvelteKit app
 
-A thin SvelteKit wrapper around `@sila/client`.
+A thin SvelteKit wrapper around `@heswe/client`.
 
 This package hosts the web version of the frontend, while shared UI and client logic live in `packages/client`.
 

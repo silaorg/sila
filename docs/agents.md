@@ -1,6 +1,6 @@
 # Agents
 
-Agents in Sila can be extended with [skills](skills.md) and [tools](tools.md).
+Agents in Heswe can be extended with [skills](skills.md) and [tools](tools.md).
 
 They are similar, but not the same:
 

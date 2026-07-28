@@ -43,7 +43,7 @@ This keeps the system simple and aligned with the current direction where the ga
 
 ### 1) Google Cloud setup
 
-- create a Google Cloud project for Silaland integrations
+- create a Google Cloud project for Heswe integrations
 - enable Google Docs API and Google Sheets API
 - configure OAuth consent screen
 - create OAuth client credentials (web and possibly desktop style for admin setup)

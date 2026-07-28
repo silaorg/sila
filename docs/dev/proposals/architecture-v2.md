@@ -1,8 +1,8 @@
-# Sila2 Architecture V2 (Simplified Proposal)
+# Heswe Architecture V2 (Simplified Proposal)
 
 ## Summary
 
-Sila2 uses a filesystem-first thread runtime:
+Heswe uses a filesystem-first thread runtime:
 
 - `workspace-gateway` receives messages from Telegram/Slack.
 - Gateway spawns an agent process inside the target thread folder.
@@ -109,7 +109,7 @@ Agent -> Gateway (request send):
   "event_id": "evt_out_01",
   "provider": "telegram",
   "thread_id": "123",
-  "text": "Hello from Sila2",
+  "text": "Hello from Heswe",
   "files": []
 }
 ```

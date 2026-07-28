@@ -6,7 +6,7 @@ Draft note: this proposal is a reference for direction and architecture discussi
 
 Add `packages/client` as the shared frontend client package and `packages/web` as a thin SvelteKit wrapper for hosted lands.
 
-Serve its data from a small land web API that lives with `packages/silaland` and uses `neorest` for both request/response and live updates.
+Serve its data from a small land web API that lives with `packages/heswe` and uses `neorest` for both request/response and live updates.
 
 Reuse the thin-web-shell idea from v1, but do not bring back the old `client` / `core` / `server` split or the `socket.io` sync model.
 
@@ -20,7 +20,7 @@ It should also fit a `users/` directory in the land so each user can have their 
 ## Current State
 
 - v2 is filesystem-first.
-- `packages/silaland/src/land.js` starts channel runtimes in-process.
+- `packages/heswe/src/land.js` starts channel runtimes in-process.
 - thread data lives under `channels/<provider>/<thread-id>/`.
 - there is no browser app or HTTP API yet.
 
@@ -76,7 +76,7 @@ Keep the same frontend split as old Sila:
 - small app state around the current session and selected thread
 
 Most durable frontend logic should move into `packages/client` over time, only as needed.
-The server API should stay in `packages/silaland`.
+The server API should stay in `packages/heswe`.
 
 The first product split should be:
 
@@ -85,9 +85,9 @@ The first product split should be:
 
 ### 2. Add a land web API beside the land runtime
 
-Add a small server module inside `packages/silaland`, for example:
+Add a small server module inside `packages/heswe`, for example:
 
-- `packages/silaland/src/app-server.js`
+- `packages/heswe/src/app-server.js`
 
 This server should:
 
@@ -232,7 +232,7 @@ We should not reuse:
 
 ## Implementation Plan
 
-1. Add a minimal land app server in `packages/silaland` using `neorest`.
+1. Add a minimal land app server in `packages/heswe` using `neorest`.
 2. Add a small internal event bus so thread changes can broadcast to the API.
 3. Define the `users/<user-id>/` land layout for per-user channels and future user-scoped resources.
 4. Add an `app` channel runtime with user-scoped threads under each user.
