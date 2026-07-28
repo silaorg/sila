@@ -6,7 +6,10 @@ const MAX_RESULT_LIMIT = 10;
 const EXCERPT_LIMIT = 900;
 const MAX_SEARCH_RESPONSE_BYTES = 2 * 1024 * 1024;
 
-export function createToolWebSearch() {
+export function createToolWebSearch(options = {}) {
+  const environment = options.environment && typeof options.environment === "object"
+    ? options.environment
+    : {};
   return {
     name: "web_search",
     description: "Search the web using Exa and return top results with short excerpts.",
@@ -40,7 +43,7 @@ export function createToolWebSearch() {
         return { status: "failed", error: "query must be a non-empty string." };
       }
 
-      const apiKey = readApiKeyFromEnvironment();
+      const apiKey = readApiKeyFromEnvironment(environment);
       if (!apiKey) {
         return {
           status: "failed",
@@ -129,11 +132,12 @@ export function createToolWebSearch() {
   };
 }
 
-function readApiKeyFromEnvironment() {
-  if (typeof process.env.EXA_API_KEY !== "string") {
+function readApiKeyFromEnvironment(environment) {
+  const value = environment.EXA_API_KEY ?? process.env.EXA_API_KEY;
+  if (typeof value !== "string") {
     return null;
   }
-  const trimmed = process.env.EXA_API_KEY.trim();
+  const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
 

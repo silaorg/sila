@@ -14,6 +14,7 @@ const BUILT_IN_TOOL_NAME_SET = new Set(BUILT_IN_TOOL_NAMES);
  *   threadId?: string;
  *   channel?: string;
  *   sourcePath?: string | null;
+ *   environment?: Record<string, string>;
  *   defaultCwd?: string;
  *   logger?: Pick<Console, "warn">;
  * }} [options]
@@ -41,6 +42,7 @@ export async function loadWorkspaceTools(workspacePath, options = {}) {
         threadId: options.threadId,
         channel: options.channel,
         sourcePath: options.sourcePath ?? null,
+        environment: options.environment ?? {},
         defaultCwd: options.defaultCwd ?? options.threadDir ?? workspacePath,
         logger,
       });
@@ -74,6 +76,7 @@ export async function loadWorkspaceTools(workspacePath, options = {}) {
  *   threadId?: string;
  *   channel?: string;
  *   sourcePath: string | null;
+ *   environment: Record<string, string>;
  *   defaultCwd: string;
  *   logger: Pick<Console, "warn">;
  * }} context
@@ -98,6 +101,7 @@ async function loadToolPackage(packageDirPath, packageFilePath, context) {
       threadId: context.threadId ?? "",
       channel: context.channel ?? "",
       sourcePath: context.sourcePath,
+      environment: { ...context.environment },
       defaultCwd: context.defaultCwd,
       logger: context.logger,
     })

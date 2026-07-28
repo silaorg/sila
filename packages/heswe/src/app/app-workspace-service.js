@@ -2,6 +2,7 @@ import path from "node:path";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import { ThreadStore } from "../agent-runtime/thread-store.js";
 import {
+  loadChannelEnvironment,
   loadChannelInstructions,
   loadChannelTools,
 } from "../channels/channel-utils.js";
@@ -149,6 +150,8 @@ async function createDefaultAgentRuntime(workspacePath, threadStore) {
     loadInstructions: (input) =>
       loadChannelInstructions(workspacePath, "app", input.threadDir),
     loadTools: (input) => loadChannelTools(workspacePath, "app", input),
+    loadEnvironment: (input) =>
+      loadChannelEnvironment(workspacePath, input.threadDir),
   });
 }
 

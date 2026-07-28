@@ -45,6 +45,7 @@ export class SlackChannel {
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+   *    loadEnvironment?: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
    *    defaultCwd: string;
    *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    * }} */
@@ -62,6 +63,7 @@ export class SlackChannel {
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+   *    loadEnvironment?: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
    *    defaultCwd: string;
    *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    * }>} [dependencies]
@@ -108,23 +110,35 @@ export class SlackChannel {
     }
     this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
-    const app = await this.#dependencies.createSlackApp({
-      botUserOAuthToken,
-      appLevelToken,
-    });
-    this.#app = app;
-    this.#transport = new SlackTransport(app);
+    try {
+      const app = await this.#dependencies.createSlackApp({
+        botUserOAuthToken,
+        appLevelToken,
+      });
+      this.#app = app;
+      this.#transport = new SlackTransport(app);
 
-    app.message(async ({ message }) => {
-      await this.#handleIncomingMessage(message);
-    });
+      app.message(async ({ message }) => {
+        await this.#handleIncomingMessage(message);
+      });
 
-    const auth = await app.client.auth.test();
-    this.#botUserId = auth.user_id || null;
+      const auth = await app.client.auth.test();
+      this.#botUserId = auth.user_id || null;
 
-    await app.start();
-    this.#isRunning = true;
-    console.log(`Slack channel connected at: ${this.#path}`);
+      await app.start();
+      this.#isRunning = true;
+      console.log(`Slack channel connected at: ${this.#path}`);
+    } catch (startError) {
+      try {
+        await this.stop();
+      } catch (stopError) {
+        throw new AggregateError(
+          [startError, stopError],
+          "Slack channel startup and cleanup both failed.",
+        );
+      }
+      throw startError;
+    }
   }
 
   async stop() {

@@ -30,7 +30,7 @@ inside each workspace before use as thread directory names.
 
 Production requires:
 
-- `BETTER_AUTH_SECRET`: a stable, high-entropy secret.
+- `BETTER_AUTH_SECRET`: a stable, high-entropy secret of at least 32 characters.
 - `BETTER_AUTH_URL`: the public origin, such as `https://app.heswe.com`.
 - `WORKSPACES_PATH`: the parent directory for user-created workspaces.
 
@@ -40,21 +40,24 @@ server environment.
 
 ## API and live updates
 
-- `GET /api/workspace` returns the selected workspace or `null`.
 - `GET` and `POST /api/workspaces` list and create owned workspaces.
 - `POST /api/workspaces/:id/select` selects an owned workspace.
-- `GET` and `POST /api/threads` list and create user threads.
-- `GET /api/threads/:id` returns one projected thread.
-- `POST /api/threads/:id/messages` sends a message through the agent runtime.
+- `GET` and `POST /api/workspaces/:id/threads` list and create user threads.
+- `GET /api/workspaces/:id/threads/:threadId` returns one projected thread.
+- `POST /api/workspaces/:id/threads/:threadId/messages` sends a message through
+  the agent runtime.
 - `GET /api/events` opens the authenticated event stream.
 
-Commands use normal HTTP. The event stream sends user-scoped invalidation
-events, and the client refetches the affected snapshot. It does not stream
-private event records or model tokens.
+Commands use normal HTTP. Thread URLs include the workspace ID, so concurrent
+tabs cannot accidentally act on another tab's selected workspace. The event
+stream sends user- and workspace-scoped invalidation events, and the client
+refetches the affected snapshot. It does not stream private event records or
+model tokens.
 
 Thread API projections expose message IDs, timestamps, roles, and display text.
 They do not expose filesystem paths, raw log events, tool details, or message
-metadata.
+metadata. Server logs record message lengths and lifecycle events, not
+conversation content.
 
 ## Deployment
 

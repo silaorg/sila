@@ -491,6 +491,49 @@ test("slack runtime keeps top-level channel messages in separate local conversat
   assert.notEqual(runtimeCalls[0].threadId, runtimeCalls[1].threadId);
 });
 
+test("slack startup cleans up its runtime and can be retried", async () => {
+  const { channelPath } = await createWorkspaceFixture();
+  const mockApp = createMockSlackApp();
+  let appAttempts = 0;
+  let runtimeStops = 0;
+  const channel = new SlackChannel(
+    channelPath,
+    {
+      channel: "slack",
+      enabled: true,
+      botUserOAuthToken: "xoxb-test",
+      appLevelToken: "xapp-test",
+    },
+    {
+      async createSlackApp() {
+        appAttempts += 1;
+        if (appAttempts === 1) {
+          throw new Error("socket unavailable");
+        }
+        return mockApp;
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: false, answer: "" };
+          },
+          async stop() {
+            runtimeStops += 1;
+          },
+        };
+      },
+    },
+  );
+
+  await assert.rejects(channel.run(), /socket unavailable/);
+  assert.equal(runtimeStops, 1);
+
+  await channel.run();
+  await channel.stop();
+  assert.equal(appAttempts, 2);
+  assert.equal(runtimeStops, 2);
+});
+
 async function createWorkspaceFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-slack-channel-"));
   const workspacePath = path.join(root, "workspace");

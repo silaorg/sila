@@ -23,7 +23,6 @@ test("users start without a workspace and cannot see another user's workspaces",
   const { registry } = await createRegistry();
 
   assert.deepEqual(await registry.list("user-a"), []);
-  assert.equal(await registry.getCurrent("user-a"), null);
 
   const created = await registry.create("user-a", { name: "Personal" });
   assert.equal(created.name, "Personal");
@@ -39,7 +38,7 @@ test("creating a workspace scaffolds it and selects it for that user", async () 
   const { registry } = await createRegistry();
 
   const first = await registry.create("user-a", { name: "Personal" });
-  const firstCurrent = await registry.getCurrent("user-a");
+  const firstCurrent = await registry.get("user-a", first.id);
   assert.ok(firstCurrent);
   assert.equal(firstCurrent.id, first.id);
   assert.equal(firstCurrent.name, "Personal");
@@ -63,7 +62,7 @@ test("creating a workspace scaffolds it and selects it for that user", async () 
   );
 
   const second = await registry.create("user-a", { name: "Work" });
-  const secondCurrent = await registry.getCurrent("user-a");
+  const secondCurrent = await registry.get("user-a", second.id);
   assert.ok(secondCurrent);
   assert.equal(secondCurrent.id, second.id);
   const listed = await registry.list("user-a");
@@ -77,9 +76,8 @@ test("creating a workspace scaffolds it and selects it for that user", async () 
   assert.equal("workspacePath" in listed[0], false);
 
   await registry.select("user-a", first.id);
-  const selectedCurrent = await registry.getCurrent("user-a");
-  assert.ok(selectedCurrent);
-  assert.equal(selectedCurrent.id, first.id);
+  const selected = await registry.list("user-a");
+  assert.equal(selected.find((workspace) => workspace.isCurrent)?.id, first.id);
 });
 
 test("workspace creation validates names and rejects duplicates per user", async () => {

@@ -21,7 +21,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	try {
 		const body = await readJsonObject(request);
 		const workspace = await createWorkspace(user.id, body);
-		appEvents.publish({ type: 'workspace.changed', userId: user.id });
+		appEvents.publish({
+			type: 'workspace.changed',
+			userId: user.id,
+			workspaceId: workspace.id
+		});
 		return json(workspace, { status: 201 });
 	} catch (cause) {
 		apiError(cause);

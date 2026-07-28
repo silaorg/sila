@@ -25,6 +25,35 @@ describe("executeTool", () => {
     ok(result.error.includes("Command failed"));
   });
 
+  it("uses isolated runtime paths for stateless commands", async () => {
+    const previousWorkspacePath = process.env.WORKSPACE_PATH;
+    const previousThreadPath = process.env.THREAD_PATH;
+    const previousSourcePath = process.env.SOURCE_PATH;
+    process.env.WORKSPACE_PATH = "/stale/workspace";
+    process.env.THREAD_PATH = "/stale/thread";
+    process.env.SOURCE_PATH = "/stale/source";
+
+    try {
+      const tool = createToolExecuteCommand({
+        environment: {
+          WORKSPACE_PATH: "/runtime/workspace",
+          THREAD_PATH: "/runtime/thread",
+        },
+      });
+      const result = await tool.handler({
+        command: "printf '%s|%s|%s' \"$WORKSPACE_PATH\" \"$THREAD_PATH\" \"$SOURCE_PATH\"",
+      });
+      strictEqual(result.stdout, "/runtime/workspace|/runtime/thread|");
+      strictEqual(process.env.WORKSPACE_PATH, "/stale/workspace");
+      strictEqual(process.env.THREAD_PATH, "/stale/thread");
+      strictEqual(process.env.SOURCE_PATH, "/stale/source");
+    } finally {
+      restoreEnvironment("WORKSPACE_PATH", previousWorkspacePath);
+      restoreEnvironment("THREAD_PATH", previousThreadPath);
+      restoreEnvironment("SOURCE_PATH", previousSourcePath);
+    }
+  });
+
   it("routes shell control commands to PTY manager", async () => {
     const calls = [];
     const ptyManager = {
@@ -85,3 +114,11 @@ describe("executeTool", () => {
     ok(result.error.includes("Interactive terminal programs are blocked"));
   });
 });
+
+function restoreEnvironment(name, value) {
+  if (typeof value === "string") {
+    process.env[name] = value;
+  } else {
+    delete process.env[name];
+  }
+}

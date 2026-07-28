@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { betterAuth } from 'better-auth';
 import { getMigrations } from 'better-auth/db/migration';
 import { dev } from '$app/environment';
@@ -15,9 +16,12 @@ export function getAuth() {
 async function createAuth() {
 	const secret =
 		process.env.BETTER_AUTH_SECRET ??
-		(dev ? 'heswe-development-secret-change-before-production' : '');
+		(dev ? randomBytes(32).toString('base64url') : '');
 	if (!secret) {
 		throw new Error('BETTER_AUTH_SECRET is required.');
+	}
+	if (secret.length < 32) {
+		throw new Error('BETTER_AUTH_SECRET must contain at least 32 characters.');
 	}
 
 	const auth = betterAuth({

@@ -70,3 +70,39 @@ export function createProviderConfig(
   providerId: string,
   overrides?: { enabled?: boolean; model?: string },
 ): Promise<{ provider: string; enabled: boolean; model?: string }>;
+
+export function getWorkspaceEnvPath(workspacePath: string): string;
+
+export function readWorkspaceEnvironment(
+  workspacePath: string,
+): Promise<Record<string, string>>;
+
+export function readWorkspaceEnvValue(
+  workspacePath: string,
+  name: string,
+): Promise<string | null>;
+
+export function readEnvValue(name: string): string | null;
+
+export type RuntimePaths = {
+  workspacePath: string;
+  threadPath: string | null;
+  sourcePath: string | null;
+};
+
+export function resolveRuntimePaths(
+  input: { workspacePath: string; threadPath?: string },
+): Promise<RuntimePaths>;
+
+export function buildRuntimePathsInstructionBlock(
+  runtimePaths: RuntimePaths,
+): string;
+
+export function buildRuntimePathEnvironment(
+  runtimePaths: RuntimePaths,
+): Record<string, string>;
+
+export function mergeRuntimePathEnvironment(
+  baseEnvironment: Record<string, string | undefined>,
+  runtimeEnvironment: Record<string, string>,
+): Record<string, string | undefined>;

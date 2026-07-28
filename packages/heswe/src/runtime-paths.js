@@ -42,22 +42,32 @@ Use workspace root for channels and assets.
 
 /**
  * @param {{ workspacePath: string; threadPath: string | null; sourcePath: string | null }} runtimePaths
- * @returns {void}
+ * @returns {Record<string, string>}
  */
-export function applyRuntimePathEnvironment(runtimePaths) {
-  process.env.WORKSPACE_PATH = runtimePaths.workspacePath;
-
+export function buildRuntimePathEnvironment(runtimePaths) {
+  const environment = {
+    WORKSPACE_PATH: runtimePaths.workspacePath,
+  };
   if (runtimePaths.threadPath) {
-    process.env.THREAD_PATH = runtimePaths.threadPath;
-  } else {
-    delete process.env.THREAD_PATH;
+    environment.THREAD_PATH = runtimePaths.threadPath;
   }
-
   if (runtimePaths.sourcePath) {
-    process.env.SOURCE_PATH = runtimePaths.sourcePath;
-  } else {
-    delete process.env.SOURCE_PATH;
+    environment.SOURCE_PATH = runtimePaths.sourcePath;
   }
+  return environment;
+}
+
+/**
+ * @param {Record<string, string | undefined>} baseEnvironment
+ * @param {Record<string, string>} runtimeEnvironment
+ * @returns {Record<string, string | undefined>}
+ */
+export function mergeRuntimePathEnvironment(baseEnvironment, runtimeEnvironment) {
+  const environment = { ...baseEnvironment };
+  delete environment.WORKSPACE_PATH;
+  delete environment.THREAD_PATH;
+  delete environment.SOURCE_PATH;
+  return { ...environment, ...runtimeEnvironment };
 }
 
 async function resolveSourcePath(workspacePath) {

@@ -25,11 +25,12 @@ export const BUILT_IN_TOOL_NAMES = Object.freeze([
 
 export function createChatAgent(lang, options) {
   const tools = [
-    createToolWebSearch(),
+    createToolWebSearch({ environment: options.environment }),
     createToolExecuteCommand({
       sessionId: options.threadId,
       ptyManager: options.ptyManager,
       defaultCwd: options.defaultCwd,
+      environment: options.environment,
     }),
     createToolSeeImage({
       lang,

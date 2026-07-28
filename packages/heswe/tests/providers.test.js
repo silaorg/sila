@@ -114,6 +114,7 @@ test("loadWorkspaceLanguageProvider supports kimi via openai-like adapter", asyn
   assert.equal(provider.provider, "kimi");
   assert.equal(provider.model, "kimi-k2.5");
   assert.ok(provider.lang);
+  assert.equal(process.env.KIMI_API_KEY, undefined);
 });
 
 test("resolveWorkspaceLanguageSelection rejects non-language providers for default agent", async () => {
@@ -154,6 +155,39 @@ test("resolveWorkspaceLanguageSelection auto-detects providers from env without 
     model: "kimi-k2.5",
     apiKeyEnvName: "KIMI_API_KEY",
   });
+  assert.equal(process.env.KIMI_API_KEY, undefined);
+});
+
+test("workspace provider keys remain isolated across concurrent workspaces", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  const openAiWorkspace = path.join(tempRoot, "openai");
+  const kimiWorkspace = path.join(tempRoot, "kimi");
+  await Promise.all([
+    createDefaultAgentConfig(openAiWorkspace),
+    createDefaultAgentConfig(kimiWorkspace),
+  ]);
+  await Promise.all([
+    fs.writeFile(
+      path.join(openAiWorkspace, ".env"),
+      "OPENAI_API_KEY=openai-workspace-key\n",
+      "utf8",
+    ),
+    fs.writeFile(
+      path.join(kimiWorkspace, ".env"),
+      "KIMI_API_KEY=kimi-workspace-key\n",
+      "utf8",
+    ),
+  ]);
+
+  const [openAiSelection, kimiSelection] = await Promise.all([
+    resolveWorkspaceLanguageSelection(openAiWorkspace),
+    resolveWorkspaceLanguageSelection(kimiWorkspace),
+  ]);
+
+  assert.equal(openAiSelection.provider, "openai");
+  assert.equal(kimiSelection.provider, "kimi");
+  assert.equal(process.env.OPENAI_API_KEY, undefined);
+  assert.equal(process.env.KIMI_API_KEY, undefined);
 });
 
 test("explicitly disabled provider stays disabled even when env key exists", async () => {

@@ -6,7 +6,7 @@ import { getWorkspaceContext } from '$lib/server/workspace-service';
 export const GET: RequestHandler = async ({ locals, params }) => {
 	const user = requireUser(locals);
 	try {
-		const { service } = await getWorkspaceContext(user.id);
+		const { service } = await getWorkspaceContext(user.id, params.workspaceId);
 		return json(await service.getThread(user.id, params.threadId));
 	} catch (cause) {
 		apiError(cause);

@@ -1,9 +1,6 @@
-export type WorkspaceInfo = {
+export type WorkspaceSummary = {
 	id: string;
 	name: string;
-};
-
-export type WorkspaceSummary = WorkspaceInfo & {
 	createdAt: string;
 	isCurrent: boolean;
 };
@@ -30,12 +27,9 @@ export type ThreadDetail = ThreadSummary & {
 
 export type WorkspaceChange = {
 	type: 'thread.created' | 'thread.changed' | 'workspace.changed';
+	workspaceId?: string;
 	threadId?: string;
 };
-
-export function getWorkspace() {
-	return requestJson<WorkspaceInfo | null>('/api/workspace');
-}
 
 export function listWorkspaces() {
 	return requestJson<WorkspaceSummary[]>('/api/workspaces');
@@ -56,31 +50,40 @@ export function selectWorkspace(workspaceId: string) {
 	);
 }
 
-export function listThreads() {
-	return requestJson<ThreadSummary[]>('/api/threads');
+export function listThreads(workspaceId: string) {
+	return requestJson<ThreadSummary[]>(workspaceUrl(workspaceId, '/threads'));
 }
 
-export function createThread(title?: string) {
-	return requestJson<ThreadSummary>('/api/threads', {
+export function createThread(workspaceId: string, title?: string) {
+	return requestJson<ThreadSummary>(workspaceUrl(workspaceId, '/threads'), {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify({ title })
 	});
 }
 
-export function getThread(threadId: string) {
-	return requestJson<ThreadDetail>(`/api/threads/${encodeURIComponent(threadId)}`);
+export function getThread(workspaceId: string, threadId: string) {
+	return requestJson<ThreadDetail>(
+		workspaceUrl(workspaceId, `/threads/${encodeURIComponent(threadId)}`)
+	);
 }
 
-export function sendMessage(threadId: string, text: string) {
+export function sendMessage(workspaceId: string, threadId: string, text: string) {
 	return requestJson<{ responded: boolean; answer: string }>(
-		`/api/threads/${encodeURIComponent(threadId)}/messages`,
+		workspaceUrl(
+			workspaceId,
+			`/threads/${encodeURIComponent(threadId)}/messages`
+		),
 		{
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({ text })
 		}
 	);
+}
+
+function workspaceUrl(workspaceId: string, suffix = '') {
+	return `/api/workspaces/${encodeURIComponent(workspaceId)}${suffix}`;
 }
 
 export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) => void) {
@@ -93,7 +96,8 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 				typeof change === 'object' &&
 				(change.type === 'thread.created' ||
 					change.type === 'thread.changed' ||
-					change.type === 'workspace.changed')
+					change.type === 'workspace.changed') &&
+				(change.workspaceId === undefined || typeof change.workspaceId === 'string')
 			) {
 				onChange(change);
 			}

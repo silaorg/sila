@@ -54,6 +54,7 @@ export class TelegramChannel {
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+   *    loadEnvironment?: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
    *    defaultCwd: string;
    *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -72,6 +73,7 @@ export class TelegramChannel {
    *    instructions: string;
    *    loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *    loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+   *    loadEnvironment?: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
    *    defaultCwd: string;
    *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
    *  storeTelegramFile: typeof storeTelegramFile;
@@ -115,35 +117,48 @@ export class TelegramChannel {
       return;
     }
 
-    const openAiApiKey = await readOpenAiApiKey(this.#path);
-    this.#openai = openAiApiKey ? this.#dependencies.createOpenAiClient(openAiApiKey) : null;
-    this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
+    try {
+      const openAiApiKey = await readOpenAiApiKey(this.#path);
+      this.#openai = openAiApiKey ? this.#dependencies.createOpenAiClient(openAiApiKey) : null;
+      this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
-    const bot = await this.#dependencies.createBot(this.#config.botToken);
-    this.#bot = bot;
-    this.#transport = new TelegramTransport(bot);
-    if (typeof bot.catch === "function") {
-      bot.catch((error) => {
-        console.error("Telegram bot handler error:", error);
-      });
+      const bot = await this.#dependencies.createBot(this.#config.botToken);
+      this.#bot = bot;
+      this.#transport = new TelegramTransport(bot);
+      if (typeof bot.catch === "function") {
+        bot.catch((error) => {
+          console.error("Telegram bot handler error:", error);
+        });
+      }
+
+      bot.on("text", async (ctx) => this.#handleTextMessage(ctx));
+      bot.on("document", async (ctx) => this.#handleAttachmentMessage(ctx, "document"));
+      bot.on("photo", async (ctx) => this.#handleAttachmentMessage(ctx, "photo"));
+      bot.on("video", async (ctx) => this.#handleAttachmentMessage(ctx, "video"));
+      bot.on("audio", async (ctx) => this.#handleAudioMessage(ctx, "audio"));
+      bot.on("voice", async (ctx) => this.#handleAudioMessage(ctx, "voice"));
+
+      const botInfo = await bot.telegram.getMe();
+      const botIdentity = botInfo?.username
+        ? `@${botInfo.username}`
+        : `id=${botInfo?.id ?? "unknown"}`;
+      console.log(`Telegram bot authenticated as ${botIdentity}.`);
+
+      this.#isRunning = true;
+      void Promise.resolve(bot.launch({ dropPendingUpdates: false }))
+        .catch((error) => this.#handleLaunchFailure(bot, error));
+      console.log(`Telegram channel connected at: ${this.#path}`);
+    } catch (startError) {
+      try {
+        await this.stop();
+      } catch (stopError) {
+        throw new AggregateError(
+          [startError, stopError],
+          "Telegram channel startup and cleanup both failed.",
+        );
+      }
+      throw startError;
     }
-
-    bot.on("text", async (ctx) => this.#handleTextMessage(ctx));
-    bot.on("document", async (ctx) => this.#handleAttachmentMessage(ctx, "document"));
-    bot.on("photo", async (ctx) => this.#handleAttachmentMessage(ctx, "photo"));
-    bot.on("video", async (ctx) => this.#handleAttachmentMessage(ctx, "video"));
-    bot.on("audio", async (ctx) => this.#handleAudioMessage(ctx, "audio"));
-    bot.on("voice", async (ctx) => this.#handleAudioMessage(ctx, "voice"));
-
-    const botInfo = await bot.telegram.getMe();
-    const botIdentity = botInfo?.username ? `@${botInfo.username}` : `id=${botInfo?.id ?? "unknown"}`;
-    console.log(`Telegram bot authenticated as ${botIdentity}.`);
-
-    this.#isRunning = true;
-    void bot.launch({ dropPendingUpdates: false }).catch((error) => {
-      console.error("Telegram channel launch failed:", error);
-    });
-    console.log(`Telegram channel connected at: ${this.#path}`);
   }
 
   async stop() {
@@ -316,6 +331,18 @@ export class TelegramChannel {
       sendIntermediateReply: reply.sendWorking,
       sendReply: reply.sendFinal,
     });
+  }
+
+  async #handleLaunchFailure(bot, error) {
+    console.error("Telegram channel launch failed:", error);
+    if (this.#bot !== bot) {
+      return;
+    }
+    try {
+      await this.stop();
+    } catch (stopError) {
+      console.error("Telegram channel cleanup after launch failure failed:", stopError);
+    }
   }
 }
 

@@ -6,7 +6,9 @@ import { test } from "node:test";
 import { enqueueSerialTask } from "../src/serial-task-queue.js";
 import {
   formatWorkingMessage,
+  loadChannelEnvironment,
   loadChannelInstructions,
+  loadChannelTools,
   readOpenAiApiKey,
   sanitizeThreadId,
   saveThreadState,
@@ -29,6 +31,7 @@ test("readOpenAiApiKey loads from workspace .env", async () => {
   try {
     const key = await readOpenAiApiKey(channelPath);
     assert.equal(key, "sk-env-file");
+    assert.equal(process.env.OPENAI_API_KEY, undefined);
   } finally {
     if (typeof previous === "string") {
       process.env.OPENAI_API_KEY = previous;
@@ -156,7 +159,7 @@ test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {
   }
 });
 
-test("loadChannelInstructions exports runtime paths into process env", async () => {
+test("channel runtime paths are returned without mutating process env", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
   const workspacePath = path.join(tempRoot, "workspace");
   const channelPath = path.join(workspacePath, "channels", "telegram");
@@ -168,13 +171,18 @@ test("loadChannelInstructions exports runtime paths into process env", async () 
   const previousWorkspacePath = process.env.WORKSPACE_PATH;
   const previousThreadPath = process.env.THREAD_PATH;
   const previousSourcePath = process.env.SOURCE_PATH;
+  process.env.WORKSPACE_PATH = "unchanged-workspace";
+  process.env.THREAD_PATH = "unchanged-thread";
   process.env.SOURCE_PATH = sourcePath;
 
   try {
-    await loadChannelInstructions(workspacePath, "telegram", threadPath);
-    assert.equal(process.env.WORKSPACE_PATH, await fs.realpath(workspacePath));
-    assert.equal(process.env.THREAD_PATH, await fs.realpath(threadPath));
-    assert.equal(process.env.SOURCE_PATH, await fs.realpath(sourcePath));
+    const environment = await loadChannelEnvironment(workspacePath, threadPath);
+    assert.equal(environment.WORKSPACE_PATH, await fs.realpath(workspacePath));
+    assert.equal(environment.THREAD_PATH, await fs.realpath(threadPath));
+    assert.equal(environment.SOURCE_PATH, await fs.realpath(sourcePath));
+    assert.equal(process.env.WORKSPACE_PATH, "unchanged-workspace");
+    assert.equal(process.env.THREAD_PATH, "unchanged-thread");
+    assert.equal(process.env.SOURCE_PATH, sourcePath);
   } finally {
     if (typeof previousWorkspacePath === "string") {
       process.env.WORKSPACE_PATH = previousWorkspacePath;
@@ -192,6 +200,51 @@ test("loadChannelInstructions exports runtime paths into process env", async () 
       delete process.env.SOURCE_PATH;
     }
   }
+});
+
+test("channel tools receive isolated workspace environment", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
+  const workspacePath = path.join(tempRoot, "workspace");
+  const threadPath = path.join(workspacePath, "channels", "app", "thread-1");
+  const toolPath = path.join(workspacePath, "tools", "inspect-environment");
+  await fs.mkdir(threadPath, { recursive: true });
+  await fs.mkdir(toolPath, { recursive: true });
+  await fs.writeFile(
+    path.join(workspacePath, ".env"),
+    "WORKSPACE_ONLY_KEY=workspace-secret\n",
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(toolPath, "package.json"),
+    JSON.stringify({ type: "module", main: "index.js" }),
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(toolPath, "index.js"),
+    [
+      "export function createTool(context) {",
+      "  return {",
+      "    name: 'inspect_environment',",
+      "    description: 'Inspect the supplied environment.',",
+      "    parameters: { type: 'object', properties: {} },",
+      "    async handler() { return context.environment; },",
+      "  };",
+      "}",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const tools = await loadChannelTools(workspacePath, "app", {
+    threadDir: threadPath,
+    threadId: "thread-1",
+  });
+  const environment = await tools[0].handler({});
+
+  assert.equal(environment.WORKSPACE_ONLY_KEY, "workspace-secret");
+  assert.equal(environment.WORKSPACE_PATH, await fs.realpath(workspacePath));
+  assert.equal(environment.THREAD_PATH, await fs.realpath(threadPath));
+  assert.equal(process.env.WORKSPACE_ONLY_KEY, undefined);
 });
 
 function sleep(ms) {

@@ -24,6 +24,10 @@ Basic shape of a tool package
 - Add a `package.json` with `type: "module"` and `main: "./index.js"`.
 - Export either `createTool(context)`, a default factory, or a default tool object.
 - Return a tool object with `name`, `description`, `parameters`, and `handler`.
+- The factory context provides `workspacePath`, `threadDir`, `threadId`,
+  `channel`, `sourcePath`, `defaultCwd`, `environment`, and `logger`.
+- Use the supplied context and `environment` for subprocesses. Do not read or
+  mutate global runtime-path variables in `process.env`.
 
 Tool design guidelines
 - Keep one tool focused on one job.

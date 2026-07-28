@@ -14,7 +14,8 @@ export {
 } from "./create-workspace.js";
 export {
   getWorkspaceEnvPath,
-  loadWorkspaceEnvironment,
+  readWorkspaceEnvironment,
+  readWorkspaceEnvValue,
   readEnvValue,
 } from "./env.js";
 export { Workspace } from "./workspace.js";
@@ -31,8 +32,9 @@ export {
   resolveWorkspaceLanguageSelection,
 } from "./providers.js";
 export {
-  applyRuntimePathEnvironment,
+  buildRuntimePathEnvironment,
   buildRuntimePathsInstructionBlock,
+  mergeRuntimePathEnvironment,
   resolveRuntimePaths,
 } from "./runtime-paths.js";
 export {

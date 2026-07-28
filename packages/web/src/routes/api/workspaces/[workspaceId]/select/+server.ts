@@ -8,7 +8,11 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 	const user = requireUser(locals);
 	try {
 		const workspace = await selectWorkspace(user.id, params.workspaceId);
-		appEvents.publish({ type: 'workspace.changed', userId: user.id });
+		appEvents.publish({
+			type: 'workspace.changed',
+			userId: user.id,
+			workspaceId: workspace.id
+		});
 		return json(workspace);
 	} catch (cause) {
 		apiError(cause);

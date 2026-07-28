@@ -1,5 +1,6 @@
 import path from "node:path";
 import {
+  loadChannelEnvironment,
   loadChannelInstructions,
   loadChannelLanguageProvider,
   loadChannelTools,
@@ -16,6 +17,7 @@ import {
  *    instructions: string;
  *    loadInstructions: (input: { threadId: string; threadDir: string }) => Promise<string>;
  *    loadTools: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+ *    loadEnvironment: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
  *    defaultCwd: string;
  *  }) => import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime;
  * }} input
@@ -33,5 +35,7 @@ export async function createChannelAgentRuntime(input) {
       loadChannelInstructions(workspacePath, input.channelName, threadDir),
     loadTools: (runtimeInput) =>
       loadChannelTools(workspacePath, input.channelName, runtimeInput),
+    loadEnvironment: ({ threadDir }) =>
+      loadChannelEnvironment(workspacePath, threadDir),
   });
 }

@@ -7,10 +7,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 	const user = requireUser(locals);
 	try {
 		const body = await readJsonObject(request);
-		const { service } = await getWorkspaceContext(user.id);
-		return json(
-			await service.sendMessage(user.id, params.threadId, body.text)
-		);
+		const { service } = await getWorkspaceContext(user.id, params.workspaceId);
+		return json(await service.sendMessage(user.id, params.threadId, body.text));
 	} catch (cause) {
 		apiError(cause);
 	}

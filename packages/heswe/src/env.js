@@ -7,31 +7,18 @@ export function getWorkspaceEnvPath(workspacePath) {
   return path.join(workspacePath, DOT_ENV_FILE_NAME);
 }
 
-export async function loadWorkspaceEnvironment(workspacePath) {
-  const envPath = getWorkspaceEnvPath(workspacePath);
+export async function readWorkspaceEnvironment(workspacePath) {
+  return await readDotEnvFile(getWorkspaceEnvPath(workspacePath)) ?? {};
+}
 
-  if (typeof process.loadEnvFile === "function") {
-    try {
-      process.loadEnvFile(envPath);
-      return;
-    } catch (error) {
-      if (error && error.code === "ENOENT") {
-        return;
-      }
-      throw error;
-    }
+export async function readWorkspaceEnvValue(workspacePath, name) {
+  const inherited = readEnvValue(name);
+  if (inherited) {
+    return inherited;
   }
-
-  const parsed = await readDotEnvFile(envPath);
-  if (!parsed) {
-    return;
-  }
-
-  for (const [name, value] of Object.entries(parsed)) {
-    if (typeof process.env[name] === "undefined") {
-      process.env[name] = value;
-    }
-  }
+  const environment = await readWorkspaceEnvironment(workspacePath);
+  const value = environment[name];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 export function readEnvValue(name) {

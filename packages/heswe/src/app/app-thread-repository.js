@@ -40,8 +40,14 @@ export class AppThreadRepository {
     const threadDir = this.getThreadDir(userId, id);
     const now = new Date().toISOString();
     const state = { id, title, createdAt: now, updatedAt: now };
-    await fs.mkdir(threadDir, { recursive: true });
-    await writeJsonFile(path.join(threadDir, "state.json"), state);
+    await fs.mkdir(path.dirname(threadDir), { recursive: true });
+    await fs.mkdir(threadDir);
+    try {
+      await writeJsonFile(path.join(threadDir, "state.json"), state);
+    } catch (error) {
+      await fs.rm(threadDir, { recursive: true, force: true });
+      throw error;
+    }
     return { ...state, messageCount: 0, preview: "" };
   }
 

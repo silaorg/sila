@@ -1,6 +1,7 @@
 export type AppEvent = {
 	type: string;
 	userId: string;
+	workspaceId?: string;
 	threadId?: string;
 };
 
@@ -47,6 +48,7 @@ export class AppEventBroker {
 				const publish = (event: AppEvent) =>
 					enqueue(encodeEvent(event.type, {
 						type: event.type,
+						...(event.workspaceId ? { workspaceId: event.workspaceId } : {}),
 						...(event.threadId ? { threadId: event.threadId } : {})
 					}));
 				const subscribers = this.subscribersByUser.get(userId) ?? new Set<Subscriber>();

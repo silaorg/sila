@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { spawn as spawnPty } from "node-pty";
+import { mergeRuntimePathEnvironment } from "../runtime-paths.js";
 
 const DEFAULT_TIMEOUT_MS = readPositiveNumber(process.env.PTY_COMMAND_TIMEOUT_MS, 120000);
 const DEFAULT_IDLE_TTL_MS = readPositiveNumber(process.env.PTY_IDLE_TTL_MS, 30 * 60 * 1000);
@@ -124,6 +125,9 @@ function ensureSpawnHelperExecutable() {
 export class PTYShellSessionManager {
   constructor(options = {}) {
     this.defaultCwd = options.defaultCwd || DEFAULT_DEFAULT_CWD;
+    this.environment = options.environment && typeof options.environment === "object"
+      ? { ...options.environment }
+      : {};
     this.commandTimeoutMs = readPositiveNumber(options.commandTimeoutMs, DEFAULT_TIMEOUT_MS);
     this.idleTtlMs = readPositiveNumber(options.idleTtlMs, DEFAULT_IDLE_TTL_MS);
     this.maxOutputBytes = readPositiveNumber(options.maxOutputBytes, DEFAULT_MAX_OUTPUT_BYTES);
@@ -172,7 +176,10 @@ export class PTYShellSessionManager {
       cwd: this.defaultCwd,
       cols: 120,
       rows: 30,
-      env: { ...process.env, ...DEFAULT_SESSION_ENV },
+      env: {
+        ...mergeRuntimePathEnvironment(process.env, this.environment),
+        ...DEFAULT_SESSION_ENV,
+      },
     });
 
     const session = {

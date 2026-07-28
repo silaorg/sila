@@ -3,7 +3,6 @@ import path from "node:path";
 import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
-import { loadWorkspaceEnvironment } from "./env.js";
 import { resolveWorkspaceLanguageSelection } from "./providers.js";
 
 const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
@@ -46,7 +45,6 @@ export class Workspace {
     try {
       const config = await readConfig(this.#path);
       this.#name = config.name;
-      await loadWorkspaceEnvironment(this.#path);
       await this.logDefaultAgentLanguageSelection();
       await this.runChannels();
       console.log(`Running workspace: ${this.name} at path: ${this.path}`);

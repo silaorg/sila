@@ -25,14 +25,10 @@ export function selectWorkspace(userId: string, workspaceId: string) {
 	return getWorkspaceRegistry().select(userId, workspaceId);
 }
 
-export async function getCurrentWorkspace(userId: string) {
-	return getWorkspaceRegistry().getCurrent(userId);
-}
-
-export async function getWorkspaceContext(userId: string) {
-	const workspace = await getCurrentWorkspace(userId);
+export async function getWorkspaceContext(userId: string, workspaceId: string) {
+	const workspace = await getWorkspaceRegistry().get(userId, workspaceId);
 	if (!workspace) {
-		throw new AppWorkspaceError('not_found', 'Create a workspace first.');
+		throw new AppWorkspaceError('not_found', `Workspace not found: ${workspaceId}`);
 	}
 	return {
 		workspace,
@@ -60,7 +56,10 @@ function getService(workspace: RegisteredWorkspace) {
 
 	service = new AppWorkspaceService({
 		workspacePath: workspace.workspacePath,
-		onChange: appEvents.publish
+		onChange: (change) => appEvents.publish({
+			...change,
+			workspaceId: workspace.id
+		})
 	});
 	services.set(workspace.id, service);
 	return service;

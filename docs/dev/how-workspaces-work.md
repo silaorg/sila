@@ -68,12 +68,16 @@ Workspace [skills](../skills.md) live under `skills/`. Workspace
 `assets/`; files specific to a conversation belong in that thread's `files/`
 directory.
 
-Agent runs receive these environment paths:
+Agent subprocesses receive these environment paths:
 
 - `WORKSPACE_PATH`: the workspace root.
 - `THREAD_PATH`: the current thread directory.
 - `SOURCE_PATH`: `SOURCE_PATH` or `REPO_ROOT` from the environment, otherwise
   the nearest Git root above the workspace.
+
+Heswe builds this environment per thread. It does not write runtime paths or
+workspace `.env` values into the server's global process environment, so
+concurrent workspaces cannot overwrite each other's command context.
 
 ## Runtime lifecycle
 

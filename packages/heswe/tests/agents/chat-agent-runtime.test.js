@@ -95,7 +95,7 @@ describe("ThreadAgent", () => {
     );
   });
 
-  it("logs inbound and outbound messages to the console", async () => {
+  it("logs message metadata without leaking conversation content", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const lang = Lang.mockOpenAI({ mockResponseText: "assistant reply" });
     lang.askForObject = async () => ({ object: { respond: true } });
@@ -122,8 +122,8 @@ describe("ThreadAgent", () => {
     }
 
     deepEqual(logs, [
-      "[thread thread-1] user <@user-1>: hello there",
-      "[thread thread-1] assistant: assistant reply",
+      "[thread thread-1] user message received (11 chars)",
+      "[thread thread-1] assistant response completed (15 chars)",
     ]);
   });
 
@@ -154,7 +154,7 @@ describe("ThreadAgent", () => {
     }
 
     deepEqual(logs, [
-      "[thread thread-2] user <@user-2>: thanks",
+      "[thread thread-2] user message received (6 chars)",
       "[thread thread-2] assistant: [no response]",
     ]);
   });
@@ -217,9 +217,9 @@ describe("ThreadAgent", () => {
     }
 
     deepEqual(logs, [
-      "[thread thread-tools] user <@user-tools>: check that",
-      "[thread thread-tools] assistant [loop][tools: execute_command]: I will check that first.",
-      "[thread thread-tools] assistant: final answer",
+      "[thread thread-tools] user message received (10 chars)",
+      "[thread thread-tools] assistant loop (24 chars) [tools: execute_command]",
+      "[thread thread-tools] assistant response completed (12 chars)",
     ]);
     deepEqual(loopMessages, [
       { text: "I will check that first.", toolNames: ["execute_command"] },

@@ -18,6 +18,8 @@ export class ThreadAgent {
   #defaultCwd;
   /** @type {Array<any>} */
   #customTools;
+  /** @type {Record<string, string>} */
+  #environment;
   /** @type {ThreadStore} */
   #threadStore;
   /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
@@ -39,6 +41,7 @@ export class ThreadAgent {
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
    *  customTools?: Array<any>;
+   *  environment?: Record<string, string>;
    *  threadStore?: ThreadStore;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
@@ -55,6 +58,7 @@ export class ThreadAgent {
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#customTools = Array.isArray(options.customTools) ? options.customTools : [];
+    this.#environment = normalizeEnvironment(options.environment);
     this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#sendTelegramFile = options.sendTelegramFile;
     this.#sendSlackFile = options.sendSlackFile;
@@ -78,12 +82,15 @@ export class ThreadAgent {
       ptyManager: this.#ptyManager,
       defaultCwd: this.#defaultCwd,
       customTools: this.#customTools,
+      environment: this.#environment,
       threadStore: this.#threadStore,
       sendTelegramFile: this.#sendTelegramFile,
       sendSlackFile: this.#sendSlackFile,
     });
     agent.messages.instructions = this.#instructions;
-    console.log(`[thread ${this.#threadId}] user <@${input.userId}>: ${input.text}`);
+    console.log(
+      `[thread ${this.#threadId}] user message received (${input.text.length} chars)`,
+    );
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
     await this.#threadStore.appendMessages(this.#threadDir, [
       agent.messages[agent.messages.length - 1],
@@ -117,7 +124,9 @@ export class ThreadAgent {
     }
     await loopLogger.waitForPending();
     const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
-    console.log(`[thread ${this.#threadId}] assistant: ${answer}`);
+    console.log(
+      `[thread ${this.#threadId}] assistant response completed (${answer.length} chars)`,
+    );
 
     return {
       responded: true,
@@ -135,6 +144,8 @@ export class InProcessChatAgentRuntime {
   #loadInstructions = null;
   /** @type {null | ((input: { threadId: string; threadDir: string }) => Promise<Array<any>>)} */
   #loadTools = null;
+  /** @type {null | ((input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>)} */
+  #loadEnvironment = null;
   /** @type {string} */
   #defaultCwd;
   /** @type {ThreadStore} */
@@ -150,6 +161,7 @@ export class InProcessChatAgentRuntime {
    *  instructions: string;
    *  loadInstructions?: (input: { threadId: string; threadDir: string }) => Promise<string>;
    *  loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
+   *  loadEnvironment?: (input: { threadId: string; threadDir: string }) => Promise<Record<string, string>>;
    *  defaultCwd?: string;
    *  threadStore?: ThreadStore;
    *  alwaysRespond?: boolean;
@@ -166,6 +178,9 @@ export class InProcessChatAgentRuntime {
     }
     if (typeof options.loadTools === "function") {
       this.#loadTools = options.loadTools;
+    }
+    if (typeof options.loadEnvironment === "function") {
+      this.#loadEnvironment = options.loadEnvironment;
     }
   }
 
@@ -184,15 +199,20 @@ export class InProcessChatAgentRuntime {
    */
   async handleThreadMessage(input) {
     this.#pruneInactivePtyManagers();
-    const instructions = await this.#resolveInstructions({
+    const runtimeInput = {
       threadId: input.threadId,
       threadDir: input.threadDir,
-    });
-    const customTools = await this.#resolveTools({
-      threadId: input.threadId,
-      threadDir: input.threadDir,
-    });
-    const ptyManager = this.#getOrCreatePtyManager(input.threadId, input.threadDir);
+    };
+    const [instructions, customTools, environment] = await Promise.all([
+      this.#resolveInstructions(runtimeInput),
+      this.#resolveTools(runtimeInput),
+      this.#resolveEnvironment(runtimeInput),
+    ]);
+    const ptyManager = this.#getOrCreatePtyManager(
+      input.threadId,
+      input.threadDir,
+      environment,
+    );
 
     try {
       const agent = new ThreadAgent({
@@ -202,6 +222,7 @@ export class InProcessChatAgentRuntime {
         ptyManager,
         defaultCwd: input.threadDir,
         customTools,
+        environment,
         threadStore: this.#threadStore,
         sendTelegramFile: input.sendTelegramFile,
         sendSlackFile: input.sendSlackFile,
@@ -242,20 +263,31 @@ export class InProcessChatAgentRuntime {
     return Array.isArray(loaded) ? loaded : [];
   }
 
+  async #resolveEnvironment(input) {
+    if (!this.#loadEnvironment) {
+      return {};
+    }
+    return normalizeEnvironment(await this.#loadEnvironment(input));
+  }
+
   async stop() {
     const managers = Array.from(this.#ptyManagersByThread.values());
     this.#ptyManagersByThread.clear();
     await Promise.all(managers.map((manager) => manager.stopAll()));
   }
 
-  #getOrCreatePtyManager(threadId, defaultCwd = this.#defaultCwd) {
+  #getOrCreatePtyManager(
+    threadId,
+    defaultCwd = this.#defaultCwd,
+    environment = {},
+  ) {
     const key = String(threadId);
     const existing = this.#ptyManagersByThread.get(key);
     if (existing) {
       return existing;
     }
 
-    const manager = new PTYShellSessionManager({ defaultCwd });
+    const manager = new PTYShellSessionManager({ defaultCwd, environment });
     this.#ptyManagersByThread.set(key, manager);
     return manager;
   }
@@ -267,6 +299,16 @@ export class InProcessChatAgentRuntime {
       }
     }
   }
+}
+
+function normalizeEnvironment(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([name, entry]) => name && typeof entry === "string"),
+  );
 }
 
 function requireInstructions(instructions, contextName) {
@@ -347,8 +389,8 @@ function getIntermediateAssistantPayload(message) {
 
 function formatIntermediateAssistantLog(threadId, payload) {
   const { text, toolNames } = payload;
-  const toolSuffix = toolNames.length ? `[tools: ${toolNames.join(", ")}]` : "";
-  return `[thread ${threadId}] assistant [loop]${toolSuffix}: ${text}`;
+  const toolSuffix = toolNames.length ? ` [tools: ${toolNames.join(", ")}]` : "";
+  return `[thread ${threadId}] assistant loop (${text.length} chars)${toolSuffix}`;
 }
 
 async function decideShouldRespond(lang, agent) {

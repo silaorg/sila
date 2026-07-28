@@ -1,10 +1,13 @@
 import path from "node:path";
 import { z } from "zod";
 import { loadWorkspaceAgentInstructions } from "../agent-instructions.js";
-import { loadWorkspaceEnvironment, readEnvValue } from "../env.js";
+import {
+  readWorkspaceEnvironment,
+  readWorkspaceEnvValue,
+} from "../env.js";
 import { loadWorkspaceLanguageProvider } from "../providers.js";
 import {
-  applyRuntimePathEnvironment,
+  buildRuntimePathEnvironment,
   buildRuntimePathsInstructionBlock,
   resolveRuntimePaths,
 } from "../runtime-paths.js";
@@ -34,8 +37,7 @@ export async function saveThreadState(threadDir, state) {
 
 export async function readOpenAiApiKey(channelPath) {
   const workspacePath = path.resolve(channelPath, "..", "..");
-  await loadWorkspaceEnvironment(workspacePath);
-  return readEnvValue("OPENAI_API_KEY");
+  return readWorkspaceEnvValue(workspacePath, "OPENAI_API_KEY");
 }
 
 export async function loadChannelLanguageProvider(channelPath) {
@@ -46,7 +48,6 @@ export async function loadChannelLanguageProvider(channelPath) {
 export async function loadChannelInstructions(workspacePath, channel, threadPath) {
   const baseInstructions = await loadWorkspaceAgentInstructions(workspacePath, channel);
   const runtimePaths = await resolveRuntimePaths({ workspacePath, threadPath });
-  applyRuntimePathEnvironment(runtimePaths);
   const skills = await loadSkillIndex(workspacePath);
   const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
   return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
@@ -63,12 +64,31 @@ export function toAgentRelativePath(absolutePath, baseDir) {
 
 export async function loadChannelTools(workspacePath, channel, input = {}) {
   const runtimePaths = await resolveRuntimePaths({ workspacePath, threadPath: input.threadDir });
-  applyRuntimePathEnvironment(runtimePaths);
+  const environment = await buildChannelEnvironment(workspacePath, runtimePaths);
   return loadWorkspaceTools(workspacePath, {
     channel,
     threadDir: input.threadDir,
     threadId: input.threadId,
     sourcePath: runtimePaths.sourcePath,
+    environment,
     defaultCwd: input.threadDir ?? workspacePath,
   });
+}
+
+export async function loadChannelEnvironment(workspacePath, threadPath) {
+  const runtimePaths = await resolveRuntimePaths({ workspacePath, threadPath });
+  return buildChannelEnvironment(workspacePath, runtimePaths);
+}
+
+async function buildChannelEnvironment(workspacePath, runtimePaths) {
+  const workspaceEnvironment = await readWorkspaceEnvironment(workspacePath);
+  const inheritedNames = new Set(Object.keys(process.env));
+  const localEnvironment = Object.fromEntries(
+    Object.entries(workspaceEnvironment)
+      .filter(([name]) => !inheritedNames.has(name)),
+  );
+  return {
+    ...localEnvironment,
+    ...buildRuntimePathEnvironment(runtimePaths),
+  };
 }

@@ -1,6 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { looksInteractiveCommand, parseShellControlCommand } from "../pty-shell-session-manager.js";
+import { mergeRuntimePathEnvironment } from "../../runtime-paths.js";
 
 const execAsync = promisify(exec);
 
@@ -9,6 +10,7 @@ export function createToolExecuteCommand(options = {}) {
     sessionId,
     ptyManager,
     defaultCwd = process.cwd(),
+    environment = {},
   } = options;
 
   return {
@@ -72,7 +74,11 @@ export function createToolExecuteCommand(options = {}) {
       }
 
       try {
-        const result = await execAsync(command, { cwd: defaultCwd, maxBuffer: 1024 * 1024 });
+        const result = await execAsync(command, {
+          cwd: defaultCwd,
+          env: mergeRuntimePathEnvironment(process.env, environment),
+          maxBuffer: 1024 * 1024,
+        });
         return { mode: "stateless", stdout: result.stdout, stderr: result.stderr };
       } catch (error) {
         return { mode: "stateless", error: error.message };

@@ -46,10 +46,10 @@ export class WorkspaceRegistry {
     this.#setupSchema();
   }
 
-	/**
-	 * @param {string} userId
-	 */
-	async list(userId) {
+  /**
+   * @param {string} userId
+   */
+  async list(userId) {
     requireUserId(userId);
     const currentWorkspaceId = this.#getCurrentWorkspaceId(userId);
     const rows = /** @type {WorkspaceRow[]} */ (this.#database.prepare(`
@@ -69,12 +69,12 @@ export class WorkspaceRegistry {
 
   /**
    * @param {string} userId
+   * @param {string} workspaceId
    */
-  async getCurrent(userId) {
+  async get(userId, workspaceId) {
     requireUserId(userId);
-    const workspaceId = this.#getCurrentWorkspaceId(userId);
-    if (!workspaceId) return null;
-    const row = this.#getWorkspaceRow(userId, workspaceId);
+    const normalizedId = normalizeWorkspaceId(workspaceId);
+    const row = this.#getWorkspaceRow(userId, normalizedId);
     return row ? toInternalWorkspace(row) : null;
   }
 

@@ -2,7 +2,11 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { loadWorkspaceEnvironment, readEnvValue } from "./env.js";
+import {
+  readEnvValue,
+  readWorkspaceEnvironment,
+  readWorkspaceEnvValue,
+} from "./env.js";
 
 const PROVIDERS_DIR_NAME = "providers";
 const DEFAULT_AGENT_CONFIG_RELATIVE_PATH = path.join("agents", "default", "config.json");
@@ -203,15 +207,16 @@ export async function readWorkspaceProviderConfigs(workspacePath) {
 }
 
 export async function resolveWorkspaceLanguageSelection(workspacePath) {
-  await loadWorkspaceEnvironment(workspacePath);
-
-  const agentConfig = await readDefaultAgentConfig(workspacePath);
-  const providerConfigs = await readWorkspaceProviderConfigs(workspacePath);
+  const [agentConfig, providerConfigs, workspaceEnvironment] = await Promise.all([
+    readDefaultAgentConfig(workspacePath),
+    readWorkspaceProviderConfigs(workspacePath),
+    readWorkspaceEnvironment(workspacePath),
+  ]);
   const requestedProviderId = normalizeProviderId(agentConfig.provider) ?? "auto";
 
   let selectedProviderId = requestedProviderId;
   if (requestedProviderId === "auto") {
-    selectedProviderId = resolveAutoProviderId(providerConfigs);
+    selectedProviderId = resolveAutoProviderId(providerConfigs, workspaceEnvironment);
   }
 
   const providerSpec = getProviderSpec(selectedProviderId);
@@ -226,7 +231,11 @@ export async function resolveWorkspaceLanguageSelection(workspacePath) {
   if (configuredProvider && configuredProvider.enabled === false) {
     throw new ProviderConfigError(`Provider "${selectedProviderId}" is disabled.`);
   }
-  const implicitlyEnabled = isProviderImplicitlyEnabled(selectedProviderId, providerConfigs);
+  const implicitlyEnabled = isProviderImplicitlyEnabled(
+    selectedProviderId,
+    providerConfigs,
+    workspaceEnvironment,
+  );
   if (!configuredProvider && !implicitlyEnabled && providerConfigs.length > 0 && requestedProviderId !== "auto") {
     throw new ProviderConfigError(
       `Provider "${selectedProviderId}" is not configured in ${getProvidersPath(workspacePath)}.`,
@@ -249,7 +258,9 @@ export async function loadWorkspaceLanguageProvider(workspacePath) {
     throw new ProviderConfigError(`Unsupported provider "${selection.provider}".`);
   }
 
-  const apiKey = selection.apiKeyEnvName ? readEnvValue(selection.apiKeyEnvName) : null;
+  const apiKey = selection.apiKeyEnvName
+    ? await readWorkspaceEnvValue(workspacePath, selection.apiKeyEnvName)
+    : null;
   if (!providerSpec.local && !apiKey) {
     throw new ProviderConfigError(
       `missing ${selection.apiKeyEnvName} for provider "${selection.provider}" in ${workspacePath}. Set it in workspace .env or process env.`,
@@ -262,7 +273,7 @@ export async function loadWorkspaceLanguageProvider(workspacePath) {
   };
 }
 
-function resolveAutoProviderId(providerConfigs) {
+function resolveAutoProviderId(providerConfigs, workspaceEnvironment) {
   const providerIds = new Set();
 
   for (const config of providerConfigs) {
@@ -272,7 +283,7 @@ function resolveAutoProviderId(providerConfigs) {
   }
 
   for (const providerId of Object.keys(PROVIDER_SPECS)) {
-    if (isProviderImplicitlyEnabled(providerId, providerConfigs)) {
+    if (isProviderImplicitlyEnabled(providerId, providerConfigs, workspaceEnvironment)) {
       providerIds.add(providerId);
     }
   }
@@ -324,7 +335,7 @@ function createLanguageProvider(providerId, model, apiKey, providerSpec) {
   });
 }
 
-function isProviderImplicitlyEnabled(providerId, providerConfigs) {
+function isProviderImplicitlyEnabled(providerId, providerConfigs, workspaceEnvironment) {
   const providerSpec = getProviderSpec(providerId);
   if (!providerSpec || !providerSpec.envVarName) {
     return false;
@@ -335,7 +346,14 @@ function isProviderImplicitlyEnabled(providerId, providerConfigs) {
     return false;
   }
 
-  return Boolean(readEnvValue(providerSpec.envVarName));
+  return Boolean(
+    readEnvValue(providerSpec.envVarName)
+    ?? normalizeEnvironmentValue(workspaceEnvironment[providerSpec.envVarName]),
+  );
+}
+
+function normalizeEnvironmentValue(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function normalizeProviderId(value) {

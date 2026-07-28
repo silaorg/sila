@@ -608,6 +608,57 @@ test("telegram reloads packaged workspace tools on each message", async () => {
   assert.deepEqual(loadedToolDescriptions, ["first tool version", "second tool version"]);
 });
 
+test("telegram startup cleans up its runtime and can be retried", async () => {
+  const { channelPath } = await createWorkspaceFixture();
+  const mockBot = createMockBot();
+  let botAttempts = 0;
+  let runtimeStops = 0;
+  const channel = new TelegramChannel(
+    channelPath,
+    {
+      channel: "telegram",
+      enabled: true,
+      botToken: "test-bot-token",
+    },
+    {
+      async createBot() {
+        botAttempts += 1;
+        if (botAttempts === 1) {
+          throw new Error("telegram unavailable");
+        }
+        return mockBot;
+      },
+      createOpenAiClient() {
+        return {};
+      },
+      createAgentRuntime() {
+        return {
+          async handleThreadMessage() {
+            return { responded: false, answer: "" };
+          },
+          async stop() {
+            runtimeStops += 1;
+          },
+        };
+      },
+      async storeTelegramFile() {
+        throw new Error("not used");
+      },
+      async transcribeAudioFile() {
+        return "";
+      },
+    },
+  );
+
+  await assert.rejects(channel.run(), /telegram unavailable/);
+  assert.equal(runtimeStops, 1);
+
+  await channel.run();
+  await channel.stop();
+  assert.equal(botAttempts, 2);
+  assert.equal(runtimeStops, 2);
+});
+
 async function createWorkspaceFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-telegram-channel-"));
   const workspacePath = path.join(root, "workspace");

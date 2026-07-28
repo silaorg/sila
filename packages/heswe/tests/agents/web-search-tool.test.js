@@ -74,6 +74,28 @@ describe("createToolWebSearch", () => {
       restoreEnv("EXA_API_KEY", previousKey);
     }
   });
+
+  it("accepts an isolated workspace API key", async () => {
+    const previousKey = process.env.EXA_API_KEY;
+    const originalFetch = globalThis.fetch;
+    delete process.env.EXA_API_KEY;
+    globalThis.fetch = async (_url, options) => {
+      assert.equal(options.headers["x-api-key"], "workspace-exa-key");
+      return new Response(JSON.stringify({ results: [] }), { status: 200 });
+    };
+
+    try {
+      const tool = createToolWebSearch({
+        environment: { EXA_API_KEY: "workspace-exa-key" },
+      });
+      const result = await tool.handler({ query: "isolated search" });
+      assert.equal(result.status, "ok");
+      assert.equal(process.env.EXA_API_KEY, undefined);
+    } finally {
+      globalThis.fetch = originalFetch;
+      restoreEnv("EXA_API_KEY", previousKey);
+    }
+  });
 });
 
 function restoreEnv(name, value) {
