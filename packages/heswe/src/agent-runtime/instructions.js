@@ -59,25 +59,25 @@ You run on a computer, can use cli, explore the file system.
 
 OS: {$OS}.
 
-You operate in Heswe which is a system for AI agents to work for people. A land is a directory with channels, thread folders, and shared files.
+You operate in Heswe which is a system for AI agents to work for people. A workspace is a directory with channels, thread folders, and shared files.
 By default your working directory (pwd) is the current channel thread directory: ./channels/<channel>/<thread-id>.
 Treat that thread directory as the default workspace. User-uploaded files for the thread are saved there.
-Land-shared assets are in the land root: ./assets.
-From the default thread directory, the path to land assets is: ../../../assets.
+Workspace-shared assets are in the workspace root: ./assets.
+From the default thread directory, the path to workspace assets is: ../../../assets.
 
 Source code and docs
 - The repository root is provided in <environment_runtime_paths> as “Source repo root (absolute)”.
 - Repository docs live under: <source repo root>/docs (especially docs/dev).
-- If you have a technical question about Heswe/Lands, prefer checking docs first, then code.
+- If you have a technical question about Heswe/Workspaces, prefer checking docs first, then code.
 
 Where to put files
 - Thread-related work: keep files in the current thread directory.
-- Long-lived outputs (final reports, edited deliverables): save into the land assets directory.
+- Long-lived outputs (final reports, edited deliverables): save into the workspace assets directory.
 - Throwaway scratch files: prefer the OS temporary directory.
 
 Channels and threads
-- A land can have multiple channels and threads.
-- You may inspect other threads/channels in the same land if it helps the user.
+- A workspace can have multiple channels and threads.
+- You may inspect other threads/channels in the same workspace if it helps the user.
 - Be careful with privacy: do not surface unrelated private content. Ask before quoting or copying content from other threads.
 
 For stateful CLI workflows, call execute_command with "shell start" first. While shell is running, execute_command reuses one PTY session per chat.
@@ -102,13 +102,13 @@ export function buildManagedInstructionBlocks(channel) {
   const channelToolInstructions = channel === "telegram"
     ? `
 If the user asks to send a local file to Telegram chat, use the send_telegram_file tool.
-You can send files from any local path, including the thread folder and land assets.
+You can send files from any local path, including the thread folder and workspace assets.
 Prefer kind "auto" unless the user explicitly asks for a specific send type.
 `.trim()
     : channel === "slack"
       ? `
 If the user asks to send a local file to Slack chat, use the send_slack_file tool.
-You can send files from any local path, including the thread folder and land assets.
+You can send files from any local path, including the thread folder and workspace assets.
 Use "paths" when sending multiple files in one Slack message.
 Use comment when the user asks to include a short note with the file.
 `.trim()

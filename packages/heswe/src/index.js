@@ -1,22 +1,23 @@
-export { loadLandAgentInstructions } from "./agent-instructions.js";
+export { loadWorkspaceAgentInstructions } from "./agent-instructions.js";
+export { AppWorkspaceService } from "./app-workspace-service.js";
 export {
   CONFIG_FILE_NAME,
-  LandConfigError,
+  WorkspaceConfigError,
   createDefaultConfig,
   getConfigPath,
   readConfig,
 } from "./config.js";
 export {
-  CreateLandError,
-  CreateLandOptionsSchema,
-  createLand,
-} from "./create-land.js";
+  CreateWorkspaceError,
+  CreateWorkspaceOptionsSchema,
+  createWorkspace,
+} from "./create-workspace.js";
 export {
-  getLandEnvPath,
-  loadLandEnvironment,
+  getWorkspaceEnvPath,
+  loadWorkspaceEnvironment,
   readEnvValue,
 } from "./env.js";
-export { Land } from "./land.js";
+export { Workspace } from "./workspace.js";
 export {
   ProviderConfigError,
   createDefaultAgentConfig,
@@ -24,10 +25,10 @@ export {
   getDefaultAgentConfigPath,
   getProviderConfigPath,
   getProvidersPath,
-  loadLandLanguageProvider,
+  loadWorkspaceLanguageProvider,
   readDefaultAgentConfig,
-  readLandProviderConfigs,
-  resolveLandLanguageSelection,
+  readWorkspaceProviderConfigs,
+  resolveWorkspaceLanguageSelection,
 } from "./providers.js";
 export {
   applyRuntimePathEnvironment,
@@ -38,5 +39,5 @@ export {
   appendSkillCatalogInstructions,
   loadSkillIndex,
 } from "./skills.js";
-export { loadLandTools } from "./tools.js";
+export { loadWorkspaceTools } from "./tools.js";
 export * from "./agent-runtime/index.js";

@@ -1,7 +1,18 @@
 <script lang="ts">
 	import '../compiled-style.css';
+	import { authClient } from '../auth-client';
+	import AuthScreen from './AuthScreen.svelte';
+	import WorkspaceApp from './WorkspaceApp.svelte';
+
+	const session = authClient.useSession();
 </script>
 
-<main class="flex min-h-screen">
-	<h2 class="text-2xl font-semibold">Welcome to the land!</h2>
-</main>
+{#if $session.isPending}
+	<main class="flex min-h-screen items-center justify-center bg-surface-50-950 text-surface-500">
+		Connecting to Heswe…
+	</main>
+{:else if $session.data?.user}
+	<WorkspaceApp user={$session.data.user} />
+{:else}
+	<AuthScreen />
+{/if}

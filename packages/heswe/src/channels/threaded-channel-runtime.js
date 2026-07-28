@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { ThreadStore } from "../agent-runtime/thread-store.js";
 import { enqueueSerialTask, saveThreadState } from "./channel-utils.js";
 
 export class ThreadedChannelRuntime {
@@ -7,15 +9,28 @@ export class ThreadedChannelRuntime {
   #channelPath;
   /** @type {null | import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime} */
   #agentRuntime = null;
+  /** @type {string} */
+  #channelName;
+  /** @type {ThreadStore} */
+  #threadStore;
   /** @type {Map<string, Promise<void>>} */
   #processingThreads = new Map();
 
   /**
-   * @param {{ channelPath: string; agentRuntime?: import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime | null }} options
+   * @param {{
+   *  channelPath: string;
+   *  channelName?: string;
+   *  agentRuntime?: import("../agent-runtime/chat-agent-runtime.js").InProcessChatAgentRuntime | null;
+   *  threadStore?: ThreadStore;
+   * }} options
    */
   constructor(options) {
     this.#channelPath = options.channelPath;
+    this.#channelName = options.channelName ?? path.basename(options.channelPath);
     this.#agentRuntime = options.agentRuntime ?? null;
+    this.#threadStore = options.threadStore instanceof ThreadStore
+      ? options.threadStore
+      : new ThreadStore();
   }
 
   /**
@@ -89,7 +104,32 @@ export class ThreadedChannelRuntime {
     }
 
     if (result.responded && result.answer && typeof input.sendReply === "function") {
-      await input.sendReply(result.answer, result);
+      const deliveryId = randomUUID();
+      await this.#threadStore.appendEvent(threadDir, {
+        type: "delivery",
+        deliveryId,
+        channel: this.#channelName,
+        status: "pending",
+        text: result.answer,
+      });
+      try {
+        await input.sendReply(result.answer, result);
+        await this.#threadStore.appendEvent(threadDir, {
+          type: "delivery",
+          deliveryId,
+          channel: this.#channelName,
+          status: "sent",
+        });
+      } catch (error) {
+        await this.#threadStore.appendEvent(threadDir, {
+          type: "delivery",
+          deliveryId,
+          channel: this.#channelName,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
 
     return result;

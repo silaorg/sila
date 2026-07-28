@@ -3,12 +3,12 @@ import path from "node:path";
 
 const DOT_ENV_FILE_NAME = ".env";
 
-export function getLandEnvPath(landPath) {
-  return path.join(landPath, DOT_ENV_FILE_NAME);
+export function getWorkspaceEnvPath(workspacePath) {
+  return path.join(workspacePath, DOT_ENV_FILE_NAME);
 }
 
-export async function loadLandEnvironment(landPath) {
-  const envPath = getLandEnvPath(landPath);
+export async function loadWorkspaceEnvironment(workspacePath) {
+  const envPath = getWorkspaceEnvPath(workspacePath);
 
   if (typeof process.loadEnvFile === "function") {
     try {

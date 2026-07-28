@@ -14,7 +14,7 @@ This keeps behavior simple, explicit, and auditable.
 
 Part of this proposal is now implemented:
 
-- land state lives on disk under `channels/<provider>/<thread-id>/`
+- workspace state lives on disk under `channels/<provider>/<thread-id>/`
 - Slack and Telegram channel adapters are the provider-facing entrypoints
 - per-thread work is serialized and routed through a shared in-process thread runtime
 

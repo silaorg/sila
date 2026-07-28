@@ -2,54 +2,54 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { CONFIG_FILE_NAME, createDefaultConfig } from "./config.js";
-import { getLandEnvPath } from "./env.js";
+import { getWorkspaceEnvPath } from "./env.js";
 import { createDefaultAgentConfig, createProviderConfig } from "./providers.js";
 
-export const CreateLandOptionsSchema = z.object({
+export const CreateWorkspaceOptionsSchema = z.object({
   path: z.string().min(1),
   openaiApiKey: z.string().min(1).optional(),
   secrets: z.array(z.object({ name: z.string().min(1), value: z.string() })).optional(),
   channel: z.enum(["slack", "telegram"]).default("telegram"),
 }).strict();
 
-export class CreateLandError extends Error {
+export class CreateWorkspaceError extends Error {
   constructor(message) {
     super(message);
-    this.name = "CreateLandError";
+    this.name = "CreateWorkspaceError";
   }
 }
 
-function parseLandOptions(input) {
-  const result = CreateLandOptionsSchema.safeParse(input);
+function parseWorkspaceOptions(input) {
+  const result = CreateWorkspaceOptionsSchema.safeParse(input);
   if (!result.success) {
-    throw new CreateLandError(result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n"));
+    throw new CreateWorkspaceError(result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n"));
   }
   return result.data;
 }
 
-/** Creates a new land according to the options */
-export async function createLand(options) {
-  const parsedOptions = parseLandOptions(options);
-  const landPath = path.resolve(parsedOptions.path);
-  const existing = await statIfExists(landPath);
+/** Creates a new workspace according to the options */
+export async function createWorkspace(options) {
+  const parsedOptions = parseWorkspaceOptions(options);
+  const workspacePath = path.resolve(parsedOptions.path);
+  const existing = await statIfExists(workspacePath);
 
   if (existing && !existing.isDirectory()) {
-    throw new CreateLandError(`Path exists and is not a directory: ${landPath}`);
+    throw new CreateWorkspaceError(`Path exists and is not a directory: ${workspacePath}`);
   }
 
   if (existing) {
-    throw new CreateLandError(`Land already exists at ${landPath}.`);
+    throw new CreateWorkspaceError(`Workspace already exists at ${workspacePath}.`);
   }
 
-  await fs.mkdir(landPath, { recursive: true });
-  await createDefaultConfig(landPath);
+  await fs.mkdir(workspacePath, { recursive: true });
+  await createDefaultConfig(workspacePath);
 
-  const agentsPath = path.join(landPath, "agents");
+  const agentsPath = path.join(workspacePath, "agents");
   const defaultAgentPath = path.join(agentsPath, "default");
-  const skillsPath = path.join(landPath, "skills");
-  const assetsPath = path.join(landPath, "assets");
-  const providersPath = path.join(landPath, "providers");
-  const channelPath = path.join(landPath, "channels", parsedOptions.channel);
+  const skillsPath = path.join(workspacePath, "skills");
+  const assetsPath = path.join(workspacePath, "assets");
+  const providersPath = path.join(workspacePath, "providers");
+  const channelPath = path.join(workspacePath, "channels", parsedOptions.channel);
 
   await fs.mkdir(agentsPath, { recursive: true });
   await fs.mkdir(defaultAgentPath, { recursive: true });
@@ -58,17 +58,17 @@ export async function createLand(options) {
   await fs.mkdir(providersPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
-  await createDefaultAgentConfig(landPath);
-  await createProviderConfig(landPath, "openai");
+  await createDefaultAgentConfig(workspacePath);
+  await createProviderConfig(workspacePath, "openai");
   await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
-  await fs.writeFile(getLandEnvPath(landPath), buildLandEnv(parsedOptions), "utf8");
+  await fs.writeFile(getWorkspaceEnvPath(workspacePath), buildWorkspaceEnv(parsedOptions), "utf8");
 
   if (parsedOptions.secrets?.length) {
-    await writeJsonFile(path.join(landPath, "secrets.json"), parsedOptions.secrets);
+    await writeJsonFile(path.join(workspacePath, "secrets.json"), parsedOptions.secrets);
   }
 
   return {
-    landPath,
+    workspacePath,
     channel: parsedOptions.channel,
     openaiConfigured: Boolean(parsedOptions.openaiApiKey),
     secretCount: parsedOptions.secrets?.length ?? 0,
@@ -96,10 +96,10 @@ function buildChannelConfig(channel) {
   };
 }
 
-function buildLandEnv(options) {
+function buildWorkspaceEnv(options) {
   const openAiApiKey = options.openaiApiKey ?? "";
   return [
-    "# AI provider keys for this land",
+    "# AI provider keys for this workspace",
     `OPENAI_API_KEY=${openAiApiKey}`,
     "ANTHROPIC_API_KEY=",
     "GOOGLE_API_KEY=",

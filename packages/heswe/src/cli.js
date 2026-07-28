@@ -6,21 +6,21 @@ import { parseArgs } from "node:util";
 import pc from "picocolors";
 import {
   CONFIG_FILE_NAME,
-  LandConfigError,
+  WorkspaceConfigError,
   createDefaultConfig,
   getConfigPath,
   readConfig,
 } from "./config.js";
-import { CreateLandError, createLand } from "./create-land.js";
-import { Land } from "./land.js";
+import { CreateWorkspaceError, createWorkspace } from "./create-workspace.js";
+import { Workspace } from "./workspace.js";
 
 const USAGE = `Usage:
   heswe create [path] [--channel telegram] [--openai-api-key <key>] [--secret NAME=VALUE]
   heswe run [path]
 
 Commands:
-  create   Create a land directory and config.json.
-  run      Run a land directory (bootstraps config.json only for new/empty dirs).
+  create   Create a workspace directory and config.json.
+  run      Run a workspace directory (bootstraps config.json only for new/empty dirs).
 
 Options:
   -c, --channel <name>    Channel to scaffold for create.
@@ -73,17 +73,17 @@ async function handleCreate(args) {
     throw usageError("Too many positional arguments for create.");
   }
 
-  const landDir = resolveLandDir(positionals[0]);
+  const workspaceDir = resolveWorkspaceDir(positionals[0]);
   const secrets = parseSecretOptions(values.secret ?? []);
 
   try {
-    const created = await createLand({
-      path: landDir,
+    const created = await createWorkspace({
+      path: workspaceDir,
       channel: values.channel,
       openaiApiKey: values["openai-api-key"],
       secrets,
     });
-    logSuccess(`Created land at: ${created.landPath}`);
+    logSuccess(`Created workspace at: ${created.workspacePath}`);
     logInfo(`Scaffolded channel: ${created.channel}`);
     if (created.openaiConfigured) {
       logInfo("Configured OPENAI_API_KEY in .env.");
@@ -94,7 +94,7 @@ async function handleCreate(args) {
       logInfo(`Stored ${created.secretCount} secret(s).`);
     }
   } catch (error) {
-    if (error instanceof CreateLandError) {
+    if (error instanceof CreateWorkspaceError) {
       throw usageError(error.message);
     }
     throw error;
@@ -115,44 +115,44 @@ async function handleRun(args) {
     throw usageError("Too many positional arguments for run.");
   }
 
-  const landDir = resolveLandDir(positionals[0]);
-  const existing = await statIfExists(landDir);
+  const workspaceDir = resolveWorkspaceDir(positionals[0]);
+  const existing = await statIfExists(workspaceDir);
   if (existing && !existing.isDirectory()) {
-    throw new Error(`Path exists and is not a directory: ${landDir}`);
+    throw new Error(`Path exists and is not a directory: ${workspaceDir}`);
   }
 
   let createdDir = false;
   if (!existing) {
-    await fs.mkdir(landDir, { recursive: true });
+    await fs.mkdir(workspaceDir, { recursive: true });
     createdDir = true;
-    logSuccess(`Created land at: ${landDir}`);
+    logSuccess(`Created workspace at: ${workspaceDir}`);
   }
 
-  const configPath = getConfigPath(landDir);
+  const configPath = getConfigPath(workspaceDir);
   const configStat = await statIfExists(configPath);
   if (!configStat) {
-    if (createdDir || (await isDirectoryEmpty(landDir))) {
-      await createDefaultConfig(landDir);
+    if (createdDir || (await isDirectoryEmpty(workspaceDir))) {
+      await createDefaultConfig(workspaceDir);
       logSuccess(`Created ${CONFIG_FILE_NAME} at: ${configPath}`);
     } else {
-      throw usageError(`Missing ${CONFIG_FILE_NAME} in non-empty directory: ${landDir}. Point to an empty path or to a path with an existing ${CONFIG_FILE_NAME}.`);
+      throw usageError(`Missing ${CONFIG_FILE_NAME} in non-empty directory: ${workspaceDir}. Point to an empty path or to a path with an existing ${CONFIG_FILE_NAME}.`);
     }
   } else if (!configStat.isFile()) {
     throw usageError(`${CONFIG_FILE_NAME} exists but is not a file: ${configPath}`);
   }
 
   try {
-    await readConfig(landDir);
+    await readConfig(workspaceDir);
   } catch (error) {
-    if (error instanceof LandConfigError) {
+    if (error instanceof WorkspaceConfigError) {
       throw usageError(error.message);
     }
     throw error;
   }
 
-  const land = new Land(landDir);
-  land.run().catch((error) => {
-    logError(`Failed to run land: ${error.message}`);
+  const workspace = new Workspace(workspaceDir);
+  workspace.run().catch((error) => {
+    logError(`Failed to run workspace: ${error.message}`);
     process.exitCode = 1;
   });
 }
@@ -182,7 +182,7 @@ function parseSecretOptions(secretArgs) {
   });
 }
 
-function resolveLandDir(maybePath) {
+function resolveWorkspaceDir(maybePath) {
   return path.resolve(maybePath ?? process.cwd());
 }
 

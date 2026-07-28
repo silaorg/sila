@@ -14,6 +14,6 @@ Skills are useful when the agent mostly needs better judgment or a clearer proce
 - they read that skill
 - they follow its instructions while doing the work
 
-Skills can also unlock capability in practice, because a skill may tell the agent to use programs or scripts that already exist in the [land](land.md).
+Skills can also unlock capability in practice, because a skill may tell the agent to use programs or scripts that already exist in the [workspace](workspace.md).
 
 As a simple rule, use a skill when the agent mostly needs to know how to do the work.

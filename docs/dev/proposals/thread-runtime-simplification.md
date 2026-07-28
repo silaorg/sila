@@ -2,12 +2,12 @@
 
 ## Summary
 
-The current land runtime is already small and understandable:
+The current workspace runtime is already small and understandable:
 
-- `Land` starts channel runtimes.
+- `Workspace` starts channel runtimes.
 - each channel adapter receives provider events and sends replies
 - `InProcessChatAgentRuntime` runs one in-process agent per thread
-- thread data lives on disk in the land directory
+- thread data lives on disk in the workspace directory
 
 The main problem is not overall size. The problem is that thread orchestration, persistence, and provider delivery are still mixed across layers.
 
@@ -24,17 +24,17 @@ The remaining work is to move from snapshot-style `messages.jsonl` writes to a t
 Today the flow is roughly:
 
 ```text
-Land
+Workspace
   -> SlackChannel / TelegramChannel
     -> InProcessChatAgentRuntime
       -> ThreadAgent
         -> aiwrapper ChatAgent
-          -> built-in tools + land tools
+          -> built-in tools + workspace tools
 ```
 
 Current responsibilities:
 
-- `packages/heswe/src/land.js`
+- `packages/heswe/src/workspace.js`
   - load env
   - discover channel folders
   - start channel runtimes
@@ -116,7 +116,7 @@ The remaining coupling is that `ThreadAgent` still decides when persistence happ
 
 - moving to child processes in this step
 - replacing Slack Bolt or Telegraf
-- changing land directory layout in a major way
+- changing workspace directory layout in a major way
 - introducing a database
 
 ## Proposed Shape
@@ -271,7 +271,7 @@ That is enough to avoid long silent gaps without introducing noisy token-level e
 
 ### `packages/heswe`
 
-- `Land`
+- `Workspace`
   - process manager only
 - `SlackChannel` / `TelegramChannel`
   - provider IO only

@@ -6,10 +6,10 @@ import { test } from "node:test";
 import { SlackChannel } from "../src/channels/slack-channel.js";
 
 test("slack runtime can upload files through send_slack_file callback", async () => {
-  const { channelPath, landPath } = await createLandFixture();
+  const { channelPath, workspacePath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
   let uploadResult = null;
-  const sentFilePath = path.join(landPath, "assets", "report.txt");
+  const sentFilePath = path.join(workspacePath, "assets", "report.txt");
   await fs.mkdir(path.dirname(sentFilePath), { recursive: true });
   await fs.writeFile(sentFilePath, "report", "utf8");
 
@@ -69,11 +69,11 @@ test("slack runtime can upload files through send_slack_file callback", async ()
 });
 
 test("slack runtime can upload multiple files in one message", async () => {
-  const { channelPath, landPath } = await createLandFixture();
+  const { channelPath, workspacePath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
   let uploadResult = null;
-  const fileOnePath = path.join(landPath, "assets", "one.txt");
-  const fileTwoPath = path.join(landPath, "assets", "two.txt");
+  const fileOnePath = path.join(workspacePath, "assets", "one.txt");
+  const fileTwoPath = path.join(workspacePath, "assets", "two.txt");
   await fs.mkdir(path.dirname(fileOnePath), { recursive: true });
   await fs.writeFile(fileOnePath, "one", "utf8");
   await fs.writeFile(fileTwoPath, "two", "utf8");
@@ -139,7 +139,7 @@ test("slack runtime can upload multiple files in one message", async () => {
 });
 
 test("slack runtime posts replies with mrkdwn enabled", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
 
   const channel = new SlackChannel(
@@ -184,7 +184,7 @@ test("slack runtime posts replies with mrkdwn enabled", async () => {
 });
 
 test("slack runtime replies to top-level channel messages in a new thread", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
 
   const channel = new SlackChannel(
@@ -229,7 +229,7 @@ test("slack runtime replies to top-level channel messages in a new thread", asyn
 });
 
 test("slack runtime posts intermediate assistant loop messages in thread", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
 
   const channel = new SlackChannel(
@@ -292,7 +292,7 @@ test("slack runtime posts intermediate assistant loop messages in thread", async
 });
 
 test("slack runtime keeps DM thread replies in the same thread", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
 
   const channel = new SlackChannel(
@@ -338,7 +338,7 @@ test("slack runtime keeps DM thread replies in the same thread", async () => {
 });
 
 test("slack runtime replies to top-level DM messages in a new thread", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
 
   const channel = new SlackChannel(
@@ -384,7 +384,7 @@ test("slack runtime replies to top-level DM messages in a new thread", async () 
 });
 
 test("slack file uploads are forwarded as relative dated paths", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
   const runtimeCalls = [];
   const storedFiles = [];
@@ -441,7 +441,7 @@ test("slack file uploads are forwarded as relative dated paths", async () => {
 });
 
 test("slack runtime keeps top-level channel messages in separate local conversations", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockApp = createMockSlackApp();
   const runtimeCalls = [];
 
@@ -491,14 +491,14 @@ test("slack runtime keeps top-level channel messages in separate local conversat
   assert.notEqual(runtimeCalls[0].threadId, runtimeCalls[1].threadId);
 });
 
-async function createLandFixture() {
+async function createWorkspaceFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-slack-channel-"));
-  const landPath = path.join(root, "land");
-  const channelPath = path.join(landPath, "channels", "slack");
+  const workspacePath = path.join(root, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "slack");
 
   await fs.mkdir(channelPath, { recursive: true });
-  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=sk-test\n", "utf8");
-  return { root, landPath, channelPath };
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=sk-test\n", "utf8");
+  return { root, workspacePath, channelPath };
 }
 
 function createMockSlackApp() {

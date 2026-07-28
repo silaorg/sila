@@ -1,6 +1,6 @@
 Tidy the relevant Heswe code without changing product behavior.
 
-Look for dead or duplicated code, confusing names, unnecessary layers, brittle control flow, and stale documentation. Keep the land, channel, and agent runtime boundaries easy to explain.
+Look for dead or duplicated code, confusing names, unnecessary layers, brittle control flow, and stale documentation. Keep the workspace, channel, and agent runtime boundaries easy to explain.
 
 Good tidy work includes:
 

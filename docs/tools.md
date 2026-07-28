@@ -2,7 +2,7 @@
 
 Tools are direct executable actions for [agents](agents.md).
 
-A tool gives an agent a straightforward thing it can run, such as calling an API, querying a system, generating a file in a standard format, or doing a land-specific action.
+A tool gives an agent a straightforward thing it can run, such as calling an API, querying a system, generating a file in a standard format, or doing a workspace-specific action.
 
 Tools are useful when the agent needs a direct capability that should be easy and reliable to call again.
 

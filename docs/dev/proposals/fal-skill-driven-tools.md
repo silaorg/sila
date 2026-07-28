@@ -2,7 +2,7 @@
 
 ## Summary
 
-Replace hardcoded Fal media tools with one generic `fal_run` tool in `@heswe/agents`, then move endpoint-specific behavior into land skills and Fal docs kept in the land.
+Replace hardcoded Fal media tools with one generic `fal_run` tool in `@heswe/agents`, then move endpoint-specific behavior into workspace skills and Fal docs kept in the workspace.
 
 This keeps architecture simple:
 
@@ -14,7 +14,7 @@ This keeps architecture simple:
 
 - `packages/agents/src/chat-agent.js` always registers `generate_image` and `generate_video`.
 - `packages/agents/src/tools/generate-image-tool.js` and `generate-video-tool.js` hardcode model ids and endpoint-specific parameter rules.
-- skills are already loaded from built-in and land paths (`packages/heswe/src/skills.js`) and listed in instructions with file paths.
+- skills are already loaded from built-in and workspace paths (`packages/heswe/src/skills.js`) and listed in instructions with file paths.
 - skills currently guide behavior only, they do not add new executable capabilities.
 
 Result: adding one more Fal workflow requires code changes in core tools, tests, and deployment.
@@ -63,11 +63,11 @@ This gives immediate backward compatibility while moving logic to one path.
 
 ### 3) Shift endpoint knowledge into skills and docs
 
-Store Fal docs in land, for example:
+Store Fal docs in workspace, for example:
 
-- `docs/integrations/fal/*.md` (or a similar land-local docs path)
+- `docs/integrations/fal/*.md` (or a similar workspace-local docs path)
 
-Keep built-in starter skills in source and add land-specific skills for workflows, for example:
+Keep built-in starter skills in source and add workspace-specific skills for workflows, for example:
 
 - `packages/skills/fal-image-edit/SKILL.md`
 - `skills/fal-image-edit/SKILL.md`
@@ -81,18 +81,18 @@ The skill catalog should explicitly list source scope and file path so agents al
 Skill source directories:
 
 - Built-in skills: `<source repo root>/packages/skills/<skill-name>/SKILL.md`
-- Land skills: `<land root>/skills/<skill-name>/SKILL.md`
-- Agent-specific skills (future): `<land root>/agents/<agent-id>/skills/<skill-name>/SKILL.md`
+- Workspace skills: `<workspace root>/skills/<skill-name>/SKILL.md`
+- Agent-specific skills (future): `<workspace root>/agents/<agent-id>/skills/<skill-name>/SKILL.md`
 
 Resolution order for duplicate skill names:
 
 - built-in base
-- land overrides built-in
-- agent-specific overrides land and built-in
+- workspace overrides built-in
+- agent-specific overrides workspace and built-in
 
 Instruction catalog format should include source and path per skill entry, for example:
 
-- `fal-image-edit: Edit existing images with Fal endpoints. (source: land, file: skills/fal-image-edit/SKILL.md)`
+- `fal-image-edit: Edit existing images with Fal endpoints. (source: workspace, file: skills/fal-image-edit/SKILL.md)`
 
 This keeps activation deterministic and makes future `agents/{agent-id}/skills` support straightforward.
 
@@ -104,7 +104,7 @@ Each skill should include:
 - expected `fal_run` call shape
 - output file naming guidance
 
-This matches current skill loading behavior with no new land loader complexity.
+This matches current skill loading behavior with no new workspace loader complexity.
 
 ### 4) Update managed instructions
 
@@ -126,7 +126,7 @@ In `packages/agents/src/instructions.js`, replace media guidance with:
 
 1. Add `fal_run` tool and tests.
 2. Refactor `generate_image` and `generate_video` to wrappers over `fal_run`.
-3. Add initial Fal workflow skills and docs in land templates.
+3. Add initial Fal workflow skills and docs in workspace templates.
 4. Update instructions to prefer skills + `fal_run`.
 5. After adoption, remove old wrappers or keep as aliases based on usage.
 
@@ -144,5 +144,5 @@ In `packages/agents/src/instructions.js`, replace media guidance with:
   - Mitigation: skill recipes and strict validation errors.
 - Different Fal endpoints return different output shapes.
   - Mitigation: allow explicit `output_paths` with auto-detect fallback.
-- Decision: should Fal workflow docs live in repo docs, land docs, or both?
+- Decision: should Fal workflow docs live in repo docs, workspace docs, or both?
 - Decision: when to fully remove `generate_image` and `generate_video` names.

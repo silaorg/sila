@@ -6,14 +6,14 @@ const DEFAULT_INSTRUCTIONS_DIR = path.join("agents", "default", "instructions");
 const NULL_BYTE = "\u0000";
 
 /**
- * @param {string} landPath
+ * @param {string} workspacePath
  * @param {string} channel
  * @returns {Promise<string>}
  */
-export async function loadLandAgentInstructions(landPath, channel) {
+export async function loadWorkspaceAgentInstructions(workspacePath, channel) {
   const normalizedChannel = normalizeChannel(channel);
   const defaults = defaultAgentInstructions({ channel: normalizedChannel });
-  const customInstructionBlocks = await loadCustomInstructionBlocks(landPath);
+  const customInstructionBlocks = await loadCustomInstructionBlocks(workspacePath);
   if (!customInstructionBlocks.length) {
     return defaults;
   }
@@ -25,8 +25,8 @@ function normalizeChannel(channel) {
   return typeof channel === "string" ? channel.trim().toLowerCase() : "";
 }
 
-async function loadCustomInstructionBlocks(landPath) {
-  const directoryPath = path.join(landPath, DEFAULT_INSTRUCTIONS_DIR);
+async function loadCustomInstructionBlocks(workspacePath) {
+  const directoryPath = path.join(workspacePath, DEFAULT_INSTRUCTIONS_DIR);
   const filePaths = await listFilesRecursivelyOrNull(directoryPath);
   if (!filePaths || !filePaths.length) {
     return [];
@@ -38,7 +38,7 @@ async function loadCustomInstructionBlocks(landPath) {
       if (!content || !content.trim().length) {
         return null;
       }
-      const relativePath = toPosixPath(path.relative(landPath, filePath));
+      const relativePath = toPosixPath(path.relative(workspacePath, filePath));
       return `<instruction src="${relativePath}">${content}</instruction>`;
     }),
   );

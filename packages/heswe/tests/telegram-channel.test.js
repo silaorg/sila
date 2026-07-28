@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { TelegramChannel } from "../src/channels/telegram-channel.js";
 
 test("telegram document upload is forwarded as relative dated path", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const runtimeCalls = [];
 
@@ -67,7 +67,7 @@ test("telegram document upload is forwarded as relative dated path", async () =>
 });
 
 test("telegram audio upload includes transcription and sends response", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const runtimeCalls = [];
 
@@ -128,7 +128,7 @@ test("telegram audio upload includes transcription and sends response", async ()
 });
 
 test("telegram runtime sends intermediate assistant loop messages before the final reply", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
 
   const channel = new TelegramChannel(
@@ -196,7 +196,7 @@ test("telegram runtime sends intermediate assistant loop messages before the fin
 });
 
 test("telegram text reply includes replied message context", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const runtimeCalls = [];
 
@@ -258,7 +258,7 @@ test("telegram text reply includes replied message context", async () => {
 });
 
 test("telegram external reply uses quote text instead of current message text", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const runtimeCalls = [];
 
@@ -327,7 +327,7 @@ test("telegram external reply uses quote text instead of current message text", 
 });
 
 test("telegram external reply keeps metadata when reply content is unavailable", async () => {
-  const { channelPath } = await createLandFixture();
+  const { channelPath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const runtimeCalls = [];
 
@@ -391,9 +391,9 @@ test("telegram external reply keeps metadata when reply content is unavailable",
 });
 
 test("telegram runtime can send files through send_telegram_file callback", async () => {
-  const { channelPath, landPath } = await createLandFixture();
+  const { channelPath, workspacePath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
-  const sentFilePath = path.join(landPath, "assets", "report.txt");
+  const sentFilePath = path.join(workspacePath, "assets", "report.txt");
   await fs.mkdir(path.dirname(sentFilePath), { recursive: true });
   await fs.writeFile(sentFilePath, "report", "utf8");
 
@@ -455,10 +455,10 @@ test("telegram runtime can send files through send_telegram_file callback", asyn
 });
 
 test("telegram reloads skills into instructions on each message", async () => {
-  const { channelPath, landPath } = await createLandFixture();
+  const { channelPath, workspacePath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const loadedInstructions = [];
-  const skillFilePath = path.join(landPath, "skills", "dynamic-skill", "SKILL.md");
+  const skillFilePath = path.join(workspacePath, "skills", "dynamic-skill", "SKILL.md");
   await writeSkillFile(skillFilePath, "first description");
 
   const channel = new TelegramChannel(
@@ -526,11 +526,11 @@ test("telegram reloads skills into instructions on each message", async () => {
   assert.match(loadedInstructions[1], /dynamic-skill: second description/);
 });
 
-test("telegram reloads packaged land tools on each message", async () => {
-  const { channelPath, landPath } = await createLandFixture();
+test("telegram reloads packaged workspace tools on each message", async () => {
+  const { channelPath, workspacePath } = await createWorkspaceFixture();
   const mockBot = createMockBot();
   const loadedToolDescriptions = [];
-  const toolDirPath = path.join(landPath, "tools", "dynamic-tool");
+  const toolDirPath = path.join(workspacePath, "tools", "dynamic-tool");
 
   await fs.mkdir(toolDirPath, { recursive: true });
   await fs.writeFile(
@@ -608,14 +608,14 @@ test("telegram reloads packaged land tools on each message", async () => {
   assert.deepEqual(loadedToolDescriptions, ["first tool version", "second tool version"]);
 });
 
-async function createLandFixture() {
+async function createWorkspaceFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-telegram-channel-"));
-  const landPath = path.join(root, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(root, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
 
   await fs.mkdir(channelPath, { recursive: true });
-  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=sk-test\n", "utf8");
-  return { root, landPath, channelPath };
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=sk-test\n", "utf8");
+  return { root, workspacePath, channelPath };
 }
 
 function createMockBot() {

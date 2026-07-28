@@ -1,16 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { loadLandAgentInstructions } from "../agent-instructions.js";
-import { loadLandEnvironment, readEnvValue } from "../env.js";
-import { loadLandLanguageProvider } from "../providers.js";
+import { loadWorkspaceAgentInstructions } from "../agent-instructions.js";
+import { loadWorkspaceEnvironment, readEnvValue } from "../env.js";
+import { loadWorkspaceLanguageProvider } from "../providers.js";
 import {
   applyRuntimePathEnvironment,
   buildRuntimePathsInstructionBlock,
   resolveRuntimePaths,
 } from "../runtime-paths.js";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
-import { loadLandTools } from "../tools.js";
+import { loadWorkspaceTools } from "../tools.js";
 
 export const OptionalTokenSchema = z
   .string()
@@ -52,21 +52,21 @@ export async function saveThreadState(threadDir, state) {
 }
 
 export async function readOpenAiApiKey(channelPath) {
-  const landPath = path.resolve(channelPath, "..", "..");
-  await loadLandEnvironment(landPath);
+  const workspacePath = path.resolve(channelPath, "..", "..");
+  await loadWorkspaceEnvironment(workspacePath);
   return readEnvValue("OPENAI_API_KEY");
 }
 
 export async function loadChannelLanguageProvider(channelPath) {
-  const landPath = path.resolve(channelPath, "..", "..");
-  return loadLandLanguageProvider(landPath);
+  const workspacePath = path.resolve(channelPath, "..", "..");
+  return loadWorkspaceLanguageProvider(workspacePath);
 }
 
-export async function loadChannelInstructions(landPath, channel, threadPath) {
-  const baseInstructions = await loadLandAgentInstructions(landPath, channel);
-  const runtimePaths = await resolveRuntimePaths({ landPath, threadPath });
+export async function loadChannelInstructions(workspacePath, channel, threadPath) {
+  const baseInstructions = await loadWorkspaceAgentInstructions(workspacePath, channel);
+  const runtimePaths = await resolveRuntimePaths({ workspacePath, threadPath });
   applyRuntimePathEnvironment(runtimePaths);
-  const skills = await loadSkillIndex(landPath);
+  const skills = await loadSkillIndex(workspacePath);
   const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
   return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
 }
@@ -80,14 +80,14 @@ export function toAgentRelativePath(absolutePath, baseDir) {
   return path.relative(baseDir, absolutePath).split(path.sep).join("/");
 }
 
-export async function loadChannelTools(landPath, channel, input = {}) {
-  const runtimePaths = await resolveRuntimePaths({ landPath, threadPath: input.threadDir });
+export async function loadChannelTools(workspacePath, channel, input = {}) {
+  const runtimePaths = await resolveRuntimePaths({ workspacePath, threadPath: input.threadDir });
   applyRuntimePathEnvironment(runtimePaths);
-  return loadLandTools(landPath, {
+  return loadWorkspaceTools(workspacePath, {
     channel,
     threadDir: input.threadDir,
     threadId: input.threadId,
     sourcePath: runtimePaths.sourcePath,
-    defaultCwd: input.threadDir ?? landPath,
+    defaultCwd: input.threadDir ?? workspacePath,
   });
 }

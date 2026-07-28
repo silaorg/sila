@@ -8,20 +8,20 @@ const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const BUILTIN_SKILLS_DIR_PATH = fileURLToPath(new URL("../builtin-skills", import.meta.url));
 
 /**
- * @param {string} landPath
+ * @param {string} workspacePath
  * @param {{ builtinSkillsPath?: string }} [options]
  * @returns {Promise<Array<{name: string; description: string; skillFilePath: string}>>}
  */
-export async function loadSkillIndex(landPath, options = {}) {
+export async function loadSkillIndex(workspacePath, options = {}) {
   const builtinSkillsPath = resolveBuiltinSkillsPath(options);
   const builtinSkills = await loadSkillsFromDirectory(builtinSkillsPath);
-  const landSkills = await loadSkillsFromDirectory(path.join(landPath, SKILLS_DIR_NAME));
+  const workspaceSkills = await loadSkillsFromDirectory(path.join(workspacePath, SKILLS_DIR_NAME));
 
   const skillByName = new Map();
   for (const skill of builtinSkills) {
     skillByName.set(skill.name, skill);
   }
-  for (const skill of landSkills) {
+  for (const skill of workspaceSkills) {
     skillByName.set(skill.name, skill);
   }
 
@@ -81,7 +81,7 @@ export function appendSkillCatalogInstructions(baseInstructions, skills) {
     baseInstructions,
     "",
     "Agent Skills are available in two directories:",
-    "- Land skills: <land root>/skills",
+    "- Workspace skills: <workspace root>/skills",
     `- Built-in skills: ${toPosixPath(BUILTIN_SKILLS_DIR_PATH)}`,
     "Use each skill name and description below to decide relevance.",
     "When a skill is relevant, read its SKILL.md with read_document exactly once before acting.",

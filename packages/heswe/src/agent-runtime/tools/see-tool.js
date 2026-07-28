@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ChatAgent, LangMessage, LangMessages } from "aiwrapper";
+import { DEFAULT_BINARY_RESPONSE_BYTES, fetchRemote, readResponseBytes } from "../../http.js";
 import { normalizePath } from "./file-utils.js";
 
 const DEFAULT_PROMPT = "Describe the visible content of this image.";
@@ -84,12 +85,14 @@ function buildSeeInstructions() {
 }
 
 async function loadImageFromUrl(uri) {
-  const response = await fetch(uri);
+  const response = await fetchRemote(uri);
   if (!response.ok) {
     throw new Error(`Failed to fetch image URL: ${response.status} ${response.statusText}`);
   }
 
-  const bytes = Buffer.from(await response.arrayBuffer());
+  const bytes = Buffer.from(await readResponseBytes(response, {
+    maxBytes: DEFAULT_BINARY_RESPONSE_BYTES,
+  }));
   const contentType = String(response.headers.get("content-type") || "");
   const mimeType = detectImageMime(bytes, contentType);
   if (!mimeType) {

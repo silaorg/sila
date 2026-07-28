@@ -1,11 +1,11 @@
 ---
 name: how-to-create-tools
-description: Use this when a user wants to add a repeatable executable capability to a land or asks whether something should be a skill or a tool.
+description: Use this when a user wants to add a repeatable executable capability to a workspace or asks whether something should be a skill or a tool.
 ---
 
 What this skill is for
-- Helping decide whether a new land extension should be a skill or a tool.
-- Helping create a new land tool when the agent needs a direct executable action.
+- Helping decide whether a new workspace extension should be a skill or a tool.
+- Helping create a new workspace tool when the agent needs a direct executable action.
 
 How to decide between a skill and a tool
 - Start with a skill when the work can be done by teaching the agent a workflow, playbook, or how to use existing CLI programs and scripts.
@@ -13,11 +13,11 @@ How to decide between a skill and a tool
 - Prefer a small number of clear tools. Too many tools can make tool choice noisy and less reliable.
 
 Where to write tools
-- Land tools: `<land root>/tools/<tool-name>/package.json`
+- Workspace tools: `<workspace root>/tools/<tool-name>/package.json`
 - Tool entry file: `main` from `package.json`, or `index.js` if `main` is missing
 
-Recommended land setup
-- Prefer a land root `package.json` with `workspaces: ["tools/*"]` so tools can share packages.
+Recommended workspace setup
+- Prefer a workspace root `package.json` with `workspaces: ["tools/*"]` so tools can share packages.
 - Keep each tool as its own small package under `tools/`.
 
 Basic shape of a tool package

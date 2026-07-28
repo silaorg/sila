@@ -202,7 +202,7 @@ describe("ThreadAgent", () => {
     equal(respondStartCount, 1);
   });
 
-  it("stores thread messages as json lines", async () => {
+  it("stores thread messages as append-only events", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const lang = Lang.mockOpenAI();
     lang.askForObject = async () => ({ object: { respond: false } });
@@ -220,13 +220,14 @@ describe("ThreadAgent", () => {
     const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
     const lines = raw.trim().split("\n").map((line) => JSON.parse(line));
     equal(lines.length, 1);
-    deepEqual(lines[0], {
+    equal(lines[0].type, "message");
+    deepEqual(lines[0].message, {
       role: "user",
       items: [{ type: "text", text: "<@user-3>: hello jsonl" }],
     });
   });
 
-  it("loads legacy messages.json and rewrites history to messages.jsonl", async () => {
+  it("loads legacy messages.json and continues with append-only events", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     await fs.writeFile(
       path.join(threadDir, "messages.json"),
@@ -250,8 +251,8 @@ describe("ThreadAgent", () => {
     const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
     const lines = raw.trim().split("\n").map((line) => JSON.parse(line));
     equal(lines.length, 2);
-    deepEqual(lines.map((line) => line.role), ["user", "user"]);
-    equal(lines[0].items[0].text, "legacy message");
-    equal(lines[1].items[0].text, "<@user-4>: new message");
+    deepEqual(lines.map((line) => line.type), ["message", "message"]);
+    equal(lines[0].message.items[0].text, "legacy message");
+    equal(lines[1].message.items[0].text, "<@user-4>: new message");
   });
 });

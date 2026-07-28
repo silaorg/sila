@@ -3,6 +3,13 @@ import path from "node:path";
 import mammoth from "mammoth";
 import ExcelJS from "exceljs";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import {
+  DEFAULT_BINARY_RESPONSE_BYTES,
+  DEFAULT_TEXT_RESPONSE_BYTES,
+  fetchRemote,
+  readResponseBytes,
+  readResponseText,
+} from "../../http.js";
 import { normalizePath } from "./file-utils.js";
 import {
   getWorkbookSheetNames,
@@ -426,14 +433,16 @@ async function readPdfDocument(fullPath, start, limit) {
 }
 
 async function readFromUrl(url, start, limit) {
-  const response = await fetch(url);
+  const response = await fetchRemote(url);
   if (!response.ok) {
     return { error: `Failed to fetch URL: ${response.status} ${response.statusText}` };
   }
 
   const contentType = String(response.headers.get("content-type") || "");
   if (contentType.includes("application/pdf") || isPdfPath(url)) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
+    const bytes = await readResponseBytes(response, {
+      maxBytes: DEFAULT_BINARY_RESPONSE_BYTES,
+    });
     const text = await extractPdfText(bytes);
     const sliced = toLineSlice(text, start, limit);
     return {
@@ -443,7 +452,9 @@ async function readFromUrl(url, start, limit) {
     };
   }
 
-  const raw = await response.text();
+  const raw = await readResponseText(response, {
+    maxBytes: DEFAULT_TEXT_RESPONSE_BYTES,
+  });
   const text = contentType.includes("text/html") ? stripHtml(raw) : raw;
   const sliced = toLineSlice(text, start, limit);
   return {

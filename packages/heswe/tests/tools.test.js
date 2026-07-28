@@ -3,11 +3,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { loadLandTools } from "../src/tools.js";
+import { loadWorkspaceTools } from "../src/tools.js";
 
-test("loadLandTools loads packaged tools and passes runtime context", async () => {
-  const landPath = await createLandWithTools();
-  const toolDirPath = path.join(landPath, "tools", "echo-tool");
+test("loadWorkspaceTools loads packaged tools and passes runtime context", async () => {
+  const workspacePath = await createWorkspaceWithTools();
+  const toolDirPath = path.join(workspacePath, "tools", "echo-tool");
 
   await fs.mkdir(toolDirPath, { recursive: true });
   await fs.writeFile(
@@ -38,10 +38,10 @@ test("loadLandTools loads packaged tools and passes runtime context", async () =
     "utf8",
   );
 
-  const tools = await loadLandTools(landPath, {
+  const tools = await loadWorkspaceTools(workspacePath, {
     channel: "telegram",
     threadId: "thread-42",
-    threadDir: path.join(landPath, "channels", "telegram", "thread-42"),
+    threadDir: path.join(workspacePath, "channels", "telegram", "thread-42"),
     sourcePath: "/repo/source",
   });
 
@@ -50,21 +50,21 @@ test("loadLandTools loads packaged tools and passes runtime context", async () =
   assert.equal(tools[0].description, "Echo for telegram:thread-42");
   assert.deepEqual(await tools[0].handler({ value: "hello" }), {
     value: "hello",
-    threadDir: path.join(landPath, "channels", "telegram", "thread-42"),
+    threadDir: path.join(workspacePath, "channels", "telegram", "thread-42"),
     sourcePath: "/repo/source",
   });
 });
 
-test("loadLandTools skips duplicate and built-in tool names", async () => {
-  const landPath = await createLandWithTools();
+test("loadWorkspaceTools skips duplicate and built-in tool names", async () => {
+  const workspacePath = await createWorkspaceWithTools();
   const warnings = [];
 
-  await writeToolPackage(landPath, "custom-one", "duplicate_name");
-  await writeToolPackage(landPath, "custom-two", "duplicate_name");
-  await writeToolPackage(landPath, "built-in-name", "read_document");
-  await writeToolPackage(landPath, "conditional-built-in-name", "send_slack_file");
+  await writeToolPackage(workspacePath, "custom-one", "duplicate_name");
+  await writeToolPackage(workspacePath, "custom-two", "duplicate_name");
+  await writeToolPackage(workspacePath, "built-in-name", "read_document");
+  await writeToolPackage(workspacePath, "conditional-built-in-name", "send_slack_file");
 
-  const tools = await loadLandTools(landPath, {
+  const tools = await loadWorkspaceTools(workspacePath, {
     logger: {
       warn(message) {
         warnings.push(message);
@@ -78,9 +78,9 @@ test("loadLandTools skips duplicate and built-in tool names", async () => {
   assert.match(warnings.join("\n"), /collides with a built-in tool/);
 });
 
-test("loadLandTools reloads tool modules after edits", async () => {
-  const landPath = await createLandWithTools();
-  const toolDirPath = path.join(landPath, "tools", "dynamic-tool");
+test("loadWorkspaceTools reloads tool modules after edits", async () => {
+  const workspacePath = await createWorkspaceWithTools();
+  const toolDirPath = path.join(workspacePath, "tools", "dynamic-tool");
   await fs.mkdir(toolDirPath, { recursive: true });
   await fs.writeFile(
     path.join(toolDirPath, "package.json"),
@@ -94,25 +94,25 @@ test("loadLandTools reloads tool modules after edits", async () => {
   );
 
   await writeDynamicToolEntry(toolDirPath, "first version");
-  const firstLoad = await loadLandTools(landPath);
+  const firstLoad = await loadWorkspaceTools(workspacePath);
 
   await waitForMtimeTick();
   await writeDynamicToolEntry(toolDirPath, "second version");
-  const secondLoad = await loadLandTools(landPath);
+  const secondLoad = await loadWorkspaceTools(workspacePath);
 
   assert.equal(firstLoad[0].description, "first version");
   assert.equal(secondLoad[0].description, "second version");
 });
 
-async function createLandWithTools() {
+async function createWorkspaceWithTools() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-tools-"));
-  const landPath = path.join(root, "land");
-  await fs.mkdir(path.join(landPath, "tools"), { recursive: true });
-  return landPath;
+  const workspacePath = path.join(root, "workspace");
+  await fs.mkdir(path.join(workspacePath, "tools"), { recursive: true });
+  return workspacePath;
 }
 
-async function writeToolPackage(landPath, directoryName, toolName) {
-  const toolDirPath = path.join(landPath, "tools", directoryName);
+async function writeToolPackage(workspacePath, directoryName, toolName) {
+  const toolDirPath = path.join(workspacePath, "tools", directoryName);
   await fs.mkdir(toolDirPath, { recursive: true });
   await fs.writeFile(
     path.join(toolDirPath, "package.json"),

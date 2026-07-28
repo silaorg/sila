@@ -8,5 +8,7 @@
 .DS_Store
 *.log
 
+**/test-workspace
+**/test-workspace-**
 **/test-land
 **/test-land-**

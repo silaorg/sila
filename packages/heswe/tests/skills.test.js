@@ -7,8 +7,8 @@ import { appendSkillCatalogInstructions, loadSkillIndex } from "../src/skills.js
 
 test("loadSkillIndex returns valid skills and skips invalid ones", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-skills-"));
-  const landDir = path.join(tempRoot, "land");
-  const skillsDir = path.join(landDir, "skills");
+  const workspaceDir = path.join(tempRoot, "workspace");
+  const skillsDir = path.join(workspaceDir, "skills");
 
   await fs.mkdir(path.join(skillsDir, "code-review"), { recursive: true });
   await fs.writeFile(
@@ -52,7 +52,7 @@ test("loadSkillIndex returns valid skills and skips invalid ones", async () => {
     "utf8",
   );
 
-  const skills = await loadSkillIndex(landDir, {
+  const skills = await loadSkillIndex(workspaceDir, {
     builtinSkillsPath: path.join(tempRoot, "missing-builtins"),
   });
 
@@ -60,7 +60,7 @@ test("loadSkillIndex returns valid skills and skips invalid ones", async () => {
   assert.deepEqual(skills[0], {
     name: "code-review",
     description: "Reviews code changes for bugs and regressions when users ask for review help.",
-    skillFilePath: path.join(landDir, "skills", "code-review", "SKILL.md"),
+    skillFilePath: path.join(workspaceDir, "skills", "code-review", "SKILL.md"),
   });
 });
 
@@ -86,10 +86,10 @@ test("appendSkillCatalogInstructions appends a skills catalog block", () => {
   assert.match(result, /\/tmp\/skills\/pdf-processing\/SKILL\.md/);
 });
 
-test("loadSkillIndex merges built-in and land skills, with land overriding duplicates", async () => {
+test("loadSkillIndex merges built-in and workspace skills, with workspace overriding duplicates", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-builtins-"));
   const builtinSkillsPath = path.join(tempRoot, "builtins");
-  const landRoot = path.join(tempRoot, "land");
+  const workspaceRoot = path.join(tempRoot, "workspace");
 
   await fs.mkdir(path.join(builtinSkillsPath, "how-to-create-skills"), { recursive: true });
   await fs.writeFile(
@@ -117,27 +117,27 @@ test("loadSkillIndex merges built-in and land skills, with land overriding dupli
     "utf8",
   );
 
-  await fs.mkdir(path.join(landRoot, "skills", "duplicate-skill"), { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "skills", "duplicate-skill"), { recursive: true });
   await fs.writeFile(
-    path.join(landRoot, "skills", "duplicate-skill", "SKILL.md"),
+    path.join(workspaceRoot, "skills", "duplicate-skill", "SKILL.md"),
     [
       "---",
       "name: duplicate-skill",
-      "description: Land override description.",
+      "description: Workspace override description.",
       "---",
       "",
     ].join("\n"),
     "utf8",
   );
 
-  const skills = await loadSkillIndex(landRoot, { builtinSkillsPath });
+  const skills = await loadSkillIndex(workspaceRoot, { builtinSkillsPath });
 
   assert.equal(skills.length, 2);
   assert.deepEqual(skills, [
     {
       name: "duplicate-skill",
-      description: "Land override description.",
-      skillFilePath: path.join(landRoot, "skills", "duplicate-skill", "SKILL.md"),
+      description: "Workspace override description.",
+      skillFilePath: path.join(workspaceRoot, "skills", "duplicate-skill", "SKILL.md"),
     },
     {
       name: "how-to-create-skills",

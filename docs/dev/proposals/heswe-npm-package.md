@@ -6,14 +6,14 @@ Publish `packages/heswe` to npm as `heswe` so users can install it globally and 
 
 ```bash
 npm install -g heswe
-heswe create my-land
-heswe run my-land
+heswe create my-workspace
+heswe run my-workspace
 ```
 
 Part of this proposal is now implemented:
 
 - `packages/heswe` is now a publishable npm package named `heswe`
-- the land runtime no longer depends on `@heswe/agents` in the publish path
+- the workspace runtime no longer depends on `@heswe/agents` in the publish path
 - built-in skills now live inside `packages/heswe`
 - the package now exposes both a CLI entrypoint and a JS entrypoint
 
@@ -36,13 +36,13 @@ Still not implemented:
 
 Right now `heswe` works as a repo-local CLI, not as a normal installed tool.
 
-That makes the first-run experience heavier than it should be. Someone who just wants to create and run a land has to clone this repo and run the CLI from source instead of installing one package.
+That makes the first-run experience heavier than it should be. Someone who just wants to create and run a workspace has to clone this repo and run the CLI from source instead of installing one package.
 
 ## Goals
 
 - Make `npm install -g heswe` expose the `heswe` command.
 - Keep the current CLI interface for `create` and `run`.
-- Let a user create a land outside this monorepo.
+- Let a user create a workspace outside this monorepo.
 - Keep the packaging model simple and easy to explain.
 - Avoid publishing extra packages just to make the CLI work.
 - Support `npx heswe@latest ...` as a first-run path in docs.
@@ -53,7 +53,7 @@ That makes the first-run experience heavier than it should be. Someone who just 
 
 - Full hosted deployment or process management.
 - Preserving the current `packages/heswe` -> `@heswe/agents` split if that makes publishing harder to explain.
-- Changing the land config format as part of this work.
+- Changing the workspace config format as part of this work.
 
 ## Proposed Design
 
@@ -79,24 +79,24 @@ Unlike `aiwrapper`, `heswe` is already plain JS, so we should avoid adding a bui
 We should treat these as different entrypoints:
 
 - CLI entrypoint for `heswe create` and `heswe run`
-- Node library entrypoint for server-side packages that want to create or run lands programmatically
+- Node library entrypoint for server-side packages that want to create or run workspaces programmatically
 - browser-safe entrypoint for shared helpers that web and mobile apps can import
 
-Browser support should be explicit and narrow. The current land runtime is Node-only because it depends on:
+Browser support should be explicit and narrow. The current workspace runtime is Node-only because it depends on:
 
 - `node:fs`, `node:path`, `node:url`, `node:stream`, and `process.cwd()`
 - Slack and Telegram runtime SDKs
 - local file access and local process execution
 - agent tooling that depends on shell and pty behavior
 
-So the browser-safe export should not try to run a land or channels in the browser.
+So the browser-safe export should not try to run a workspace or channels in the browser.
 
 Instead, browser-safe exports should be limited to things like:
 
 - shared schemas and config validation
-- land manifest or metadata helpers
+- workspace manifest or metadata helpers
 - request and response types for future web or mobile clients
-- client helpers for talking to a running land service, if we add that later
+- client helpers for talking to a running workspace service, if we add that later
 
 The full runtime and CLI stay Node-only.
 
@@ -134,7 +134,7 @@ That gives us a simpler story:
 - no cross-package registry coordination
 - less risk that global install breaks because an internal package was not published correctly
 
-This also fits the product boundary better. If the main install story is "install `heswe`, create a land, run a land", the runtime pieces that make a land work should live with that package.
+This also fits the product boundary better. If the main install story is "install `heswe`, create a workspace, run a workspace", the runtime pieces that make a workspace work should live with that package.
 
 ### 4) Verify installed-package behavior
 
@@ -143,8 +143,8 @@ We should explicitly test the npm-installed shape, not just repo-local execution
 At minimum add an integration test that packs the package, installs it into a temp directory, and verifies:
 
 - `npm pack --dry-run` includes the expected files only
-- `heswe create test-land`
-- `heswe run test-land`
+- `heswe create test-workspace`
+- `heswe run test-workspace`
 
 That catches missing published files, broken `bin` wiring, and dependency packaging mistakes.
 
@@ -174,7 +174,7 @@ Add short docs for:
 
 - Hidden repo-local assumptions may only show up after install from tarball.
 - Moving code out of `@heswe/agents` may temporarily create duplication or import churn while we settle the new package boundary.
-- Native or heavy dependencies in the land runtime may still make global install slower than expected.
+- Native or heavy dependencies in the workspace runtime may still make global install slower than expected.
 - Browser support can become confusing if we do not clearly separate browser-safe exports from Node-only runtime APIs.
 - A stale `silain` stub can become confusing if we do not clearly deprecate it and keep the message current.
 

@@ -9,4 +9,4 @@ They are similar, but not the same:
 
 Agents can use both together. A [skill](skills.md) may teach an agent when to use a [tool](tools.md), and a [tool](tools.md) may exist to support a workflow described by a [skill](skills.md).
 
-[Skills](skills.md) and [tools](tools.md) can be built in, or added just for one [land](land.md).
+[Skills](skills.md) and [tools](tools.md) can be built in, or added just for one [workspace](workspace.md).

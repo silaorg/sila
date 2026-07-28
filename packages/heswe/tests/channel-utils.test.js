@@ -17,12 +17,12 @@ test("sanitizeThreadId replaces unsupported characters", () => {
   assert.equal(sanitizeThreadId("chat:123/alpha beta"), "chat_123_alpha_beta");
 });
 
-test("readOpenAiApiKey loads from land .env", async () => {
+test("readOpenAiApiKey loads from workspace .env", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(tempRoot, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
   await fs.mkdir(channelPath, { recursive: true });
-  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=sk-env-file\n", "utf8");
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=sk-env-file\n", "utf8");
 
   const previous = process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_API_KEY;
@@ -40,7 +40,7 @@ test("readOpenAiApiKey loads from land .env", async () => {
 
 test("readOpenAiApiKey falls back to env", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const channelPath = path.join(tempRoot, "land", "channels", "telegram");
+  const channelPath = path.join(tempRoot, "workspace", "channels", "telegram");
   await fs.mkdir(channelPath, { recursive: true });
 
   const previous = process.env.OPENAI_API_KEY;
@@ -94,48 +94,48 @@ test("saveThreadState writes JSON state file", async () => {
 
 test("loadChannelInstructions appends runtime path anchors", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(tempRoot, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
   const threadPath = path.join(channelPath, "thread-1");
   await fs.mkdir(threadPath, { recursive: true });
-  const expectedLandPath = await fs.realpath(landPath);
+  const expectedWorkspacePath = await fs.realpath(workspacePath);
   const expectedThreadPath = await fs.realpath(threadPath);
 
-  const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+  const instructions = await loadChannelInstructions(workspacePath, "telegram", threadPath);
   assert.match(instructions, /<environment_runtime_paths>/);
-  assert.match(instructions, new RegExp(escapeRegex(`Land root (absolute): ${expectedLandPath}`)));
+  assert.match(instructions, new RegExp(escapeRegex(`Workspace root (absolute): ${expectedWorkspacePath}`)));
   assert.match(instructions, new RegExp(escapeRegex(`Current thread root (absolute): ${expectedThreadPath}`)));
   assert.match(instructions, /Source repo root \(absolute\): \[not set\]/);
 });
 
 test("loadChannelInstructions sets thread root to [not set] when omitted", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  await fs.mkdir(path.join(landPath, "channels", "telegram"), { recursive: true });
+  const workspacePath = path.join(tempRoot, "workspace");
+  await fs.mkdir(path.join(workspacePath, "channels", "telegram"), { recursive: true });
 
-  const instructions = await loadChannelInstructions(landPath, "telegram");
+  const instructions = await loadChannelInstructions(workspacePath, "telegram");
   assert.match(instructions, /Current thread root \(absolute\): \[not set\]/);
 });
 
 test("loadChannelInstructions detects source repo root from .git", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
   const repoPath = path.join(tempRoot, "repo");
-  const landPath = path.join(repoPath, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(repoPath, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
   const threadPath = path.join(channelPath, "thread-1");
   await fs.mkdir(path.join(repoPath, ".git"), { recursive: true });
   await fs.mkdir(threadPath, { recursive: true });
   const expectedRepoPath = await fs.realpath(repoPath);
 
-  const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+  const instructions = await loadChannelInstructions(workspacePath, "telegram", threadPath);
   assert.match(instructions, new RegExp(escapeRegex(`Source repo root (absolute): ${expectedRepoPath}`)));
   assert.match(instructions, /how-to-create-skills/);
 });
 
 test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(tempRoot, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
   const threadPath = path.join(channelPath, "thread-1");
   const sourcePath = path.join(tempRoot, "source");
   await fs.mkdir(threadPath, { recursive: true });
@@ -145,7 +145,7 @@ test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {
   const previous = process.env.SOURCE_PATH;
   process.env.SOURCE_PATH = sourcePath;
   try {
-    const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
+    const instructions = await loadChannelInstructions(workspacePath, "telegram", threadPath);
     assert.match(instructions, new RegExp(escapeRegex(`Source repo root (absolute): ${expectedSourcePath}`)));
   } finally {
     if (typeof previous === "string") {
@@ -158,28 +158,28 @@ test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {
 
 test("loadChannelInstructions exports runtime paths into process env", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
+  const workspacePath = path.join(tempRoot, "workspace");
+  const channelPath = path.join(workspacePath, "channels", "telegram");
   const threadPath = path.join(channelPath, "thread-1");
   const sourcePath = path.join(tempRoot, "source");
   await fs.mkdir(threadPath, { recursive: true });
   await fs.mkdir(sourcePath, { recursive: true });
 
-  const previousLandPath = process.env.LAND_PATH;
+  const previousWorkspacePath = process.env.WORKSPACE_PATH;
   const previousThreadPath = process.env.THREAD_PATH;
   const previousSourcePath = process.env.SOURCE_PATH;
   process.env.SOURCE_PATH = sourcePath;
 
   try {
-    await loadChannelInstructions(landPath, "telegram", threadPath);
-    assert.equal(process.env.LAND_PATH, await fs.realpath(landPath));
+    await loadChannelInstructions(workspacePath, "telegram", threadPath);
+    assert.equal(process.env.WORKSPACE_PATH, await fs.realpath(workspacePath));
     assert.equal(process.env.THREAD_PATH, await fs.realpath(threadPath));
     assert.equal(process.env.SOURCE_PATH, await fs.realpath(sourcePath));
   } finally {
-    if (typeof previousLandPath === "string") {
-      process.env.LAND_PATH = previousLandPath;
+    if (typeof previousWorkspacePath === "string") {
+      process.env.WORKSPACE_PATH = previousWorkspacePath;
     } else {
-      delete process.env.LAND_PATH;
+      delete process.env.WORKSPACE_PATH;
     }
     if (typeof previousThreadPath === "string") {
       process.env.THREAD_PATH = previousThreadPath;

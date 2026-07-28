@@ -6,9 +6,9 @@
     "packages/*"
   ],
   "scripts": {
-    "land": "node packages/heswe/src/cli.js",
-    "dev": "concurrently --kill-others-on-fail -n land,web -c yellow,cyan \"npm run dev:land\" \"npm run dev:web\"",
-    "dev:land": "node --watch packages/heswe/src/cli.js run test-land",
+    "workspace": "node packages/heswe/src/cli.js",
+    "dev": "concurrently --kill-others-on-fail -n workspace,web -c yellow,cyan \"npm run dev:workspace\" \"npm run dev:web\"",
+    "dev:workspace": "node --watch packages/heswe/src/cli.js run test-workspace",
     "dev:web": "npm run dev -w web",
     "test": "npm run --workspaces --if-present test"
   },

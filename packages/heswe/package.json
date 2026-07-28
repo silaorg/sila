@@ -2,13 +2,21 @@
   "name": "heswe",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI and runtime package for creating and running Heswe lands",
+  "description": "CLI and runtime package for creating and running Heswe workspaces",
   "main": "./src/index.js",
+  "types": "./src/index.d.ts",
   "bin": {
     "heswe": "./src/cli.js"
   },
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./app-workspace-service": {
+      "types": "./src/app-workspace-service.d.ts",
+      "import": "./src/app-workspace-service.js"
+    },
     "./cli": "./src/cli.js",
     "./package.json": "./package.json"
   },
@@ -29,7 +37,7 @@
     "ai",
     "agent",
     "cli",
-    "land",
+    "workspace",
     "heswe",
     "slack",
     "telegram"

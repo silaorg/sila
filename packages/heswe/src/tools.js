@@ -8,7 +8,7 @@ const PACKAGE_FILE_NAME = "package.json";
 const BUILT_IN_TOOL_NAME_SET = new Set(BUILT_IN_TOOL_NAMES);
 
 /**
- * @param {string} landPath
+ * @param {string} workspacePath
  * @param {{
  *   threadDir?: string;
  *   threadId?: string;
@@ -19,9 +19,9 @@ const BUILT_IN_TOOL_NAME_SET = new Set(BUILT_IN_TOOL_NAMES);
  * }} [options]
  * @returns {Promise<Array<{name: string; description: string; parameters: Record<string, unknown>; handler: Function}>>}
  */
-export async function loadLandTools(landPath, options = {}) {
+export async function loadWorkspaceTools(workspacePath, options = {}) {
   const logger = options.logger ?? console;
-  const toolsDirPath = path.join(landPath, TOOLS_DIR_NAME);
+  const toolsDirPath = path.join(workspacePath, TOOLS_DIR_NAME);
   const entries = await readDirectoryEntriesOrEmpty(toolsDirPath);
   const sortedEntries = entries
     .filter((entry) => entry.isDirectory())
@@ -36,12 +36,12 @@ export async function loadLandTools(landPath, options = {}) {
 
     try {
       const tool = await loadToolPackage(packageDirPath, packageFilePath, {
-        landPath,
+        workspacePath,
         threadDir: options.threadDir,
         threadId: options.threadId,
         channel: options.channel,
         sourcePath: options.sourcePath ?? null,
-        defaultCwd: options.defaultCwd ?? options.threadDir ?? landPath,
+        defaultCwd: options.defaultCwd ?? options.threadDir ?? workspacePath,
         logger,
       });
 
@@ -69,7 +69,7 @@ export async function loadLandTools(landPath, options = {}) {
  * @param {string} packageDirPath
  * @param {string} packageFilePath
  * @param {{
- *   landPath: string;
+ *   workspacePath: string;
  *   threadDir?: string;
  *   threadId?: string;
  *   channel?: string;
@@ -93,7 +93,7 @@ async function loadToolPackage(packageDirPath, packageFilePath, context) {
   const toolFactory = resolveToolFactory(imported);
   const tool = typeof toolFactory === "function"
     ? await toolFactory({
-      landPath: context.landPath,
+      workspacePath: context.workspacePath,
       threadDir: context.threadDir ?? context.defaultCwd,
       threadId: context.threadId ?? "",
       channel: context.channel ?? "",

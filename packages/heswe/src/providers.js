@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
-import { loadLandEnvironment, readEnvValue } from "./env.js";
+import { loadWorkspaceEnvironment, readEnvValue } from "./env.js";
 
 const PROVIDERS_DIR_NAME = "providers";
 const DEFAULT_AGENT_CONFIG_RELATIVE_PATH = path.join("agents", "default", "config.json");
@@ -97,7 +97,7 @@ const DefaultAgentConfigSchema = z.looseObject({
   model: z.string().trim().min(1).default("auto"),
 });
 
-const LandProviderConfigSchema = z.looseObject({
+const WorkspaceProviderConfigSchema = z.looseObject({
   provider: z.string().trim().min(1).optional(),
   enabled: z.boolean().default(true),
   model: z.string().trim().min(1).optional(),
@@ -110,20 +110,20 @@ export class ProviderConfigError extends Error {
   }
 }
 
-export function getProvidersPath(landPath) {
-  return path.join(landPath, PROVIDERS_DIR_NAME);
+export function getProvidersPath(workspacePath) {
+  return path.join(workspacePath, PROVIDERS_DIR_NAME);
 }
 
-export function getProviderConfigPath(landPath, providerId) {
-  return path.join(getProvidersPath(landPath), providerId, PROVIDER_CONFIG_FILE_NAME);
+export function getProviderConfigPath(workspacePath, providerId) {
+  return path.join(getProvidersPath(workspacePath), providerId, PROVIDER_CONFIG_FILE_NAME);
 }
 
-export function getDefaultAgentConfigPath(landPath) {
-  return path.join(landPath, DEFAULT_AGENT_CONFIG_RELATIVE_PATH);
+export function getDefaultAgentConfigPath(workspacePath) {
+  return path.join(workspacePath, DEFAULT_AGENT_CONFIG_RELATIVE_PATH);
 }
 
-export async function createDefaultAgentConfig(landPath, overrides = {}) {
-  const configPath = getDefaultAgentConfigPath(landPath);
+export async function createDefaultAgentConfig(workspacePath, overrides = {}) {
+  const configPath = getDefaultAgentConfigPath(workspacePath);
   const config = DefaultAgentConfigSchema.parse({
     provider: "auto",
     model: "auto",
@@ -134,14 +134,14 @@ export async function createDefaultAgentConfig(landPath, overrides = {}) {
   return config;
 }
 
-export async function createProviderConfig(landPath, providerId, overrides = {}) {
+export async function createProviderConfig(workspacePath, providerId, overrides = {}) {
   const normalizedProviderId = normalizeProviderId(providerId);
   if (!normalizedProviderId) {
     throw new ProviderConfigError("Provider id is required.");
   }
 
-  const configPath = getProviderConfigPath(landPath, normalizedProviderId);
-  const config = LandProviderConfigSchema.parse({
+  const configPath = getProviderConfigPath(workspacePath, normalizedProviderId);
+  const config = WorkspaceProviderConfigSchema.parse({
     provider: normalizedProviderId,
     enabled: true,
     ...overrides,
@@ -151,8 +151,8 @@ export async function createProviderConfig(landPath, providerId, overrides = {})
   return config;
 }
 
-export async function readDefaultAgentConfig(landPath) {
-  const configPath = getDefaultAgentConfigPath(landPath);
+export async function readDefaultAgentConfig(workspacePath) {
+  const configPath = getDefaultAgentConfigPath(workspacePath);
   const parsed = await readJsonFileOrNull(configPath);
   if (!parsed) {
     return DefaultAgentConfigSchema.parse({});
@@ -165,8 +165,8 @@ export async function readDefaultAgentConfig(landPath) {
   return result.data;
 }
 
-export async function readLandProviderConfigs(landPath) {
-  const providersPath = getProvidersPath(landPath);
+export async function readWorkspaceProviderConfigs(workspacePath) {
+  const providersPath = getProvidersPath(workspacePath);
   const entries = await readDirectoryEntriesOrEmpty(providersPath);
   const configs = [];
 
@@ -181,7 +181,7 @@ export async function readLandProviderConfigs(landPath) {
       continue;
     }
 
-    const result = LandProviderConfigSchema.safeParse(parsed);
+    const result = WorkspaceProviderConfigSchema.safeParse(parsed);
     if (!result.success) {
       throw new ProviderConfigError(`Invalid provider config at ${configPath}.`);
     }
@@ -202,11 +202,11 @@ export async function readLandProviderConfigs(landPath) {
   return configs;
 }
 
-export async function resolveLandLanguageSelection(landPath) {
-  await loadLandEnvironment(landPath);
+export async function resolveWorkspaceLanguageSelection(workspacePath) {
+  await loadWorkspaceEnvironment(workspacePath);
 
-  const agentConfig = await readDefaultAgentConfig(landPath);
-  const providerConfigs = await readLandProviderConfigs(landPath);
+  const agentConfig = await readDefaultAgentConfig(workspacePath);
+  const providerConfigs = await readWorkspaceProviderConfigs(workspacePath);
   const requestedProviderId = normalizeProviderId(agentConfig.provider) ?? "auto";
 
   let selectedProviderId = requestedProviderId;
@@ -229,7 +229,7 @@ export async function resolveLandLanguageSelection(landPath) {
   const implicitlyEnabled = isProviderImplicitlyEnabled(selectedProviderId, providerConfigs);
   if (!configuredProvider && !implicitlyEnabled && providerConfigs.length > 0 && requestedProviderId !== "auto") {
     throw new ProviderConfigError(
-      `Provider "${selectedProviderId}" is not configured in ${getProvidersPath(landPath)}.`,
+      `Provider "${selectedProviderId}" is not configured in ${getProvidersPath(workspacePath)}.`,
     );
   }
 
@@ -242,8 +242,8 @@ export async function resolveLandLanguageSelection(landPath) {
   };
 }
 
-export async function loadLandLanguageProvider(landPath) {
-  const selection = await resolveLandLanguageSelection(landPath);
+export async function loadWorkspaceLanguageProvider(workspacePath) {
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   const providerSpec = getProviderSpec(selection.provider);
   if (!providerSpec) {
     throw new ProviderConfigError(`Unsupported provider "${selection.provider}".`);
@@ -252,7 +252,7 @@ export async function loadLandLanguageProvider(landPath) {
   const apiKey = selection.apiKeyEnvName ? readEnvValue(selection.apiKeyEnvName) : null;
   if (!providerSpec.local && !apiKey) {
     throw new ProviderConfigError(
-      `missing ${selection.apiKeyEnvName} for provider "${selection.provider}" in ${landPath}. Set it in land .env or process env.`,
+      `missing ${selection.apiKeyEnvName} for provider "${selection.provider}" in ${workspacePath}. Set it in workspace .env or process env.`,
     );
   }
 

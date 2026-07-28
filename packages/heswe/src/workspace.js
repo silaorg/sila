@@ -3,15 +3,15 @@ import path from "node:path";
 import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
-import { loadLandEnvironment } from "./env.js";
-import { resolveLandLanguageSelection } from "./providers.js";
+import { loadWorkspaceEnvironment } from "./env.js";
+import { resolveWorkspaceLanguageSelection } from "./providers.js";
 
 const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
   slack: SlackChannel,
   telegram: TelegramChannel,
 });
 
-export class Land {
+export class Workspace {
   /** @type {string} */
   #path;
   /** @type {string} */
@@ -30,26 +30,26 @@ export class Land {
   }
 
   /**
-   * Construct a Land instance for the given path. The path should point to the directory containing the land's config.json.
-   * @param {string} landPath
+   * Construct a Workspace instance for the given path. The path should point to the directory containing the workspace's config.json.
+   * @param {string} workspacePath
    */
-  constructor(landPath) {
-    this.#path = landPath;
+  constructor(workspacePath) {
+    this.#path = workspacePath;
   }
 
   async run() {
     if (this.#isRunning) {
-      throw new Error("Land is already running");
+      throw new Error("Workspace is already running");
     }
     this.#isRunning = true;
 
     try {
       const config = await readConfig(this.#path);
       this.#name = config.name;
-      await loadLandEnvironment(this.#path);
+      await loadWorkspaceEnvironment(this.#path);
       await this.logDefaultAgentLanguageSelection();
       await this.runChannels();
-      console.log(`Running land: ${this.name} at path: ${this.path}`);
+      console.log(`Running workspace: ${this.name} at path: ${this.path}`);
     } catch (error) {
       const startedChannels = this.#channels.splice(0);
       await Promise.allSettled(startedChannels.map((channel) => channel.stop()));
@@ -92,7 +92,7 @@ export class Land {
 
   async logDefaultAgentLanguageSelection() {
     try {
-      const selection = await resolveLandLanguageSelection(this.#path);
+      const selection = await resolveWorkspaceLanguageSelection(this.#path);
       console.log(`Default agent language model: ${selection.provider}/${selection.model}`);
     } catch (error) {
       console.log(`Default agent language model unavailable: ${error.message}`);

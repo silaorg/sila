@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import OpenAI from "openai";
-import { Input } from "telegraf";
 import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
@@ -28,6 +27,7 @@ import {
 } from "./telegram/telegram-input-parser.js";
 import { storeTelegramFile } from "./telegram/telegram-file-store.js";
 import { transcribeAudioFile } from "./telegram/telegram-transcriber.js";
+import { TelegramTransport } from "./telegram/telegram-transport.js";
 import { ThreadedChannelRuntime } from "./threaded-channel-runtime.js";
 
 const TelegramChannelConfigSchema = z.looseObject({
@@ -42,6 +42,8 @@ export class TelegramChannel {
   #config;
   /** @type {null | any} */
   #bot = null;
+  /** @type {null | TelegramTransport} */
+  #transport = null;
   /** @type {null | import("aiwrapper").LanguageProvider} */
   #lang = null;
   /** @type {null | any} */
@@ -86,7 +88,7 @@ export class TelegramChannel {
   constructor(channelPath, rawConfig, dependencies = {}) {
     this.#path = channelPath;
     this.#config = parseChannelConfig(rawConfig);
-    this.#threadRuntime = new ThreadedChannelRuntime({ channelPath });
+    this.#threadRuntime = new ThreadedChannelRuntime({ channelPath, channelName: "telegram" });
     this.#dependencies = {
       ...createDefaultDependencies(),
       ...dependencies,
@@ -109,7 +111,7 @@ export class TelegramChannel {
       return;
     }
 
-    const landPath = path.resolve(this.#path, "..", "..");
+    const workspacePath = path.resolve(this.#path, "..", "..");
     let languageProvider;
     try {
       languageProvider = await loadChannelLanguageProvider(this.#path);
@@ -121,17 +123,19 @@ export class TelegramChannel {
     this.#lang = languageProvider.lang;
     const openAiApiKey = await readOpenAiApiKey(this.#path);
     this.#openai = openAiApiKey ? this.#dependencies.createOpenAiClient(openAiApiKey) : null;
-    const instructions = await loadChannelInstructions(landPath, "telegram");
+    const instructions = await loadChannelInstructions(workspacePath, "telegram");
     this.#agentRuntime = this.#dependencies.createAgentRuntime({
       lang: this.#lang,
-      defaultCwd: landPath,
+      defaultCwd: workspacePath,
       instructions,
-      loadInstructions: (input = {}) => loadChannelInstructions(landPath, "telegram", input.threadDir),
-      loadTools: (input = {}) => loadChannelTools(landPath, "telegram", input),
+      loadInstructions: (input = {}) => loadChannelInstructions(workspacePath, "telegram", input.threadDir),
+      loadTools: (input = {}) => loadChannelTools(workspacePath, "telegram", input),
     });
     this.#threadRuntime.setAgentRuntime(this.#agentRuntime);
 
     const bot = await this.#dependencies.createBot(this.#config.botToken);
+    this.#bot = bot;
+    this.#transport = new TelegramTransport(bot);
     if (typeof bot.catch === "function") {
       bot.catch((error) => {
         console.error("Telegram bot handler error:", error);
@@ -149,7 +153,6 @@ export class TelegramChannel {
     const botIdentity = botInfo?.username ? `@${botInfo.username}` : `id=${botInfo?.id ?? "unknown"}`;
     console.log(`Telegram bot authenticated as ${botIdentity}.`);
 
-    this.#bot = bot;
     this.#isRunning = true;
     void bot.launch({ dropPendingUpdates: false }).catch((error) => {
       console.error("Telegram channel launch failed:", error);
@@ -168,28 +171,13 @@ export class TelegramChannel {
     }
 
     this.#bot = null;
+    this.#transport = null;
     this.#lang = null;
     this.#openai = null;
     this.#agentRuntime = null;
     this.#threadRuntime.clear();
     this.#isRunning = false;
     console.log(`Telegram channel stopped at: ${this.#path}`);
-  }
-
-  async sendMessage(chatId, text) {
-    if (!this.#bot) {
-      throw new Error(`Telegram channel is not connected: ${this.#path}`);
-    }
-
-    return this.#bot.telegram.sendMessage(chatId, text);
-  }
-
-  async updateMessage(chatId, messageId, text) {
-    if (!this.#bot) {
-      throw new Error(`Telegram channel is not connected: ${this.#path}`);
-    }
-
-    return this.#bot.telegram.editMessageText(chatId, messageId, undefined, text);
   }
 
   /**
@@ -330,17 +318,18 @@ export class TelegramChannel {
    * @param {"text" | "upload" | "audio"} inputType
    */
   async #processThreadMessage(thread, userId, text, inputType) {
-    if (!this.#lang) {
+    if (!this.#lang || !this.#transport) {
       return;
     }
 
+    const transport = this.#transport;
     let progressMessageId = null;
     const ensureProgressMessage = async () => {
       if (progressMessageId) {
         return progressMessageId;
       }
 
-      const sent = await this.sendMessage(thread.chatId, "🤔 Thinking...");
+      const sent = await transport.sendMessage(thread.chatId, "🤔 Thinking...");
       progressMessageId = sent?.message_id ?? null;
       return progressMessageId;
     };
@@ -350,7 +339,7 @@ export class TelegramChannel {
       userId,
       text,
       agentInput: {
-        sendTelegramFile: async (payload) => this.#sendTelegramFile(thread.chatId, payload),
+        sendTelegramFile: async (payload) => transport.sendFile(thread.chatId, payload),
       },
       state: (input) => ({
         chatId: thread.chatId,
@@ -364,56 +353,19 @@ export class TelegramChannel {
         const workingText = formatWorkingMessage(payload.text);
         const messageId = await ensureProgressMessage();
         if (messageId) {
-          await this.updateMessage(thread.chatId, messageId, workingText);
+          await transport.updateMessage(thread.chatId, messageId, workingText);
           return;
         }
-        await this.sendMessage(thread.chatId, workingText);
+        await transport.sendMessage(thread.chatId, workingText);
       },
       sendReply: async (answer) => {
         if (progressMessageId) {
-          await this.updateMessage(thread.chatId, progressMessageId, answer);
+          await transport.updateMessage(thread.chatId, progressMessageId, answer);
           return;
         }
-        await this.sendMessage(thread.chatId, answer);
+        await transport.sendMessage(thread.chatId, answer);
       },
     });
-  }
-
-  /**
-   * @param {string} chatId
-   * @param {{ path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }} payload
-   */
-  async #sendTelegramFile(chatId, payload) {
-    if (!this.#bot) {
-      throw new Error(`Telegram channel is not connected: ${this.#path}`);
-    }
-
-    const { path: filePath, kind, caption } = payload;
-    const input = Input.fromLocalFile(filePath);
-    const extra = caption ? { caption } : undefined;
-
-    if (kind === "photo") {
-      const sent = await this.#bot.telegram.sendPhoto(chatId, input, extra);
-      return { messageId: sent?.message_id ?? null };
-    }
-
-    if (kind === "video") {
-      const sent = await this.#bot.telegram.sendVideo(chatId, input, extra);
-      return { messageId: sent?.message_id ?? null };
-    }
-
-    if (kind === "audio") {
-      const sent = await this.#bot.telegram.sendAudio(chatId, input, extra);
-      return { messageId: sent?.message_id ?? null };
-    }
-
-    if (kind === "voice") {
-      const sent = await this.#bot.telegram.sendVoice(chatId, input, extra);
-      return { messageId: sent?.message_id ?? null };
-    }
-
-    const sent = await this.#bot.telegram.sendDocument(chatId, input, extra);
-    return { messageId: sent?.message_id ?? null };
   }
 }
 

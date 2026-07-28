@@ -7,6 +7,6 @@ Important dev rules to follow:
 - Read [docs/dev/rules/how-to-code.md] before substantial code changes.
 - If referencing or porting behavior from the old Sila v1 codebase, read [docs/dev/rules/how-to-reference-old-sila.md].
 - For frontend work such as `packages/web` or `packages/client`, also check [docs/dev/rules/how-to-work-with-app].
-- Before adding land-local extensions, check [packages/heswe/builtin-skills/how-to-create-tools/SKILL.md] and [packages/heswe/builtin-skills/how-to-create-skills/SKILL.md].
+- Before adding workspace-local extensions, check [packages/heswe/builtin-skills/how-to-create-tools/SKILL.md] and [packages/heswe/builtin-skills/how-to-create-skills/SKILL.md].
 
 Adjust this doc if you spot any broken links or other rules worth adding here.

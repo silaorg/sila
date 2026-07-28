@@ -1,8 +1,8 @@
 <svelte:head>
-	<title>Heswe Web</title>
+	<title>Heswe</title>
 	<meta
 		name="description"
-		content="Thin SvelteKit wrapper for the shared Heswe client."
+		content="Healthy, smart, and wealthy AI for teams and businesses."
 	/>
 </svelte:head>
 

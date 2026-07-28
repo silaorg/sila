@@ -5,23 +5,23 @@ import { readEnvValue } from "./env.js";
 const SOURCE_PATH_ENV_NAMES = ["SOURCE_PATH", "REPO_ROOT"];
 
 /**
- * @param {{ landPath: string; threadPath?: string }} input
- * @returns {Promise<{ landPath: string; threadPath: string | null; sourcePath: string | null }>}
+ * @param {{ workspacePath: string; threadPath?: string }} input
+ * @returns {Promise<{ workspacePath: string; threadPath: string | null; sourcePath: string | null }>}
  */
 export async function resolveRuntimePaths(input) {
-  const landPath = await toAbsolutePath(input.landPath);
+  const workspacePath = await toAbsolutePath(input.workspacePath);
   const threadPath = typeof input.threadPath === "string" ? await toAbsolutePath(input.threadPath) : null;
-  const sourcePath = await resolveSourcePath(landPath);
+  const sourcePath = await resolveSourcePath(workspacePath);
 
   return {
-    landPath,
+    workspacePath,
     threadPath,
     sourcePath,
   };
 }
 
 /**
- * @param {{ landPath: string; threadPath: string | null; sourcePath: string | null }} runtimePaths
+ * @param {{ workspacePath: string; threadPath: string | null; sourcePath: string | null }} runtimePaths
  * @returns {string}
  */
 export function buildRuntimePathsInstructionBlock(runtimePaths) {
@@ -30,22 +30,22 @@ export function buildRuntimePathsInstructionBlock(runtimePaths) {
 
   return `
 <environment_runtime_paths>
-Land root (absolute): ${runtimePaths.landPath}
+Workspace root (absolute): ${runtimePaths.workspacePath}
 Current thread root (absolute): ${threadPath}
 Source repo root (absolute): ${sourcePath}
 Use source repo root for source code changes.
 Use current thread root for thread files.
-Use land root for channels and assets.
+Use workspace root for channels and assets.
 </environment_runtime_paths>
 `.trim();
 }
 
 /**
- * @param {{ landPath: string; threadPath: string | null; sourcePath: string | null }} runtimePaths
+ * @param {{ workspacePath: string; threadPath: string | null; sourcePath: string | null }} runtimePaths
  * @returns {void}
  */
 export function applyRuntimePathEnvironment(runtimePaths) {
-  process.env.LAND_PATH = runtimePaths.landPath;
+  process.env.WORKSPACE_PATH = runtimePaths.workspacePath;
 
   if (runtimePaths.threadPath) {
     process.env.THREAD_PATH = runtimePaths.threadPath;
@@ -60,12 +60,12 @@ export function applyRuntimePathEnvironment(runtimePaths) {
   }
 }
 
-async function resolveSourcePath(landPath) {
+async function resolveSourcePath(workspacePath) {
   const configured = readConfiguredSourcePath();
   if (configured) {
     return toAbsolutePath(configured);
   }
-  return findGitRootOrNull(landPath);
+  return findGitRootOrNull(workspacePath);
 }
 
 function readConfiguredSourcePath() {

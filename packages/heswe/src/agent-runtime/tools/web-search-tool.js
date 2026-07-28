@@ -1,7 +1,10 @@
+import { fetchRemote, readResponseText } from "../../http.js";
+
 const EXA_SEARCH_ENDPOINT = "https://api.exa.ai/search";
 const DEFAULT_RESULT_LIMIT = 5;
 const MAX_RESULT_LIMIT = 10;
 const EXCERPT_LIMIT = 900;
+const MAX_SEARCH_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 export function createToolWebSearch() {
   return {
@@ -41,7 +44,7 @@ export function createToolWebSearch() {
       if (!apiKey) {
         return {
           status: "failed",
-          error: "EXA_API_KEY is not configured. Set it in land .env or process env.",
+          error: "EXA_API_KEY is not configured. Set it in workspace .env or process env.",
         };
       }
 
@@ -67,7 +70,7 @@ export function createToolWebSearch() {
 
       let response;
       try {
-        response = await fetch(EXA_SEARCH_ENDPOINT, {
+        response = await fetchRemote(EXA_SEARCH_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -83,7 +86,9 @@ export function createToolWebSearch() {
       }
 
       if (!response.ok) {
-        const details = await response.text().catch(() => "");
+        const details = await readResponseText(response, {
+          maxBytes: MAX_SEARCH_RESPONSE_BYTES,
+        }).catch(() => "");
         return {
           status: "failed",
           error: `Exa web search request failed with HTTP ${response.status}${details ? `: ${details}` : ""}`,
@@ -92,7 +97,9 @@ export function createToolWebSearch() {
 
       let parsed;
       try {
-        parsed = await response.json();
+        parsed = JSON.parse(await readResponseText(response, {
+          maxBytes: MAX_SEARCH_RESPONSE_BYTES,
+        }));
       } catch (error) {
         return {
           status: "failed",

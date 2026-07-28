@@ -6,8 +6,8 @@ import { afterEach, beforeEach, test } from "node:test";
 import {
   createDefaultAgentConfig,
   createProviderConfig,
-  loadLandLanguageProvider,
-  resolveLandLanguageSelection,
+  loadWorkspaceLanguageProvider,
+  resolveWorkspaceLanguageSelection,
 } from "../src/providers.js";
 
 const PROVIDER_ENV_NAMES = [
@@ -45,12 +45,12 @@ afterEach(() => {
   }
 });
 
-test("resolveLandLanguageSelection falls back to openai for legacy lands", async () => {
+test("resolveWorkspaceLanguageSelection falls back to openai for legacy workspaces", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await fs.mkdir(landPath, { recursive: true });
+  const workspacePath = path.join(tempRoot, "workspace");
+  await fs.mkdir(workspacePath, { recursive: true });
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "openai",
     model: "gpt-5.4",
@@ -58,14 +58,14 @@ test("resolveLandLanguageSelection falls back to openai for legacy lands", async
   });
 });
 
-test("resolveLandLanguageSelection uses the legacy auto priority order", async () => {
+test("resolveWorkspaceLanguageSelection uses the legacy auto priority order", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath);
-  await createProviderConfig(landPath, "openrouter");
-  await createProviderConfig(landPath, "anthropic");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath);
+  await createProviderConfig(workspacePath, "openrouter");
+  await createProviderConfig(workspacePath, "anthropic");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "anthropic",
     model: "claude-sonnet-4-6",
@@ -73,14 +73,14 @@ test("resolveLandLanguageSelection uses the legacy auto priority order", async (
   });
 });
 
-test("resolveLandLanguageSelection respects explicit provider config", async () => {
+test("resolveWorkspaceLanguageSelection respects explicit provider config", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath, { provider: "openrouter" });
-  await createProviderConfig(landPath, "openrouter", { model: "anthropic/claude-3.5-sonnet" });
-  await createProviderConfig(landPath, "openai");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath, { provider: "openrouter" });
+  await createProviderConfig(workspacePath, "openrouter", { model: "anthropic/claude-3.5-sonnet" });
+  await createProviderConfig(workspacePath, "openai");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "openrouter",
     model: "anthropic/claude-3.5-sonnet",
@@ -88,14 +88,14 @@ test("resolveLandLanguageSelection respects explicit provider config", async () 
   });
 });
 
-test("resolveLandLanguageSelection includes kimi in auto priority", async () => {
+test("resolveWorkspaceLanguageSelection includes kimi in auto priority", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath);
-  await createProviderConfig(landPath, "kimi");
-  await createProviderConfig(landPath, "openrouter");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath);
+  await createProviderConfig(workspacePath, "kimi");
+  await createProviderConfig(workspacePath, "openrouter");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "kimi",
     model: "kimi-k2.5",
@@ -103,38 +103,38 @@ test("resolveLandLanguageSelection includes kimi in auto priority", async () => 
   });
 });
 
-test("loadLandLanguageProvider supports kimi via openai-like adapter", async () => {
+test("loadWorkspaceLanguageProvider supports kimi via openai-like adapter", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath, { provider: "kimi" });
-  await createProviderConfig(landPath, "kimi");
-  await fs.writeFile(path.join(landPath, ".env"), "KIMI_API_KEY=test-kimi-key\n", "utf8");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath, { provider: "kimi" });
+  await createProviderConfig(workspacePath, "kimi");
+  await fs.writeFile(path.join(workspacePath, ".env"), "KIMI_API_KEY=test-kimi-key\n", "utf8");
 
-  const provider = await loadLandLanguageProvider(landPath);
+  const provider = await loadWorkspaceLanguageProvider(workspacePath);
   assert.equal(provider.provider, "kimi");
   assert.equal(provider.model, "kimi-k2.5");
   assert.ok(provider.lang);
 });
 
-test("resolveLandLanguageSelection rejects non-language providers for default agent", async () => {
+test("resolveWorkspaceLanguageSelection rejects non-language providers for default agent", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath, { provider: "exa" });
-  await createProviderConfig(landPath, "exa");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath, { provider: "exa" });
+  await createProviderConfig(workspacePath, "exa");
 
   await assert.rejects(
-    () => resolveLandLanguageSelection(landPath),
+    () => resolveWorkspaceLanguageSelection(workspacePath),
     /not a language provider/,
   );
 });
 
-test("resolveLandLanguageSelection allows explicit provider from env without provider config", async () => {
+test("resolveWorkspaceLanguageSelection allows explicit provider from env without provider config", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath, { provider: "openai" });
-  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=test-openai-key\n", "utf8");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath, { provider: "openai" });
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=test-openai-key\n", "utf8");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "openai",
     model: "gpt-5.4",
@@ -142,13 +142,13 @@ test("resolveLandLanguageSelection allows explicit provider from env without pro
   });
 });
 
-test("resolveLandLanguageSelection auto-detects providers from env without provider config", async () => {
+test("resolveWorkspaceLanguageSelection auto-detects providers from env without provider config", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath);
-  await fs.writeFile(path.join(landPath, ".env"), "KIMI_API_KEY=test-kimi-key\n", "utf8");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath);
+  await fs.writeFile(path.join(workspacePath, ".env"), "KIMI_API_KEY=test-kimi-key\n", "utf8");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "kimi",
     model: "kimi-k2.5",
@@ -158,12 +158,12 @@ test("resolveLandLanguageSelection auto-detects providers from env without provi
 
 test("explicitly disabled provider stays disabled even when env key exists", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
-  const landPath = path.join(tempRoot, "land");
-  await createDefaultAgentConfig(landPath);
-  await createProviderConfig(landPath, "openai", { enabled: false });
-  await fs.writeFile(path.join(landPath, ".env"), "OPENAI_API_KEY=test-openai-key\nKIMI_API_KEY=test-kimi-key\n", "utf8");
+  const workspacePath = path.join(tempRoot, "workspace");
+  await createDefaultAgentConfig(workspacePath);
+  await createProviderConfig(workspacePath, "openai", { enabled: false });
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=test-openai-key\nKIMI_API_KEY=test-kimi-key\n", "utf8");
 
-  const selection = await resolveLandLanguageSelection(landPath);
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
     provider: "kimi",
     model: "kimi-k2.5",

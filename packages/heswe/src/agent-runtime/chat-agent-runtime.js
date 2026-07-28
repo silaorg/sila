@@ -81,7 +81,9 @@ export class ThreadAgent {
     agent.messages.instructions = this.#instructions;
     console.log(`[thread ${this.#threadId}] user <@${input.userId}>: ${input.text}`);
     agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
-    await this.#threadStore.saveMessages(this.#threadDir, agent.messages);
+    await this.#threadStore.appendMessages(this.#threadDir, [
+      agent.messages[agent.messages.length - 1],
+    ]);
 
     const shouldSendReply = await decideShouldRespond(this.#lang, agent);
     if (!shouldSendReply) {
@@ -94,6 +96,7 @@ export class ThreadAgent {
     }
 
     const loopLogger = subscribeToAgentLoopLogs(this.#threadId, agent, this.#onAssistantLoopMessage);
+    const persistedMessageCount = agent.messages.length;
     let result;
     try {
       result = await agent.run([]);
@@ -102,9 +105,12 @@ export class ThreadAgent {
       throw error;
     } finally {
       loopLogger.unsubscribe();
+      await this.#threadStore.appendMessages(
+        this.#threadDir,
+        agent.messages.slice(persistedMessageCount),
+      );
     }
     await loopLogger.waitForPending();
-    await this.#threadStore.saveMessages(this.#threadDir, agent.messages);
     const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
     console.log(`[thread ${this.#threadId}] assistant: ${answer}`);
 

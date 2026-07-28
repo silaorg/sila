@@ -26,77 +26,77 @@ async function runCli(args) {
   }
 }
 
-test("create then run land succeeds", async () => {
+test("create then run workspace succeeds", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
-  const landDir = path.join(tempRoot, "good-land");
+  const workspaceDir = path.join(tempRoot, "good-workspace");
 
   const createResult = await runCli([
     "create",
-    landDir,
+    workspaceDir,
     "--channel",
     "slack",
     "--openai-api-key",
     "sk-test",
   ]);
   assert.equal(createResult.code, 0);
-  assert.match(createResult.stdout, /Created land at:/);
-  const landEnv = await fs.readFile(path.join(landDir, ".env"), "utf8");
-  assert.match(landEnv, /OPENAI_API_KEY=sk-test/);
-  assert.match(landEnv, /ANTHROPIC_API_KEY=/);
-  assert.match(landEnv, /GOOGLE_API_KEY=/);
-  assert.match(landEnv, /KIMI_API_KEY=/);
-  assert.match(landEnv, /XAI_API_KEY=/);
-  assert.match(landEnv, /OPENROUTER_API_KEY=/);
-  assert.match(landEnv, /DEEPSEEK_API_KEY=/);
-  assert.match(landEnv, /GROQ_API_KEY=/);
-  assert.match(landEnv, /COHERE_API_KEY=/);
-  assert.match(landEnv, /MISTRAL_API_KEY=/);
-  assert.match(landEnv, /FAL_KEY=/);
-  assert.match(landEnv, /EXA_API_KEY=/);
-  const skillsStat = await fs.stat(path.join(landDir, "skills"));
+  assert.match(createResult.stdout, /Created workspace at:/);
+  const workspaceEnv = await fs.readFile(path.join(workspaceDir, ".env"), "utf8");
+  assert.match(workspaceEnv, /OPENAI_API_KEY=sk-test/);
+  assert.match(workspaceEnv, /ANTHROPIC_API_KEY=/);
+  assert.match(workspaceEnv, /GOOGLE_API_KEY=/);
+  assert.match(workspaceEnv, /KIMI_API_KEY=/);
+  assert.match(workspaceEnv, /XAI_API_KEY=/);
+  assert.match(workspaceEnv, /OPENROUTER_API_KEY=/);
+  assert.match(workspaceEnv, /DEEPSEEK_API_KEY=/);
+  assert.match(workspaceEnv, /GROQ_API_KEY=/);
+  assert.match(workspaceEnv, /COHERE_API_KEY=/);
+  assert.match(workspaceEnv, /MISTRAL_API_KEY=/);
+  assert.match(workspaceEnv, /FAL_KEY=/);
+  assert.match(workspaceEnv, /EXA_API_KEY=/);
+  const skillsStat = await fs.stat(path.join(workspaceDir, "skills"));
   assert.equal(skillsStat.isDirectory(), true);
-  const defaultAgentConfig = JSON.parse(await fs.readFile(path.join(landDir, "agents", "default", "config.json"), "utf8"));
+  const defaultAgentConfig = JSON.parse(await fs.readFile(path.join(workspaceDir, "agents", "default", "config.json"), "utf8"));
   assert.equal(defaultAgentConfig.provider, "auto");
   assert.equal(defaultAgentConfig.model, "auto");
-  const providerConfig = JSON.parse(await fs.readFile(path.join(landDir, "providers", "openai", "config.json"), "utf8"));
+  const providerConfig = JSON.parse(await fs.readFile(path.join(workspaceDir, "providers", "openai", "config.json"), "utf8"));
   assert.equal(providerConfig.provider, "openai");
   assert.equal(providerConfig.enabled, true);
 
-  const runResult = await runCli(["run", landDir]);
+  const runResult = await runCli(["run", workspaceDir]);
   assert.equal(runResult.code, 0);
   assert.match(runResult.stdout, /Default agent language model: openai\/gpt-5\.4/);
   assert.match(runResult.stdout, /Starting Slack channel at:/);
-  assert.match(runResult.stdout, /Running land:/);
+  assert.match(runResult.stdout, /Running workspace:/);
 });
 
-test("create then run land with default Telegram channel succeeds", async () => {
+test("create then run workspace with default Telegram channel succeeds", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
-  const landDir = path.join(tempRoot, "telegram-land");
+  const workspaceDir = path.join(tempRoot, "telegram-workspace");
 
-  const createResult = await runCli(["create", landDir, "--openai-api-key", "sk-test"]);
+  const createResult = await runCli(["create", workspaceDir, "--openai-api-key", "sk-test"]);
   assert.equal(createResult.code, 0);
   assert.match(createResult.stdout, /Scaffolded channel: telegram/);
 
-  const runResult = await runCli(["run", landDir]);
+  const runResult = await runCli(["run", workspaceDir]);
   assert.equal(runResult.code, 0);
   assert.match(runResult.stdout, /Default agent language model: openai\/gpt-5\.4/);
   assert.match(runResult.stdout, /Starting Telegram channel at:/);
   assert.match(runResult.stdout, /Telegram channel missing bot token/);
-  assert.match(runResult.stdout, /Running land:/);
+  assert.match(runResult.stdout, /Running workspace:/);
 });
 
 test("create and run return errors for invalid paths", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
 
-  const existingLandDir = path.join(tempRoot, "existing-land");
-  await fs.mkdir(existingLandDir, { recursive: true });
-  await fs.writeFile(path.join(existingLandDir, "config.json"), "{\"version\":1,\"name\":\"x\"}\n", "utf8");
+  const existingWorkspaceDir = path.join(tempRoot, "existing-workspace");
+  await fs.mkdir(existingWorkspaceDir, { recursive: true });
+  await fs.writeFile(path.join(existingWorkspaceDir, "config.json"), "{\"version\":1,\"name\":\"x\"}\n", "utf8");
 
-  const createExistingResult = await runCli(["create", existingLandDir]);
+  const createExistingResult = await runCli(["create", existingWorkspaceDir]);
   assert.equal(createExistingResult.code, 2);
-  assert.match(createExistingResult.stderr, /Land already exists at/);
+  assert.match(createExistingResult.stderr, /Workspace already exists at/);
 
-  const badRunDir = path.join(tempRoot, "bad-run-land");
+  const badRunDir = path.join(tempRoot, "bad-run-workspace");
   await fs.mkdir(badRunDir, { recursive: true });
   await fs.writeFile(path.join(badRunDir, "README.txt"), "hello\n", "utf8");
 

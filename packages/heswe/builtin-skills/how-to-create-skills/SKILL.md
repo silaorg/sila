@@ -12,7 +12,7 @@ How skills work (high level)
 - Skills are discovered from the `name` and `description` in SKILL.md frontmatter.
 
 Where to write skills
-- Land-specific skills: `<land root>/skills/<skill-name>/SKILL.md`
+- Workspace-specific skills: `<workspace root>/skills/<skill-name>/SKILL.md`
 - Built-in skills in the heswe package: `<heswe package>/builtin-skills/<skill-name>/SKILL.md`
 
 Basic shape of a skill file

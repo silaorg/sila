@@ -1,17 +1,17 @@
-# Land Update Supervisor (Idle-Aware Restarts)
+# Workspace Update Supervisor (Idle-Aware Restarts)
 
 ## Summary
 
-Add a dedicated Node process (`land-supervisor`) that runs the land process as a child, checks for git updates, and applies them only when the land is least busy.
+Add a dedicated Node process (`workspace-supervisor`) that runs the workspace process as a child, checks for git updates, and applies them only when the workspace is least busy.
 
 This keeps update logic out of channel code and gives us one place to manage restart policy.
 
 ## Current State
 
-- `heswe run` starts `Land` directly from `packages/heswe/src/cli.js`.
-- `Land` starts channel runtimes (`SlackChannel`, `TelegramChannel`) in-process.
+- `heswe run` starts `Workspace` directly from `packages/heswe/src/cli.js`.
+- `Workspace` starts channel runtimes (`SlackChannel`, `TelegramChannel`) in-process.
 - Each channel already serializes work per thread (`#processingThreads` map + `enqueueSerialTask`).
-- Channel runtimes can stop cleanly (`channel.stop()`), but `Land` does not expose a full stop/drain API yet.
+- Channel runtimes can stop cleanly (`channel.stop()`), but `Workspace` does not expose a full stop/drain API yet.
 - There is no built-in update checker, fetcher, or restart scheduler.
 
 ## Problem
@@ -23,7 +23,7 @@ We need automatic updates with a simple and explainable "restart when least busy
 
 - Auto-check and fetch updates from a configured git remote/branch.
 - Restart only when runtime load is low.
-- Keep architecture simple: one supervisor process and one land worker process.
+- Keep architecture simple: one supervisor process and one workspace worker process.
 - Avoid adding external infra (no Redis, no extra services).
 - Keep behavior deterministic and observable from logs/files.
 
@@ -41,12 +41,12 @@ We need automatic updates with a simple and explainable "restart when least busy
 Run a new command:
 
 ```bash
-node packages/heswe/src/cli.js supervise <land-path>
+node packages/heswe/src/cli.js supervise <workspace-path>
 ```
 
 Supervisor responsibilities:
 
-- spawn a child worker process that runs the land
+- spawn a child worker process that runs the workspace
 - poll git for upstream changes
 - decide when restart is allowed
 - perform update + restart sequence
@@ -54,13 +54,13 @@ Supervisor responsibilities:
 
 Worker responsibilities:
 
-- run current `Land` runtime
+- run current `Workspace` runtime
 - report current load snapshot to supervisor over IPC
 - accept drain/stop commands from supervisor
 
 ### 2) Load Signal (Least Busy)
 
-Define land as busy when any of these are true:
+Define workspace as busy when any of these are true:
 
 - any channel has `activeThreads > 0`
 - `now - lastActivityAt < quietPeriodMs`
@@ -74,7 +74,7 @@ Define land as busy when any of these are true:
 Implementation detail:
 
 - add `getStatus()` on each channel runtime
-- aggregate in `Land.getStatus()`
+- aggregate in `Workspace.getStatus()`
 - include at least: `activeThreads`, `lastActivityAt`, `channelCount`, `isRunning`
 
 ### 3) Update Detection
@@ -105,7 +105,7 @@ If update fails, keep previous runtime state file with error details and continu
 
 ## Configuration
 
-Store defaults in `land/config.json` under a new block:
+Store defaults in `workspace/config.json` under a new block:
 
 ```json
 {
@@ -126,7 +126,7 @@ CLI flags can override these for one run.
 
 ## Observability
 
-Write `land/.runtime/update-state.json`:
+Write `workspace/.runtime/update-state.json`:
 
 - current commit
 - pending commit
@@ -148,10 +148,10 @@ Log key events:
 1. Add `supervise` command in `packages/heswe/src/cli.js`.
 2. Add `packages/heswe/src/supervisor.js` for process + git orchestration.
 3. Add worker IPC entrypoint (`packages/heswe/src/worker.js`).
-4. Add `Land.stop()` and `Land.getStatus()` in `packages/heswe/src/land.js`.
+4. Add `Workspace.stop()` and `Workspace.getStatus()` in `packages/heswe/src/workspace.js`.
 5. Add `getStatus()` and `setDrainMode()` hooks in Slack and Telegram channels.
 6. Add update config parsing/validation in `packages/heswe/src/config.js`.
-7. Add docs for running supervised mode in `docs/land.md`.
+7. Add docs for running supervised mode in `docs/workspace.md`.
 
 ## Test Plan
 
