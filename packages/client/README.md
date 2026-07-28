@@ -1,10 +1,10 @@
 # Heswe Client - Svelte
 
-The client library for Heswe. It provides shared UI and app logic for frontend packages such as `packages/web`, and later desktop or mobile wrappers.
+The shared Svelte UI and typed HTTP client for Heswe frontends.
 
-Right now this package is intentionally small. We only move shared pieces here when we need them.
-
-The CSS is built into `src/lib/compiled-style.css`.
+It contains authentication screens, the workspace interface, and the
+same-origin API client used by `packages/web`. Tailwind builds
+`src/lib/compiled-style.css`.
 
 ## Dev
 
@@ -12,8 +12,9 @@ The CSS is built into `src/lib/compiled-style.css`.
 npm run dev -w @heswe/client
 ```
 
-## Build
+Check or build from the repository root:
 
 ```sh
+npm run check -w @heswe/client
 npm run build -w @heswe/client
 ```

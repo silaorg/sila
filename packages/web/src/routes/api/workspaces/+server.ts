@@ -1,13 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { apiError, readJsonObject, requireUser } from '$lib/server/api';
-import { getWorkspaceContext } from '$lib/server/workspace-service';
+import {
+	createWorkspace,
+	listWorkspaces
+} from '$lib/server/workspace-service';
+import { appEvents } from '$lib/server/app-events';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	const user = requireUser(locals);
 	try {
-		const { service } = await getWorkspaceContext(user.id);
-		return json(await service.listThreads(user.id));
+		return json(await listWorkspaces(user.id));
 	} catch (cause) {
 		apiError(cause);
 	}
@@ -16,9 +19,10 @@ export const GET: RequestHandler = async ({ locals }) => {
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const user = requireUser(locals);
 	try {
-		const body = await readJsonObject(request, { optional: true });
-		const { service } = await getWorkspaceContext(user.id);
-		return json(await service.createThread(user.id, body), { status: 201 });
+		const body = await readJsonObject(request);
+		const workspace = await createWorkspace(user.id, body);
+		appEvents.publish({ type: 'workspace.changed', userId: user.id });
+		return json(workspace, { status: 201 });
 	} catch (cause) {
 		apiError(cause);
 	}

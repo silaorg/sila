@@ -28,6 +28,8 @@ export class ThreadAgent {
   #onAssistantLoopMessage;
   /** @type {undefined | (() => Promise<void>)} */
   #onAssistantResponding;
+  /** @type {boolean} */
+  #alwaysRespond;
 
   /**
    * @param {{
@@ -42,6 +44,7 @@ export class ThreadAgent {
    *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
    *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
    *  onAssistantResponding?: () => Promise<void>;
+   *  alwaysRespond?: boolean;
    *  instructions: string;
    * }} options
    */
@@ -61,6 +64,7 @@ export class ThreadAgent {
     this.#onAssistantResponding = typeof options.onAssistantResponding === "function"
       ? options.onAssistantResponding
       : undefined;
+    this.#alwaysRespond = options.alwaysRespond === true;
     this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
   }
 
@@ -85,7 +89,8 @@ export class ThreadAgent {
       agent.messages[agent.messages.length - 1],
     ]);
 
-    const shouldSendReply = await decideShouldRespond(this.#lang, agent);
+    const shouldSendReply = this.#alwaysRespond
+      || await decideShouldRespond(this.#lang, agent);
     if (!shouldSendReply) {
       console.log(`[thread ${this.#threadId}] assistant: [no response]`);
       return { responded: false, answer: "" };
@@ -134,6 +139,8 @@ export class InProcessChatAgentRuntime {
   #defaultCwd;
   /** @type {ThreadStore} */
   #threadStore;
+  /** @type {boolean} */
+  #alwaysRespond;
   /** @type {Map<string, PTYShellSessionManager>} */
   #ptyManagersByThread = new Map();
 
@@ -145,12 +152,14 @@ export class InProcessChatAgentRuntime {
    *  loadTools?: (input: { threadId: string; threadDir: string }) => Promise<Array<any>>;
    *  defaultCwd?: string;
    *  threadStore?: ThreadStore;
+   *  alwaysRespond?: boolean;
    * }} options
    */
   constructor(options) {
     this.#lang = options.lang;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
+    this.#alwaysRespond = options.alwaysRespond === true;
     this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
     if (typeof options.loadInstructions === "function") {
       this.#loadInstructions = options.loadInstructions;
@@ -198,6 +207,7 @@ export class InProcessChatAgentRuntime {
         sendSlackFile: input.sendSlackFile,
         onAssistantLoopMessage: input.onAssistantLoopMessage,
         onAssistantResponding: input.onAssistantResponding,
+        alwaysRespond: this.#alwaysRespond,
         instructions,
       });
       return await agent.processUserMessage({

@@ -1,7 +1,10 @@
 # How to write proposals
 
-Write them in markdown files in docs/dev/proposals in our repository.
+Keep active proposals in `docs/dev/proposals`.
 
-Before writing a proposal explore how the current solution works if it exists, make sure you understand the architecture.
+Before writing one, inspect the current code and understand the architecture.
 
-Don't add time estimates. Assume all the work will be written by AI quickly.s
+Don't add time estimates. Assume AI agents will implement the work quickly.
+
+Remove a proposal after it is implemented or rejected. Move durable
+explanations into `docs/dev/how-*.md`.

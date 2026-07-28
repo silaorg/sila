@@ -1,40 +1,82 @@
-# How workspaces works in Heswe
+# How workspaces work
 
-Workspaces as stored in directories with a stucture similar to this:
+A workspace is a directory with this general shape:
+
 ```text
 workspace/
   config.json
   .env
   agents/
     default/
+      config.json
       instructions/
         01-base.md
-        02-channel.md
   assets/
+  providers/
+    openai/
+      config.json
+  skills/
+  tools/
   channels/
     telegram/
       config.json
       123/
+        state.json
         messages.jsonl
         files/
     slack/
       config.json
       C123456/
+        state.json
         messages.jsonl
+        files/
+  users/
+    <hashed-user-id>/
+      channels/
+        app/
+          <thread-id>/
+            state.json
+            messages.jsonl
 ```
 
-At a minimum a workspace should have its root config.json that contains a name and a version of the workspace.
+`config.json` contains the workspace name and format version. `.env` contains
+provider and integration secrets. `agents/default/config.json` selects a
+language provider and model; `auto` chooses the first configured provider with
+an available key.
 
-For a workspace to work, it needs AI provider keys in `.env` (for example `OPENAI_API_KEY` and `EXA_API_KEY`) and a channel to communicate between a user and an agent.
+`heswe create <path>` scaffolds the root config, provider config, `.env`, and
+one Slack or Telegram channel. `heswe run <path>` starts every recognized
+channel under `channels/`.
 
-To add custom agent instructions, place text files under `agents/default/instructions/` in the workspace. Each file is injected as `<instruction src="...">...</instruction>`.
-When custom files exist, they replace the default base assistant text (`defaultInstructions`), while managed channel formatting and environment blocks are still appended automatically.
+## Threads and persistence
 
-Channel instructions also include a managed `<environment_runtime_paths>` block with absolute paths for:
+Slack and Telegram threads live below their channel directory. Hosted app
+threads live below a hashed user ID so one user cannot access another user's
+threads.
 
-- workspace root
-- current thread root
-- source repo root (from `SOURCE_PATH`/`REPO_ROOT` env, otherwise auto-detected via `.git` up from workspace)
+`messages.jsonl` is an append-only event log. Heswe never rewrites existing log
+bytes. Old `messages.json` arrays are migrated when first read. `state.json`
+contains mutable metadata and is replaced atomically.
 
-Those values are also exported to process env as `WORKSPACE_PATH`, `THREAD_PATH`, and `SOURCE_PATH` during instruction load.
-`THREAD_PATH` is set when instructions are refreshed for a specific thread message.
+## Agent extensions
+
+Files under `agents/default/instructions/` replace the built-in base
+instructions. Managed channel and runtime information is still appended.
+
+Workspace [skills](../skills.md) live under `skills/`. Workspace
+[tools](../tools.md) live under `tools/`. Shared artifacts belong under
+`assets/`; files specific to a conversation belong in that thread's `files/`
+directory.
+
+Agent runs receive these environment paths:
+
+- `WORKSPACE_PATH`: the workspace root.
+- `THREAD_PATH`: the current thread directory.
+- `SOURCE_PATH`: `SOURCE_PATH` or `REPO_ROOT` from the environment, otherwise
+  the nearest Git root above the workspace.
+
+## Runtime lifecycle
+
+`Workspace.run()` loads configuration and starts channel runtimes.
+`Workspace.stop()` stops accepting provider events, waits for current thread
+work to finish, closes agent sessions, and stops provider clients.

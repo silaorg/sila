@@ -2,14 +2,26 @@
 
 Heswe means healthy, smart, and wealthy. It is AI that does things for teams and businesses.
 
-Heswe runs on Linux servers with AI agents that can use the CLI and other tools to analyze data, check logs, review code, handle support tickets, and more. Users communicate with agents through channels including Slack and Telegram. Other channels can support chat, phone calls, and email.
+Heswe runs AI agents in workspaces on Linux servers. Agents can use the CLI and other tools to analyze data, check logs, review code, handle support tickets, and more. Users communicate with them through the hosted app, Slack, or Telegram.
 
 Website: [heswe.com](https://heswe.com)
 
-## App server
+## Repository
 
-The hosted app uses a same-origin SvelteKit API, Better Auth sessions, SQLite
-accounts, and server-sent events. The browser never reads a workspace locally.
+- `packages/heswe` contains the workspace and agent runtime.
+- `packages/client` contains the shared Svelte UI and API client.
+- `packages/web` contains the SvelteKit server, authentication, and web routes.
 
-See [the hosted workspace app architecture](docs/dev/proposals/workspace-web-app.md)
-for configuration and deployment.
+Read [how workspaces work](docs/dev/how-workspaces-work.md), [how agents work](docs/dev/how-agents-work.md), and [how the hosted app works](docs/dev/how-the-hosted-app-works.md).
+
+To run the web app locally:
+
+```sh
+npm install
+WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev:web
+```
+
+Sign up, then create and switch workspaces in the app. Set a language-provider
+key such as `OPENAI_API_KEY` in the server process before sending messages.
+The workspace CLI remains available for standalone Slack and Telegram
+workspaces.

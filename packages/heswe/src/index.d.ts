@@ -33,6 +33,11 @@ export type AppWorkspaceServiceOptions = {
 
 export class AppWorkspaceError extends Error {
   code: "invalid_input" | "not_found" | "invalid_data";
+  constructor(
+    code: "invalid_input" | "not_found" | "invalid_data",
+    message: string,
+    options?: ErrorOptions,
+  );
 }
 
 export class AppWorkspaceService {
@@ -44,3 +49,24 @@ export class AppWorkspaceService {
   sendMessage(userId: string, threadId: string, text: unknown): Promise<unknown>;
   stop(): Promise<void>;
 }
+
+export type WorkspaceConfig = {
+  version: 1;
+  name: string;
+};
+
+export function createDefaultConfig(
+  workspaceDir: string,
+  overrides?: { name?: string },
+): Promise<WorkspaceConfig>;
+
+export function createDefaultAgentConfig(
+  workspacePath: string,
+  overrides?: { provider?: string; model?: string },
+): Promise<{ provider: string; model: string }>;
+
+export function createProviderConfig(
+  workspacePath: string,
+  providerId: string,
+  overrides?: { enabled?: boolean; model?: string },
+): Promise<{ provider: string; enabled: boolean; model?: string }>;

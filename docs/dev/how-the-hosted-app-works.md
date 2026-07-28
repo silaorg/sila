@@ -1,0 +1,79 @@
+# How the hosted app works
+
+The Heswe app is a SvelteKit server and browser client. The browser uses
+same-origin HTTP endpoints and one server-sent events connection. It never
+reads a workspace directory or runs an agent locally.
+
+```text
+browser
+  -> SvelteKit API and Better Auth
+    -> user workspace registry
+      -> AppWorkspaceService
+        -> workspace/users/<user-hash>/channels/app/<thread-id>/
+```
+
+`packages/client` owns the shared Svelte interface and API client.
+`packages/web` owns routes, authentication, SQLite, and server-sent events.
+`packages/heswe` owns workspace storage and agent execution.
+
+## Authentication
+
+Better Auth provides email and password accounts with cookie sessions. SQLite
+with WAL mode stores accounts, sessions, workspace ownership, and each user's
+current workspace. Agent threads and files remain in workspace directories.
+
+Every workspace request requires a session. A new account has no workspace.
+The user creates one in the app and can only list or select workspaces they
+own. Server-generated IDs form directory names beneath `WORKSPACES_PATH`; API
+responses never expose those paths. Better Auth user IDs are hashed again
+inside each workspace before use as thread directory names.
+
+Production requires:
+
+- `BETTER_AUTH_SECRET`: a stable, high-entropy secret.
+- `BETTER_AUTH_URL`: the public origin, such as `https://app.heswe.com`.
+- `WORKSPACES_PATH`: the parent directory for user-created workspaces.
+
+`HESWE_AUTH_DB_PATH` optionally changes the SQLite path. It defaults to
+`.data/heswe.sqlite`. Provider secrets such as `OPENAI_API_KEY` belong in the
+server environment.
+
+## API and live updates
+
+- `GET /api/workspace` returns the selected workspace or `null`.
+- `GET` and `POST /api/workspaces` list and create owned workspaces.
+- `POST /api/workspaces/:id/select` selects an owned workspace.
+- `GET` and `POST /api/threads` list and create user threads.
+- `GET /api/threads/:id` returns one projected thread.
+- `POST /api/threads/:id/messages` sends a message through the agent runtime.
+- `GET /api/events` opens the authenticated event stream.
+
+Commands use normal HTTP. The event stream sends user-scoped invalidation
+events, and the client refetches the affected snapshot. It does not stream
+private event records or model tokens.
+
+Thread API projections expose message IDs, timestamps, roles, and display text.
+They do not expose filesystem paths, raw log events, tool details, or message
+metadata.
+
+## Deployment
+
+Build and run the Node server:
+
+```sh
+npm run build -w web
+
+WORKSPACES_PATH=/srv/heswe/workspaces \
+BETTER_AUTH_URL=https://app.heswe.com \
+BETTER_AUTH_SECRET=replace-with-a-long-random-secret \
+OPENAI_API_KEY=replace-with-your-provider-key \
+node packages/web/build
+```
+
+Persist the workspace parent directory and SQLite database. Back them up
+together so ownership records and workspace directories remain consistent.
+Use HTTPS, keep the app and API on one origin, and disable reverse-proxy
+buffering for `text/event-stream`.
+
+The current event broker is in memory, so one Node process must own a user's
+live connections. Multiple server instances will require shared pub/sub.

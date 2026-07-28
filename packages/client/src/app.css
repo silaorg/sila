@@ -1,4 +1,11 @@
 @import 'tailwindcss';
+
 @source '../../../node_modules/@skeletonlabs/skeleton-svelte/dist';
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/themes/cerberus';
+
+:root {
+	--base-font-family: 'Inter', system-ui, sans-serif;
+	--heading-font-family: 'Inter', system-ui, sans-serif;
+	--default-font-family: 'Inter', system-ui, sans-serif;
+}

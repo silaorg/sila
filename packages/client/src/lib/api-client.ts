@@ -1,5 +1,11 @@
 export type WorkspaceInfo = {
+	id: string;
 	name: string;
+};
+
+export type WorkspaceSummary = WorkspaceInfo & {
+	createdAt: string;
+	isCurrent: boolean;
 };
 
 export type ThreadSummary = {
@@ -23,12 +29,31 @@ export type ThreadDetail = ThreadSummary & {
 };
 
 export type WorkspaceChange = {
-	type: 'thread.created' | 'thread.changed';
+	type: 'thread.created' | 'thread.changed' | 'workspace.changed';
 	threadId?: string;
 };
 
 export function getWorkspace() {
-	return requestJson<WorkspaceInfo>('/api/workspace');
+	return requestJson<WorkspaceInfo | null>('/api/workspace');
+}
+
+export function listWorkspaces() {
+	return requestJson<WorkspaceSummary[]>('/api/workspaces');
+}
+
+export function createWorkspace(name: string) {
+	return requestJson<WorkspaceSummary>('/api/workspaces', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ name })
+	});
+}
+
+export function selectWorkspace(workspaceId: string) {
+	return requestJson<WorkspaceSummary>(
+		`/api/workspaces/${encodeURIComponent(workspaceId)}/select`,
+		{ method: 'POST' }
+	);
 }
 
 export function listThreads() {
@@ -66,7 +91,9 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 			if (
 				change &&
 				typeof change === 'object' &&
-				(change.type === 'thread.created' || change.type === 'thread.changed')
+				(change.type === 'thread.created' ||
+					change.type === 'thread.changed' ||
+					change.type === 'workspace.changed')
 			) {
 				onChange(change);
 			}
@@ -76,6 +103,7 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 	};
 	events.addEventListener('thread.created', receive);
 	events.addEventListener('thread.changed', receive);
+	events.addEventListener('workspace.changed', receive);
 	return () => events.close();
 }
 

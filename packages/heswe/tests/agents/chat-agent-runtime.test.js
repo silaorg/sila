@@ -159,6 +159,31 @@ describe("ThreadAgent", () => {
     ]);
   });
 
+  it("can always respond without running the channel response gate", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
+    const lang = Lang.mockOpenAI({ mockResponseText: "always replies" });
+    lang.askForObject = async () => {
+      throw new Error("response gate should not run");
+    };
+    const agent = new ThreadAgent({
+      threadDir,
+      threadId: "thread-direct-chat",
+      lang,
+      ptyManager: createPtyStub(),
+      defaultCwd: process.cwd(),
+      instructions: "Be helpful.",
+      alwaysRespond: true,
+    });
+
+    const result = await agent.processUserMessage({
+      userId: "user-direct",
+      text: "thanks",
+    });
+
+    equal(result.responded, true);
+    equal(result.answer, "always replies");
+  });
+
   it("logs intermediate assistant text when the agent uses tools", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const loopMessages = [];

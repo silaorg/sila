@@ -20,11 +20,12 @@ export function getConfigPath(workspaceDir) {
   return path.join(workspaceDir, CONFIG_FILE_NAME);
 }
 
-export async function createDefaultConfig(workspaceDir) {
+export async function createDefaultConfig(workspaceDir, overrides = {}) {
   const configPath = getConfigPath(workspaceDir);
   const config = {
     version: 1,
     name: path.basename(workspaceDir),
+    ...overrides,
   };
   const validated = WorkspaceConfigSchema.parse(config);
   await fs.writeFile(configPath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");

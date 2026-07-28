@@ -1,9 +1,11 @@
 # How to code here
 
-Mostly in plain, simple JS. We want to avoid extra build steps and heavy dependencies when possible.
+Use plain, simple JavaScript unless the package already has a TypeScript build
+step. Avoid unnecessary dependencies and build steps.
 
-For `packages/heswe`, prefer plain JS since it runs directly in Node and we want to keep it lightweight.
+`packages/heswe` runs directly in Node, so keep it in JavaScript.
 
-For frontend packages that already have a build step, such as `packages/client` and `packages/web`, using TS is fine.
+TypeScript is fine in frontend packages such as `packages/client` and
+`packages/web`.
 
 Name new code files with lowercase, with dashes separating words.

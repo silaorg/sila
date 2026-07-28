@@ -1,12 +1,10 @@
 # Agents
 
-Agents in Heswe can be extended with [skills](skills.md) and [tools](tools.md).
+An agent receives channel instructions, conversation history, and tools, then works inside a [workspace](workspace.md).
 
-They are similar, but not the same:
+Agents can be extended in two ways:
 
-- [Skills](skills.md) teach agents how to approach work
-- [Tools](tools.md) give agents direct actions they can run
+- [Skills](skills.md) teach a workflow or subject.
+- [Tools](tools.md) add an executable action.
 
-Agents can use both together. A [skill](skills.md) may teach an agent when to use a [tool](tools.md), and a [tool](tools.md) may exist to support a workflow described by a [skill](skills.md).
-
-[Skills](skills.md) and [tools](tools.md) can be built in, or added just for one [workspace](workspace.md).
+Skills and tools can work together. For example, a skill can explain when and how to use a tool. Both can be built into Heswe or added to one workspace.

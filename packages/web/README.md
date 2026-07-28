@@ -1,25 +1,26 @@
 # Heswe Web - SvelteKit app
 
-A thin SvelteKit wrapper around `@heswe/client`.
+The Heswe SvelteKit server.
 
-This package hosts the web version of the frontend, while shared UI and client logic live in `packages/client`.
+It serves the shared UI from `@heswe/client`, Better Auth routes, the workspace
+API, and server-sent events.
 
 ## Dev
 
-From the repo root:
+From the repository root:
 
 ```sh
 npm run dev -w web
 ```
 
-Or from this package:
+The server needs `WORKSPACES_PATH`. New accounts start with no workspace and
+create one in the app. Production also needs `BETTER_AUTH_URL` and
+`BETTER_AUTH_SECRET`. See
+[how the hosted app works](../../docs/dev/how-the-hosted-app-works.md).
+
+Check or build from the repository root:
 
 ```sh
-npm run dev
-```
-
-## Build
-
-```sh
-npm run build
+npm run check -w web
+npm run build -w web
 ```

@@ -1,28 +1,43 @@
 <script lang="ts">
+	import Command from 'lucide-svelte/icons/command';
+	import LogOut from 'lucide-svelte/icons/log-out';
+	import MessageSquarePlus from 'lucide-svelte/icons/message-square-plus';
+	import Send from 'lucide-svelte/icons/send';
+	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import {
+		createWorkspace,
 		createThread,
 		getThread,
 		getWorkspace,
+		listWorkspaces,
 		listThreads,
+		selectWorkspace,
 		sendMessage,
 		subscribeToWorkspaceChanges,
 		type ThreadDetail,
-		type ThreadSummary
+		type ThreadSummary,
+		type WorkspaceSummary
 	} from '../api-client';
 	import { authClient } from '../auth-client';
+	import CreateWorkspaceModal from './CreateWorkspaceModal.svelte';
+	import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
 
 	let { user }: { user: { id: string; name: string; email: string } } = $props();
 
-	let workspaceName = $state('Workspace');
+	let currentWorkspaceId = $state<string | null>(null);
+	let workspaces = $state<WorkspaceSummary[]>([]);
 	let threads = $state<ThreadSummary[]>([]);
 	let selectedThreadId = $state<string | null>(null);
 	let thread = $state<ThreadDetail | null>(null);
 	let draft = $state('');
 	let loading = $state(true);
 	let sending = $state(false);
+	let switchingWorkspace = $state(false);
+	let createWorkspaceOpen = $state(false);
 	let errorMessage = $state('');
 	let threadDetailRequest = 0;
 	let threadListRequest = 0;
+	let workspaceLoadRequest = 0;
 
 	$effect(() => {
 		void loadInitial();
@@ -30,6 +45,10 @@
 
 	$effect(() => {
 		return subscribeToWorkspaceChanges((change) => {
+			if (change.type === 'workspace.changed') {
+				void loadInitial();
+				return;
+			}
 			void refreshThreads();
 			if (change.threadId === selectedThreadId) {
 				void refreshSelectedThread();
@@ -38,20 +57,50 @@
 	});
 
 	async function loadInitial() {
+		const request = ++workspaceLoadRequest;
 		loading = true;
 		errorMessage = '';
 		try {
-			const [workspace, loadedThreads] = await Promise.all([getWorkspace(), listThreads()]);
-			workspaceName = workspace.name;
+			const [workspace, loadedWorkspaces] = await Promise.all([
+				getWorkspace(),
+				listWorkspaces()
+			]);
+			if (request !== workspaceLoadRequest) return;
+
+			const workspaceChanged = currentWorkspaceId !== workspace?.id;
+			currentWorkspaceId = workspace?.id ?? null;
+			workspaces = loadedWorkspaces;
+			if (workspaceChanged) {
+				clearThreadSelection();
+			}
+
+			if (!workspace) {
+				threads = [];
+				createWorkspaceOpen = loadedWorkspaces.length === 0;
+				return;
+			}
+
+			const loadedThreads = await listThreads();
+			if (request !== workspaceLoadRequest) return;
 			threads = loadedThreads;
 			if (threads.length > 0) {
-				await selectThread(selectedThreadId ?? threads[0].id);
+				const selectedStillExists = selectedThreadId
+					&& threads.some((item) => item.id === selectedThreadId);
+				await selectThread(selectedStillExists ? selectedThreadId! : threads[0].id);
+			} else {
+				clearThreadSelection();
 			}
 		} catch (error) {
-			setError(error);
+			if (request === workspaceLoadRequest) setError(error);
 		} finally {
-			loading = false;
+			if (request === workspaceLoadRequest) loading = false;
 		}
+	}
+
+	function clearThreadSelection() {
+		threadDetailRequest += 1;
+		selectedThreadId = null;
+		thread = null;
 	}
 
 	async function refreshThreads() {
@@ -107,6 +156,10 @@
 	}
 
 	async function addThread() {
+		if (!currentWorkspaceId) {
+			createWorkspaceOpen = true;
+			return;
+		}
 		try {
 			const created = await createThread();
 			threads = [created, ...threads.filter((thread) => thread.id !== created.id)];
@@ -114,6 +167,31 @@
 		} catch (error) {
 			setError(error);
 		}
+	}
+
+	async function switchToWorkspace(workspaceId: string) {
+		if (workspaceId === currentWorkspaceId || switchingWorkspace) return;
+		switchingWorkspace = true;
+		errorMessage = '';
+		try {
+			await selectWorkspace(workspaceId);
+			clearThreadSelection();
+			threads = [];
+			await loadInitial();
+		} catch (error) {
+			setError(error);
+		} finally {
+			switchingWorkspace = false;
+		}
+	}
+
+	async function addWorkspace(name: string) {
+		errorMessage = '';
+		await createWorkspace(name);
+		createWorkspaceOpen = false;
+		clearThreadSelection();
+		threads = [];
+		await loadInitial();
 	}
 
 	async function submitMessage(event: SubmitEvent) {
@@ -140,27 +218,30 @@
 
 </script>
 
-<main class="grid min-h-screen bg-surface-100-900 md:grid-cols-[18rem_1fr]">
-	<aside class="flex min-h-0 flex-col border-r border-surface-200-800 bg-surface-50-950">
-		<header class="flex h-16 items-center justify-between border-b border-surface-200-800 px-5">
-			<a href="https://heswe.com" class="text-lg font-semibold tracking-tight">heswe</a>
-			<span class="rounded-full bg-success-100-900 px-2 py-1 text-xs text-success-700-300">
-				Live
-			</span>
+<main class="grid min-h-screen bg-surface-50-950 md:grid-cols-[18rem_1fr]">
+	<aside class="flex min-h-0 flex-col border-r border-surface-200-800 bg-surface-100-900/50">
+		<header class="flex h-16 items-center border-b border-surface-200-800 px-3">
+			<div class="min-w-0 flex-1">
+				<WorkspaceSwitcher
+					{workspaces}
+					{currentWorkspaceId}
+					disabled={switchingWorkspace}
+					onSelect={switchToWorkspace}
+					onCreate={() => (createWorkspaceOpen = true)}
+				/>
+			</div>
 		</header>
 
-		<div class="flex items-center justify-between px-4 pb-3 pt-5">
-			<div>
-				<p class="text-xs font-semibold uppercase tracking-wider text-surface-500">{workspaceName}</p>
-				<h2 class="mt-1 font-semibold">Threads</h2>
-			</div>
+		<div class="flex items-center justify-between px-4 pb-3 pt-2">
+			<h2 class="font-semibold">Threads</h2>
 			<button
-				class="btn-icon preset-filled-primary-500"
+				class="rounded p-2 hover:preset-tonal disabled:opacity-40"
 				type="button"
 				onclick={addThread}
 				aria-label="New thread"
 				title="New thread"
-			>+</button>
+				disabled={!currentWorkspaceId || switchingWorkspace}
+			><MessageSquarePlus size={18} /></button>
 		</div>
 
 		<nav class="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-4" aria-label="Threads">
@@ -170,7 +251,7 @@
 					class={[
 						'w-full rounded-xl px-3 py-3 text-left transition',
 						selectedThreadId === item.id
-							? 'bg-primary-100-900 text-primary-950-50'
+							? 'bg-surface-200-800'
 							: 'hover:bg-surface-100-900'
 					]}
 					onclick={() => void chooseThread(item.id)}
@@ -179,7 +260,7 @@
 					<span class="mt-1 block truncate text-xs text-surface-500">{item.preview || 'No messages yet'}</span>
 				</button>
 			{/each}
-			{#if !loading && threads.length === 0}
+			{#if !loading && currentWorkspaceId && threads.length === 0}
 				<p class="px-3 py-6 text-sm text-surface-500">Create a thread to get started.</p>
 			{/if}
 		</nav>
@@ -194,12 +275,12 @@
 					<p class="truncate text-xs text-surface-500">{user.email}</p>
 				</div>
 				<button
-					class="btn-icon preset-tonal"
+					class="rounded p-2 hover:preset-tonal"
 					type="button"
 					onclick={() => authClient.signOut()}
 					aria-label="Sign out"
 					title="Sign out"
-				>↗</button>
+				><LogOut size={18} /></button>
 			</div>
 		</footer>
 	</aside>
@@ -217,10 +298,31 @@
 
 		{#if loading}
 			<div class="flex flex-1 items-center justify-center text-surface-500">Connecting…</div>
+		{:else if !currentWorkspaceId}
+			<div class="flex flex-1 items-center justify-center p-8">
+				<div class="max-w-md text-center">
+					<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
+						<Command size={22} />
+					</div>
+					<h2 class="mt-5 text-2xl font-semibold">Create your first workspace</h2>
+					<p class="mt-2 text-surface-600-400">
+						Keep different teams, projects, or parts of your life in separate workspaces.
+					</p>
+					<button
+						class="btn preset-filled-primary-500 mt-6"
+						type="button"
+						onclick={() => (createWorkspaceOpen = true)}
+					>
+						Create workspace
+					</button>
+				</div>
+			</div>
 		{:else if !thread}
 			<div class="flex flex-1 items-center justify-center p-8">
 				<div class="max-w-md text-center">
-					<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900 text-xl">✦</div>
+					<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
+						<Sparkles size={22} />
+					</div>
 					<h2 class="mt-5 text-2xl font-semibold">Start a new thread</h2>
 					<p class="mt-2 text-surface-600-400">
 						Ask Heswe to research, create, analyze, or handle work for your team.
@@ -234,31 +336,33 @@
 			<div class="min-h-0 flex-1 overflow-y-auto">
 				<div class="mx-auto flex max-w-3xl flex-col gap-5 px-5 py-8">
 					{#each thread.messages as message, index (`${message.id}-${index}`)}
-						<div class:ml-auto={message.role === 'user'} class="max-w-[85%]">
-							<div
-								class={[
-									'rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
-									message.role === 'user'
-										? 'rounded-br-md bg-primary-500 text-white'
-										: 'rounded-bl-md border border-surface-200-800 bg-surface-50-950'
-								]}
-							>{message.text}</div>
-						</div>
+						{#if message.role === 'user'}
+							<div class="ml-auto max-w-[85%] rounded-2xl bg-surface-100-900 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">
+								{message.text}
+							</div>
+						{:else}
+							<div class="flex max-w-[85%] gap-3 px-1 py-2">
+								<Sparkles size={20} class="mt-0.5 shrink-0" />
+								<div class="min-w-0">
+									<p class="mb-2 text-sm font-semibold">Heswe</p>
+									<div class="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</div>
+								</div>
+							</div>
+						{/if}
 					{/each}
 					{#if sending}
-						<div class="max-w-[85%]">
-							<div class="rounded-2xl rounded-bl-md border border-surface-200-800 bg-surface-50-950 px-4 py-3 text-sm text-surface-500">
-								Heswe is working…
-							</div>
+						<div class="flex max-w-[85%] gap-3 px-1 py-2 text-surface-500">
+							<Sparkles size={20} class="mt-0.5 shrink-0" />
+							<div class="text-sm">Heswe is working…</div>
 						</div>
 					{/if}
 				</div>
 			</div>
 
-			<form class="border-t border-surface-200-800 bg-surface-50-950 p-4" onsubmit={submitMessage}>
-				<div class="mx-auto flex max-w-3xl items-end gap-3">
+			<form class="bg-surface-50-950 p-4 pt-2" onsubmit={submitMessage}>
+				<div class="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-surface-300-700 p-2">
 					<textarea
-						class="textarea min-h-12 flex-1 resize-none"
+						class="min-h-12 flex-1 resize-none border-0 bg-transparent px-2 py-2 focus:ring-0"
 						rows="1"
 						bind:value={draft}
 						placeholder="Message Heswe…"
@@ -271,14 +375,23 @@
 						}}
 					></textarea>
 					<button
-						class="btn preset-filled-primary-500"
+						class="flex size-10 shrink-0 items-center justify-center rounded-full text-primary-500 hover:preset-tonal disabled:text-surface-400-600"
 						type="submit"
 						disabled={sending || !draft.trim()}
+						aria-label="Send"
+						title="Send"
 					>
-						Send
+						<Send size={20} />
 					</button>
 				</div>
 			</form>
 		{/if}
 	</section>
 </main>
+
+{#if createWorkspaceOpen}
+	<CreateWorkspaceModal
+		onCreate={addWorkspace}
+		onClose={() => (createWorkspaceOpen = false)}
+	/>
+{/if}

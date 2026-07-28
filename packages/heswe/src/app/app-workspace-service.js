@@ -145,6 +145,7 @@ async function createDefaultAgentRuntime(workspacePath, threadStore) {
     defaultCwd: workspacePath,
     instructions,
     threadStore,
+    alwaysRespond: true,
     loadInstructions: (input) =>
       loadChannelInstructions(workspacePath, "app", input.threadDir),
     loadTools: (input) => loadChannelTools(workspacePath, "app", input),

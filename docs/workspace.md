@@ -1,5 +1,7 @@
 # Workspace
 
-A workspace is where your AI [agents](agents.md) live. It can be stored on a server or a laptop. Technically, a workspace is a folder containing its configuration, channels, agent threads, skills, tools, and shared files. Workspaces are straightforward to back up and move.
+A workspace is the directory where Heswe [agents](agents.md) work. It contains configuration, provider settings, channel threads, [skills](skills.md), [tools](tools.md), and shared files.
 
-A workspace can also extend its [agents](agents.md) with workspace-specific [skills](skills.md) and [tools](tools.md).
+The directory is the source of truth, so it can be backed up or moved as a unit. The hosted app reads it through the Heswe server. Browsers never open workspace files directly.
+
+See [how workspaces work](dev/how-workspaces-work.md) for the directory layout and runtime behavior.

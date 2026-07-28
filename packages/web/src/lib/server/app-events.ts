@@ -44,7 +44,11 @@ export class AppEventBroker {
 						cleanup();
 					}
 				};
-				const publish = (event: AppEvent) => enqueue(encodeEvent(event.type, event));
+				const publish = (event: AppEvent) =>
+					enqueue(encodeEvent(event.type, {
+						type: event.type,
+						...(event.threadId ? { threadId: event.threadId } : {})
+					}));
 				const subscribers = this.subscribersByUser.get(userId) ?? new Set<Subscriber>();
 				subscribers.add(publish);
 				this.subscribersByUser.set(userId, subscribers);
