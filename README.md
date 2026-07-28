@@ -14,12 +14,19 @@ Website: [heswe.com](https://heswe.com)
 
 Read [how workspaces work](docs/dev/how-workspaces-work.md), [how agents work](docs/dev/how-agents-work.md), and [how the hosted app works](docs/dev/how-the-hosted-app-works.md).
 
-To run the web app locally:
+To run the hosted app locally:
 
 ```sh
 npm install
-WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev:web
+WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev
 ```
+
+The first instance uses `http://127.0.0.1:39900` for the API and
+`http://127.0.0.1:39901` for the dashboard. If either port is busy, the
+launcher tries the next pair: `39902/39903`, then `39904/39905`, and so on.
+Run `npm run dev:ports` to rediscover the URLs for this checkout.
+
+Use `npm run dev:api-only` when the dashboard entry point is not needed.
 
 Sign up, then create and switch workspaces in the app. Set a language-provider
 key such as `OPENAI_API_KEY` in the server process before sending messages.

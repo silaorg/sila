@@ -10,8 +10,13 @@ API, and server-sent events.
 From the repository root:
 
 ```sh
-npm run dev -w web
+npm run dev
 ```
+
+The repository launcher assigns an API-first port pair. The SvelteKit server
+uses the even API port and an optional dashboard proxy uses the following odd
+port. Run `npm run dev -w web` only when starting the SvelteKit API process
+directly without the repository launcher.
 
 The server needs `WORKSPACES_PATH`. New accounts start with no workspace and
 create one in the app. Production also needs `BETTER_AUTH_URL` and

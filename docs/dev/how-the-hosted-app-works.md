@@ -16,6 +16,26 @@ browser
 `packages/web` owns routes, authentication, SQLite, and server-sent events.
 `packages/heswe` owns workspace storage and agent execution.
 
+## Local development
+
+Run the app from the repository root:
+
+```sh
+WORKSPACES_PATH="$PWD/.data/workspaces" npm run dev
+```
+
+The launcher reserves the first available API/dashboard port pair. The first
+instance uses API port `39900` and dashboard port `39901`. Later instances try
+`39902/39903`, `39904/39905`, and so on. If either port is unavailable, the
+whole pair is skipped. `npm run dev:ports` prints the selected URLs for every
+running instance in the current checkout.
+
+Heswe still has one SvelteKit application server. It owns the API port and
+serves the UI, API, authentication, and event stream. The local dashboard port
+is a proxy to that server, which keeps browser requests same-origin without
+duplicating application state. Run `npm run dev:api-only` to omit the dashboard
+proxy.
+
 ## Authentication
 
 Better Auth provides email and password accounts with cookie sessions. SQLite

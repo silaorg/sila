@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "concurrently -n client,web -c magenta,cyan \"npm --prefix ../client run dev\" \"vite dev\"",
+		"dev:dashboard": "node scripts/dashboard-proxy.mjs",
 		"build": "npm --prefix ../client run build && vite build",
 		"test": "node --test tests/*.test.js",
 		"preview": "vite preview",
