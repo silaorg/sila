@@ -7,8 +7,11 @@ export {
   THREAD_MESSAGES_FILE_NAME,
   ThreadStore,
 } from "./thread-store.js";
-export { createChatAgent } from "./chat-agent.js";
-export { createSlackChatAgent } from "./slack-agent.js";
+export {
+  BUILT_IN_TOOL_NAMES,
+  createChatAgent,
+  createChatAgent as createSlackChatAgent,
+} from "./chat-agent.js";
 export {
   buildManagedInstructionBlocks,
   defaultAgentInstructions,

@@ -2,12 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export async function ensureFileParent(filePath) {
-  const dir = path.dirname(filePath);
-  try {
-    await fs.promises.access(dir);
-  } catch {
-    await fs.promises.mkdir(dir, { recursive: true });
-  }
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
 }
 
 export function normalizePath(uri, baseDir = process.cwd()) {

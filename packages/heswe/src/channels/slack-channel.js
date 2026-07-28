@@ -4,10 +4,12 @@ import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
+  formatWorkingMessage,
   loadChannelLanguageProvider,
   loadChannelInstructions,
   loadChannelTools,
   sanitizeThreadId,
+  toAgentRelativePath,
 } from "./channel-utils.js";
 import { storeSlackFile } from "./slack/slack-file-store.js";
 import { ThreadedChannelRuntime } from "./threaded-channel-runtime.js";
@@ -15,7 +17,6 @@ import { ThreadedChannelRuntime } from "./threaded-channel-runtime.js";
 const SlackChannelConfigSchema = z.looseObject({
   channel: z.literal("slack"),
   enabled: z.boolean().default(true),
-  mode: z.literal("socket").default("socket"),
   botUserOAuthToken: OptionalTokenSchema,
   appLevelToken: OptionalTokenSchema,
 });
@@ -154,7 +155,7 @@ export class SlackChannel {
       throw new Error(`Slack channel is not connected: ${this.#path}`);
     }
 
-    return await this.#app.client.chat.postMessage({
+    return this.#app.client.chat.postMessage({
       channel,
       text,
       mrkdwn: true,
@@ -167,7 +168,7 @@ export class SlackChannel {
       throw new Error(`Slack channel is not connected: ${this.#path}`);
     }
 
-    return await this.#app.client.chat.update({
+    return this.#app.client.chat.update({
       channel,
       ts,
       text,
@@ -281,7 +282,7 @@ export class SlackChannel {
           createdAt,
           botUserOAuthToken: this.#config.botUserOAuthToken ?? "",
         });
-        const relativePath = this.#toAgentRelativePath(localPath, threadDir);
+        const relativePath = toAgentRelativePath(localPath, threadDir);
         uploadedLines.push(`[Uploaded a ${file.label}: ${relativePath}]`);
       } catch (error) {
         console.error(`Failed to store Slack file ${file.fileName}:`, error);
@@ -394,14 +395,6 @@ export class SlackChannel {
     });
   }
 
-  /**
-   * @param {string} absolutePath
-   * @param {string} baseDir
-   */
-  #toAgentRelativePath(absolutePath, baseDir) {
-    const relative = path.relative(baseDir, absolutePath);
-    return relative.split(path.sep).join("/");
-  }
 }
 
 function parseChannelConfig(rawConfig) {
@@ -413,14 +406,6 @@ function parseChannelConfig(rawConfig) {
     throw new Error(`Invalid Slack channel config: ${details}`);
   }
   return result.data;
-}
-
-function formatWorkingMessage(text) {
-  const body = String(text || "").trim();
-  if (!body) {
-    return "🔄 Working...";
-  }
-  return `🔄 Working...\n\n${body}`;
 }
 
 function isSlackUserMessage(message) {

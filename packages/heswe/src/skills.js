@@ -9,7 +9,7 @@ const BUILTIN_SKILLS_DIR_PATH = fileURLToPath(new URL("../builtin-skills", impor
 
 /**
  * @param {string} landPath
- * @param {{ sourcePath?: string; builtinSkillsPath?: string }} [options]
+ * @param {{ builtinSkillsPath?: string }} [options]
  * @returns {Promise<Array<{name: string; description: string; skillFilePath: string}>>}
  */
 export async function loadSkillIndex(landPath, options = {}) {
@@ -31,10 +31,6 @@ export async function loadSkillIndex(landPath, options = {}) {
 function resolveBuiltinSkillsPath(options) {
   if (typeof options.builtinSkillsPath === "string" && options.builtinSkillsPath.trim().length) {
     return options.builtinSkillsPath.trim();
-  }
-
-  if (typeof options.sourcePath === "string" && options.sourcePath.trim().length) {
-    return path.join(options.sourcePath.trim(), "packages", "skills");
   }
 
   return BUILTIN_SKILLS_DIR_PATH;

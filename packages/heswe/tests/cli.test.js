@@ -103,4 +103,13 @@ test("create and run return errors for invalid paths", async () => {
   const runMissingConfigResult = await runCli(["run", badRunDir]);
   assert.equal(runMissingConfigResult.code, 2);
   assert.match(runMissingConfigResult.stderr, /Missing config\.json in non-empty directory/);
+
+  const unsupportedChannelResult = await runCli([
+    "create",
+    path.join(tempRoot, "unsupported-channel"),
+    "--channel",
+    "email",
+  ]);
+  assert.equal(unsupportedChannelResult.code, 2);
+  assert.match(unsupportedChannelResult.stderr, /channel.*Invalid option/i);
 });

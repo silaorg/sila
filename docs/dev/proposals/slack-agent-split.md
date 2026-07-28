@@ -1,5 +1,7 @@
 # Slack Channel + Agent Split
 
+Status: superseded by the shared `ThreadedChannelRuntime` and `InProcessChatAgentRuntime`. Do not add a Slack-specific agent module unless Slack develops real behavior that cannot live in the shared runtime. The public `createSlackChatAgent` name remains as a direct compatibility alias for `createChatAgent`.
+
 ## Summary
 
 Move Slack-specific "agent behavior" out of `slack-channel.js` into a dedicated `slack-agent.js`.
@@ -26,7 +28,7 @@ Part of this proposal is now implemented:
 
 What is still missing is the dedicated Slack-specific runtime boundary:
 
-- `slack-agent.js` is only a thin alias today, not a real Slack-specific agent module
+- there is no `slack-agent.js`; the compatibility export points directly to the generic agent factory
 - there is no `InProcessSlackAgentRuntime` / `ChildProcessSlackAgentRuntime` split yet
 - the provider <-> agent boundary is still generic and in-process rather than a distinct Slack contract
 

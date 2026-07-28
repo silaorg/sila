@@ -9,7 +9,7 @@ export const CreateLandOptionsSchema = z.object({
   path: z.string().min(1),
   openaiApiKey: z.string().min(1).optional(),
   secrets: z.array(z.object({ name: z.string().min(1), value: z.string() })).optional(),
-  channel: z.string().min(1).default("telegram"),
+  channel: z.enum(["slack", "telegram"]).default("telegram"),
 }).strict();
 
 export class CreateLandError extends Error {
@@ -84,21 +84,16 @@ function buildChannelConfig(channel) {
     return {
       channel: "slack",
       enabled: true,
-      mode: "socket",
       botUserOAuthToken: "",
       appLevelToken: "",
     };
   }
 
-  if (channel === "telegram") {
-    return {
-      channel: "telegram",
-      enabled: true,
-      botToken: "",
-    };
-  }
-
-  return { channel };
+  return {
+    channel: "telegram",
+    enabled: true,
+    botToken: "",
+  };
 }
 
 function buildLandEnv(options) {

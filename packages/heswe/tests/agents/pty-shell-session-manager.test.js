@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
 import {
+  PTYShellSessionManager,
   looksInteractiveCommand,
   parseShellControlCommand,
 } from "../../src/agent-runtime/pty-shell-session-manager.js";
@@ -21,5 +22,17 @@ describe("ptyShellSessionManager helpers", () => {
     strictEqual(looksInteractiveCommand("less README.md"), true);
     strictEqual(looksInteractiveCommand("htop"), true);
     strictEqual(looksInteractiveCommand("npm test"), false);
+  });
+
+  it("falls back from invalid numeric limits", () => {
+    const manager = new PTYShellSessionManager({
+      commandTimeoutMs: -1,
+      idleTtlMs: Number.NaN,
+      maxOutputBytes: 0,
+    });
+
+    strictEqual(manager.commandTimeoutMs > 0, true);
+    strictEqual(manager.idleTtlMs > 0, true);
+    strictEqual(manager.maxOutputBytes > 0, true);
   });
 });

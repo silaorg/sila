@@ -15,9 +15,7 @@ export class Land {
   /** @type {string} */
   #path;
   /** @type {string} */
-  #name;
-  /** @type {Promise<void>} */
-  #readConfigPromise;
+  #name = "";
   /** @type {Array<SlackChannel | TelegramChannel>} */
   #channels = [];
 
@@ -31,23 +29,12 @@ export class Land {
     return this.#path;
   }
 
-  set name(value) {
-    throw new Error("Not implemented");
-  }
-
   /**
    * Construct a Land instance for the given path. The path should point to the directory containing the land's config.json.
    * @param {string} landPath
    */
   constructor(landPath) {
     this.#path = landPath;
-    this.#readConfigPromise = readConfig(landPath)
-      .then((config) => {
-        this.#name = config.name;
-      })
-      .catch((error) => {
-        console.error("Failed to load config:", error);
-      });
   }
 
   async run() {
@@ -56,13 +43,19 @@ export class Land {
     }
     this.#isRunning = true;
 
-    await this.#readConfigPromise;
-    await loadLandEnvironment(this.#path);
-    await this.logDefaultAgentLanguageSelection();
-
-    await this.runChannels();
-
-    console.log(`Running land: ${this.name} at path: ${this.path}`);
+    try {
+      const config = await readConfig(this.#path);
+      this.#name = config.name;
+      await loadLandEnvironment(this.#path);
+      await this.logDefaultAgentLanguageSelection();
+      await this.runChannels();
+      console.log(`Running land: ${this.name} at path: ${this.path}`);
+    } catch (error) {
+      const startedChannels = this.#channels.splice(0);
+      await Promise.allSettled(startedChannels.map((channel) => channel.stop()));
+      this.#isRunning = false;
+      throw error;
+    }
   }
 
   async runChannels() {
@@ -132,7 +125,6 @@ async function readJsonFileOrNull(filePath) {
   try {
     return JSON.parse(raw);
   } catch (error) {
-    console.error(`Skipping invalid JSON file at ${filePath}:`, error.message);
-    return null;
+    throw new Error(`Invalid JSON in ${filePath}: ${error.message}`, { cause: error });
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { deepEqual, equal } from "node:assert/strict";
+import { deepEqual, equal, rejects } from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -43,5 +43,16 @@ describe("ThreadStore", () => {
     const lines = jsonlRaw.trim().split("\n").map((line) => JSON.parse(line));
     equal(lines.length, 1);
     equal(lines[0].items[0].text, "legacy");
+  });
+
+  it("rejects corrupted history instead of silently erasing it", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-store-"));
+    const store = new ThreadStore();
+    const historyPath = path.join(threadDir, "messages.jsonl");
+    const corrupted = "{\"role\":\"user\",\"items\":[}\n";
+    await fs.writeFile(historyPath, corrupted, "utf8");
+
+    await rejects(store.loadMessages(threadDir), /Invalid messages\.jsonl/);
+    equal(await fs.readFile(historyPath, "utf8"), corrupted);
   });
 });

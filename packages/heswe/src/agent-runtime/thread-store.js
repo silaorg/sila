@@ -64,9 +64,8 @@ function parseThreadMessages(raw, filePath, fileName) {
       .filter((line) => line.trim().length > 0)
       .map((line) => JSON.parse(line))
       .map(deserializeThreadMessage);
-  } catch {
-    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
-    return [];
+  } catch (error) {
+    throw invalidHistoryError(fileName, filePath, error);
   }
 }
 
@@ -74,21 +73,30 @@ function parseLegacyThreadMessages(raw, filePath, fileName) {
   let parsed;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    console.error(`Invalid ${fileName} at ${filePath}, starting with empty history.`);
-    return [];
+  } catch (error) {
+    throw invalidHistoryError(fileName, filePath, error);
   }
 
   if (!Array.isArray(parsed)) {
-    console.error(`Invalid ${fileName} format at ${filePath}, expected array.`);
-    return [];
+    throw new Error(`Invalid ${fileName} at ${filePath}: expected an array.`);
   }
 
-  return parsed.map(deserializeThreadMessage);
+  try {
+    return parsed.map(deserializeThreadMessage);
+  } catch (error) {
+    throw invalidHistoryError(fileName, filePath, error);
+  }
 }
 
 function deserializeThreadMessage(item) {
+  if (!item || typeof item !== "object" || typeof item.role !== "string" || !Array.isArray(item.items)) {
+    throw new Error("message must contain a string role and an items array");
+  }
   return new LangMessage(item.role, item.items, item.meta);
+}
+
+function invalidHistoryError(fileName, filePath, error) {
+  return new Error(`Invalid ${fileName} at ${filePath}: ${error.message}`, { cause: error });
 }
 
 function serializeThreadMessages(messages) {

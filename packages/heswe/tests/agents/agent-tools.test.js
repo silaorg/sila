@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
-import { deepEqual, ok } from "node:assert";
+import { deepEqual, ok, strictEqual } from "node:assert";
 import { Lang } from "aiwrapper";
 import { createChatAgent } from "../../src/agent-runtime/chat-agent.js";
-import { createSlackChatAgent } from "../../src/agent-runtime/slack-agent.js";
+import { createSlackChatAgent } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
   return {
@@ -35,22 +35,8 @@ function createPtyStub() {
 }
 
 describe("createSlackChatAgent", () => {
-  it("includes web_search and local tools", () => {
-    const lang = Lang.mockOpenAI();
-    const agent = createSlackChatAgent(lang, {
-      threadId: "thread-1",
-      ptyManager: createPtyStub(),
-      defaultCwd: process.cwd(),
-    });
-
-    const toolNames = (agent.messages.availableTools || []).map((tool) => tool.name);
-    ok(toolNames.includes("web_search"));
-    ok(toolNames.includes("execute_command"));
-    ok(toolNames.includes("see"));
-    ok(toolNames.includes("read_document"));
-    ok(toolNames.includes("edit_document"));
-    ok(toolNames.includes("apply_patch"));
-    ok(toolNames.includes("apply_search_replace_patch"));
+  it("is a direct compatibility alias for createChatAgent", () => {
+    strictEqual(createSlackChatAgent, createChatAgent);
   });
 });
 
@@ -64,7 +50,9 @@ describe("createChatAgent", () => {
     });
 
     const toolNames = (agent.messages.availableTools || []).map((tool) => tool.name);
+    const webSearchTool = agent.messages.availableTools.find((tool) => tool.name === "web_search");
     ok(toolNames.includes("web_search"));
+    strictEqual(typeof webSearchTool.handler, "function");
     ok(toolNames.includes("execute_command"));
     ok(toolNames.includes("see"));
     ok(toolNames.includes("read_document"));

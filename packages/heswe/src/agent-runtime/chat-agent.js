@@ -8,11 +8,24 @@ import {
   createToolSendSlackFile,
   createToolSendTelegramFile,
   createToolSearchReplacePatch,
+  createToolWebSearch,
 } from "./tools/index.js";
+
+export const BUILT_IN_TOOL_NAMES = Object.freeze([
+  "web_search",
+  "execute_command",
+  "see",
+  "read_document",
+  "edit_document",
+  "apply_patch",
+  "apply_search_replace_patch",
+  "send_telegram_file",
+  "send_slack_file",
+]);
 
 export function createChatAgent(lang, options) {
   const tools = [
-    { name: "web_search" },
+    createToolWebSearch(),
     createToolExecuteCommand({
       sessionId: options.threadId,
       ptyManager: options.ptyManager,

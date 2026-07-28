@@ -19,7 +19,6 @@
     --text-3xl: calc(1.875rem * var(--text-scaling));
     --text-3xl--line-height: calc(calc(2.25 / 1.875) * var(--text-scaling));
     --font-weight-semibold: 600;
-    --animate-spin: spin 1s linear infinite;
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
     --text-scaling: 1;
@@ -250,9 +249,6 @@
   }
 }
 @layer utilities {
-  .visible {
-    visibility: visible;
-  }
   .table {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
@@ -293,17 +289,8 @@
       line-height: var(--text-xs--line-height);
     }
   }
-  .fixed {
-    position: fixed;
-  }
-  .inset-0 {
-    inset: calc(var(--spacing) * 0);
-  }
   .end {
     inset-inline-end: var(--spacing);
-  }
-  .z-50 {
-    z-index: 50;
   }
   .select {
     background-color: transparent;
@@ -473,9 +460,6 @@
     width: calc(var(--spacing) * 4);
     height: calc(var(--spacing) * 4);
   }
-  .h-12 {
-    height: calc(var(--spacing) * 12);
-  }
   .placeholder {
     background-color: var(--color-surface-200-800);
     border-radius: var(--radius-base);
@@ -483,34 +467,6 @@
   }
   .min-h-screen {
     min-height: 100vh;
-  }
-  .w-12 {
-    width: calc(var(--spacing) * 12);
-  }
-  .animate-spin {
-    animation: var(--animate-spin);
-  }
-  .items-center {
-    align-items: center;
-  }
-  .justify-center {
-    justify-content: center;
-  }
-  .rounded-full {
-    border-radius: calc(infinity * 1px);
-  }
-  .border-\[0\.3rem\] {
-    border-style: var(--tw-border-style);
-    border-width: 0.3rem;
-  }
-  .border-surface-200-800 {
-    border-color: light-dark(var(--color-surface-200), var(--color-surface-800));
-  }
-  .border-t-primary-500 {
-    border-top-color: var(--color-primary-500);
-  }
-  .bg-surface-50-950 {
-    background-color: light-dark(var(--color-surface-50), var(--color-surface-950));
   }
   .anchor {
     color: var(--anchor-font-color);
@@ -850,24 +806,13 @@
   --color-surface-contrast-900: var(--color-surface-contrast-light);
   --color-surface-contrast-950: var(--color-surface-contrast-light);
 }
-@property --tw-border-style {
-  syntax: "*";
-  inherits: false;
-  initial-value: solid;
-}
 @property --tw-font-weight {
   syntax: "*";
   inherits: false;
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
-      --tw-border-style: solid;
       --tw-font-weight: initial;
     }
   }

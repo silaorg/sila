@@ -3,9 +3,9 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { spawn as spawnPty } from "node-pty";
 
-const DEFAULT_TIMEOUT_MS = Number(process.env.PTY_COMMAND_TIMEOUT_MS || 120000);
-const DEFAULT_IDLE_TTL_MS = Number(process.env.PTY_IDLE_TTL_MS || 30 * 60 * 1000);
-const DEFAULT_MAX_OUTPUT_BYTES = Number(process.env.PTY_MAX_OUTPUT_BYTES || 256 * 1024);
+const DEFAULT_TIMEOUT_MS = readPositiveNumber(process.env.PTY_COMMAND_TIMEOUT_MS, 120000);
+const DEFAULT_IDLE_TTL_MS = readPositiveNumber(process.env.PTY_IDLE_TTL_MS, 30 * 60 * 1000);
+const DEFAULT_MAX_OUTPUT_BYTES = readPositiveNumber(process.env.PTY_MAX_OUTPUT_BYTES, 256 * 1024);
 const DEFAULT_DEFAULT_CWD = process.cwd();
 
 const DEFAULT_SESSION_ENV = {
@@ -20,6 +20,11 @@ const DEFAULT_SESSION_ENV = {
 
 const require = createRequire(import.meta.url);
 let spawnHelperPrepared = false;
+
+function readPositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -119,9 +124,9 @@ function ensureSpawnHelperExecutable() {
 export class PTYShellSessionManager {
   constructor(options = {}) {
     this.defaultCwd = options.defaultCwd || DEFAULT_DEFAULT_CWD;
-    this.commandTimeoutMs = options.commandTimeoutMs || DEFAULT_TIMEOUT_MS;
-    this.idleTtlMs = options.idleTtlMs || DEFAULT_IDLE_TTL_MS;
-    this.maxOutputBytes = options.maxOutputBytes || DEFAULT_MAX_OUTPUT_BYTES;
+    this.commandTimeoutMs = readPositiveNumber(options.commandTimeoutMs, DEFAULT_TIMEOUT_MS);
+    this.idleTtlMs = readPositiveNumber(options.idleTtlMs, DEFAULT_IDLE_TTL_MS);
+    this.maxOutputBytes = readPositiveNumber(options.maxOutputBytes, DEFAULT_MAX_OUTPUT_BYTES);
     /** @type {Map<string, any>} */
     this.sessions = new Map();
   }

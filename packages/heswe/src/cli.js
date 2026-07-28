@@ -16,7 +16,7 @@ import { Land } from "./land.js";
 
 const USAGE = `Usage:
   heswe create [path] [--channel telegram] [--openai-api-key <key>] [--secret NAME=VALUE]
-  heswe run [path] [--watch]
+  heswe run [path]
 
 Commands:
   create   Create a land directory and config.json.
@@ -27,7 +27,6 @@ Options:
   -k, --openai-api-key <key>
                            OpenAI API key to write into .env as OPENAI_API_KEY.
   -s, --secret <kv>       Secret in NAME=VALUE format. Can be repeated.
-  -w, --watch             Enable watch mode for run.
   -h, --help              Show help.
 `;
 
@@ -104,7 +103,6 @@ async function handleCreate(args) {
 
 async function handleRun(args) {
   const { values, positionals } = parseCommandArgs(args, {
-    watch: { type: "boolean", short: "w" },
     help: { type: "boolean", short: "h" },
   });
 
@@ -157,10 +155,6 @@ async function handleRun(args) {
     logError(`Failed to run land: ${error.message}`);
     process.exitCode = 1;
   });
-
-  if (values.watch) {
-    logInfo("Watch mode enabled.");
-  }
 }
 
 function parseCommandArgs(args, options) {

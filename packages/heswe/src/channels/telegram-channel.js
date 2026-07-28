@@ -6,10 +6,12 @@ import { z } from "zod";
 import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
 import {
   OptionalTokenSchema,
+  formatWorkingMessage,
   loadChannelLanguageProvider,
   loadChannelInstructions,
   loadChannelTools,
   readOpenAiApiKey,
+  toAgentRelativePath,
 } from "./channel-utils.js";
 import {
   getAttachmentInfo,
@@ -48,8 +50,6 @@ export class TelegramChannel {
   #agentRuntime = null;
   /** @type {ThreadedChannelRuntime} */
   #threadRuntime;
-  /** @type {null | Promise<void>} */
-  #launchPromise = null;
   #isRunning = false;
   /** @type {{
    *  createBot: (token: string) => Promise<any>;
@@ -151,7 +151,7 @@ export class TelegramChannel {
 
     this.#bot = bot;
     this.#isRunning = true;
-    this.#launchPromise = bot.launch({ dropPendingUpdates: false }).catch((error) => {
+    void bot.launch({ dropPendingUpdates: false }).catch((error) => {
       console.error("Telegram channel launch failed:", error);
     });
     console.log(`Telegram channel connected at: ${this.#path}`);
@@ -167,7 +167,6 @@ export class TelegramChannel {
       this.#bot.stop("shutdown");
     }
 
-    this.#launchPromise = null;
     this.#bot = null;
     this.#lang = null;
     this.#openai = null;
@@ -182,7 +181,7 @@ export class TelegramChannel {
       throw new Error(`Telegram channel is not connected: ${this.#path}`);
     }
 
-    return await this.#bot.telegram.sendMessage(chatId, text);
+    return this.#bot.telegram.sendMessage(chatId, text);
   }
 
   async updateMessage(chatId, messageId, text) {
@@ -190,7 +189,7 @@ export class TelegramChannel {
       throw new Error(`Telegram channel is not connected: ${this.#path}`);
     }
 
-    return await this.#bot.telegram.editMessageText(chatId, messageId, undefined, text);
+    return this.#bot.telegram.editMessageText(chatId, messageId, undefined, text);
   }
 
   /**
@@ -253,7 +252,7 @@ export class TelegramChannel {
           telegram: ctx.telegram,
         });
 
-        const relativePath = this.#toAgentRelativePath(localPath, threadDir);
+        const relativePath = toAgentRelativePath(localPath, threadDir);
         let messageText = `[Uploaded a ${attachment.label}: ${relativePath}]`;
         const caption = getMessageCaption(ctx);
         if (caption) {
@@ -299,7 +298,7 @@ export class TelegramChannel {
           telegram: ctx.telegram,
         });
 
-        const relativePath = this.#toAgentRelativePath(localPath, threadDir);
+        const relativePath = toAgentRelativePath(localPath, threadDir);
         let messageText = `[Uploaded an audio file: ${relativePath}]`;
 
         try {
@@ -381,15 +380,6 @@ export class TelegramChannel {
   }
 
   /**
-   * @param {string} absolutePath
-   * @param {string} baseDir
-   */
-  #toAgentRelativePath(absolutePath, baseDir) {
-    const relative = path.relative(baseDir, absolutePath);
-    return relative.split(path.sep).join("/");
-  }
-
-  /**
    * @param {string} chatId
    * @param {{ path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }} payload
    */
@@ -453,12 +443,4 @@ function createDefaultDependencies() {
     storeTelegramFile,
     transcribeAudioFile,
   };
-}
-
-function formatWorkingMessage(text) {
-  const body = String(text || "").trim();
-  if (!body) {
-    return "🔄 Working...";
-  }
-  return `🔄 Working...\n\n${body}`;
 }

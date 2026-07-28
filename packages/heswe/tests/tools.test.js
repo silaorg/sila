@@ -62,6 +62,7 @@ test("loadLandTools skips duplicate and built-in tool names", async () => {
   await writeToolPackage(landPath, "custom-one", "duplicate_name");
   await writeToolPackage(landPath, "custom-two", "duplicate_name");
   await writeToolPackage(landPath, "built-in-name", "read_document");
+  await writeToolPackage(landPath, "conditional-built-in-name", "send_slack_file");
 
   const tools = await loadLandTools(landPath, {
     logger: {

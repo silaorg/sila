@@ -16,8 +16,6 @@ export class ThreadAgent {
   #ptyManager;
   /** @type {string} */
   #defaultCwd;
-  /** @type {string} */
-  #landPath;
   /** @type {Array<any>} */
   #customTools;
   /** @type {ThreadStore} */
@@ -38,7 +36,6 @@ export class ThreadAgent {
    *  lang: import("aiwrapper").LanguageProvider;
    *  ptyManager: PTYShellSessionManager;
    *  defaultCwd?: string;
-   *  landPath?: string;
    *  customTools?: Array<any>;
    *  threadStore?: ThreadStore;
    *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
@@ -54,7 +51,6 @@ export class ThreadAgent {
     this.#lang = options.lang;
     this.#ptyManager = options.ptyManager;
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
-    this.#landPath = options.landPath ?? this.#defaultCwd;
     this.#customTools = Array.isArray(options.customTools) ? options.customTools : [];
     this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#sendTelegramFile = options.sendTelegramFile;
@@ -77,7 +73,6 @@ export class ThreadAgent {
       threadId: this.#threadId,
       ptyManager: this.#ptyManager,
       defaultCwd: this.#defaultCwd,
-      landPath: this.#landPath,
       customTools: this.#customTools,
       threadStore: this.#threadStore,
       sendTelegramFile: this.#sendTelegramFile,
@@ -189,7 +184,6 @@ export class InProcessChatAgentRuntime {
       lang: this.#lang,
       ptyManager,
       defaultCwd: input.threadDir,
-      landPath: this.#defaultCwd,
       customTools,
       threadStore: this.#threadStore,
       sendTelegramFile: input.sendTelegramFile,

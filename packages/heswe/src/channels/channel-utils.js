@@ -57,12 +57,6 @@ export async function readOpenAiApiKey(channelPath) {
   return readEnvValue("OPENAI_API_KEY");
 }
 
-export async function readExaApiKey(channelPath) {
-  const landPath = path.resolve(channelPath, "..", "..");
-  await loadLandEnvironment(landPath);
-  return readEnvValue("EXA_API_KEY");
-}
-
 export async function loadChannelLanguageProvider(channelPath) {
   const landPath = path.resolve(channelPath, "..", "..");
   return loadLandLanguageProvider(landPath);
@@ -72,9 +66,18 @@ export async function loadChannelInstructions(landPath, channel, threadPath) {
   const baseInstructions = await loadLandAgentInstructions(landPath, channel);
   const runtimePaths = await resolveRuntimePaths({ landPath, threadPath });
   applyRuntimePathEnvironment(runtimePaths);
-  const skills = await loadSkillIndex(landPath, { sourcePath: runtimePaths.sourcePath ?? undefined });
+  const skills = await loadSkillIndex(landPath);
   const runtimePathBlock = buildRuntimePathsInstructionBlock(runtimePaths);
   return appendSkillCatalogInstructions([baseInstructions, runtimePathBlock].join("\n\n"), skills);
+}
+
+export function formatWorkingMessage(text) {
+  const body = String(text || "").trim();
+  return body ? `🔄 Working...\n\n${body}` : "🔄 Working...";
+}
+
+export function toAgentRelativePath(absolutePath, baseDir) {
+  return path.relative(baseDir, absolutePath).split(path.sep).join("/");
 }
 
 export async function loadChannelTools(landPath, channel, input = {}) {

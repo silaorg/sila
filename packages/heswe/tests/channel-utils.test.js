@@ -5,11 +5,12 @@ import path from "node:path";
 import { test } from "node:test";
 import {
   enqueueSerialTask,
+  formatWorkingMessage,
   loadChannelInstructions,
-  readExaApiKey,
   readOpenAiApiKey,
   sanitizeThreadId,
   saveThreadState,
+  toAgentRelativePath,
 } from "../src/channels/channel-utils.js";
 
 test("sanitizeThreadId replaces unsupported characters", () => {
@@ -56,25 +57,10 @@ test("readOpenAiApiKey falls back to env", async () => {
   }
 });
 
-test("readExaApiKey loads from land .env", async () => {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-channel-utils-"));
-  const landPath = path.join(tempRoot, "land");
-  const channelPath = path.join(landPath, "channels", "telegram");
-  await fs.mkdir(channelPath, { recursive: true });
-  await fs.writeFile(path.join(landPath, ".env"), "EXA_API_KEY=exa-key\n", "utf8");
-
-  const previous = process.env.EXA_API_KEY;
-  delete process.env.EXA_API_KEY;
-  try {
-    const key = await readExaApiKey(channelPath);
-    assert.equal(key, "exa-key");
-  } finally {
-    if (typeof previous === "string") {
-      process.env.EXA_API_KEY = previous;
-    } else {
-      delete process.env.EXA_API_KEY;
-    }
-  }
+test("shared channel formatting helpers normalize progress and paths", () => {
+  assert.equal(formatWorkingMessage(""), "🔄 Working...");
+  assert.equal(formatWorkingMessage("step complete"), "🔄 Working...\n\nstep complete");
+  assert.equal(toAgentRelativePath(path.join("tmp", "thread", "files", "x.txt"), path.join("tmp", "thread")), "files/x.txt");
 });
 
 test("enqueueSerialTask runs tasks in order per key", async () => {
@@ -143,6 +129,7 @@ test("loadChannelInstructions detects source repo root from .git", async () => {
 
   const instructions = await loadChannelInstructions(landPath, "telegram", threadPath);
   assert.match(instructions, new RegExp(escapeRegex(`Source repo root (absolute): ${expectedRepoPath}`)));
+  assert.match(instructions, /how-to-create-skills/);
 });
 
 test("loadChannelInstructions uses SOURCE_PATH override when set", async () => {

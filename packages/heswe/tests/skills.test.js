@@ -88,12 +88,12 @@ test("appendSkillCatalogInstructions appends a skills catalog block", () => {
 
 test("loadSkillIndex merges built-in and land skills, with land overriding duplicates", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-builtins-"));
-  const sourceRoot = path.join(tempRoot, "source");
+  const builtinSkillsPath = path.join(tempRoot, "builtins");
   const landRoot = path.join(tempRoot, "land");
 
-  await fs.mkdir(path.join(sourceRoot, "packages", "skills", "how-to-create-skills"), { recursive: true });
+  await fs.mkdir(path.join(builtinSkillsPath, "how-to-create-skills"), { recursive: true });
   await fs.writeFile(
-    path.join(sourceRoot, "packages", "skills", "how-to-create-skills", "SKILL.md"),
+    path.join(builtinSkillsPath, "how-to-create-skills", "SKILL.md"),
     [
       "---",
       "name: how-to-create-skills",
@@ -104,9 +104,9 @@ test("loadSkillIndex merges built-in and land skills, with land overriding dupli
     "utf8",
   );
 
-  await fs.mkdir(path.join(sourceRoot, "packages", "skills", "duplicate-skill"), { recursive: true });
+  await fs.mkdir(path.join(builtinSkillsPath, "duplicate-skill"), { recursive: true });
   await fs.writeFile(
-    path.join(sourceRoot, "packages", "skills", "duplicate-skill", "SKILL.md"),
+    path.join(builtinSkillsPath, "duplicate-skill", "SKILL.md"),
     [
       "---",
       "name: duplicate-skill",
@@ -130,7 +130,7 @@ test("loadSkillIndex merges built-in and land skills, with land overriding dupli
     "utf8",
   );
 
-  const skills = await loadSkillIndex(landRoot, { sourcePath: sourceRoot });
+  const skills = await loadSkillIndex(landRoot, { builtinSkillsPath });
 
   assert.equal(skills.length, 2);
   assert.deepEqual(skills, [
@@ -142,7 +142,7 @@ test("loadSkillIndex merges built-in and land skills, with land overriding dupli
     {
       name: "how-to-create-skills",
       description: "Built-in guidance for creating repeatable skills.",
-      skillFilePath: path.join(sourceRoot, "packages", "skills", "how-to-create-skills", "SKILL.md"),
+      skillFilePath: path.join(builtinSkillsPath, "how-to-create-skills", "SKILL.md"),
     },
   ]);
 });

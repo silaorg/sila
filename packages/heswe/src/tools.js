@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createChatAgent } from "./agent-runtime/index.js";
+import { BUILT_IN_TOOL_NAMES } from "./agent-runtime/chat-agent.js";
 
 const TOOLS_DIR_NAME = "tools";
 const PACKAGE_FILE_NAME = "package.json";
-const BUILT_IN_TOOL_NAMES = getBuiltInToolNames();
+const BUILT_IN_TOOL_NAME_SET = new Set(BUILT_IN_TOOL_NAMES);
 
 /**
  * @param {string} landPath
@@ -45,7 +45,7 @@ export async function loadLandTools(landPath, options = {}) {
         logger,
       });
 
-      if (BUILT_IN_TOOL_NAMES.has(tool.name)) {
+      if (BUILT_IN_TOOL_NAME_SET.has(tool.name)) {
         logger.warn(`Skipping tool package at ${packageDirPath}: tool name "${tool.name}" collides with a built-in tool.`);
         continue;
       }
@@ -191,44 +191,4 @@ function createVersionedModuleUrl(entryFilePath, packageMtimeMs, entryMtimeMs) {
   const url = pathToFileURL(entryFilePath);
   url.searchParams.set("v", `${Math.trunc(packageMtimeMs)}-${Math.trunc(entryMtimeMs)}`);
   return url.href;
-}
-
-function getBuiltInToolNames() {
-  const agent = createChatAgent(null, {
-    threadId: "tool-name-probe",
-    ptyManager: createPtyStub(),
-    defaultCwd: process.cwd(),
-  });
-
-  return new Set((agent.messages.availableTools || []).map((tool) => tool.name).filter(Boolean));
-}
-
-function createPtyStub() {
-  return {
-    hasSession() {
-      return false;
-    },
-    startSession() {
-      return { status: "started", cwd: process.cwd(), shell: "bash" };
-    },
-    stopSession() {
-      return { status: "stopped" };
-    },
-    resetSession() {
-      return { status: "reset", cwd: process.cwd(), shell: "bash" };
-    },
-    getStatus() {
-      return { running: false };
-    },
-    async execute() {
-      return {
-        stdout: "",
-        stderr: "",
-        exitCode: 0,
-        cwd: process.cwd(),
-        truncated: false,
-        timedOut: false,
-      };
-    },
-  };
 }
