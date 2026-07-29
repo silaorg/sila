@@ -63,10 +63,46 @@ export type AppWorkspaceChange = {
   threadId?: string;
 };
 
+export type AppAgentProgress = {
+  text: string;
+  toolNames: string[];
+  tools?: Array<{
+    name: string;
+    arguments?: Record<string, unknown>;
+  }>;
+};
+
+export type AppAgentThreadMessageInput = {
+  threadId: string;
+  threadDir: string;
+  userId: string;
+  text: string;
+  publicText?: string;
+  attachments?: Array<Record<string, unknown>>;
+  onAssistantLoopMessage?: (payload: {
+    text: string;
+    toolNames: string[];
+  }) => void | Promise<void>;
+  onAssistantProgress?: (payload: AppAgentProgress) => void | Promise<void>;
+  onAssistantResponding?: () => void | Promise<void>;
+};
+
+export type AppAgentThreadMessageResult = {
+  responded: boolean;
+  answer: string;
+};
+
+export type AppAgentRuntime = {
+  handleThreadMessage(
+    input: AppAgentThreadMessageInput,
+  ): Promise<AppAgentThreadMessageResult>;
+  stop?(): Promise<void>;
+};
+
 export type AppWorkspaceServiceOptions = {
   workspacePath: string;
   threadStore?: unknown;
-  createAgentRuntime?: () => unknown | Promise<unknown>;
+  createAgentRuntime?: () => AppAgentRuntime | Promise<AppAgentRuntime>;
   onChange?: (change: AppWorkspaceChange) => void | Promise<void>;
 };
 

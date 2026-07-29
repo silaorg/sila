@@ -8,7 +8,7 @@ import {
   AppWorkspaceError,
   AppWorkspaceService,
 } from "../src/app-workspace-service.js";
-import { ThreadStore } from "../src/agent-runtime/thread-store.js";
+import { ThreadStore } from "../src/thread-store.js";
 
 test("AppWorkspaceService scopes API threads to a user and emits changes", async () => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
@@ -219,6 +219,39 @@ test("AppWorkspaceService publishes persisted changes even when the agent fails"
     "thread.created",
     "thread.changed",
   ]);
+});
+
+test("AppWorkspaceService turns agent provider errors into actionable input errors", async () => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  const providerError = Object.assign(
+    new Error("missing key at /private/workspace"),
+    { code: "provider_config" },
+  );
+  const service = new AppWorkspaceService({
+    workspacePath,
+    createAgentRuntime() {
+      return {
+        async handleThreadMessage() {
+          throw providerError;
+        },
+      };
+    },
+  });
+  const created = await service.createThread("user-a");
+
+  await assert.rejects(
+    service.sendMessage("user-a", created.id, "Hello"),
+    (error) => {
+      assert.ok(error instanceof AppWorkspaceError);
+      assert.equal(error.code, "invalid_input");
+      assert.equal(
+        error.message,
+        "Check the workspace model settings and API key, then try again.",
+      );
+      assert.equal(error.cause, providerError);
+      return true;
+    },
+  );
 });
 
 test("AppWorkspaceService retries runtime creation after a startup failure", async () => {

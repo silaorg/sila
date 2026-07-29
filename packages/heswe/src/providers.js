@@ -13,6 +13,7 @@ const PROVIDERS_DIR_NAME = "providers";
 const DEFAULT_AGENT_CONFIG_RELATIVE_PATH = path.join("agents", "default", "config.json");
 const PROVIDER_CONFIG_FILE_NAME = "config.json";
 const DEFAULT_PROVIDER_ID = "openai";
+export const PROVIDER_CONFIG_ERROR_CODE = "provider_config";
 const PROVIDER_LABELS = Object.freeze({
   openai: "OpenAI",
   anthropic: "Anthropic",
@@ -136,6 +137,7 @@ export class ProviderConfigError extends Error {
   constructor(message) {
     super(message);
     this.name = "ProviderConfigError";
+    this.code = PROVIDER_CONFIG_ERROR_CODE;
   }
 }
 

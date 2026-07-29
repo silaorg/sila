@@ -17,6 +17,11 @@
       "types": "./src/app-workspace-service.d.ts",
       "import": "./src/app-workspace-service.js"
     },
+    "./app-agent-runtime": "./src/app-agent-runtime.js",
+    "./workspace-config": {
+      "types": "./src/workspace-config.d.ts",
+      "import": "./src/workspace-config.js"
+    },
     "./cli": "./src/cli.js",
     "./package.json": "./package.json"
   },

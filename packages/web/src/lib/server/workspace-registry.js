@@ -5,7 +5,7 @@ import {
   createDefaultAgentConfig,
   createDefaultConfig,
   createProviderConfig,
-} from "heswe";
+} from "heswe/workspace-config";
 import { AppWorkspaceError } from "heswe/app-workspace-service";
 
 const MAX_WORKSPACE_NAME_LENGTH = 100;

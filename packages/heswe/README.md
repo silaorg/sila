@@ -1,6 +1,7 @@
 # heswe
 
-This package contains the Heswe workspace CLI, runtime, and Node API.
+This package contains Heswe workspace configuration, storage, channels, the
+workspace CLI, and the current agent runtime implementation.
 
 Website: [heswe.com](https://heswe.com)
 
@@ -39,14 +40,21 @@ The SvelteKit server uses `AppWorkspaceService` to expose user-scoped threads
 without giving browsers filesystem access.
 
 ```js
+import { ProcessAgentRuntime } from "@heswe/agents";
 import { AppWorkspaceService } from "heswe";
 
-const app = new AppWorkspaceService({ workspacePath: "./my-workspace" });
+const workspacePath = "./my-workspace";
+const app = new AppWorkspaceService({
+  workspacePath,
+  createAgentRuntime: () => new ProcessAgentRuntime({ workspacePath }),
+});
 const thread = await app.createThread(authenticatedUserId);
 ```
 
 Accounts and sessions belong to the app server's SQLite database. Agent thread
-events remain in the workspace filesystem.
+events remain in the workspace filesystem. The hosted API injects
+`ProcessAgentRuntime` from `@heswe/agents` so agent execution occurs in a
+separate process.
 
 See [how workspaces work](../../docs/dev/how-workspaces-work.md) and
 [how the hosted app works](../../docs/dev/how-the-hosted-app-works.md).

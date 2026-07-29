@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { ThreadStore } from "../src/agent-runtime/thread-store.js";
+import { ThreadStore } from "../src/thread-store.js";
 import { ThreadedChannelRuntime } from "../src/channels/threaded-channel-runtime.js";
 
 test("ThreadedChannelRuntime records successful delivery lifecycle", async () => {

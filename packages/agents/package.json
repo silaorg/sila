@@ -1,0 +1,25 @@
+{
+  "name": "@heswe/agents",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Process client and worker entry point for Heswe agents",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./worker": "./src/worker.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/"
+  ],
+  "dependencies": {
+    "heswe": "*"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

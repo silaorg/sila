@@ -1,14 +1,8 @@
 import path from "node:path";
-import { InProcessChatAgentRuntime } from "../agent-runtime/chat-agent-runtime.js";
-import { ThreadStore } from "../agent-runtime/thread-store.js";
-import {
-  loadChannelEnvironment,
-  loadChannelInstructions,
-  loadChannelTools,
-} from "../channels/channel-utils.js";
+import { ThreadStore } from "../thread-store.js";
 import { readConfig } from "../config.js";
 import {
-  loadWorkspaceLanguageProvider,
+  PROVIDER_CONFIG_ERROR_CODE,
   ProviderConfigError,
   readWorkspaceModelSettings,
   updateWorkspaceModelSettings,
@@ -231,7 +225,7 @@ export class AppWorkspaceService {
           });
         } catch (error) {
           runtimeFailed = true;
-          runtimeError = error;
+          runtimeError = normalizeAgentRuntimeError(error);
         }
 
         this.#progressByThread.delete(threadQueueKey(userId, threadId));
@@ -300,20 +294,19 @@ export class AppWorkspaceService {
 }
 
 async function createDefaultAgentRuntime(workspacePath, threadStore) {
-  const provider = await loadWorkspaceLanguageProvider(workspacePath);
-  const instructions = await loadChannelInstructions(workspacePath, "app");
-  return new InProcessChatAgentRuntime({
-    lang: provider.lang,
-    defaultCwd: workspacePath,
-    instructions,
-    threadStore,
-    alwaysRespond: true,
-    loadInstructions: (input) =>
-      loadChannelInstructions(workspacePath, "app", input.threadDir),
-    loadTools: (input) => loadChannelTools(workspacePath, "app", input),
-    loadEnvironment: (input) =>
-      loadChannelEnvironment(workspacePath, input.threadDir),
-  });
+  const { createAppAgentRuntime } = await import("../app-agent-runtime.js");
+  return createAppAgentRuntime({ workspacePath, threadStore });
+}
+
+function normalizeAgentRuntimeError(error) {
+  if (error?.code !== PROVIDER_CONFIG_ERROR_CODE) {
+    return error;
+  }
+  return new AppWorkspaceError(
+    "invalid_input",
+    "Check the workspace model settings and API key, then try again.",
+    { cause: error },
+  );
 }
 
 function normalizeTitle(value) {

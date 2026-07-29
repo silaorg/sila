@@ -6,7 +6,7 @@ export {
   LEGACY_THREAD_MESSAGES_FILE_NAME,
   THREAD_MESSAGES_FILE_NAME,
   ThreadStore,
-} from "./thread-store.js";
+} from "../thread-store.js";
 export {
   BUILT_IN_TOOL_NAMES,
   createChatAgent,

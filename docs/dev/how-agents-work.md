@@ -1,16 +1,30 @@
 # How agents work
 
-Every Slack, Telegram, and app thread uses the same in-process agent runtime.
-The channel decides how to receive and send messages. The agent runtime decides
-how to load history, instructions, skills, tools, and the selected language
-model.
+App agents run in a separate worker process from the public API. The API sends
+requests and receives progress events over newline-framed JSON on the worker's
+standard input and output.
 
 ```text
-channel or app service
-  -> InProcessChatAgentRuntime
-    -> ThreadAgent
-      -> aiwrapper ChatAgent
+SvelteKit API
+  -> AppWorkspaceService
+    -> ProcessAgentRuntime
+      -> agent worker process
+        -> InProcessChatAgentRuntime
+          -> ThreadAgent
+            -> aiwrapper ChatAgent
 ```
+
+The worker process loads the provider, instructions, workspace tools, and
+workspace environment. It does not receive authentication, database, or other
+control-plane secrets. Provider keys from the server environment are explicitly
+allowed for development compatibility; workspace `.env` values are preferred.
+
+Development starts the worker directly with Node and does not provide a
+filesystem sandbox. The production sandbox launcher will replace this process
+launch without changing the API-to-worker protocol.
+
+Slack and Telegram channels still use the same agent runtime in their channel
+process. Moving those channels behind the worker protocol is separate work.
 
 Work for one thread is serialized. Different threads can run concurrently.
 Before each message, Heswe reloads workspace instructions and tools so changes

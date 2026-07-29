@@ -1,7 +1,7 @@
 import { z as aiZ } from "aiwrapper";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
 import { createChatAgent } from "./chat-agent.js";
-import { ThreadStore } from "./thread-store.js";
+import { ThreadStore } from "../thread-store.js";
 
 export class ThreadAgent {
   /** @type {string} */

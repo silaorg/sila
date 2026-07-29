@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ThreadStore } from "../agent-runtime/thread-store.js";
+import { ThreadStore } from "../thread-store.js";
 import { enqueueSerialTask } from "../serial-task-queue.js";
 import { saveThreadState } from "./channel-utils.js";
 

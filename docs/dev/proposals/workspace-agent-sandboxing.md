@@ -2,6 +2,10 @@
 
 Status: proposal.
 
+The API-to-agent child-process boundary is implemented for hosted app threads.
+The gVisor sandbox manager, network policy, resource limits, and channel worker
+migration remain proposed.
+
 ## Decision
 
 Run every active workspace in its own gVisor sandbox on Linux. Package the

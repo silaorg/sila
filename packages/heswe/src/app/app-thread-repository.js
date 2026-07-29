@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { ThreadStore } from "../agent-runtime/thread-store.js";
+import { ThreadStore } from "../thread-store.js";
 import { writeJsonFile } from "../json-file.js";
 import { getPublicMessageText } from "./app-message.js";
 import { AppWorkspaceError } from "./app-workspace-error.js";

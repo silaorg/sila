@@ -8,7 +8,9 @@ Website: [heswe.com](https://heswe.com)
 
 ## Repository
 
-- `packages/heswe` contains the workspace and agent runtime.
+- `packages/agents` contains the agent process client and worker entry point.
+- `packages/heswe` contains workspace configuration, storage, channels, and
+  the current agent runtime implementation.
 - `packages/client` contains the shared Svelte UI and API client.
 - `packages/web` contains the SvelteKit server, authentication, and web routes.
 
