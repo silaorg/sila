@@ -35,14 +35,14 @@
 		<a href="https://heswe.com" class="text-xl font-semibold tracking-tight">heswe</a>
 		<div class="max-w-xl">
 			<p class="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-primary-400">
-				Healthy · Smart · Wealthy
+				AI workspaces you control
 			</p>
 			<h1 class="text-5xl font-semibold leading-[1.05] tracking-tight">
-				Your team’s AI workspace, available anywhere.
+				Your AI agents, conversations, and files, together.
 			</h1>
 			<p class="mt-6 max-w-lg text-lg leading-relaxed text-surface-300">
-				Sign in to work with your agents, follow live progress, and continue every thread from
-				one secure place.
+				The more your team works with AI, the more valuable its context and output become. Keep
+				it in portable workspaces you can move, back up, and run on your own server.
 			</p>
 		</div>
 		<p class="text-sm text-surface-500">heswe.com</p>
@@ -59,8 +59,8 @@
 			</h2>
 			<p class="mt-3 text-surface-600-400">
 				{mode === 'sign-in'
-					? 'Use the account connected to your workspace.'
-					: 'Your threads stay private to your account.'}
+					? 'Continue working with your agents, conversations, and files.'
+					: 'Create a workspace for your conversations, files, and agents.'}
 			</p>
 
 			<form class="mt-8 space-y-5" onsubmit={submit}>

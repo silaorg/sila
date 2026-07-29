@@ -144,7 +144,8 @@
 							</div>
 							<h2 class="mt-5 text-2xl font-semibold">Start this thread</h2>
 							<p class="mt-2 text-surface-600-400">
-								Ask Heswe to research, create, analyze, or handle work.
+								Ask an agent to research, analyze, create files, or take on a task using
+								this workspace.
 							</p>
 						</div>
 					</div>

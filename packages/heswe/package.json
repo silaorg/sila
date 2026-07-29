@@ -2,7 +2,7 @@
   "name": "heswe",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI and runtime package for creating and running Heswe workspaces",
+  "description": "Run AI agents with files and tools in portable Heswe workspaces",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "bin": {

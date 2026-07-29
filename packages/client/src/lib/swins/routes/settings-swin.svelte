@@ -113,9 +113,10 @@
 		{#if loading}
 			<p class="py-10 text-center text-sm text-surface-500">Loading settings…</p>
 		{:else if settings && activePage === 'providers'}
-			<p class="text-sm">Connect AI model providers to power your assistants.</p>
+			<p class="text-sm">Connect AI model providers to power your agents.</p>
 			<p class="text-xs text-surface-500">
-				Keys stay in this workspace and are never returned to the browser.
+				You choose which AI services this workspace can use. Saved keys stay in the workspace
+				and are not returned to the browser.
 			</p>
 			<div class="grid grid-cols-1 gap-2">
 				{#each providers as item (item.id)}
@@ -129,7 +130,10 @@
 			</div>
 		{:else if settings}
 			<form class="space-y-4" onsubmit={savePreferences}>
-				<p class="text-sm">Choose the default language model for new agent sessions.</p>
+				<p class="text-sm">
+					Choose the default language model for new conversations. You can change providers
+					without moving your workspace or losing its files.
+				</p>
 				<label class="label">
 					<span>Provider</span>
 					<select

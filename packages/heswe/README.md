@@ -1,7 +1,14 @@
 # heswe
 
-This package contains Heswe workspace configuration, storage, channels, the
-workspace CLI, and the current agent runtime implementation.
+Heswe runs AI agents inside portable workspaces. A workspace keeps
+conversations, shared files, agent instructions, skills, tools, provider
+settings, and results together in one directory that can be backed up or moved
+as a unit.
+
+Agents can work with files, run commands, call tools, and report progress
+through the hosted app, Slack, or Telegram. This package contains the workspace
+configuration, storage, channels, CLI, and agent runtime that make that
+possible.
 
 Website: [heswe.com](https://heswe.com)
 
@@ -14,8 +21,8 @@ npm run workspace -- create my-workspace --channel telegram
 npm run workspace -- run my-workspace
 ```
 
-`create` scaffolds workspace configuration, `.env`, provider settings, and
-either a Telegram or Slack channel. Add the required provider and channel
+`create` scaffolds a workspace with configuration, provider settings, `.env`,
+and either a Telegram or Slack channel. Add the required provider and channel
 credentials before running it.
 
 Use `node packages/heswe/src/cli.js --help` for all options.

@@ -1,10 +1,52 @@
 # Heswe
 
-Heswe means healthy, smart, and wealthy. It is AI that does things for teams and businesses.
+Heswe gives you and your team AI agents and portable workspaces you control.
+It feels familiar if you have used ChatGPT, but its agents can work with your
+files and tools, not just reply in a chat. Ask them to research, analyze data,
+check logs, review code, create documents, handle support work, or take on
+another task from start to finish.
 
-Heswe runs AI agents in workspaces on Linux servers. Agents can use the CLI and other tools to analyze data, check logs, review code, handle support tickets, and more. Users communicate with them through the hosted app, Slack, or Telegram.
+Everything is organized into workspaces. A workspace keeps conversations,
+shared files, agent instructions, skills, tools, and results together for a
+team, project, or part of your life. It is stored as an ordinary directory, so
+it can be backed up or moved as a unit.
+
+The more you work with AI, the more valuable its context and output become.
+Heswe keeps that growing body of work together instead of scattering it across
+disposable chats. Run a workspace on a Linux server and reach its agents
+through the web app, Slack, or Telegram.
 
 Website: [heswe.com](https://heswe.com)
+
+## Features
+
+### Agents that do the work
+
+Heswe agents can read and create files, run commands, use workspace tools, and
+report progress while they work. Skills give them reusable knowledge and
+workflows for recurring tasks.
+
+### Conversations and files together
+
+Attach files to a thread or keep shared material in workspace folders. Mention
+a workspace file in a message, ask an agent to use it, and keep the result in
+the same workspace for future work.
+
+### Separate workspaces
+
+Keep different teams, projects, or parts of your life in separate workspaces.
+Each workspace has its own conversations, files, agents, tools, and provider
+settings.
+
+### Your choice of AI
+
+Connect model providers with your own keys and choose the model that fits the
+work. Heswe is not tied to a single AI company.
+
+### Available where your team works
+
+Use Heswe in the hosted app, Slack, or Telegram. Threads share the same
+workspace while remaining separate conversations.
 
 ## Repository
 

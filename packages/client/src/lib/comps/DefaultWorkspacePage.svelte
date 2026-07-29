@@ -24,7 +24,8 @@
 				</div>
 				<h2 class="mt-5 text-2xl font-semibold">Create your first workspace</h2>
 				<p class="mt-2 text-surface-600-400">
-					Keep different teams, projects, or parts of your life in separate workspaces.
+					A workspace keeps conversations, files, and agents together for a team, project, or
+					part of your life.
 				</p>
 				<button
 					type="button"
@@ -41,7 +42,7 @@
 				</div>
 				<h2 class="mt-5 text-2xl font-semibold">What do you want to work on?</h2>
 				<p class="mt-2 text-surface-600-400">
-					Start a thread, then keep several conversations open in tabs.
+					Start a conversation with an agent. You can keep several threads open in tabs.
 				</p>
 				<button
 					type="button"

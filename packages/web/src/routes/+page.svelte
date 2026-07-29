@@ -1,8 +1,8 @@
 <svelte:head>
-	<title>Heswe</title>
+	<title>Heswe | AI workspaces you control</title>
 	<meta
 		name="description"
-		content="Healthy, smart, and wealthy AI for teams and businesses."
+		content="AI agents that work with your files and tools in portable workspaces."
 	/>
 </svelte:head>
 

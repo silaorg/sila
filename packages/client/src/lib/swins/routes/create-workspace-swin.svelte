@@ -46,7 +46,10 @@
 		</div>
 
 		<div>
-			<p class="mb-2">Choose a simple name that describes its purpose.</p>
+			<p class="mb-2">
+				A workspace holds your conversations, files, and agents. Choose a simple name for its
+				purpose.
+			</p>
 			<div class="flex flex-wrap gap-2">
 				{#each presets as preset}
 					<button
