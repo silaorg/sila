@@ -1,0 +1,11 @@
+.data
+.git
+.gitignore
+**/.data
+**/.svelte-kit
+**/build
+**/dist
+**/node_modules
+**/test-land*
+**/test-workspace*
+*.log

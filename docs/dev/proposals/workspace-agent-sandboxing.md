@@ -1,10 +1,13 @@
 # Workspace agent sandboxing
 
-Status: proposal.
+Status: partially implemented.
 
-The API-to-agent child-process boundary is implemented for hosted app threads.
-The gVisor sandbox manager, network policy, resource limits, and channel worker
-migration remain proposed.
+The hosted app launches one resource-limited Docker container per active
+workspace with the gVisor `runsc` runtime, a validated workspace mount, and no
+production fallback to a host process. A deployment-supplied Docker network
+owns egress policy. The longer-lived supervisor, inference broker, runtime
+revision manager, membership migration, and channel worker migration remain
+proposed.
 
 ## Decision
 

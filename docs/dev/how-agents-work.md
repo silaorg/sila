@@ -20,8 +20,14 @@ control-plane secrets. Provider keys from the server environment are explicitly
 allowed for development compatibility; workspace `.env` values are preferred.
 
 Development starts the worker directly with Node and does not provide a
-filesystem sandbox. The production sandbox launcher will replace this process
-launch without changing the API-to-worker protocol.
+filesystem sandbox. Production starts the same worker in a locked-down Docker
+container using gVisor's `runsc` runtime. The API validates the fixed workspace
+mount and translates host paths to `/workspace` before sending them over the
+same protocol.
+
+Production startup fails unless Docker exposes `runsc` and the configured
+workspace image exists. The sandbox receives workspace `.env` values from its
+mounted workspace, but does not inherit API secrets or global provider keys.
 
 Slack and Telegram channels still use the same agent runtime in their channel
 process. Moving those channels behind the worker protocol is separate work.

@@ -1,5 +1,5 @@
-import { ProcessAgentRuntime } from '@heswe/agents';
 import { AppWorkspaceError, AppWorkspaceService } from 'heswe/app-workspace-service';
+import { createWorkspaceAgentRuntime } from './agent-runtime';
 import { appEvents } from './app-events';
 import { getDatabase } from './database';
 import { WorkspaceRegistry } from './workspace-registry.js';
@@ -57,9 +57,7 @@ function getService(workspace: RegisteredWorkspace) {
 
 	service = new AppWorkspaceService({
 		workspacePath: workspace.workspacePath,
-		createAgentRuntime: () => new ProcessAgentRuntime({
-			workspacePath: workspace.workspacePath
-		}),
+		createAgentRuntime: () => createWorkspaceAgentRuntime(workspace),
 		onChange: (change) => appEvents.publish({
 			...change,
 			workspaceId: workspace.id

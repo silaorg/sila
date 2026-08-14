@@ -43,8 +43,9 @@ const PASSTHROUGH_ENV_NAMES = Object.freeze([
 export class ProcessAgentRuntime {
   #workspacePath;
   #workerPath;
+  #workerWorkspacePath;
   #environment;
-  #spawn;
+  #launchWorker;
   #child = null;
   #exitPromise = null;
   #stdoutBuffer = "";
@@ -58,14 +59,31 @@ export class ProcessAgentRuntime {
     }
     this.#workspacePath = path.resolve(options.workspacePath);
     this.#workerPath = path.resolve(options.workerPath ?? DEFAULT_WORKER_PATH);
+    this.#workerWorkspacePath = path.resolve(
+      options.workerWorkspacePath ?? this.#workspacePath,
+    );
     this.#environment = createAgentWorkerEnvironment(
       options.environment ?? process.env,
     );
-    this.#spawn = options.spawnProcess ?? spawn;
+    const spawnProcess = options.spawnProcess ?? spawn;
+    this.#launchWorker = options.launchWorker ?? ((input) =>
+      spawnProcess(process.execPath, [
+        input.workerPath,
+        "--workspace",
+        input.workspacePath,
+      ], {
+        cwd: this.#workspacePath,
+        env: input.environment,
+        stdio: ["pipe", "pipe", "pipe"],
+      }));
   }
 
   async handleThreadMessage(input) {
-    const threadDir = resolveThreadDir(this.#workspacePath, input?.threadDir);
+    const threadDir = resolveWorkerThreadDir(
+      this.#workspacePath,
+      this.#workerWorkspacePath,
+      input?.threadDir,
+    );
     const callbacks = {
       onAssistantLoopMessage: input.onAssistantLoopMessage,
       onAssistantProgress: input.onAssistantProgress,
@@ -142,14 +160,10 @@ export class ProcessAgentRuntime {
     }
 
     this.#stdoutBuffer = "";
-    const child = this.#spawn(process.execPath, [
-      this.#workerPath,
-      "--workspace",
-      this.#workspacePath,
-    ], {
-      cwd: this.#workspacePath,
-      env: this.#environment,
-      stdio: ["pipe", "pipe", "pipe"],
+    const child = this.#launchWorker({
+      environment: this.#environment,
+      workerPath: this.#workerPath,
+      workspacePath: this.#workerWorkspacePath,
     });
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
@@ -261,7 +275,7 @@ export function createAgentWorkerEnvironment(source = process.env) {
   return environment;
 }
 
-function resolveThreadDir(workspacePath, value) {
+function resolveWorkerThreadDir(workspacePath, workerWorkspacePath, value) {
   if (typeof value !== "string" || !value) {
     throw new Error("Agent threadDir must be inside its workspace.");
   }
@@ -275,7 +289,7 @@ function resolveThreadDir(workspacePath, value) {
   ) {
     throw new Error("Agent threadDir must be inside its workspace.");
   }
-  return threadDir;
+  return path.join(workerWorkspacePath, relativePath);
 }
 
 function deserializeError(value) {

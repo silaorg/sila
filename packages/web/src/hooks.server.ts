@@ -1,6 +1,13 @@
 import { building } from '$app/environment';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, ServerInit } from '@sveltejs/kit';
 import { getAuth } from '$lib/server/auth';
+import { ensureAgentRuntimeReady } from '$lib/server/agent-runtime';
+
+export const init: ServerInit = async () => {
+	if (!building) {
+		await ensureAgentRuntimeReady();
+	}
+};
 
 export const handle: Handle = async ({ event, resolve }) => {
 	if (building) {

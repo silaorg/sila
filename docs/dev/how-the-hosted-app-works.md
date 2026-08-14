@@ -62,10 +62,12 @@ Production requires:
 - `BETTER_AUTH_SECRET`: a stable, high-entropy secret of at least 32 characters.
 - `BETTER_AUTH_URL`: the public origin, such as `https://app.heswe.com`.
 - `WORKSPACES_PATH`: the parent directory for user-created workspaces.
+- `HESWE_WORKSPACE_IMAGE`: the reviewed workspace runtime image tag.
+- `HESWE_SANDBOX_NETWORK`: a dedicated Docker network with controlled egress.
 
 `HESWE_AUTH_DB_PATH` optionally changes the SQLite path. It defaults to
-`.data/heswe.sqlite`. Provider secrets such as `OPENAI_API_KEY` belong in the
-server environment.
+`.data/heswe.sqlite`. Development can inherit provider keys from the server.
+Production provider keys belong in each workspace's settings.
 
 ## API and live updates
 
@@ -96,17 +98,39 @@ content.
 
 ## Deployment
 
+Install Docker and configure gVisor as Docker's `runsc` runtime. Build the
+reviewed workspace image:
+
+```sh
+docker build -f Dockerfile.workspace -t heswe-workspace-runtime:0.1.0 .
+docker network create \
+  --driver bridge \
+  --opt com.docker.network.bridge.enable_icc=false \
+  heswe-sandboxes
+```
+
+Apply host firewall rules to that network which reject the Docker host,
+private infrastructure, and cloud metadata addresses while allowing the
+public HTTPS egress agents need. The API user needs access to Docker and the
+workspace tree. Run it as UID/GID `10001` by default, and make the persistent
+directories owned by that user.
+
 Build and run the Node server:
 
 ```sh
 npm run build -w web
 
 WORKSPACES_PATH=/srv/heswe/workspaces \
+HESWE_WORKSPACE_IMAGE=heswe-workspace-runtime:0.1.0 \
+HESWE_SANDBOX_NETWORK=heswe-sandboxes \
 BETTER_AUTH_URL=https://app.heswe.com \
 BETTER_AUTH_SECRET=replace-with-a-long-random-secret \
-OPENAI_API_KEY=replace-with-your-provider-key \
 node packages/web/build
 ```
+
+Production uses `runsc` automatically. `HESWE_SANDBOX_DRIVER=process` is
+accepted only by the development build. Provider keys are saved per workspace
+through its settings instead of being inherited from the API process.
 
 Persist the workspace parent directory and SQLite database. Back them up
 together so ownership records and workspace directories remain consistent.
