@@ -11,6 +11,12 @@ migration remain proposed.
 Run every active workspace in its own gVisor sandbox on Linux. Package the
 workspace runtime as an OCI container and run it with gVisor's `runsc` runtime.
 
+The complete agent runtime runs inside that sandbox, including prompt
+construction, model-loop orchestration, conversation state, skills, tools,
+shells, and browser processes. The public API remains a thin control plane. It
+starts and stops the sandbox, delivers input events, streams output events, and
+enforces external capabilities.
+
 The first production deployment is one ordinary Linux server with Docker and
 gVisor. AWS Fargate, another cloud, or a multi-server scheduler can be added
 later without changing the workspace runtime or security contract.
@@ -21,8 +27,13 @@ The invariant is:
 one workspace
   -> one gVisor sandbox
   -> one mounted workspace directory
-  -> separate processes for active agents
+  -> complete agent runtime processes
 ```
+
+Agency lives inside the sandbox. Authority remains outside it. The agent may
+inspect its runtime and, with explicit permission, activate a validated runtime
+revision. Editable runtime code cannot grant itself additional inference,
+secrets, integrations, resources, or platform access.
 
 The sandbox can see its container image, disposable temporary storage, and its
 own workspace mounted at `/workspace`. It cannot see the host filesystem,
@@ -62,10 +73,12 @@ Keep two components:
 
 - The Heswe API is the trusted control plane. It authenticates users, records
   workspace membership, manages sandbox lifecycle, routes requests, and
-  publishes events. It can perform administrative operations but does not run
-  agent or workspace code.
+  publishes events. It brokers inference and other external capabilities. It
+  can perform administrative operations but does not run the agent loop or
+  workspace code.
 - A workspace sandbox runs a small supervisor for one fixed workspace ID. It
-  owns that workspace's files, threads, tools, shells, and agent processes.
+  owns that workspace's complete agent runtime, files, threads, tools, shells,
+  and browser processes.
 
 The API derives a sandbox specification from a trusted workspace registry.
 Clients cannot supply an image, runtime, host path, command, network, or
@@ -75,6 +88,11 @@ The API forwards workspace operations to the correct private supervisor. Each
 request carries a short-lived credential limited to that workspace. The
 supervisor has its workspace ID fixed at launch and rejects a credential or
 request for any other ID.
+
+Keep the agent-facing protocol narrow. It starts or resumes the runtime,
+delivers events, streams events, cancels work, reports status, checkpoints, and
+stops. The API does not remotely orchestrate model-selected file, shell, or
+tool calls. Those operations remain local to the complete agent runtime.
 
 The sandbox has no Docker or containerd socket. Agent processes receive no
 Heswe database, signing, provisioning, or cross-workspace credentials.
@@ -136,14 +154,22 @@ session. The process starts with:
 - no control-plane credentials
 - a bounded process group that the supervisor can terminate completely
 
-The agent process loads instructions and workspace tools itself. Arbitrary
+The agent process contains the complete model loop. It loads instructions,
+conversation state, skills, and workspace tools; constructs its own inference
+requests; and invokes local shell, file, and browser operations. Arbitrary
 workspace JavaScript must never be imported by the supervisor or Heswe API.
 Shell and PTY tools launch descendants in the agent's process group.
 
+The runtime source is readable by the agent. Normal agent and shell processes
+receive it through a read-only mount. A runtime change is written as a candidate
+revision, validated, approved by the control plane, selected by the sandbox
+manager for the next clean restart, and rolled back if health checks fail. The
+supervisor and capability-verification code are not editable by the agent.
+
 Use a small framed protocol over standard input and output between the
-supervisor and agent. Messages start work, report progress, return results, and
-request cancellation. Do not expose a general supervisor RPC socket to agent
-processes.
+supervisor and agent. Messages deliver events, report progress and results,
+request external capabilities, and request cancellation. Do not expose a
+general supervisor RPC socket to agent processes.
 
 Separate processes provide cancellation, crash containment, and less state
 leakage between agents. They are not separate security boundaries. The gVisor
@@ -167,8 +193,13 @@ The sandbox network must:
 - send public internet traffic through a controlled egress path
 - apply workspace-specific integration credentials only inside the sandbox
 
-The first version may allow general public HTTPS because agents need model,
-search, and integration APIs. This does not imply access to Heswe's private API
+Model inference should use an authenticated broker outside the sandbox so
+provider credentials, model allowlists, budgets, and rate limits remain
+externally enforced. The agent constructs the model request, but the broker
+decides whether it is authorized.
+
+The first version may also allow controlled public HTTPS because agents need
+search and integration APIs. This does not imply access to Heswe's private API
 or deployment network. Later, workspaces can have explicit network policies
 without changing their filesystem sandbox.
 
@@ -243,6 +274,10 @@ retains the workspace after the sandbox stops.
 Initially, keep workspaces with active Slack or Telegram integrations running.
 Add scale-to-zero only after message wake-up and queueing exist.
 
+Initially permit one mutating agent run per workspace. Serializing only
+individual supervisor calls is insufficient because a retained process may
+continue changing workspace files in the background.
+
 Workspace deletion first stops and removes the sandbox. Data deletion is a
 separate recoverable operation governed by the backup retention policy.
 
@@ -252,13 +287,15 @@ Move the execution boundary before changing the workspace file format:
 
 1. Replace the ownership registry with membership and migrate every current
    owner into the membership relation.
-2. Add an agent-worker process entry point around the existing agent runtime.
-3. Add the workspace supervisor and its worker process protocol.
-4. Add the sandbox manager with a Docker and `runsc` implementation.
-5. Route filesystem, thread, and message operations through the supervisor.
-6. Ensure workspace tools load only inside agent worker processes.
-7. Run the two-workspace escape test suite.
-8. Remove direct workspace mounts and in-process agent execution from the API.
+2. Put the complete existing agent worker behind a narrow lifecycle and event
+   protocol.
+3. Add an inference broker and remove provider credentials from the worker.
+4. Add the workspace supervisor and protected runtime revision manager.
+5. Add the sandbox manager with a Docker and `runsc` implementation.
+6. Route user events to the complete runtime through the supervisor.
+7. Ensure workspace tools load only inside agent worker processes.
+8. Run the two-workspace escape test suite.
+9. Remove direct workspace mounts and agent orchestration from the API.
 
 An explicitly named insecure development mode may run without gVisor for local
 debugging. It must never be the production default, and production startup must

@@ -19,6 +19,12 @@ workspace is assigned to exactly one instance. The public API authenticates and
 authorizes every request, looks up the assigned instance, and routes the
 workspace operation there.
 
+The public API is a thin control plane. It does not run the agent's model loop,
+load its instructions or tools, or decide which tools it should call. The
+complete agent runtime and its durable behavioral state live in the assigned
+workspace sandbox. The platform launches or resumes that runtime, delivers
+input events, streams output events, and enforces external capabilities.
+
 Workspace sandboxes follow
 [the workspace sandboxing proposal](workspace-agent-sandboxing.md).
 
@@ -30,6 +36,8 @@ Workspace sandboxes follow
 - **Instance**: a trusted process capable of creating and running workspace
   sandboxes
 - **Workspace sandbox**: the isolated runtime for one workspace
+- **Agent capability**: short-lived platform authority for inference, secrets,
+  integrations, approvals, or another external operation
 
 One process can act as both an API node and an instance. This is the default for
 development and a single-server installation. The distinction becomes a
@@ -177,13 +185,34 @@ The signed request includes the platform ID, workspace ID, user ID, request ID,
 expiry, and allowed operation. An instance rejects requests for other
 workspaces or operations.
 
-The instance interface should express workspace operations such as files,
-threads, messages, and settings. Do not expose arbitrary filesystem paths,
-shell commands, or generic proxy destinations to API clients.
+The agent-facing instance interface should remain narrow: ensure or stop a
+runtime, deliver an event, stream events, cancel work, checkpoint, and report
+status. Model-selected file, shell, browser, and tool operations stay inside
+the workspace runtime. They are not remotely orchestrated by the API.
+
+Separate user-facing interfaces may expose authorized files, threads, viewer
+sessions, runtime revisions, and settings. Do not expose arbitrary filesystem
+paths, shell commands, or generic proxy destinations to API clients.
 
 An instance publishes workspace changes back to the platform. In combined mode
 this can be an in-process call. In clustered mode it uses the authenticated
 internal interface.
+
+## Capability brokerage
+
+The platform issues short-lived capabilities to a specific workspace, logical
+agent, runtime lease, operation, and expiry. The workspace runtime remains free
+to decide when and how to request a capability, but the platform decides
+whether the operation is authorized.
+
+Inference uses a platform broker. The runtime constructs its own model request;
+the broker holds provider credentials and enforces allowed models, budgets,
+rate limits, cancellation, and accounting. User-supplied provider credentials
+belong in encrypted platform storage rather than in a workspace `.env` file
+visible to arbitrary workspace code.
+
+The same pattern can protect approvals and integrations. Editing an agent's
+runtime must never expand the authority encoded by its external capabilities.
 
 ## Deployment modes
 
@@ -310,11 +339,14 @@ Evolve it in this order:
 2. Replace workspace ownership with membership.
 3. Add `instance_id`, `storage_key`, and workspace state to the registry.
 4. Register one built-in `local` instance for existing workspaces.
-5. Put `AppWorkspaceService` behind a workspace-instance interface.
-6. Route through the recorded instance even when it is local.
-7. Move local workspace execution into gVisor sandboxes.
-8. Add remote instance registration and signed internal requests.
-9. Add PostgreSQL support before running multiple API nodes.
+5. Reduce `AppWorkspaceService` to authorization, delivery, event projection,
+   capability brokerage, and a workspace-runtime client.
+6. Put the complete current agent worker behind the workspace-instance
+   lifecycle and event interface.
+7. Route through the recorded instance even when it is local.
+8. Move the complete workspace runtime into gVisor sandboxes.
+9. Add remote instance registration and signed internal requests.
+10. Add PostgreSQL support before running multiple API nodes.
 
 Do not add remote routing before local routing uses the same placement model.
 
