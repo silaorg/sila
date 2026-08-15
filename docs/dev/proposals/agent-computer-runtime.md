@@ -149,6 +149,10 @@ User-facing file and browser-viewer operations can use separate authorized
 interfaces. They must not turn the public API into a generic shell or
 filesystem proxy.
 
+The separate
+[workspace display sessions proposal](workspace-display-sessions.md) defines
+shared screen viewing and exclusive human takeover.
+
 ## Inference and capabilities
 
 The agent constructs its own model request and sends it to an inference broker.
