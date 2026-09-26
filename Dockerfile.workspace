@@ -4,12 +4,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/sila
+WORKDIR /opt/heswe
 COPY package.json package-lock.json ./
 COPY scripts/build-aiwrapper.mjs scripts/build-aiwrapper.mjs
 COPY packages/agents/package.json packages/agents/package.json
 COPY packages/client/package.json packages/client/package.json
-COPY packages/sila/package.json packages/sila/package.json
+COPY packages/heswe/package.json packages/heswe/package.json
 COPY packages/web/package.json packages/web/package.json
 COPY vendor/aiwrapper vendor/aiwrapper
 RUN npm ci --omit=dev --foreground-scripts \
@@ -20,21 +20,21 @@ FROM node:22.20-bookworm-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl git ripgrep \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 sila \
-    && useradd --uid 10001 --gid 10001 --no-create-home sila
+    && groupadd --gid 10001 heswe \
+    && useradd --uid 10001 --gid 10001 --no-create-home heswe
 
-WORKDIR /opt/sila
+WORKDIR /opt/heswe
 
-COPY --from=dependencies /opt/sila/node_modules node_modules
-COPY --from=dependencies /opt/sila/vendor/aiwrapper/package.json vendor/aiwrapper/package.json
-COPY --from=dependencies /opt/sila/vendor/aiwrapper/dist vendor/aiwrapper/dist
-COPY --from=dependencies /opt/sila/vendor/aiwrapper/node_modules vendor/aiwrapper/node_modules
+COPY --from=dependencies /opt/heswe/node_modules node_modules
+COPY --from=dependencies /opt/heswe/vendor/aiwrapper/package.json vendor/aiwrapper/package.json
+COPY --from=dependencies /opt/heswe/vendor/aiwrapper/dist vendor/aiwrapper/dist
+COPY --from=dependencies /opt/heswe/vendor/aiwrapper/node_modules vendor/aiwrapper/node_modules
 COPY packages/agents packages/agents
-COPY packages/sila packages/sila
+COPY packages/heswe packages/heswe
 
-ENV HOME=/tmp/sila
+ENV HOME=/tmp/heswe
 ENV NODE_ENV=production
 
 USER 10001:10001
-ENTRYPOINT ["node", "/opt/sila/packages/agents/src/worker.js"]
+ENTRYPOINT ["node", "/opt/heswe/packages/agents/src/worker.js"]
 CMD ["--workspace", "/workspace"]

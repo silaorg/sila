@@ -24,7 +24,7 @@ if (!existsSync(`${root}aimodels/js/package.json`)) {
 const lockHash = createHash('sha256')
   .update(readFileSync(`${root}package-lock.json`))
   .digest('hex');
-const installedHash = `${root}node_modules/.sila-lock-hash`;
+const installedHash = `${root}node_modules/.heswe-lock-hash`;
 if (!existsSync(installedHash)
   || readFileSync(installedHash, 'utf8') !== lockHash
   || !existsSync(`${root}node_modules/typescript/bin/tsc`)) {

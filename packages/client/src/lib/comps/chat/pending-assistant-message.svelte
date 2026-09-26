@@ -21,7 +21,7 @@
 	</div>
 	<div class="min-w-0 max-w-[85%]">
 		<div class="mb-2 mt-2 flex items-center gap-2">
-			<span class="cursor-default font-bold">Sila</span>
+			<span class="cursor-default font-bold">Heswe</span>
 			<span class="opacity-70">•</span>
 			<span class="loading-dots opacity-70">{statusLabel}</span>
 		</div>

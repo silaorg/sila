@@ -6,7 +6,7 @@ let database: Database.Database | null = null;
 
 export function getDatabasePath() {
 	return path.resolve(
-		process.env.SILA_AUTH_DB_PATH ?? path.join(process.cwd(), '.data', 'sila.sqlite')
+		process.env.HESWE_AUTH_DB_PATH ?? path.join(process.cwd(), '.data', 'heswe.sqlite')
 	);
 }
 

@@ -1,4 +1,4 @@
-Tidy the relevant Sila code without changing product behavior.
+Tidy the relevant Heswe code without changing product behavior.
 
 Look for dead or duplicated code, confusing names, unnecessary layers, brittle control flow, and stale documentation. Keep the workspace, channel, and agent runtime boundaries easy to explain.
 

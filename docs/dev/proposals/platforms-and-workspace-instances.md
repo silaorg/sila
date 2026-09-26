@@ -4,7 +4,7 @@ Status: proposal.
 
 ## Decision
 
-A Sila platform is an independent service that owns:
+A Heswe platform is an independent service that owns:
 
 - its public API origin
 - its user accounts and sessions
@@ -55,7 +55,7 @@ The desktop app stores a list of platform connections. Each connection has:
 Expose a small unauthenticated discovery endpoint such as:
 
 ```text
-GET /.well-known/sila-platform
+GET /.well-known/heswe-platform
 ```
 
 It returns the stable platform ID, name, API version, and supported
@@ -219,9 +219,9 @@ runtime must never expand the authority encoded by its external capabilities.
 Use one configuration value to select the process role:
 
 ```text
-SILA_MODE=all
-SILA_MODE=api
-SILA_MODE=instance
+HESWE_MODE=all
+HESWE_MODE=api
+HESWE_MODE=instance
 ```
 
 ### Development
@@ -248,7 +248,7 @@ The first production installation also uses `all` mode:
 ```text
 one Linux server
   -> HTTPS proxy
-  -> Sila API and instance
+  -> Heswe API and instance
   -> gVisor workspace sandboxes
   -> local or mounted workspace storage
   -> SQLite platform database
@@ -287,15 +287,15 @@ until a concrete requirement needs another.
 Keep deployment choices behind a few explicit settings:
 
 ```text
-SILA_MODE
-SILA_PLATFORM_ID
-SILA_PLATFORM_NAME
-SILA_PUBLIC_URL
-SILA_DATABASE_URL
-SILA_INSTANCE_ID
-SILA_INSTANCE_URL
-SILA_WORKSPACE_STORAGE_ROOT
-SILA_SANDBOX_DRIVER
+HESWE_MODE
+HESWE_PLATFORM_ID
+HESWE_PLATFORM_NAME
+HESWE_PUBLIC_URL
+HESWE_DATABASE_URL
+HESWE_INSTANCE_ID
+HESWE_INSTANCE_URL
+HESWE_WORKSPACE_STORAGE_ROOT
+HESWE_SANDBOX_DRIVER
 ```
 
 Development supplies defaults under `.data`. Production requires stable

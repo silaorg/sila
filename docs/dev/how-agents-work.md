@@ -33,16 +33,16 @@ Slack and Telegram channels still use the same agent runtime in their channel
 process. Moving those channels behind the worker protocol is separate work.
 
 Work for one thread is serialized. Different threads can run concurrently.
-Before each message, Sila reloads workspace instructions and tools so changes
+Before each message, Heswe reloads workspace instructions and tools so changes
 can take effect without restarting the server.
 
 ## Instructions
 
-Default instructions come from `packages/sila`. A workspace can replace the
+Default instructions come from `packages/heswe`. A workspace can replace the
 base instructions by adding files under `agents/default/instructions/`. Files
 are loaded recursively in name order.
 
-Sila always appends managed channel and runtime-path blocks. These tell the
+Heswe always appends managed channel and runtime-path blocks. These tell the
 agent which channel it is using and provide the workspace, thread, and source
 repository paths.
 

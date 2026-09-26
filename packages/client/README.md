@@ -1,6 +1,6 @@
-# Sila Client - Svelte
+# Heswe Client - Svelte
 
-The shared Svelte UI and typed HTTP client for Sila frontends.
+The shared Svelte UI and typed HTTP client for Heswe frontends.
 
 It contains authentication screens, the workspace interface, and the
 same-origin API client used by `packages/web`. Tailwind builds
@@ -9,12 +9,12 @@ same-origin API client used by `packages/web`. Tailwind builds
 ## Dev
 
 ```sh
-npm run dev -w @sila/client
+npm run dev -w @heswe/client
 ```
 
 Check or build from the repository root:
 
 ```sh
-npm run check -w @sila/client
-npm run build -w @sila/client
+npm run check -w @heswe/client
+npm run build -w @heswe/client
 ```

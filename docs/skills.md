@@ -10,5 +10,5 @@ research skill can require citations and a saved report, while a code review
 skill can apply one team’s checklist every time.
 
 Skills follow the open [Agent Skills format](https://skill.md/). Workspace
-skills live at `skills/<skill-name>/SKILL.md`. Sila also provides built-in
+skills live at `skills/<skill-name>/SKILL.md`. Heswe also provides built-in
 skills. A workspace skill with the same name overrides the built-in one.

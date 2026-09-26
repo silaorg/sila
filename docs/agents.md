@@ -1,19 +1,10 @@
 # Agents
 
-An agent is a configurable AI helper that can take action inside a
-[workspace](workspace.md). It follows instructions, uses conversation history,
-works with files, runs commands, and calls tools to complete a task.
+Agents work inside a [workspace](workspace.md). They follow instructions, read conversations, work with files, run commands, and use tools.
 
-Unlike a chat assistant that only replies with text, a Sila agent can inspect
-the workspace, create artifacts, and report progress while it works. Typical
-uses include research, data analysis, document creation, code review, support
-work, and checking systems.
+You can add instructions for each workspace. You can also add:
 
-Agents can be extended in two ways:
+- [Skills](skills.md) to teach a workflow or subject.
+- [Tools](tools.md) to give the agent another action.
 
-- [Skills](skills.md) teach a workflow or subject.
-- [Tools](tools.md) add an executable action.
-
-Skills and tools can work together. For example, a skill can teach an agent
-how to review a support queue while a tool connects it to the ticket system.
-Both can be built into Sila or added to one workspace.
+For example, a skill can explain how to review support tickets. A tool can connect to the ticket system.

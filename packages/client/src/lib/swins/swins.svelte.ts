@@ -13,7 +13,7 @@ export type SwinWindow = {
 };
 
 /**
- * Stack-based windows, adapted from Sila's SWins.
+ * Stack-based windows, adapted from Heswe's SWins.
  *
  * Each window refers to a registered component and only the top window is
  * visible. Opening a child window preserves the previous one for back

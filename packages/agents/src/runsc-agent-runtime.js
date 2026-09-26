@@ -121,14 +121,14 @@ export async function assertRunscAvailable(options = {}) {
 
 export function readRunscConfiguration(environment = process.env) {
   return normalizeRunscConfiguration({
-    dockerCommand: environment.SILA_DOCKER_COMMAND,
-    image: environment.SILA_WORKSPACE_IMAGE,
-    network: environment.SILA_SANDBOX_NETWORK,
-    userId: environment.SILA_SANDBOX_UID,
-    groupId: environment.SILA_SANDBOX_GID,
-    cpus: environment.SILA_SANDBOX_CPUS,
-    memory: environment.SILA_SANDBOX_MEMORY,
-    pidsLimit: environment.SILA_SANDBOX_PIDS_LIMIT,
+    dockerCommand: environment.HESWE_DOCKER_COMMAND,
+    image: environment.HESWE_WORKSPACE_IMAGE,
+    network: environment.HESWE_SANDBOX_NETWORK,
+    userId: environment.HESWE_SANDBOX_UID,
+    groupId: environment.HESWE_SANDBOX_GID,
+    cpus: environment.HESWE_SANDBOX_CPUS,
+    memory: environment.HESWE_SANDBOX_MEMORY,
+    pidsLimit: environment.HESWE_SANDBOX_PIDS_LIMIT,
   });
 }
 
@@ -151,9 +151,9 @@ export function buildRunscDockerArguments(options) {
     "--runtime",
     "runsc",
     "--name",
-    `sila-workspace-${workspaceId}`,
+    `heswe-workspace-${workspaceId}`,
     "--hostname",
-    "sila-workspace",
+    "heswe-workspace",
     "--read-only",
     "--user",
     `${configuration.userId}:${configuration.groupId}`,
@@ -213,10 +213,10 @@ export function validateWorkspaceMount(input) {
 }
 
 function normalizeRunscConfiguration(options) {
-  const image = requireString(options.image, "SILA_WORKSPACE_IMAGE");
-  const network = requireString(options.network, "SILA_SANDBOX_NETWORK");
+  const image = requireString(options.image, "HESWE_WORKSPACE_IMAGE");
+  const network = requireString(options.network, "HESWE_SANDBOX_NETWORK");
   if (["bridge", "host", "none"].includes(network)) {
-    throw new Error("SILA_SANDBOX_NETWORK must name a dedicated Docker network.");
+    throw new Error("HESWE_SANDBOX_NETWORK must name a dedicated Docker network.");
   }
   return {
     ...(options.workspaceId === undefined
@@ -227,23 +227,23 @@ function normalizeRunscConfiguration(options) {
     network,
     userId: normalizePositiveInteger(
       options.userId ?? "10001",
-      "SILA_SANDBOX_UID",
+      "HESWE_SANDBOX_UID",
     ),
     groupId: normalizePositiveInteger(
       options.groupId ?? "10001",
-      "SILA_SANDBOX_GID",
+      "HESWE_SANDBOX_GID",
     ),
-    cpus: normalizePositiveNumber(options.cpus ?? "2", "SILA_SANDBOX_CPUS"),
+    cpus: normalizePositiveNumber(options.cpus ?? "2", "HESWE_SANDBOX_CPUS"),
     memory: optionalString(options.memory) ?? "2g",
     pidsLimit: normalizePositiveInteger(
       options.pidsLimit ?? "256",
-      "SILA_SANDBOX_PIDS_LIMIT",
+      "HESWE_SANDBOX_PIDS_LIMIT",
     ),
   };
 }
 
 function createSandboxWorkerEnvironment(source) {
-  const environment = { SILA_AGENT_WORKER: "1" };
+  const environment = { HESWE_AGENT_WORKER: "1" };
   for (const name of SANDBOX_ENV_NAMES) {
     if (typeof source[name] === "string") {
       environment[name] = source[name];

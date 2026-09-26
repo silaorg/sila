@@ -10,5 +10,5 @@ the agent can choose reliably.
 
 Tools belong to a workspace, so teams can give their agents only the actions
 needed for that work. Workspace tools are small JavaScript packages under
-`tools/<tool-name>/`. See [how to create tools](../packages/sila/builtin-skills/how-to-create-tools/SKILL.md)
+`tools/<tool-name>/`. See [how to create tools](../packages/heswe/builtin-skills/how-to-create-tools/SKILL.md)
 for the package contract.

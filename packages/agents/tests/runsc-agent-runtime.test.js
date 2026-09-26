@@ -22,28 +22,28 @@ const TEST_WORKER_PATH = fileURLToPath(
 test("readRunscConfiguration requires an image and dedicated network", () => {
   assert.throws(
     () => readRunscConfiguration({}),
-    /SILA_WORKSPACE_IMAGE is required/,
+    /HESWE_WORKSPACE_IMAGE is required/,
   );
   assert.throws(
-    () => readRunscConfiguration({ SILA_WORKSPACE_IMAGE: "sila:test" }),
-    /SILA_SANDBOX_NETWORK is required/,
+    () => readRunscConfiguration({ HESWE_WORKSPACE_IMAGE: "heswe:test" }),
+    /HESWE_SANDBOX_NETWORK is required/,
   );
   assert.throws(
     () => readRunscConfiguration({
-      SILA_WORKSPACE_IMAGE: "sila:test",
-      SILA_SANDBOX_NETWORK: "bridge",
+      HESWE_WORKSPACE_IMAGE: "heswe:test",
+      HESWE_SANDBOX_NETWORK: "bridge",
     }),
     /dedicated Docker network/,
   );
   assert.deepEqual(
     readRunscConfiguration({
-      SILA_WORKSPACE_IMAGE: "sila:test",
-      SILA_SANDBOX_NETWORK: "sila-sandboxes",
+      HESWE_WORKSPACE_IMAGE: "heswe:test",
+      HESWE_SANDBOX_NETWORK: "heswe-sandboxes",
     }),
     {
       dockerCommand: "docker",
-      image: "sila:test",
-      network: "sila-sandboxes",
+      image: "heswe:test",
+      network: "heswe-sandboxes",
       userId: "10001",
       groupId: "10001",
       cpus: "2",
@@ -56,10 +56,10 @@ test("readRunscConfiguration requires an image and dedicated network", () => {
 test("buildRunscDockerArguments creates a locked-down runsc container", () => {
   const args = buildRunscDockerArguments({
     workspaceId: "workspace-1",
-    workspacePath: "/srv/sila/workspaces/workspace-1",
-    image: "sila:test",
-    network: "sila-sandboxes",
-    environment: { SILA_AGENT_WORKER: "1" },
+    workspacePath: "/srv/heswe/workspaces/workspace-1",
+    image: "heswe:test",
+    network: "heswe-sandboxes",
+    environment: { HESWE_AGENT_WORKER: "1" },
   });
 
   assert.deepEqual(args.slice(0, 5), [
@@ -72,17 +72,17 @@ test("buildRunscDockerArguments creates a locked-down runsc container", () => {
   assert.ok(args.includes("--read-only"));
   assert.ok(args.includes("ALL"));
   assert.ok(args.includes("no-new-privileges=true"));
-  assert.ok(args.includes("sila-sandboxes"));
+  assert.ok(args.includes("heswe-sandboxes"));
   assert.ok(args.includes("2g"));
   assert.ok(args.includes("256"));
   assert.ok(args.includes(
-    "type=bind,source=/srv/sila/workspaces/workspace-1,target=/workspace",
+    "type=bind,source=/srv/heswe/workspaces/workspace-1,target=/workspace",
   ));
-  assert.deepEqual(args.slice(-3), ["sila:test", "--workspace", "/workspace"]);
+  assert.deepEqual(args.slice(-3), ["heswe:test", "--workspace", "/workspace"]);
 });
 
 test("validateWorkspaceMount accepts only the fixed direct workspace child", async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "sila-runsc-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-runsc-"));
   const workspacePath = path.join(root, "workspace-1");
   const nestedPath = path.join(workspacePath, "nested");
   await fs.mkdir(nestedPath, { recursive: true });
@@ -108,8 +108,8 @@ test("validateWorkspaceMount accepts only the fixed direct workspace child", asy
 test("assertRunscAvailable checks both runsc and the runtime image", async () => {
   const calls = [];
   await assertRunscAvailable({
-    image: "sila:test",
-    network: "sila-sandboxes",
+    image: "heswe:test",
+    network: "heswe-sandboxes",
     async execFile(command, args) {
       calls.push([command, args]);
       return args[0] === "info"
@@ -120,13 +120,13 @@ test("assertRunscAvailable checks both runsc and the runtime image", async () =>
 
   assert.deepEqual(calls, [
     ["docker", ["info", "--format", "{{json .Runtimes}}"]],
-    ["docker", ["image", "inspect", "sila:test"]],
-    ["docker", ["network", "inspect", "sila-sandboxes"]],
+    ["docker", ["image", "inspect", "heswe:test"]],
+    ["docker", ["network", "inspect", "heswe-sandboxes"]],
   ]);
   await assert.rejects(
     assertRunscAvailable({
-      image: "sila:test",
-      network: "sila-sandboxes",
+      image: "heswe:test",
+      network: "heswe-sandboxes",
       async execFile() {
         return { stdout: '{"runc":{}}' };
       },
@@ -136,7 +136,7 @@ test("assertRunscAvailable checks both runsc and the runtime image", async () =>
 });
 
 test("RunscAgentRuntime maps paths and keeps API secrets out of Docker", async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "sila-runsc-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-runsc-"));
   const workspacePath = path.join(root, "workspace-1");
   const threadPath = path.join(workspacePath, "thread-1");
   await fs.mkdir(threadPath, { recursive: true });
@@ -145,8 +145,8 @@ test("RunscAgentRuntime maps paths and keeps API secrets out of Docker", async (
     workspaceId: "workspace-1",
     workspacePath,
     workspaceRoot: root,
-    image: "sila:test",
-    network: "sila-sandboxes",
+    image: "heswe:test",
+    network: "heswe-sandboxes",
     environment: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,

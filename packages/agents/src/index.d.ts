@@ -3,7 +3,7 @@ import type {
   AppAgentRuntime,
   AppAgentThreadMessageInput,
   AppAgentThreadMessageResult,
-} from "sila/app-workspace-service";
+} from "heswe/app-workspace-service";
 
 export type AgentProgress = AppAgentProgress;
 

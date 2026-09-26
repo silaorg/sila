@@ -5,7 +5,7 @@ import {
 	assertRunscAvailable,
 	readRunscConfiguration,
 	type AppAgentRuntime
-} from '@sila/agents';
+} from '@heswe/agents';
 
 type Workspace = {
 	id: string;
@@ -66,13 +66,13 @@ async function checkAgentRuntime() {
 }
 
 function getSandboxDriver() {
-	const configured = process.env.SILA_SANDBOX_DRIVER?.trim();
+	const configured = process.env.HESWE_SANDBOX_DRIVER?.trim();
 	const driver = configured || (dev ? 'process' : 'runsc');
 	if (driver !== 'process' && driver !== 'runsc') {
-		throw new Error('SILA_SANDBOX_DRIVER must be process or runsc.');
+		throw new Error('HESWE_SANDBOX_DRIVER must be process or runsc.');
 	}
 	if (!dev && driver === 'process') {
-		throw new Error('Production agent execution requires SILA_SANDBOX_DRIVER=runsc.');
+		throw new Error('Production agent execution requires HESWE_SANDBOX_DRIVER=runsc.');
 	}
 	return driver;
 }

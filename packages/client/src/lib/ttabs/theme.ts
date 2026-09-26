@@ -1,6 +1,6 @@
 import type { TtabsTheme } from 'ttabs-svelte';
 
-// Kept in sync with the original Sila Skeleton theme.
+// Kept in sync with the original Heswe Skeleton theme.
 export const SKELETON_THEME: TtabsTheme = {
 	name: 'skeleton',
 	variables: {

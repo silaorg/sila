@@ -21,7 +21,7 @@ test("preserves expected HTTP errors from request validation", async () => {
   /** @type {unknown} */
   let validationError;
   try {
-    await readJsonObject(new Request("http://sila.local/api/workspaces", {
+    await readJsonObject(new Request("http://heswe.local/api/workspaces", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{invalid",
@@ -48,7 +48,7 @@ test("rejects unauthenticated requests with 401", () => {
 test("reads files from bounded multipart requests", async () => {
   const form = new FormData();
   form.append("files", new File(["hello"], "hello.txt", { type: "text/plain" }));
-  const request = new Request("http://sila.local/api/files", {
+  const request = new Request("http://heswe.local/api/files", {
     method: "POST",
     body: form,
   });
@@ -61,7 +61,7 @@ test("reads files from bounded multipart requests", async () => {
 });
 
 test("rejects multipart requests larger than the upload limit", async () => {
-  const request = new Request("http://sila.local/api/files", {
+  const request = new Request("http://heswe.local/api/files", {
     method: "POST",
     headers: {
       "content-length": String(43 * 1024 * 1024),

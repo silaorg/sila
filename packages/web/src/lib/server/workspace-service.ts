@@ -1,4 +1,4 @@
-import { AppWorkspaceError, AppWorkspaceService } from 'sila/app-workspace-service';
+import { AppWorkspaceError, AppWorkspaceService } from 'heswe/app-workspace-service';
 import { createWorkspaceAgentRuntime } from './agent-runtime';
 import { appEvents } from './app-events';
 import { getDatabase } from './database';
@@ -42,7 +42,7 @@ function getWorkspaceRegistry() {
 
 	const workspacesPath = process.env.WORKSPACES_PATH;
 	if (!workspacesPath) {
-		throw new Error('WORKSPACES_PATH is required for the Sila server.');
+		throw new Error('WORKSPACES_PATH is required for the Heswe server.');
 	}
 	registry = new WorkspaceRegistry({
 		database: getDatabase(),

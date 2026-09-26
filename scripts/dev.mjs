@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 export const DEFAULT_API_PORT = 39900;
 export const DEV_HOST = "127.0.0.1";
-const DEV_LOCK_ROOT = join(tmpdir(), "sila-dev-port-pairs");
+const DEV_LOCK_ROOT = join(tmpdir(), "heswe-dev-port-pairs");
 
 function isProcessRunning(pid) {
   if (!Number.isInteger(pid) || pid <= 0) {
@@ -201,22 +201,22 @@ export function createDevEnvironment({
   const resolvedWorktree = resolve(worktree);
   const dataPath = join(resolvedWorktree, ".data");
   const localAuthSecret = createHash("sha256")
-    .update(`sila-dev:${resolvedWorktree}`)
+    .update(`heswe-dev:${resolvedWorktree}`)
     .digest("hex");
 
   return {
     ...environment,
-    SILA_DEV_HOST: host,
-    SILA_API_PORT: String(apiPort),
-    SILA_API_URL: apiUrl,
-    SILA_DASHBOARD_PORT: String(dashboardPort),
-    SILA_DASHBOARD_URL: dashboardUrl,
+    HESWE_DEV_HOST: host,
+    HESWE_API_PORT: String(apiPort),
+    HESWE_API_URL: apiUrl,
+    HESWE_DASHBOARD_PORT: String(dashboardPort),
+    HESWE_DASHBOARD_URL: dashboardUrl,
     BETTER_AUTH_URL: dashboardEnabled ? dashboardUrl : apiUrl,
     BETTER_AUTH_SECRET: environment.BETTER_AUTH_SECRET || localAuthSecret,
     WORKSPACES_PATH:
       environment.WORKSPACES_PATH || join(dataPath, "workspaces"),
-    SILA_AUTH_DB_PATH:
-      environment.SILA_AUTH_DB_PATH || join(dataPath, "sila.sqlite"),
+    HESWE_AUTH_DB_PATH:
+      environment.HESWE_AUTH_DB_PATH || join(dataPath, "heswe.sqlite"),
   };
 }
 
@@ -227,7 +227,7 @@ export async function runDev({ dashboardEnabled = true } = {}) {
   const dashboardUrl = `http://${DEV_HOST}:${dashboardPort}`;
 
   console.log("");
-  console.log("Sila dev stack");
+  console.log("Heswe dev stack");
   console.log(`  API:       ${apiUrl}`);
   if (dashboardEnabled) {
     console.log(`  Dashboard: ${dashboardUrl}`);
@@ -283,13 +283,13 @@ export async function runDev({ dashboardEnabled = true } = {}) {
 function printDevPorts() {
   const stacks = listRunningDevStacks();
   if (stacks.length === 0) {
-    console.error(`No running Sila dev stack found for ${process.cwd()}.`);
+    console.error(`No running Heswe dev stack found for ${process.cwd()}.`);
     process.exitCode = 1;
     return;
   }
 
   for (const stack of stacks) {
-    console.log("Sila dev stack");
+    console.log("Heswe dev stack");
     console.log(`  API:       ${stack.apiUrl}`);
     if (stack.dashboardUrl) {
       console.log(`  Dashboard: ${stack.dashboardUrl}`);
@@ -307,7 +307,7 @@ if (isMainModule) {
     printDevPorts();
   } else {
     runDev({ dashboardEnabled: process.argv[2] !== "--api-only" }).catch((error) => {
-      console.error(`Unable to start Sila: ${error.message}`);
+      console.error(`Unable to start Heswe: ${error.message}`);
       process.exitCode = 1;
     });
   }

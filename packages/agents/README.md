@@ -1,6 +1,6 @@
-# Sila agents
+# Heswe agents
 
-This package owns the process boundary between the Sila API and agent
+This package owns the process boundary between the Heswe API and agent
 execution.
 
 `ProcessAgentRuntime` starts the agent worker with Node, sends thread messages

@@ -1,7 +1,7 @@
-# How to reference old Sila
+# Old Sila
 
-Sila was rebuilt from scratch on Sila's orphan `v2` branch. The old Sila
-codebase is usually available locally at `../sila`.
+Heswe continues the rewrite started on Sila's `v2` branch.
+Sila 1 is on `main` in this repository.
 
-Use it to understand old behavior, not as a source of current architecture.
-Check Sila's present boundaries and tests before porting anything.
+Read it with `git show main:<path>` when you need to check old behavior.
+Follow Heswe's current architecture and tests when porting code.

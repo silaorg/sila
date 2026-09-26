@@ -11,7 +11,7 @@ import {
 } from "./dev.mjs";
 
 function createLockRoot() {
-  return mkdtempSync(join(tmpdir(), "sila-dev-test-"));
+  return mkdtempSync(join(tmpdir(), "heswe-dev-test-"));
 }
 
 test("reserves an API-first port pair and exports matching URLs", async (context) => {
@@ -28,11 +28,11 @@ test("reserves an API-first port pair and exports matching URLs", async (context
   assert.equal(reservation.dashboardPort, 43301);
 
   const environment = createDevEnvironment(reservation);
-  assert.equal(environment.SILA_DEV_HOST, "127.0.0.1");
-  assert.equal(environment.SILA_API_PORT, "43300");
-  assert.equal(environment.SILA_API_URL, "http://127.0.0.1:43300");
-  assert.equal(environment.SILA_DASHBOARD_PORT, "43301");
-  assert.equal(environment.SILA_DASHBOARD_URL, "http://127.0.0.1:43301");
+  assert.equal(environment.HESWE_DEV_HOST, "127.0.0.1");
+  assert.equal(environment.HESWE_API_PORT, "43300");
+  assert.equal(environment.HESWE_API_URL, "http://127.0.0.1:43300");
+  assert.equal(environment.HESWE_DASHBOARD_PORT, "43301");
+  assert.equal(environment.HESWE_DASHBOARD_URL, "http://127.0.0.1:43301");
   assert.equal(environment.BETTER_AUTH_URL, "http://127.0.0.1:43301");
   assert.equal(environment.BETTER_AUTH_SECRET.length, 64);
   assert.equal(
@@ -40,8 +40,8 @@ test("reserves an API-first port pair and exports matching URLs", async (context
     join(process.cwd(), ".data", "workspaces"),
   );
   assert.equal(
-    environment.SILA_AUTH_DB_PATH,
-    join(process.cwd(), ".data", "sila.sqlite"),
+    environment.HESWE_AUTH_DB_PATH,
+    join(process.cwd(), ".data", "heswe.sqlite"),
   );
 });
 
@@ -61,8 +61,8 @@ test("preserves explicit runtime storage paths", () => {
     dashboardPort: 43301,
     environment: {
       BETTER_AUTH_SECRET: "explicit-local-auth-secret-123456789",
-      WORKSPACES_PATH: "/srv/sila/workspaces",
-      SILA_AUTH_DB_PATH: "/srv/sila/auth.sqlite",
+      WORKSPACES_PATH: "/srv/heswe/workspaces",
+      HESWE_AUTH_DB_PATH: "/srv/heswe/auth.sqlite",
     },
   });
 
@@ -70,8 +70,8 @@ test("preserves explicit runtime storage paths", () => {
     environment.BETTER_AUTH_SECRET,
     "explicit-local-auth-secret-123456789",
   );
-  assert.equal(environment.WORKSPACES_PATH, "/srv/sila/workspaces");
-  assert.equal(environment.SILA_AUTH_DB_PATH, "/srv/sila/auth.sqlite");
+  assert.equal(environment.WORKSPACES_PATH, "/srv/heswe/workspaces");
+  assert.equal(environment.HESWE_AUTH_DB_PATH, "/srv/heswe/auth.sqlite");
 });
 
 test("a second launcher advances to the next pair", async (context) => {

@@ -2,7 +2,7 @@ import type { WorkspaceFsEntry } from '../api-client';
 
 export type WorkspaceFileEntry = Extract<WorkspaceFsEntry, { type: 'file' }>;
 
-/** File-preview state adapted from Sila's VertexViewer. */
+/** File-preview state adapted from Heswe's VertexViewer. */
 export class AssetViewer {
 	files = $state<WorkspaceFileEntry[]>([]);
 	activeFileIndex = $state(0);

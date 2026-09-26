@@ -32,7 +32,7 @@
 	<section
 		class="hidden flex-col justify-between bg-surface-950 p-12 text-surface-50 lg:flex"
 	>
-		<a href="https://silain.com" class="text-xl font-semibold tracking-tight">Sila 2</a>
+		<a href="https://heswe.com" class="text-xl font-semibold tracking-tight">Heswe</a>
 		<div class="max-w-xl">
 			<p class="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-primary-400">
 				AI workspaces you control
@@ -45,17 +45,17 @@
 				it in portable workspaces you can move, back up, and run on your own server.
 			</p>
 		</div>
-		<p class="text-sm text-surface-500">silain.com</p>
+		<p class="text-sm text-surface-500">heswe.com</p>
 	</section>
 
 	<section class="flex items-center justify-center bg-surface-50-950 px-6 py-12">
 		<div class="w-full max-w-md">
-			<a href="https://silain.com" class="mb-12 block text-xl font-semibold lg:hidden">Sila 2</a>
+			<a href="https://heswe.com" class="mb-12 block text-xl font-semibold lg:hidden">Heswe</a>
 			<p class="text-sm font-medium text-primary-600-400">
 				{mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
 			</p>
 			<h2 class="mt-2 text-3xl font-semibold tracking-tight">
-				{mode === 'sign-in' ? 'Sign in to Sila' : 'Start using Sila'}
+				{mode === 'sign-in' ? 'Sign in to Heswe' : 'Start using Heswe'}
 			</h2>
 			<p class="mt-3 text-surface-600-400">
 				{mode === 'sign-in'
@@ -120,7 +120,7 @@
 				}}
 			>
 				{mode === 'sign-in'
-					? 'New to Sila? Create an account'
+					? 'New to Heswe? Create an account'
 					: 'Already have an account? Sign in'}
 			</button>
 		</div>

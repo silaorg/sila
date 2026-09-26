@@ -5,8 +5,8 @@ import {
   createDefaultAgentConfig,
   createDefaultConfig,
   createProviderConfig,
-} from "sila/workspace-config";
-import { AppWorkspaceError } from "sila/app-workspace-service";
+} from "heswe/workspace-config";
+import { AppWorkspaceError } from "heswe/app-workspace-service";
 
 const MAX_WORKSPACE_NAME_LENGTH = 100;
 
@@ -54,7 +54,7 @@ export class WorkspaceRegistry {
     const currentWorkspaceId = this.#getCurrentWorkspaceId(userId);
     const rows = /** @type {WorkspaceRow[]} */ (this.#database.prepare(`
       SELECT id, owner_id, name, directory_path, created_at
-      FROM sila_workspaces
+      FROM heswe_workspaces
       WHERE owner_id = ?
       ORDER BY created_at ASC, id ASC
     `).all(userId));
@@ -87,7 +87,7 @@ export class WorkspaceRegistry {
     const name = normalizeWorkspaceName(input.name);
     const duplicate = this.#database.prepare(`
       SELECT id
-      FROM sila_workspaces
+      FROM heswe_workspaces
       WHERE owner_id = ? AND lower(name) = lower(?)
       LIMIT 1
     `).get(userId, name);
@@ -107,7 +107,7 @@ export class WorkspaceRegistry {
     try {
       const save = this.#database.transaction(() => {
         this.#database.prepare(`
-          INSERT INTO sila_workspaces (
+          INSERT INTO heswe_workspaces (
             id, owner_id, name, directory_path, created_at
           )
           VALUES (?, ?, ?, ?, ?)
@@ -160,7 +160,7 @@ export class WorkspaceRegistry {
 
   #setupSchema() {
     this.#database.exec(`
-      CREATE TABLE IF NOT EXISTS sila_workspaces (
+      CREATE TABLE IF NOT EXISTS heswe_workspaces (
         id TEXT PRIMARY KEY,
         owner_id TEXT NOT NULL,
         name TEXT NOT NULL,
@@ -168,12 +168,12 @@ export class WorkspaceRegistry {
         created_at TEXT NOT NULL
       );
 
-      CREATE UNIQUE INDEX IF NOT EXISTS sila_workspaces_owner_name
-      ON sila_workspaces(owner_id, name COLLATE NOCASE);
+      CREATE UNIQUE INDEX IF NOT EXISTS heswe_workspaces_owner_name
+      ON heswe_workspaces(owner_id, name COLLATE NOCASE);
 
-      CREATE TABLE IF NOT EXISTS sila_workspace_selections (
+      CREATE TABLE IF NOT EXISTS heswe_workspace_selections (
         user_id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL REFERENCES sila_workspaces(id) ON DELETE CASCADE,
+        workspace_id TEXT NOT NULL REFERENCES heswe_workspaces(id) ON DELETE CASCADE,
         updated_at TEXT NOT NULL
       );
     `);
@@ -186,8 +186,8 @@ export class WorkspaceRegistry {
     const selection = /** @type {{ workspace_id: string } | undefined} */ (
       this.#database.prepare(`
       SELECT selection.workspace_id
-      FROM sila_workspace_selections AS selection
-      INNER JOIN sila_workspaces AS workspace ON workspace.id = selection.workspace_id
+      FROM heswe_workspace_selections AS selection
+      INNER JOIN heswe_workspaces AS workspace ON workspace.id = selection.workspace_id
       WHERE selection.user_id = ? AND workspace.owner_id = ?
     `).get(userId, userId)
     );
@@ -200,7 +200,7 @@ export class WorkspaceRegistry {
    */
   #setCurrentWorkspaceId(userId, workspaceId) {
     this.#database.prepare(`
-      INSERT INTO sila_workspace_selections (user_id, workspace_id, updated_at)
+      INSERT INTO heswe_workspace_selections (user_id, workspace_id, updated_at)
       VALUES (?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET
         workspace_id = excluded.workspace_id,
@@ -216,7 +216,7 @@ export class WorkspaceRegistry {
   #getWorkspaceRow(userId, workspaceId) {
     return /** @type {WorkspaceRow | undefined} */ (this.#database.prepare(`
       SELECT id, owner_id, name, directory_path, created_at
-      FROM sila_workspaces
+      FROM heswe_workspaces
       WHERE id = ? AND owner_id = ?
     `).get(workspaceId, userId));
   }

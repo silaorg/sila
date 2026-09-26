@@ -1,15 +1,9 @@
-# Workspace
+# Workspaces
 
-A workspace keeps everything for a team, project, or part of your life
-together. It holds conversations, shared files, [agents](agents.md),
-[skills](skills.md), [tools](tools.md), provider settings, and the work agents
-create.
+A workspace holds conversations, shared files, [agents](agents.md), [skills](skills.md), [tools](tools.md), and provider settings.
 
-You can create multiple workspaces and switch between them. Each one is an
-ordinary directory and the source of truth for its work, so it can be backed
-up or moved as a unit.
+Use separate workspaces for different projects or teams. Each one is a directory you can back up or move.
 
-The hosted app reaches the workspace through the Sila server. Browsers never
-open its files directly.
+The web app accesses it through the Heswe server.
 
-See [how workspaces work](dev/how-workspaces-work.md) for the directory layout and runtime behavior.
+See [how workspaces work](dev/how-workspaces-work.md) for the file layout.

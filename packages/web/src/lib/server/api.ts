@@ -1,5 +1,5 @@
 import { error, isHttpError } from '@sveltejs/kit';
-import { AppWorkspaceError } from 'sila/app-workspace-service';
+import { AppWorkspaceError } from 'heswe/app-workspace-service';
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 const MAX_MULTIPART_BODY_BYTES = 42 * 1024 * 1024;
