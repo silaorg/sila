@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
+import { writeJsonFile } from "./json-file.js";
 import {
   readEnvValue,
   readWorkspaceEnvironment,
@@ -161,7 +162,7 @@ export async function createDefaultAgentConfig(workspacePath, overrides = {}) {
     ...overrides,
   });
   await fs.mkdir(path.dirname(configPath), { recursive: true });
-  await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeJsonFile(configPath, config);
   return config;
 }
 
@@ -178,7 +179,7 @@ export async function createProviderConfig(workspacePath, providerId, overrides 
     ...overrides,
   });
   await fs.mkdir(path.dirname(configPath), { recursive: true });
-  await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  await writeJsonFile(configPath, config);
   return config;
 }
 

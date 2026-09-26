@@ -15,8 +15,14 @@ export function getDatabase() {
 
 	const databasePath = getDatabasePath();
 	fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-	database = new Database(databasePath);
-	database.pragma('journal_mode = WAL');
-	database.pragma('foreign_keys = ON');
+	const opened = new Database(databasePath);
+	try {
+		opened.pragma('journal_mode = WAL');
+		opened.pragma('foreign_keys = ON');
+	} catch (error) {
+		opened.close();
+		throw error;
+	}
+	database = opened;
 	return database;
 }

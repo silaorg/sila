@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { spawn } from "node:child_process";
 import {
   ProcessAgentRuntime,
   createAgentWorkerEnvironment,
@@ -146,5 +147,53 @@ test("ProcessAgentRuntime restarts cleanly after partial output and a worker cra
   });
 
   assert.equal(result.answer, "After restart");
+  await runtime.stop();
+});
+
+test("ProcessAgentRuntime recovers after the executable cannot be spawned", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  let attempts = 0;
+  const runtime = new ProcessAgentRuntime({
+    workspacePath,
+    launchWorker: () => ++attempts === 1
+      ? spawn(path.join(workspacePath, "missing-executable"))
+      : spawn(process.execPath, [TEST_WORKER_PATH]),
+  });
+  t.after(() => runtime.stop());
+  const input = { threadDir: path.join(workspacePath, "thread"), text: "hello" };
+  await assert.rejects(runtime.handleThreadMessage(input), { code: "ENOENT" });
+  assert.equal((await runtime.handleThreadMessage(input)).answer, "hello");
+});
+
+test("ProcessAgentRuntime handles callback failures before the worker responds", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const runtime = new ProcessAgentRuntime({ workspacePath, workerPath: TEST_WORKER_PATH });
+  t.after(() => runtime.stop());
+  await assert.rejects(runtime.handleThreadMessage({
+    threadDir: path.join(workspacePath, "thread"),
+    text: "__delayed_response__",
+    onAssistantResponding: async () => { throw new Error("Callback failed"); },
+  }), /Callback failed/);
+  assert.equal((await runtime.handleThreadMessage({
+    threadDir: path.join(workspacePath, "thread"), text: "Still usable",
+  })).answer, "Still usable");
+});
+
+test("ProcessAgentRuntime times out when a worker ignores the stop request", { timeout: 10_000 }, async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  let child;
+  const runtime = new ProcessAgentRuntime({
+    workspacePath,
+    launchWorker: () => (child = spawn(process.execPath, [TEST_WORKER_PATH])),
+  });
+  t.after(() => child?.kill("SIGKILL"));
+  await runtime.handleThreadMessage({
+    threadDir: path.join(workspacePath, "thread"), text: "__ignore_stop__",
+  });
+  await assert.rejects(runtime.stop(), /Agent worker did not stop/);
+  assert.equal(child.signalCode, "SIGKILL");
   await runtime.stop();
 });

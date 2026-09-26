@@ -112,9 +112,11 @@ export class ProcessAgentRuntime {
     const child = this.#child;
     const exitPromise = this.#exitPromise;
     try {
-      await this.#request("stop", {});
-      child.stdin.end();
-      await withTimeout(exitPromise, STOP_TIMEOUT_MS, "Agent worker did not stop.");
+      await withTimeout((async () => {
+        await this.#request("stop", {});
+        child.stdin.end();
+        await exitPromise;
+      })(), STOP_TIMEOUT_MS, "Agent worker did not stop.");
     } catch (error) {
       child.kill("SIGKILL");
       await exitPromise.catch(() => {});
@@ -128,8 +130,9 @@ export class ProcessAgentRuntime {
     if (this.#stopping && method !== "stop") {
       return Promise.reject(new Error("Agent worker is stopping."));
     }
-    const child = this.#ensureChild();
     const id = String(this.#nextRequestId++);
+    const message = `${JSON.stringify({ type: "request", id, method, input })}\n`;
+    const child = this.#ensureChild();
 
     return new Promise((resolve, reject) => {
       this.#pending.set(id, {
@@ -138,19 +141,7 @@ export class ProcessAgentRuntime {
         reject,
         resolve,
       });
-      const message = `${JSON.stringify({
-        type: "request",
-        id,
-        method,
-        input,
-      })}\n`;
-      child.stdin.write(message, "utf8", (error) => {
-        if (!error) return;
-        const pending = this.#pending.get(id);
-        if (!pending) return;
-        this.#pending.delete(id);
-        pending.reject(error);
-      });
+      child.stdin.write(message, "utf8");
     });
   }
 
@@ -171,16 +162,22 @@ export class ProcessAgentRuntime {
     child.stderr.on("data", (chunk) => {
       process.stderr.write(`[agent ${path.basename(this.#workspacePath)}] ${chunk}`);
     });
-    child.on("error", (error) => this.#fail(error));
+    let workerError;
+    child.on("error", (error) => { workerError = error; });
+    child.stdin.on("error", (error) => {
+      workerError ??= error;
+      child.kill("SIGKILL");
+    });
     this.#exitPromise = new Promise((resolve) => {
-      child.once("exit", (code, signal) => {
+      // close also runs after spawn failures and after stdout has drained.
+      child.once("close", (code, signal) => {
         if (this.#child === child) {
           this.#child = null;
           this.#exitPromise = null;
         }
         if (this.#pending.size) {
           const detail = signal ? `signal ${signal}` : `code ${code}`;
-          this.#fail(new Error(`Agent worker exited with ${detail}.`));
+          this.#fail(workerError ?? new Error(`Agent worker exited with ${detail}.`));
         }
         resolve({ code, signal });
       });
@@ -236,6 +233,9 @@ export class ProcessAgentRuntime {
           await pending.callbacks.onAssistantLoopMessage?.(message.payload);
         }
       });
+      // Preserve the rejection for the response without leaving it unhandled
+      // while the worker is still processing the request.
+      void pending.eventQueue.catch(() => {});
       return;
     }
 

@@ -52,9 +52,11 @@ export class AppThreadRepository {
   }
 
   async get(userId, threadId) {
-    const summary = await this.#readSummary(userId, threadId);
+    const state = await this.#readState(userId, threadId);
     const events = await this.#threadStore.loadEvents(this.getThreadDir(userId, threadId));
-    return { summary, events };
+    const messages = events.filter((event) => event.type === "message")
+      .map((event) => event.message);
+    return { summary: summarizeThread(state, messages), events };
   }
 
   async require(userId, threadId) {
@@ -78,17 +80,7 @@ export class AppThreadRepository {
   async #readSummary(userId, threadId) {
     const state = await this.#readState(userId, threadId);
     const messages = await this.#threadStore.loadMessages(this.getThreadDir(userId, threadId));
-    const lastMessage = messages[messages.length - 1];
-    return {
-      id: threadId,
-      title: state.title,
-      createdAt: state.createdAt,
-      updatedAt: state.updatedAt,
-      messageCount: messages.length,
-      preview: lastMessage
-        ? getPublicMessageText(lastMessage).trim().slice(0, 120)
-        : "",
-    };
+    return summarizeThread(state, messages);
   }
 
   async #readState(userId, threadId) {
@@ -128,6 +120,18 @@ export class AppThreadRepository {
       "app",
     );
   }
+}
+
+function summarizeThread(state, messages) {
+  const lastMessage = messages[messages.length - 1];
+  return {
+    id: state.id,
+    title: state.title,
+    createdAt: state.createdAt,
+    updatedAt: state.updatedAt,
+    messageCount: messages.length,
+    preview: lastMessage ? getPublicMessageText(lastMessage).trim().slice(0, 120) : "",
+  };
 }
 
 function assertThreadId(threadId) {

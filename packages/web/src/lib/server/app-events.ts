@@ -29,12 +29,16 @@ export class AppEventBroker {
 					if (closed) return;
 					closed = true;
 					if (heartbeat) clearInterval(heartbeat);
-					signal.removeEventListener('abort', cleanup);
+					signal.removeEventListener('abort', onAbort);
 					const subscribers = this.subscribersByUser.get(userId);
 					subscribers?.delete(publish);
 					if (subscribers?.size === 0) {
 						this.subscribersByUser.delete(userId);
 					}
+				};
+				const onAbort = () => {
+					cleanup();
+					controller.close();
 				};
 
 				const enqueue = (payload: Uint8Array) => {
@@ -55,10 +59,9 @@ export class AppEventBroker {
 				subscribers.add(publish);
 				this.subscribersByUser.set(userId, subscribers);
 
-				signal.addEventListener('abort', cleanup, { once: true });
+				signal.addEventListener('abort', onAbort, { once: true });
 				if (signal.aborted) {
-					cleanup();
-					controller.close();
+					onAbort();
 					return;
 				}
 

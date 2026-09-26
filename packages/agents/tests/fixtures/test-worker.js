@@ -6,10 +6,12 @@ const lines = createInterface({
   input: process.stdin,
   crlfDelay: Infinity,
 });
+let ignoreStop = false;
 
-lines.on("line", (line) => {
+lines.on("line", async (line) => {
   const request = JSON.parse(line);
   if (request.method === "handleThreadMessage") {
+    if (request.input.text === "__ignore_stop__") ignoreStop = true;
     if (request.input.text === "__crash__") {
       process.stdout.write('{"incomplete":', () => process.exit(17));
       return;
@@ -45,6 +47,9 @@ lines.on("line", (line) => {
         }],
       },
     });
+    if (request.input.text === "__delayed_response__") {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     write({
       type: "response",
       requestId: request.id,
@@ -60,6 +65,7 @@ lines.on("line", (line) => {
   }
 
   if (request.method === "stop") {
+    if (ignoreStop) return;
     write({
       type: "response",
       requestId: request.id,

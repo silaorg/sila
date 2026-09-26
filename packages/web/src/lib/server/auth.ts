@@ -8,7 +8,10 @@ let authPromise: ReturnType<typeof createAuth> | null = null;
 
 export function getAuth() {
 	if (!authPromise) {
-		authPromise = createAuth();
+		authPromise = createAuth().catch((error) => {
+			authPromise = null;
+			throw error;
+		});
 	}
 	return authPromise;
 }
