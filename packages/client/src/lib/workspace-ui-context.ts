@@ -10,7 +10,7 @@ import type { WorkspaceLayout } from './workspace-layout.svelte';
 import type { Swins } from './swins/swins.svelte';
 import type { AssetViewer } from './asset-viewer/asset-viewer.svelte';
 
-const WORKSPACE_UI_CONTEXT = Symbol('heswe-workspace-ui');
+const WORKSPACE_UI_CONTEXT = Symbol('sila-workspace-ui');
 
 export type WorkspaceUser = {
 	id: string;

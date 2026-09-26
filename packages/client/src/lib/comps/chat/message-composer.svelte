@@ -236,7 +236,7 @@
 
 			<ChatEditor
 				value={query}
-				placeholder="Message Heswe…"
+				placeholder="Message Sila…"
 				{disabled}
 				autofocus
 				bind:this={editor}

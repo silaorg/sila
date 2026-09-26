@@ -44,8 +44,8 @@ provider and integration secrets. `agents/default/config.json` selects a
 language provider and model; `auto` chooses the first configured provider with
 an available key.
 
-`heswe create <path>` scaffolds the root config, provider config, `.env`, and
-one Slack or Telegram channel. `heswe run <path>` starts every recognized
+`sila create <path>` scaffolds the root config, provider config, `.env`, and
+one Slack or Telegram channel. `sila run <path>` starts every recognized
 channel under `channels/`.
 
 ## Threads and persistence
@@ -54,7 +54,7 @@ Slack and Telegram threads live below their channel directory. Hosted app
 threads live below a hashed user ID so one user cannot access another user's
 threads.
 
-`messages.jsonl` is an append-only event log. Heswe never rewrites existing log
+`messages.jsonl` is an append-only event log. Sila never rewrites existing log
 bytes. Old `messages.json` arrays are migrated when first read. `state.json`
 contains mutable metadata and is replaced atomically.
 
@@ -75,7 +75,7 @@ Agent subprocesses receive these environment paths:
 - `SOURCE_PATH`: `SOURCE_PATH` or `REPO_ROOT` from the environment, otherwise
   the nearest Git root above the workspace.
 
-Heswe builds this environment per thread. It does not write runtime paths or
+Sila builds this environment per thread. It does not write runtime paths or
 workspace `.env` values into the server's global process environment, so
 concurrent workspaces cannot overwrite each other's command context.
 

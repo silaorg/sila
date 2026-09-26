@@ -9,7 +9,7 @@ authorized user can see and control. Both attach to the same virtual display
 inside the workspace sandbox.
 
 Use a private VNC server and an embedded noVNC client for the first version.
-Carry the VNC stream through an authenticated WebSocket owned by the Heswe
+Carry the VNC stream through an authenticated WebSocket owned by the Sila
 platform. Keep the display backend behind a small interface so WebRTC can
 replace it if high-motion use cases justify the added infrastructure.
 
@@ -37,7 +37,7 @@ WebSocket.
 
 ```text
 user browser
-  -> authenticated Heswe display gateway
+  -> authenticated Sila display gateway
     -> private workspace display server
       <- agent computer tools
 ```

@@ -25,7 +25,7 @@ async function createAuth() {
 	}
 
 	const auth = betterAuth({
-		appName: 'Heswe',
+		appName: 'Sila',
 		secret,
 		baseURL: process.env.BETTER_AUTH_URL,
 		database: getDatabase(),

@@ -1,0 +1,4 @@
+[submodule "vendor/aiwrapper"]
+	path = vendor/aiwrapper
+	url = https://github.com/mitkury/aiwrapper.git
+	branch = codex/aimodels-submodule

@@ -19,7 +19,7 @@
 	</div>
 	<div class="min-w-0 max-w-[85%]">
 		<div class="mb-2 mt-2 flex items-center gap-2">
-			<span class="cursor-default font-bold">Heswe</span>
+			<span class="cursor-default font-bold">Sila</span>
 			{#if activities.length > 0}
 				<span class="opacity-70">•</span>
 				<button

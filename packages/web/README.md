@@ -1,8 +1,8 @@
-# Heswe Web - SvelteKit app
+# Sila Web - SvelteKit app
 
-The Heswe SvelteKit server.
+The Sila SvelteKit server.
 
-It serves the shared UI from `@heswe/client`, Better Auth routes, the workspace
+It serves the shared UI from `@sila/client`, Better Auth routes, the workspace
 API, and server-sent events.
 
 ## Dev

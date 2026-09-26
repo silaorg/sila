@@ -9,8 +9,8 @@ import {
 test("reads the allocated API and dashboard ports", () => {
   assert.deepEqual(
     readDashboardProxyOptions({
-      HESWE_API_PORT: "43300",
-      HESWE_DASHBOARD_PORT: "43301",
+      SILA_API_PORT: "43300",
+      SILA_DASHBOARD_PORT: "43301",
     }),
     {
       host: "127.0.0.1",

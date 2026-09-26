@@ -1,7 +1,7 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
-const configuredApiPort = Number(process.env.HESWE_API_PORT);
+const configuredApiPort = Number(process.env.SILA_API_PORT);
 const apiPort =
 	Number.isInteger(configuredApiPort) &&
 	configuredApiPort >= 1024 &&
@@ -17,6 +17,6 @@ export default defineConfig({
 		strictPort: true
 	},
 	ssr: {
-		external: ['heswe', 'heswe/app-workspace-service']
+		external: ['sila', 'sila/app-workspace-service']
 	}
 });

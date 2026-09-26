@@ -58,10 +58,10 @@ test("createAgentWorkerEnvironment passes only system and provider values", () =
       SOURCE_PATH: "/workspace/source",
       PTY_COMMAND_TIMEOUT_MS: "30000",
       BETTER_AUTH_SECRET: "platform-secret",
-      HESWE_AUTH_DB_PATH: "/private/auth.sqlite",
+      SILA_AUTH_DB_PATH: "/private/auth.sqlite",
     }),
     {
-      HESWE_AGENT_WORKER: "1",
+      SILA_AGENT_WORKER: "1",
       LANG: "en_US.UTF-8",
       OPENAI_API_KEY: "provider-key",
       PATH: "/usr/bin",

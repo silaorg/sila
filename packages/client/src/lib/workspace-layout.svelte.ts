@@ -344,7 +344,7 @@ export class WorkspaceLayout {
 	}
 
 	private storageKey(workspaceId: string) {
-		return `heswe:layout:${workspaceId}`;
+		return `sila:layout:${workspaceId}`;
 	}
 }
 

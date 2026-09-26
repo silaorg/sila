@@ -7,7 +7,7 @@ import Database from "better-sqlite3";
 import { WorkspaceRegistry } from "../src/lib/server/workspace-registry.js";
 
 async function createRegistry() {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-registry-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "sila-registry-"));
   const database = new Database(":memory:");
   database.pragma("foreign_keys = ON");
   return {

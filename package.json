@@ -1,12 +1,12 @@
 {
-  "name": "heswe",
-  "description": "Root package for Heswe's monorepo",
+  "name": "sila",
+  "description": "Sila 2: hosted AI agents and portable workspaces",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "workspace": "node packages/heswe/src/cli.js",
+    "workspace": "node packages/sila/src/cli.js",
     "dev": "node scripts/dev.mjs",
     "dev:api-only": "node scripts/dev.mjs --api-only",
     "dev:services": "concurrently --kill-others-on-fail -n api,dashboard -c yellow,cyan \"npm run dev:api\" \"npm run dev:dashboard\"",
@@ -14,7 +14,12 @@
     "dev:dashboard": "npm run dev:dashboard -w web",
     "dev:ports": "node scripts/dev.mjs --ports",
     "test:dev": "node --test scripts/dev.test.mjs",
-    "test": "npm run test:dev && npm run --workspaces --if-present test"
+    "test": "npm run test:dev && npm run --workspaces --if-present test",
+    "prepare": "npm run deps:build",
+    "deps:build": "node scripts/build-aiwrapper.mjs",
+    "deps:status": "git submodule status --recursive",
+    "check": "npm run check -w @sila/client && npm run check -w web",
+    "build": "npm run build -w web"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
@@ -23,5 +28,9 @@
     "brace-expansion": "5.0.8",
     "cookie": "0.7.2",
     "uuid": "11.1.1"
+  },
+  "version": "2.0.0",
+  "engines": {
+    "node": ">=22.20.0"
   }
 }

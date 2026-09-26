@@ -21,18 +21,18 @@ function readPort(value, fallback, name) {
 
 /** @param {NodeJS.ProcessEnv} [environment] */
 export function readDashboardProxyOptions(environment = process.env) {
-  const host = environment.HESWE_DEV_HOST || DEFAULT_HOST;
-  const apiPort = readPort(environment.HESWE_API_PORT, DEFAULT_API_PORT, "HESWE_API_PORT");
+  const host = environment.SILA_DEV_HOST || DEFAULT_HOST;
+  const apiPort = readPort(environment.SILA_API_PORT, DEFAULT_API_PORT, "SILA_API_PORT");
   const dashboardPort = readPort(
-    environment.HESWE_DASHBOARD_PORT,
+    environment.SILA_DASHBOARD_PORT,
     DEFAULT_DASHBOARD_PORT,
-    "HESWE_DASHBOARD_PORT",
+    "SILA_DASHBOARD_PORT",
   );
   const apiUrl = new URL(
-    environment.HESWE_API_URL || `http://${host}:${apiPort}`,
+    environment.SILA_API_URL || `http://${host}:${apiPort}`,
   );
   if (apiUrl.protocol !== "http:" && apiUrl.protocol !== "https:") {
-    throw new Error("HESWE_API_URL must use http:// or https://.");
+    throw new Error("SILA_API_URL must use http:// or https://.");
   }
 
   return {

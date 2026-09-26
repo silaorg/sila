@@ -40,7 +40,7 @@ secrets, integrations, resources, or platform access.
 
 The sandbox can see its container image, disposable temporary storage, and its
 own workspace mounted at `/workspace`. It cannot see the host filesystem,
-another workspace, the container engine, or Heswe control-plane credentials.
+another workspace, the container engine, or Sila control-plane credentials.
 
 Do not silently fall back to the normal `runc` runtime. If gVisor is unavailable
 or fails its startup checks, production agent execution must fail closed.
@@ -74,7 +74,7 @@ host supports nested virtualization.
 
 Keep two components:
 
-- The Heswe API is the trusted control plane. It authenticates users, records
+- The Sila API is the trusted control plane. It authenticates users, records
   workspace membership, manages sandbox lifecycle, routes requests, and
   publishes events. It brokers inference and other external capabilities. It
   can perform administrative operations but does not run the agent loop or
@@ -98,7 +98,7 @@ stops. The API does not remotely orchestrate model-selected file, shell, or
 tool calls. Those operations remain local to the complete agent runtime.
 
 The sandbox has no Docker or containerd socket. Agent processes receive no
-Heswe database, signing, provisioning, or cross-workspace credentials.
+Sila database, signing, provisioning, or cross-workspace credentials.
 
 Workspace placement and routing are defined in
 [the platforms and workspace instances proposal](platforms-and-workspace-instances.md).
@@ -107,7 +107,7 @@ development platform or runs on a separate server.
 
 ## Sandbox manager
 
-Add one small internal interface owned by the Heswe API:
+Add one small internal interface owned by the Sila API:
 
 ```text
 SandboxManager
@@ -124,7 +124,7 @@ containerd or managed-cloud implementation can replace it later.
 
 Every sandbox is created from a fixed template:
 
-- reviewed Heswe workspace-runtime image
+- reviewed Sila workspace-runtime image
 - `runsc` OCI runtime
 - read-only container root filesystem
 - non-root workload user
@@ -143,7 +143,7 @@ expected direct child of the configured workspace root. Workspace roots cannot
 be symlinks. The sandbox fails startup unless its fixed ID agrees with
 `/workspace/config.json`.
 
-The production host should run only the Heswe services and sandbox runtime.
+The production host should run only the Sila services and sandbox runtime.
 Keep the host kernel and gVisor updated. Do not place unrelated customer
 services on the same server.
 
@@ -160,7 +160,7 @@ session. The process starts with:
 The agent process contains the complete model loop. It loads instructions,
 conversation state, skills, and workspace tools; constructs its own inference
 requests; and invokes local shell, file, and browser operations. Arbitrary
-workspace JavaScript must never be imported by the supervisor or Heswe API.
+workspace JavaScript must never be imported by the supervisor or Sila API.
 Shell and PTY tools launch descendants in the agent's process group.
 
 The runtime source is readable by the agent. Normal agent and shell processes
@@ -202,7 +202,7 @@ externally enforced. The agent constructs the model request, but the broker
 decides whether it is authorized.
 
 The first version may also allow controlled public HTTPS because agents need
-search and integration APIs. This does not imply access to Heswe's private API
+search and integration APIs. This does not imply access to Sila's private API
 or deployment network. Later, workspaces can have explicit network policies
 without changing their filesystem sandbox.
 
@@ -254,7 +254,7 @@ its agents. Membership and destructive workspace operations use the same
 policy, although destructive actions can still require explicit confirmation.
 Prevent removal of the final member so a workspace cannot become unreachable.
 
-The Heswe API's infrastructure permissions are trusted service permissions, not
+The Sila API's infrastructure permissions are trusted service permissions, not
 a workspace role. They are never exposed to a member or agent.
 
 Future roles can add a policy to the membership relation. Do not add dormant
@@ -315,7 +315,7 @@ an agent cannot discover or modify the other marker through:
 - stateless shells and PTY shells
 - workspace JavaScript tools, native programs, and subprocesses
 - the Docker or containerd API
-- Heswe API credentials, database access, and provisioning operations
+- Sila API credentials, database access, and provisioning operations
 - host and private-network services
 - crashes, restarts, concurrent threads, and sandbox replacement
 
@@ -349,7 +349,7 @@ plain `runc` for production agent code.
 
 ### One container containing all workspaces
 
-This isolates Heswe from the host, not workspaces from each other. All
+This isolates Sila from the host, not workspaces from each other. All
 workspace paths remain available inside one container.
 
 ### Kata Containers or custom microVMs

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createInterface } from "node:readline";
-import { createAppAgentRuntime } from "heswe/app-agent-runtime";
+import { createAppAgentRuntime } from "sila/app-agent-runtime";
 
 const workspacePath = readWorkspacePath(process.argv.slice(2));
 let runtimePromise = null;

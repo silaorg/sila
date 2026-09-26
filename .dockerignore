@@ -1,5 +1,6 @@
 .data
 .git
+**/.git
 .gitignore
 **/.data
 **/.svelte-kit

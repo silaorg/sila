@@ -264,7 +264,7 @@ export class ProcessAgentRuntime {
 
 export function createAgentWorkerEnvironment(source = process.env) {
   const environment = {
-    HESWE_AGENT_WORKER: "1",
+    SILA_AGENT_WORKER: "1",
   };
   for (const name of PASSTHROUGH_ENV_NAMES) {
     const value = source[name];

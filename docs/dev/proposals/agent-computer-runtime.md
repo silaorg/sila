@@ -1,7 +1,7 @@
-# Proposal: Workspace Computers for Heswe Agents
+# Proposal: Workspace Computers for Sila Agents
 
 Status: Draft  
-Audience: Heswe developers
+Audience: Sila developers
 
 ## Summary
 
@@ -80,7 +80,7 @@ opaque hosted service. Files, tools, browser state, background processes, and
 the model loop also share one lifecycle and a local filesystem.
 
 This gives the agent a direct path to diagnose and improve itself. Hosted and
-self-hosted Heswe can run the same workspace runtime, while the public API
+self-hosted Sila can run the same workspace runtime, while the public API
 remains a small launcher, router, and capability authority.
 
 Every agent turn then needs a workspace computer. Accept that cost initially.
@@ -95,7 +95,7 @@ period instead of moving the reasoning loop back into the API prematurely.
 User
   |
   v
-Heswe API
+Sila API
   |-- authenticates and authorizes
   |-- locates the workspace
   |-- starts or stops its computer
@@ -184,7 +184,7 @@ Use three layers:
 
 ```text
 immutable workspace supervisor
-  -> readable, versioned Heswe runtime
+  -> readable, versioned Sila runtime
     -> logical-agent runtime overlay
 ```
 
@@ -195,7 +195,7 @@ runtime used on the next start.
 An authorized change follows a small transaction:
 
 1. The agent or user prepares a candidate overlay revision.
-2. Heswe records the base version, diff, requester, and authorization.
+2. Sila records the base version, diff, requester, and authorization.
 3. The candidate passes validation and startup checks.
 4. The control plane approves the revision for the next clean restart.
 5. The sandbox manager mounts that revision.
@@ -285,9 +285,9 @@ runtime replacement, sandbox escape, concurrent writers, and stale leases.
 
 ## Recommendation
 
-Build Heswe around a complete, inspectable agent runtime inside each active
+Build Sila around a complete, inspectable agent runtime inside each active
 workspace computer. Keep the external platform small but authoritative.
 
-> A Heswe workspace contains an agent that can understand and evolve its own
+> A Sila workspace contains an agent that can understand and evolve its own
 > implementation. The platform gives that agent compute and capabilities, but
 > never delegates authority enforcement to editable agent code.
