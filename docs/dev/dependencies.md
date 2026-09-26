@@ -54,4 +54,8 @@ Commit and push changes from the inside out: AIModels, then AIWrapper, then Hesw
 
 The app version is `2.0.0`. Workspace format stays at `1`, so workspace files don't need a migration.
 
-Server settings use `HESWE_`. If you ran the Sila-named build, set `HESWE_AUTH_DB_PATH` to its existing database and keep `WORKSPACES_PATH` unchanged. Back up both before switching.
+Server settings use `HESWE_`. Back up the database and workspace directory before switching builds.
+
+The interim Sila-named build used `sila_workspaces` and `sila_workspace_selections` tables. Heswe uses `heswe_` table names. Setting `HESWE_AUTH_DB_PATH` to the old database does not migrate these tables. Workspace files remain on disk, but those ownership records need migration before they appear in Heswe.
+
+Do not delete the old tables or recreate workspaces over existing directories. See the [review](review-2026-09-26.md#names-and-stored-data) for the migration work still needed.

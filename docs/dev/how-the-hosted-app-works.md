@@ -18,8 +18,7 @@ browser
 
 Shared files live under `workspace/assets/`. App uploads live under the
 authenticated user's thread at `files/YYYY/MM/DD/`. The browser works with
-scoped references such as `workspace:assets/brief.md` and never receives
-absolute server paths.
+scoped references such as `workspace:assets/brief.md` when using file endpoints.
 
 ## Local development
 
@@ -53,8 +52,8 @@ current workspace. Agent threads and files remain in workspace directories.
 
 Every workspace request requires a session. A new account has no workspace.
 The user creates one in the app and can only list or select workspaces they
-own. Server-generated IDs form directory names beneath `WORKSPACES_PATH`; API
-responses never expose those paths. Better Auth user IDs are hashed again
+own. Server-generated IDs form directory names beneath `WORKSPACES_PATH`;
+workspace registry responses omit those paths. Better Auth user IDs are hashed again
 inside each workspace before use as thread directory names.
 
 Production requires:
@@ -91,10 +90,12 @@ refetches the affected snapshot. It does not stream private event records or
 model tokens.
 
 Thread API projections expose message IDs, timestamps, roles, display text,
-and attachment metadata with scoped references. They do not expose absolute
-filesystem paths, raw log events, tool details, or internal message metadata.
-Server logs record message lengths and lifecycle events, not conversation
-content.
+and attachment metadata with scoped references. They also include tool names
+and short argument previews. Raw log records and internal message metadata
+stay on the server. Tool previews and agent-written text can contain paths.
+
+Normal runtime logs record message lengths and lifecycle events. Workspace
+tools can write their own logs through the worker's standard error stream.
 
 ## Deployment
 

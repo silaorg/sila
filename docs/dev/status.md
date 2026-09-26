@@ -16,7 +16,7 @@ See [dependencies](dependencies.md) for setup and updates.
 
 Checked on September 26, 2026, with Node.js 22.20 on macOS:
 
-- 188 app tests, 186 AIWrapper tests, and 125 AIModels tests pass.
+- 196 app tests pass after the September review. The earlier dependency check passed 186 AIWrapper tests and 125 AIModels tests.
 - Both frontend checks pass without errors or warnings.
 - The production web build passes, with dependency and bundle-size warnings.
 - Clean installs work, including production dependencies and native SQLite.
@@ -36,3 +36,5 @@ Model tests use fixtures. Docker wasn't running here, so the Linux image and gVi
 - [ ] Add the shared display and user takeover controls.
 
 Runtime editing, rollback, and desktop connections to multiple platforms are also still proposals.
+
+See the [code review](review-2026-09-26.md) for current defects and the recommended cleanup order.

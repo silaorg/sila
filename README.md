@@ -35,6 +35,7 @@ We're on version `2.0.0`, on the `v2` branch. `main` still has Sila 1.
 ## Docs
 
 - [Status and what's left](docs/dev/status.md)
+- [Code review and follow-up work](docs/dev/review-2026-09-26.md)
 - [Workspaces](docs/workspace.md), [agents](docs/agents.md), [skills](docs/skills.md), and [tools](docs/tools.md)
 - [How workspaces work](docs/dev/how-workspaces-work.md)
 - [How agents work](docs/dev/how-agents-work.md)
