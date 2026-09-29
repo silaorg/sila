@@ -13,7 +13,8 @@
   "scripts": {
     "dev": "tailwindcss -i ./src/app.css -o ./src/lib/compiled-style.css --watch",
     "build": "tailwindcss -i ./src/app.css -o ./src/lib/compiled-style.css",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --experimental-strip-types --test tests/*.test.js"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^4.12.1",

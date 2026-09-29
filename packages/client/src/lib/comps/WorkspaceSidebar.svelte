@@ -7,6 +7,7 @@
 	import WorkspaceSettingsButton from './WorkspaceSettingsButton.svelte';
 	import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
 
+	let { overlay = false }: { overlay?: boolean } = $props();
 	const workspaceUi = useWorkspaceUi();
 	const avatarLabel = $derived(
 		(workspaceUi.user.name || workspaceUi.user.email).slice(0, 1).toUpperCase()
@@ -15,7 +16,7 @@
 
 <div
 	class="flex h-full flex-col overflow-hidden bg-surface-100-900/50"
-	class:hidden={!workspaceUi.layout.sidebar.isOpen}
+	class:hidden={!workspaceUi.layout.sidebar.isOpen || (workspaceUi.layout.compact && !overlay)}
 	data-testid="sidebar"
 >
 	<div class="min-h-min px-2 py-2">

@@ -25,6 +25,7 @@ import {
 	type WorkspaceFsEntry,
 	type WorkspaceSummary
 } from './api-client';
+import { RefreshQueue } from './refresh-queue';
 import { authClient } from './auth-client';
 import { AssetViewer } from './asset-viewer/asset-viewer.svelte';
 import { WorkspaceLayout } from './workspace-layout.svelte';
@@ -46,6 +47,7 @@ export class WorkspaceController implements WorkspaceUiContext {
 
 	private threadDetails = $state<Record<string, ThreadDetail>>({});
 	private workspaceLoadRequest = 0;
+	private refreshQueue: RefreshQueue | null = null;
 	private threadListRequest = 0;
 	private readonly threadDetailRequests = new Map<string, number>();
 
@@ -56,8 +58,17 @@ export class WorkspaceController implements WorkspaceUiContext {
 	}
 
 	start() {
+		this.refreshQueue = new RefreshQueue((error) => this.setError(error));
 		void this.load();
-		return subscribeToWorkspaceChanges((change) => this.handleWorkspaceChange(change));
+		const unsubscribe = subscribeToWorkspaceChanges((change) => this.handleWorkspaceChange(change));
+		return () => {
+			unsubscribe();
+			this.refreshQueue?.stop();
+			this.refreshQueue = null;
+			this.workspaceLoadRequest += 1;
+			this.threadListRequest += 1;
+			this.threadDetailRequests.clear();
+		};
 	}
 
 	openCreateWorkspace = () => {
@@ -324,7 +335,9 @@ export class WorkspaceController implements WorkspaceUiContext {
 			}
 			this.threadDetails = { ...this.threadDetails, [threadId]: thread };
 		} catch (error) {
-			if (this.threadDetailRequests.get(threadId) === request) this.setError(error);
+			if (this.threadDetailRequests.get(threadId) === request && this.currentWorkspaceId === workspaceId) {
+				this.setError(error);
+			}
 		}
 	}
 
@@ -336,15 +349,25 @@ export class WorkspaceController implements WorkspaceUiContext {
 			this.filesystemVersion += 1;
 			return;
 		}
-		if (change.type === 'workspace.changed') {
-			void this.load();
+		if (change.type === 'workspace.changed' || change.type === 'connected') {
+			this.refreshQueue?.request('workspace', async () => {
+				await this.load();
+				this.filesystemVersion += 1;
+				await Promise.all(Object.keys(this.threadDetails).map((threadId) => this.refreshThread(threadId)));
+			});
 			return;
 		}
 		if (change.workspaceId !== this.currentWorkspaceId) return;
 
-		void this.refreshThreads();
-		if (change.threadId && this.threadDetails[change.threadId]) {
-			void this.refreshThread(change.threadId);
+		const workspaceId = this.currentWorkspaceId;
+		this.refreshQueue?.request(`threads:${workspaceId}`, async () => {
+			if (this.currentWorkspaceId === workspaceId) await this.refreshThreads();
+		});
+		const threadId = change.threadId;
+		if (threadId && this.threadDetails[threadId]) {
+			this.refreshQueue?.request(`thread:${workspaceId}:${threadId}`, async () => {
+				if (this.currentWorkspaceId === workspaceId) await this.refreshThread(threadId);
+			});
 		}
 	}
 

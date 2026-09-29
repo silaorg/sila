@@ -15,7 +15,21 @@ export function createToolApplyPatch(options = {}) {
   return {
     name: "apply_patch",
     description: "Apply text patches using OpenAI native apply_patch operation payload.",
-    parameters: {},
+    parameters: {
+      type: "object",
+      properties: {
+        operation: {
+          type: "object",
+          properties: {
+            type: { type: "string", enum: ["create_file", "update_file", "delete_file"] },
+            path: { type: "string", description: "File path to create, update, or delete." },
+            diff: { type: "string", description: "Text patch; required for create_file and update_file." },
+          },
+          required: ["type", "path"],
+        },
+      },
+      required: ["operation"],
+    },
     handler: async (args = {}) => {
       const operation = args.operation;
       if (!isValidOperation(operation)) {

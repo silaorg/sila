@@ -63,7 +63,7 @@
 			- scrollableElement.scrollTop
 			- scrollableElement.clientHeight;
 		showScrollDown = distance > 40;
-		shouldAutoScroll = distance <= 0;
+		shouldAutoScroll = distance <= 40;
 	}
 
 	function scrollToBottom(smooth = false) {
@@ -138,7 +138,7 @@
 			<div class="mx-auto w-full max-w-4xl">
 				{#if thread.messages.length === 0}
 					<div class="flex min-h-[50vh] items-center justify-center">
-						<div class="max-w-lg text-center">
+						<div class="max-w-lg px-6 py-8 text-center">
 							<div class="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-100-900">
 								<Sparkles size={22} />
 							</div>

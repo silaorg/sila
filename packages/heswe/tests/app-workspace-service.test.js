@@ -70,7 +70,7 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
   );
 });
 
-test("AppWorkspaceService exposes live progress and groups tool use with the reply", async () => {
+test("AppWorkspaceService exposes live progress and preserves assistant text alongside tool use", async () => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-progress-"));
   const store = new ThreadStore();
   let releaseRuntime;
@@ -143,6 +143,7 @@ test("AppWorkspaceService exposes live progress and groups tool use with the rep
   assert.equal(completed.progress, null);
   assert.deepEqual(completed.messages.map((message) => message.text), [
     "Check the workspace",
+    "I will inspect the workspace.",
     "The workspace is ready.",
   ]);
   assert.equal(completed.messages[1].activities.length, 1);
@@ -573,4 +574,155 @@ test("app file references cannot escape their workspace or cross thread boundari
     service.getFile("user-a", second.id, uploaded.reference),
     (error) => error instanceof AppWorkspaceError && error.code === "not_found",
   );
+});
+
+
+test("tool history distinguishes failed, incomplete, and successful calls without a final reply", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-tool-states-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const store = new ThreadStore();
+  const service = new AppWorkspaceService({
+    workspacePath, threadStore: store,
+    createAgentRuntime: () => ({
+      async handleThreadMessage(input) {
+        await store.appendMessages(input.threadDir, [
+          new LangMessage("assistant", ["ok", "error", "failed", "missing"].map((callId) => ({
+            type: "tool", name: "read_document", callId, arguments: { path: callId },
+          }))),
+          new LangMessage("tool-results", [
+            { type: "tool-result", callId: "ok", result: { text: "read" } },
+            { type: "tool-result", callId: "error", result: { error: true } },
+            { type: "tool-result", callId: "failed", result: { status: "failed" } },
+          ]),
+          new LangMessage("user", "Try again"),
+          new LangMessage("assistant", [{ type: "tool", name: "read_document", callId: "ok", arguments: {} }]),
+        ]);
+        throw new Error("Connection lost");
+      },
+    }),
+  });
+  const thread = await service.createThread("user");
+  await assert.rejects(service.sendMessage("user", thread.id, "Read"), /Connection lost/);
+  const detail = await service.getThread("user", thread.id);
+  assert.deepEqual(detail.messages.flatMap((message) => message.activities ?? []).map((item) => item.status),
+    ["complete", "failed", "failed", "incomplete", "incomplete"]);
+  assert.equal(detail.messages[0].text, "");
+});
+
+
+for (const [status, expected] of [[400, /rejected this request/], [401, /API key/], [402, /credits/], [403, /access/], [404, /unavailable/], [429, /limit/]]) {
+  test(`provider HTTP ${status} produces an actionable error without exposing its body`, async (t) => {
+    const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-provider-error-"));
+    t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+    const service = new AppWorkspaceService({
+      workspacePath,
+      createAgentRuntime: () => ({
+        async handleThreadMessage() { throw new Error(`HTTP error! status: ${status}: private provider details`); },
+      }),
+    });
+    const thread = await service.createThread("user");
+    await assert.rejects(service.sendMessage("user", thread.id, "Hello"), (error) => {
+      assert.equal(error.code, "invalid_input");
+      assert.match(error.message, expected);
+      assert.doesNotMatch(error.message, /private provider details/);
+      return true;
+    });
+  });
+}
+
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+test('settings updates drain accepted work and hold new threads until the runtime stops', { timeout: 3000 }, async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'app-settings-barrier-'));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const started = deferred();
+  const releaseMessage = deferred();
+  const stopping = deferred();
+  const releaseStop = deferred();
+  const handled = [];
+  let creations = 0;
+  const service = new AppWorkspaceService({
+    workspacePath,
+    createAgentRuntime() {
+      const version = ++creations;
+      return {
+        async handleThreadMessage(input) {
+          handled.push([version, input.publicText]);
+          if (input.publicText === 'first') {
+            started.resolve();
+            await releaseMessage.promise;
+          }
+          return { responded: true, answer: String(version) };
+        },
+        async stop() { stopping.resolve(); await releaseStop.promise; },
+      };
+    },
+  });
+  const first = await service.createThread('user');
+  const second = await service.createThread('user');
+  const message = service.sendMessage('user', first.id, 'first');
+  await started.promise;
+  const settings = service.updateModelSettings({provider:'openai',model:'gpt-5.4',apiKeys:{openai:'test-key'}});
+  const next = service.sendMessage('user', second.id, 'next');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(handled, [[1,'first']]);
+  assert.equal((await service.getModelSettings()).apiKeys, undefined);
+  assert.equal((await service.getModelSettings()).provider, 'auto');
+  releaseMessage.resolve();
+  await stopping.promise;
+  assert.deepEqual(handled, [[1,'first']]);
+  releaseStop.resolve();
+  await Promise.all([message, settings, next]);
+  assert.deepEqual(handled, [[1,'first'],[2,'next']]);
+  await service.stop();
+});
+
+test('concurrent settings edits retain both keys and a failed edit does not block admission', { timeout: 3000 }, async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'app-settings-order-'));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const service = new AppWorkspaceService({workspacePath, createAgentRuntime: () => ({
+    async handleThreadMessage() { return {responded:true, answer:'ready'}; },
+  })});
+  await Promise.all([
+    service.updateModelSettings({provider:'openai',model:'gpt-5.4',apiKeys:{openai:'first-key'}}),
+    service.updateModelSettings({provider:'anthropic',model:'claude-sonnet-4-6',apiKeys:{anthropic:'second-key'}}),
+  ]);
+  const settings = await service.getModelSettings();
+  assert.equal(settings.provider, 'anthropic');
+  for (const id of ['openai','anthropic']) {
+    assert.equal(settings.providers.find(provider=>provider.id===id).apiKeySource, 'workspace');
+  }
+  const rejected = service.updateModelSettings({provider:'google',model:'test',apiKeys:{unknown:'bad'}});
+  const thread = await service.createThread('user');
+  const next = service.sendMessage('user', thread.id, 'next');
+  await assert.rejects(rejected, /does not accept an API key/);
+  assert.equal((await next).answer, 'ready');
+  assert.equal((await service.getModelSettings()).provider, 'anthropic');
+  await assert.rejects(fs.access(path.join(workspacePath, 'providers', 'google')), {code:'ENOENT'});
+  await service.stop();
+});
+
+test('shutdown immediately closes admission and drains accepted messages only once', { timeout: 3000 }, async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'app-shutdown-barrier-'));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const release = deferred();
+  let stops = 0;
+  const service = new AppWorkspaceService({workspacePath, createAgentRuntime: () => ({
+    async handleThreadMessage() { await release.promise; return {responded:false,answer:''}; },
+    async stop() { stops++; },
+  })});
+  const thread = await service.createThread('user');
+  const accepted = service.sendMessage('user', thread.id, 'accepted');
+  const stopped = service.stop();
+  assert.equal(service.stop(), stopped);
+  await assert.rejects(service.sendMessage('user', thread.id, 'too late'), /shutting down/);
+  await assert.rejects(service.updateModelSettings({}), /shutting down/);
+  assert.equal(stops, 0);
+  release.resolve();
+  await Promise.all([accepted, stopped]);
+  assert.equal(stops, 1);
 });

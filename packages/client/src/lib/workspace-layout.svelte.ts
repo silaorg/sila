@@ -27,6 +27,8 @@ export class WorkspaceLayout {
 	private layoutRefs: LayoutRefs = {};
 	private workspaceId: string | null = null;
 	private applyingLayout = false;
+	compact = $state(false);
+	private desktopSidebarOpen = true;
 
 	sidebar = $state({
 		isOpen: true,
@@ -66,6 +68,21 @@ export class WorkspaceLayout {
 		this.syncLayout();
 	}
 
+	setCompact(compact: boolean) {
+		if (this.compact === compact) return;
+		if (compact) this.desktopSidebarOpen = this.sidebar.isOpen;
+		this.compact = compact;
+		this.sidebar.isOpen = compact ? false : this.desktopSidebarOpen;
+		this.updateSidebarLayout();
+	}
+
+	closeMobileSidebar() {
+		if (this.compact && this.sidebar.isOpen) {
+			this.sidebar.isOpen = false;
+			this.updateSidebarLayout();
+		}
+	}
+
 	setWorkspace(workspaceId: string | null) {
 		if (workspaceId === this.workspaceId) return;
 		this.saveLayout();
@@ -77,6 +94,10 @@ export class WorkspaceLayout {
 				this.ttabs.resetToDefaultLayout();
 			}
 			this.syncLayout();
+			if (this.compact) {
+				this.sidebar.isOpen = false;
+				this.updateSidebarLayout();
+			}
 		} finally {
 			this.applyingLayout = false;
 		}
@@ -120,6 +141,7 @@ export class WorkspaceLayout {
 		targetPanelId: string | undefined,
 		pinned: boolean
 	) {
+		this.closeMobileSidebar();
 		const existingTab = this.findTabByThreadId(threadId);
 		if (existingTab) {
 			if (pinned) this.ttabs.updateTile(existingTab, { isLazy: false });
@@ -231,7 +253,7 @@ export class WorkspaceLayout {
 		if (sidebarContent?.parent) {
 			this.layoutRefs.sidebarColumn = sidebarContent.parent;
 			const sidebarColumn = this.ttabs.getTile(sidebarContent.parent);
-			if (sidebarColumn?.type === 'column') {
+			if (sidebarColumn?.type === 'column' && !this.compact) {
 				const width = sidebarColumn.width?.value ?? 0;
 				this.sidebar.isOpen = width > 50;
 				if (this.sidebar.isOpen) {
@@ -301,7 +323,7 @@ export class WorkspaceLayout {
 		if (!sidebarColumnId) return;
 		this.ttabs.updateTile(sidebarColumnId, {
 			width: {
-				value: this.sidebar.isOpen ? this.sidebar.widthWhenOpen : 0,
+				value: !this.compact && this.sidebar.isOpen ? this.sidebar.widthWhenOpen : 0,
 				unit: 'px'
 			}
 		});
@@ -311,6 +333,7 @@ export class WorkspaceLayout {
 	private saveLayout() {
 		if (
 			this.applyingLayout ||
+			this.compact ||
 			!this.workspaceId ||
 			typeof localStorage === 'undefined'
 		) {

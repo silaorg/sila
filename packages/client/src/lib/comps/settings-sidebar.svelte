@@ -17,8 +17,8 @@
 	}
 </script>
 
-<nav class="flex min-w-[200px] flex-col gap-1 self-start">
-	<div class="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wide text-surface-600-300">
+<nav class="flex w-full gap-1 sm:w-48 sm:shrink-0 sm:flex-col sm:self-start">
+	<div class="hidden px-3 pb-1 pt-2 sm:block text-xs font-medium uppercase tracking-wide text-surface-600-300">
 		Workspace
 	</div>
 

@@ -46,7 +46,7 @@ const PROVIDER_SPECS = Object.freeze({
   }),
   google: Object.freeze({
     envVarName: "GOOGLE_API_KEY",
-    defaultModel: "gemini-2.5-pro",
+    defaultModel: "gemini-3.1-pro-preview",
     priority: 2,
     kind: "language",
   }),
@@ -77,7 +77,7 @@ const PROVIDER_SPECS = Object.freeze({
   }),
   groq: Object.freeze({
     envVarName: "GROQ_API_KEY",
-    defaultModel: "llama-3.3-70b-versatile",
+    defaultModel: "openai/gpt-oss-120b",
     priority: 7,
     kind: "language",
   }),
@@ -130,7 +130,7 @@ const ModelSettingsUpdateSchema = z.strictObject({
   model: z.string().trim().min(1).max(200),
   apiKeys: z.record(
     z.string(),
-    z.union([z.string().trim().max(10_000), z.null()]),
+    z.union([z.string().trim().max(10_000).refine((value) => !/[\u0000\r\n]/.test(value), "API keys must be a single line."), z.null()]),
   ).default({}),
 });
 
@@ -279,7 +279,6 @@ export async function updateWorkspaceModelSettings(workspacePath, input) {
     if (!providerSpec || providerSpec.kind !== "language") {
       throw new ProviderConfigError(`Unsupported language provider "${provider}".`);
     }
-    await createProviderConfig(workspacePath, provider);
   }
 
   const environmentChanges = {};
@@ -291,6 +290,7 @@ export async function updateWorkspaceModelSettings(workspacePath, input) {
     environmentChanges[providerSpec.envVarName] = value;
   }
 
+  if (provider !== "auto") await createProviderConfig(workspacePath, provider);
   await createDefaultAgentConfig(workspacePath, {
     provider,
     model: provider === "auto" ? "auto" : model,

@@ -41,8 +41,8 @@
 		<img class="max-h-full max-w-full p-2" src={presentation.logoUrl} alt={providerName} />
 	</div>
 
-	<div class="flex min-w-0 flex-grow items-center justify-between gap-3">
-		<div class="flex min-w-0 items-center gap-2">
+	<div class="flex min-w-0 flex-grow flex-wrap items-center justify-between gap-3">
+		<div class="flex min-w-0 flex-wrap items-center gap-2">
 			<span class="truncate font-semibold">{providerName}</span>
 			<a
 				href={presentation.url}
@@ -62,11 +62,12 @@
 		</div>
 
 		{#if editing}
-			<form class="flex min-w-0 flex-1 items-center justify-end gap-2" onsubmit={connect}>
+			<form class="flex w-full min-w-0 flex-wrap items-center gap-2" onsubmit={connect}>
 				<input
 					class="input min-w-0 max-w-sm flex-1"
 					type="password"
 					autocomplete="new-password"
+					aria-label={`${providerName} API key`}
 					placeholder={`${providerName} API key`}
 					disabled={busy}
 					bind:value={apiKey}
@@ -125,7 +126,7 @@
 					rel="noreferrer"
 					class="btn btn-sm preset-outlined-surface-500"
 				>
-					How?
+					Get key
 				</a>
 			</div>
 		{/if}

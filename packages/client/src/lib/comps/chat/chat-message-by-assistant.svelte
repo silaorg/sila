@@ -7,8 +7,10 @@
 	import ToolUsageItem from './tool-usage-item.svelte';
 
 	let { message, threadId }: { message: ThreadMessage; threadId: string } = $props();
-	let expanded = $state(false);
+	let expanded = $state<boolean | null>(null);
 	const activities = $derived(message.activities ?? []);
+	const needsAttention = $derived(activities.some((activity) => activity.status === 'failed' || activity.status === 'incomplete'));
+	const showActivities = $derived(expanded ?? (!message.text || needsAttention));
 </script>
 
 <div class="flex scroll-mt-2 gap-3 px-4 py-2">
@@ -25,11 +27,11 @@
 				<button
 					type="button"
 					class="group flex items-center gap-1"
-					aria-expanded={expanded}
-					onclick={() => (expanded = !expanded)}
+					aria-expanded={showActivities}
+					onclick={() => (expanded = !showActivities)}
 				>
-					<span class="opacity-70 group-hover:opacity-100">Acted</span>
-					{#if expanded}
+					<span class="opacity-70 group-hover:opacity-100">{activities.length} {activities.length === 1 ? 'tool' : 'tools'}{needsAttention ? ' · needs attention' : ''}</span>
+					{#if showActivities}
 						<ChevronDown size={12} class="opacity-70 group-hover:opacity-100" />
 					{:else}
 						<ChevronRight size={12} class="opacity-70 group-hover:opacity-100" />
@@ -39,7 +41,7 @@
 		</div>
 
 		<div class="relative rounded-lg selectable-text">
-			{#if expanded}
+			{#if showActivities}
 				<div class="mb-2 mt-2 flex max-h-96 flex-col gap-2 overflow-y-auto text-sm opacity-80">
 					{#each activities as activity (activity.id)}
 						<ToolUsageItem {activity} />

@@ -27,7 +27,7 @@ export type ThreadActivity = {
 	id: string;
 	name: string;
 	preview: string;
-	status: 'running' | 'complete';
+	status: 'running' | 'complete' | 'failed' | 'incomplete';
 };
 
 export type ThreadProgress = {
@@ -64,7 +64,7 @@ export type ThreadDetail = ThreadSummary & {
 };
 
 export type WorkspaceChange = {
-	type: 'thread.created' | 'thread.changed' | 'workspace.changed' | 'workspace.files.changed';
+	type: 'connected' | 'thread.created' | 'thread.changed' | 'workspace.changed' | 'workspace.files.changed';
 	workspaceId?: string;
 	threadId?: string;
 };
@@ -283,11 +283,13 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 			if (
 				change &&
 				typeof change === 'object' &&
-				(change.type === 'thread.created' ||
+				(change.type === 'connected' ||
+					change.type === 'thread.created' ||
 					change.type === 'thread.changed' ||
 					change.type === 'workspace.changed' ||
 					change.type === 'workspace.files.changed') &&
-				(change.workspaceId === undefined || typeof change.workspaceId === 'string')
+				(change.workspaceId === undefined || typeof change.workspaceId === 'string') &&
+				(change.threadId === undefined || typeof change.threadId === 'string')
 			) {
 				onChange(change);
 			}
@@ -295,6 +297,7 @@ export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) 
 			// Ignore malformed events. The next valid invalidation will refresh the snapshots.
 		}
 	};
+	events.addEventListener('connected', receive);
 	events.addEventListener('thread.created', receive);
 	events.addEventListener('thread.changed', receive);
 	events.addEventListener('workspace.changed', receive);

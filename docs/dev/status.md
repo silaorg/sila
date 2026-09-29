@@ -2,7 +2,7 @@
 
 Heswe is on `v2`, version `2.0.0`. It includes the latest work from the `heswe` branch and the source dependency setup.
 
-The web app runs locally. You can sign up, create workspaces and threads, browse files, and configure providers. A live agent response still needs testing with a provider key.
+The web app runs locally. You can sign up, create workspaces and threads, browse files, and configure providers. Real responses and file-reading tool calls pass with seven providers. See the [September 28 release pass](release-review-2026-09-28.md) for fixes, provider results, and remaining gates.
 
 ## Dependencies
 
@@ -12,7 +12,13 @@ AIWrapper has live and speech APIs. Heswe doesn't have a voice interface yet. Ex
 
 See [dependencies](dependencies.md) for setup and updates.
 
-## Results
+## Latest release pass
+
+On September 28, Node.js 22.20: 211 tests pass, both frontend checks pass, and the production build passes with dependency warnings. Browser checks covered mobile navigation, settings, and saved tool history. Browser reconnect recovery still needs a controlled retest.
+
+See [the release review](release-review-2026-09-28.md) for details and decisions.
+
+## Earlier results
 
 Checked on September 26, 2026, with Node.js 22.20 on macOS:
 
@@ -28,7 +34,7 @@ Model tests use fixtures. Docker wasn't running here, so the Linux image and gVi
 
 ## What's left
 
-- [ ] Test a real model response and tool call.
+- [x] Test real model responses and tool calls through the web API with seven providers.
 - [ ] Build and run the workspace image on Linux with gVisor.
 - [ ] Move Slack and Telegram agents behind the sandbox worker boundary.
 - [ ] Add the inference broker and longer-lived workspace supervisor.

@@ -366,7 +366,7 @@ function subscribeToAgentLoopLogs(
     pendingAssistantIdx = null;
     pendingAssistantMessage = null;
 
-    if (!payload) {
+    if (!payload?.text) {
       return;
     }
 
@@ -430,10 +430,6 @@ function subscribeToAgentLoopLogs(
 
 function getIntermediateAssistantPayload(message) {
   const text = typeof message?.text === "string" ? message.text.trim() : "";
-  if (!text) {
-    return null;
-  }
-
   const toolNames = Array.isArray(message.toolRequests)
     ? message.toolRequests.map((tool) => tool?.name).filter(Boolean)
     : [];
@@ -445,7 +441,7 @@ function getIntermediateAssistantPayload(message) {
         arguments: tool.arguments,
       }))
     : [];
-  return { text, toolNames, tools };
+  return text || tools.length ? { text, toolNames, tools } : null;
 }
 
 function formatIntermediateAssistantLog(threadId, payload) {

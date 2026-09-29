@@ -36,7 +36,7 @@ function createPtyStub() {
   };
 }
 
-function createLoopingLang() {
+function createLoopingLang(text = "I will check that first.") {
   return {
     async askForObject() {
       return { object: { respond: true } };
@@ -54,7 +54,7 @@ function createLoopingLang() {
       }
 
       result.addAssistantItems([
-        { type: "text", text: "I will check that first." },
+        ...(text ? [{ type: "text", text }] : []),
         { type: "tool", name: "execute_command", callId: "call-1", arguments: { command: "shell status" } },
       ]);
       options.onResult?.(result[result.length - 1]);
@@ -292,4 +292,24 @@ describe("ThreadAgent", () => {
     equal(lines[0].message.items[0].text, "legacy message");
     equal(lines[1].message.items[0].text, "<@user-4>: new message");
   });
+});
+
+
+it("publishes tool-only assistant progress without an empty channel message", async (t) => {
+  const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "tool-only-progress-"));
+  t.after(() => fs.rm(threadDir, { recursive: true, force: true }));
+  const progress = [];
+  const loopMessages = [];
+  const agent = new ThreadAgent({
+    threadDir, threadId: "tool-only", lang: createLoopingLang(""),
+    ptyManager: createPtyStub(), defaultCwd: threadDir, instructions: "Be helpful.",
+    onAssistantProgress: async (payload) => { progress.push(payload); },
+    onAssistantLoopMessage: async (payload) => { loopMessages.push(payload); },
+  });
+  const result = await agent.processUserMessage({ userId: "user", text: "Check" });
+  equal(result.answer, "final answer");
+  equal(progress.length, 1);
+  equal(progress[0].text, "");
+  deepEqual(progress[0].toolNames, ["execute_command"]);
+  deepEqual(loopMessages, []);
 });

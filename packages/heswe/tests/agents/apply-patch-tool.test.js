@@ -80,3 +80,16 @@ describe("applyPatchTool", () => {
     ok(result.output.includes("File not found"));
   });
 });
+
+
+it("describes apply_patch as an object tool for non-OpenAI providers", () => {
+  const { parameters } = createToolApplyPatch();
+  strictEqual(parameters.type, "object");
+  ok(parameters.required.includes("operation"));
+  const operation = parameters.properties.operation;
+  strictEqual(operation.type, "object");
+  for (const field of ["type", "path"]) ok(operation.required.includes(field));
+  for (const type of ["create_file", "update_file", "delete_file"]) {
+    ok(operation.properties.type.enum.includes(type));
+  }
+});

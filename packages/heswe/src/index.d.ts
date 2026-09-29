@@ -11,7 +11,7 @@ export type AppActivity = {
   id: string;
   name: string;
   preview: string;
-  status: "running" | "complete";
+  status: "running" | "complete" | "failed" | "incomplete";
 };
 
 export type AppThreadProgress = {

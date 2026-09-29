@@ -99,7 +99,7 @@
 	}
 </script>
 
-<div class="flex w-full gap-4">
+<div class="flex w-full flex-col gap-4 sm:flex-row">
 	<SettingsSidebar
 		active={activePage}
 		onSelect={(page) => {
@@ -109,7 +109,7 @@
 		}}
 	/>
 
-	<div class="min-h-72 flex-1 space-y-4">
+	<div class="min-h-72 min-w-0 flex-1 space-y-4">
 		{#if loading}
 			<p class="py-10 text-center text-sm text-surface-500">Loading settings…</p>
 		{:else if settings && activePage === 'providers'}
@@ -122,7 +122,7 @@
 				{#each providers as item (item.id)}
 					<ModelProviderCard
 						provider={item}
-						busy={savingProviderId === item.id}
+						busy={busy}
 						onConnect={(id, key) => updateProviderKey(id, key)}
 						onDisconnect={(id) => updateProviderKey(id, null)}
 					/>
@@ -141,6 +141,7 @@
 						value={provider}
 						disabled={busy}
 						onchange={(event) => {
+							saved = false;
 							provider = event.currentTarget.value;
 							if (provider === 'auto') model = 'auto';
 							else {
