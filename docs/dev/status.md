@@ -23,7 +23,8 @@ See [the release review](release-review-2026-09-28.md) for details and decisions
 The `feat/neorest` branch uses Neorest for authenticated live updates, WebSocket
 upgrade, HTTP fallback, and reconnect recovery. The existing HTTP API remains
 in place. All 218 app tests pass, along with fresh development and production
-installs. See the [integration notes](neorest-integration.md) for validation and
+installs. Neorest has six additional lifecycle regression cases; all 55 upstream
+tests pass, including native HTTP/3. See the [integration notes](neorest-integration.md) for validation and
 deployment changes.
 
 ## Earlier results

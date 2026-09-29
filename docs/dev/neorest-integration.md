@@ -22,10 +22,16 @@ using the existing SvelteKit HTTP endpoints. Voice and HTTP/3 are not enabled.
 - The development launcher already forwards WebSocket upgrades. Direct Vite
   launches default the auth origin to their local API port.
 
-Neorest is pinned to `1457146` on `feat/heswe-source-integration`. The upstream
+Neorest is pinned to `cb70308` on `feat/heswe-source-integration`. The upstream
 change moves the optional HTTP/3 test dependencies from Neorest's
 runtime package into its test workspace. This prevents local `file:` consumers
 from pulling native test build tools into their main dependency install.
+
+The follow-up fixes cancel in-flight HTTP work on close, ignore responses from
+old sessions, and share concurrent handshakes. Reconnect only reports success
+once every subscription is restored; denied subscriptions consume the bounded
+retry budget rather than leaving a falsely healthy connection. Six regression
+cases reproduce these lifecycle failures.
 
 ## Validation on September 28, 2026
 
@@ -43,11 +49,17 @@ Using Node.js 22.20 on macOS:
   with existing dependency and chunk-size warnings.
 - Fresh development and production (`--omit=dev`) installs build both source
   dependencies successfully. Production imports and native SQLite pass.
-- The full upstream Neorest test attempt passed 48 tests and failed its one
-  native HTTP/3 integration test because the optional native binary was not
-  built. HTTP/3 is outside this pilot. The supported transport suite can be run
-  with `npm run test -w @neorest/tests -- --exclude webtransport.test.ts` from
-  `vendor/neorest` after building; all 43 tests in that subset pass.
+- All 55 upstream Neorest tests pass, including the real native HTTP/3 test.
+  The earlier missing-binary failure was resolved by explicitly building the
+  optional provider before running the full upstream suite:
+
+  ```sh
+  npm rebuild --prefix vendor/neorest @fails-components/webtransport-transport-http3-quiche
+  npm test --prefix vendor/neorest
+  ```
+
+  HTTP/3 remains disabled in Heswe; its normal dependency build skips native
+  provider installation scripts.
 
 ## Deployment and decisions
 
