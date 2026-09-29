@@ -16,7 +16,7 @@
     "test:dev": "node --test scripts/dev.test.mjs",
     "test": "npm run test:dev && npm run --workspaces --if-present test",
     "prepare": "npm run deps:build",
-    "deps:build": "node scripts/build-aiwrapper.mjs",
+    "deps:build": "node scripts/build-aiwrapper.mjs && node scripts/build-neorest.mjs",
     "deps:status": "git submodule status --recursive",
     "check": "npm run check -w @heswe/client && npm run check -w web",
     "build": "npm run build -w web"

@@ -1,3 +1,6 @@
+import { NodeRouter, type NodeRouterOptions } from 'neorest/node';
+import type { ConnectionIdentity, ServerConnection } from 'neorest/core';
+
 export type AppEvent = {
 	type: string;
 	userId: string;
@@ -5,88 +8,51 @@ export type AppEvent = {
 	threadId?: string;
 };
 
-type Subscriber = (event: AppEvent) => void;
-
-const textEncoder = new TextEncoder();
+type Options = {
+	origin: string;
+	authenticate: NonNullable<NodeRouterOptions['authenticateConnection']>;
+	isSessionActive: (identity: Readonly<ConnectionIdentity>) => boolean | Promise<boolean>;
+};
 
 export class AppEventBroker {
-	private subscribersByUser = new Map<string, Set<Subscriber>>();
+	private router: NodeRouter | null = null;
+	private starting: Promise<Awaited<ReturnType<NodeRouter['createHandlers']>>> | null = null;
 
-	publish = (event: AppEvent) => {
-		for (const subscriber of this.subscribersByUser.get(event.userId) ?? []) {
-			subscriber(event);
-		}
+	start(options: Options) {
+		if (this.starting) return this.starting;
+		const router = new NodeRouter({
+			disableHttpRoutes: true,
+			cors: { origin: options.origin, credentials: true },
+			authenticateConnection: options.authenticate,
+			connectionGracePeriodMs: 15_000,
+			maxRequestBodyBytes: 64 * 1024,
+		});
+		const authorize = async (connection: ServerConnection, params: Record<string, string>) => {
+			const identity = connection.getIdentity();
+			return !!identity && identity.id === params.userId && await options.isSessionActive(identity);
+		};
+		router.onAuthorizeSubscription('/users/:userId/events', authorize);
+		router.onValidateBroadcast('/users/:userId/events', authorize);
+		this.router = router;
+		this.starting = router.createHandlers().catch(async (error) => {
+			await this.close();
+			throw error;
+		});
+		return this.starting;
+	}
+
+	publish = ({ userId, ...event }: AppEvent) => {
+		this.router?.broadcast(`/users/${encodeURIComponent(userId)}/events`, {
+			action: 'UPDATE', data: event
+		});
 	};
 
-	createResponse(userId: string, signal: AbortSignal) {
-		let cleanup = () => {};
-		const stream = new ReadableStream<Uint8Array>({
-			start: (controller) => {
-				let closed = false;
-				let heartbeat: ReturnType<typeof setInterval> | undefined;
-
-				cleanup = () => {
-					if (closed) return;
-					closed = true;
-					if (heartbeat) clearInterval(heartbeat);
-					signal.removeEventListener('abort', onAbort);
-					const subscribers = this.subscribersByUser.get(userId);
-					subscribers?.delete(publish);
-					if (subscribers?.size === 0) {
-						this.subscribersByUser.delete(userId);
-					}
-				};
-				const onAbort = () => {
-					cleanup();
-					controller.close();
-				};
-
-				const enqueue = (payload: Uint8Array) => {
-					if (closed) return;
-					try {
-						controller.enqueue(payload);
-					} catch {
-						cleanup();
-					}
-				};
-				const publish = (event: AppEvent) =>
-					enqueue(encodeEvent(event.type, {
-						type: event.type,
-						...(event.workspaceId ? { workspaceId: event.workspaceId } : {}),
-						...(event.threadId ? { threadId: event.threadId } : {})
-					}));
-				const subscribers = this.subscribersByUser.get(userId) ?? new Set<Subscriber>();
-				subscribers.add(publish);
-				this.subscribersByUser.set(userId, subscribers);
-
-				signal.addEventListener('abort', onAbort, { once: true });
-				if (signal.aborted) {
-					onAbort();
-					return;
-				}
-
-				enqueue(encodeEvent('connected', { type: 'connected' }));
-				heartbeat = setInterval(() => enqueue(textEncoder.encode(': heartbeat\n\n')), 20_000);
-				heartbeat.unref?.();
-			},
-			cancel() {
-				cleanup();
-			}
-		});
-
-		return new Response(stream, {
-			headers: {
-				'content-type': 'text/event-stream',
-				'cache-control': 'no-cache, no-transform',
-				connection: 'keep-alive',
-				'x-accel-buffering': 'no'
-			}
-		});
+	async close() {
+		const router = this.router;
+		this.router = null;
+		this.starting = null;
+		await router?.close();
 	}
 }
 
 export const appEvents = new AppEventBroker();
-
-function encodeEvent(name: string, data: unknown) {
-	return textEncoder.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
-}

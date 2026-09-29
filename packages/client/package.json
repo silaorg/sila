@@ -37,6 +37,7 @@
     "prosemirror-model": "^1.25.4",
     "prosemirror-state": "^1.4.3",
     "prosemirror-view": "^1.41.7",
-    "ttabs-svelte": "^0.0.15"
+    "ttabs-svelte": "^0.0.15",
+    "neorest": "file:../../vendor/neorest/packages/neorest"
   }
 }

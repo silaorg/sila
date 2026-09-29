@@ -1,4 +1,4 @@
-# AIWrapper and AIModels
+# Source dependencies
 
 AIWrapper lives in `vendor/aiwrapper` as a Git submodule. AIModels is a submodule inside it.
 
@@ -13,7 +13,7 @@ git submodule update --init --recursive
 npm ci
 ```
 
-Installation builds AIWrapper and validates, tests, and bundles AIModels. It uses the commits recorded in Git.
+Installation builds AIWrapper and Neorest, and validates, tests, and bundles AIModels. It uses the commits recorded in Git.
 
 Use npm 11 to update the root lockfile. npm 10 can run `npm ci`, but can fail when resolving changes to linked dependencies.
 
@@ -49,6 +49,17 @@ npm --prefix vendor/aiwrapper run check
 ```
 
 Commit and push changes from the inside out: AIModels, then AIWrapper, then Heswe. Each parent records the commit it uses. Other checkouts must be able to fetch that commit.
+
+## Neorest
+
+Neorest lives in `vendor/neorest`. The client and web packages link its
+`packages/neorest` package with `file:` dependencies. `npm run deps:build`
+installs its build tools separately and compiles it. Native HTTP/3 install
+scripts are skipped because Heswe uses HTTP and WebSocket.
+
+Edit and commit changes inside the submodule, push its branch, then commit the
+updated submodule pointer in Heswe. Restart the app after rebuilding. Full
+upstream HTTP/3 tests additionally need the native optional provider built.
 
 ## Existing workspaces
 

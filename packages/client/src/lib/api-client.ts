@@ -1,3 +1,6 @@
+import { Client } from 'neorest';
+import { subscribeToChanges } from './workspace-events';
+
 export type WorkspaceSummary = {
 	id: string;
 	name: string;
@@ -275,34 +278,16 @@ function workspaceUrl(workspaceId: string, suffix = '') {
 	return `/api/workspaces/${encodeURIComponent(workspaceId)}${suffix}`;
 }
 
-export function subscribeToWorkspaceChanges(onChange: (change: WorkspaceChange) => void) {
-	const events = new EventSource('/api/events');
-	const receive = (event: MessageEvent<string>) => {
-		try {
-			const change = JSON.parse(event.data);
-			if (
-				change &&
-				typeof change === 'object' &&
-				(change.type === 'connected' ||
-					change.type === 'thread.created' ||
-					change.type === 'thread.changed' ||
-					change.type === 'workspace.changed' ||
-					change.type === 'workspace.files.changed') &&
-				(change.workspaceId === undefined || typeof change.workspaceId === 'string') &&
-				(change.threadId === undefined || typeof change.threadId === 'string')
-			) {
-				onChange(change);
-			}
-		} catch {
-			// Ignore malformed events. The next valid invalidation will refresh the snapshots.
-		}
-	};
-	events.addEventListener('connected', receive);
-	events.addEventListener('thread.created', receive);
-	events.addEventListener('thread.changed', receive);
-	events.addEventListener('workspace.changed', receive);
-	events.addEventListener('workspace.files.changed', receive);
-	return () => events.close();
+export function subscribeToWorkspaceChanges(
+	userId: string,
+	onChange: (change: WorkspaceChange) => void,
+	onError: (error: unknown) => void
+) {
+	const client = new Client(window.location.origin, 'auto', {
+		transports: ['websocket'],
+		timeout: 15_000,
+	});
+	return subscribeToChanges(client, userId, onChange, onError);
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {

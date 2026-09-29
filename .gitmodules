@@ -2,3 +2,7 @@
 	path = vendor/aiwrapper
 	url = https://github.com/mitkury/aiwrapper.git
 	branch = codex/aimodels-submodule
+[submodule "vendor/neorest"]
+	path = vendor/neorest
+	url = https://github.com/mitkury/neorest.git
+	branch = feat/heswe-source-integration

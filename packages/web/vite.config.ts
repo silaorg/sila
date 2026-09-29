@@ -1,5 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { realtimePlugin } from './scripts/realtime-plugin';
 
 const configuredApiPort = Number(process.env.HESWE_API_PORT);
 const apiPort =
@@ -10,13 +11,13 @@ const apiPort =
 		: 39900;
 
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [realtimePlugin(), sveltekit()],
 	server: {
 		host: '127.0.0.1',
 		port: apiPort,
 		strictPort: true
 	},
 	ssr: {
-		external: ['heswe', 'heswe/app-workspace-service']
+		external: ['heswe', 'heswe/app-workspace-service', 'neorest']
 	}
 });

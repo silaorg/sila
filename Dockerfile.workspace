@@ -7,11 +7,13 @@ RUN apt-get update \
 WORKDIR /opt/heswe
 COPY package.json package-lock.json ./
 COPY scripts/build-aiwrapper.mjs scripts/build-aiwrapper.mjs
+COPY scripts/build-neorest.mjs scripts/build-neorest.mjs
 COPY packages/agents/package.json packages/agents/package.json
 COPY packages/client/package.json packages/client/package.json
 COPY packages/heswe/package.json packages/heswe/package.json
 COPY packages/web/package.json packages/web/package.json
 COPY vendor/aiwrapper vendor/aiwrapper
+COPY vendor/neorest vendor/neorest
 RUN npm ci --omit=dev --foreground-scripts \
     && npm --prefix vendor/aiwrapper prune --omit=dev --ignore-scripts
 
@@ -29,6 +31,8 @@ COPY --from=dependencies /opt/heswe/node_modules node_modules
 COPY --from=dependencies /opt/heswe/vendor/aiwrapper/package.json vendor/aiwrapper/package.json
 COPY --from=dependencies /opt/heswe/vendor/aiwrapper/dist vendor/aiwrapper/dist
 COPY --from=dependencies /opt/heswe/vendor/aiwrapper/node_modules vendor/aiwrapper/node_modules
+COPY --from=dependencies /opt/heswe/vendor/neorest/packages/neorest/package.json vendor/neorest/packages/neorest/package.json
+COPY --from=dependencies /opt/heswe/vendor/neorest/packages/neorest/dist vendor/neorest/packages/neorest/dist
 COPY packages/agents packages/agents
 COPY packages/heswe packages/heswe
 

@@ -29,6 +29,7 @@ Local data lives in `.data/`. Run `npm run dev:ports` to find a running instance
 - `packages/client`: shared Svelte UI
 - `packages/web`: web server, accounts, and API
 - `vendor/aiwrapper`: AIWrapper submodule, including the AIModels submodule
+- `vendor/neorest`: Neorest submodule for authenticated live updates
 
 We're on version `2.0.0`, on the `v2` branch. `main` still has Sila 1.
 
@@ -40,4 +41,4 @@ We're on version `2.0.0`, on the `v2` branch. `main` still has Sila 1.
 - [How workspaces work](docs/dev/how-workspaces-work.md)
 - [How agents work](docs/dev/how-agents-work.md)
 - [Run the hosted app](docs/dev/how-the-hosted-app-works.md)
-- [Work on AIWrapper and AIModels](docs/dev/dependencies.md)
+- [Work on source dependencies](docs/dev/dependencies.md)

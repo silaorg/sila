@@ -3,7 +3,7 @@
 The Heswe SvelteKit server.
 
 It serves the shared UI from `@heswe/client`, Better Auth routes, the workspace
-API, and server-sent events.
+API, and authenticated Neorest subscriptions.
 
 ## Dev
 
@@ -29,4 +29,9 @@ Check or build from the repository root:
 ```sh
 npm run check -w web
 npm run build -w web
+npm run start -w web
 ```
+
+The production entrypoint is `server.mjs`. It hosts SvelteKit and Neorest on
+one HTTP listener, including WebSocket upgrades. `npm run preview` uses that
+same entrypoint and requires the production environment.

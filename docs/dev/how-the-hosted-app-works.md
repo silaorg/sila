@@ -1,7 +1,7 @@
 # How the hosted app works
 
 The Heswe app is a SvelteKit server and browser client. The browser uses
-same-origin HTTP endpoints and one server-sent events connection. It never
+same-origin HTTP endpoints and one Neorest subscription connection. It never
 reads a workspace directory or runs an agent locally.
 
 ```text
@@ -13,7 +13,7 @@ browser
 ```
 
 `packages/client` owns the shared Svelte interface and API client.
-`packages/web` owns routes, authentication, SQLite, and server-sent events.
+`packages/web` owns routes, authentication, SQLite, and Neorest subscriptions.
 `packages/heswe` owns workspace storage and agent execution.
 
 Shared files live under `workspace/assets/`. App uploads live under the
@@ -81,13 +81,22 @@ Production provider keys belong in each workspace's settings.
   unsent thread uploads.
 - `POST /api/workspaces/:id/threads/:threadId/messages` sends a message through
   the agent runtime.
-- `GET /api/events` opens the authenticated event stream.
+- `/.neorest` handles authenticated HTTP polling and WebSocket upgrades.
 
 Commands use normal HTTP. Thread URLs include the workspace ID, so concurrent
 tabs cannot accidentally act on another tab's selected workspace. The event
 stream sends user- and workspace-scoped invalidation events, and the client
 refetches the affected snapshot. It does not stream private event records or
 model tokens.
+
+Neorest connects over HTTP, upgrades to WebSocket when available, and falls
+back to held HTTP polls. On reconnect, the client restores its subscription
+and refreshes snapshots to recover changes missed while offline. Better Auth
+cookies authenticate the native handshake. Subscriptions are scoped to the
+authenticated user, and session expiry or revocation is checked on subscription
+and before every broadcast. The allowed origin comes from `BETTER_AUTH_URL`.
+
+See the [Neorest integration notes](neorest-integration.md) for scope and tests.
 
 Thread API projections expose message IDs, timestamps, roles, display text,
 and attachment metadata with scoped references. They also include tool names
@@ -126,7 +135,7 @@ HESWE_WORKSPACE_IMAGE=heswe-workspace-runtime:2.0.0 \
 HESWE_SANDBOX_NETWORK=heswe-sandboxes \
 BETTER_AUTH_URL=https://app.heswe.com \
 BETTER_AUTH_SECRET=replace-with-a-long-random-secret \
-node packages/web/build
+node packages/web/server.mjs
 ```
 
 Production uses `runsc` automatically. `HESWE_SANDBOX_DRIVER=process` is
@@ -135,8 +144,10 @@ through its settings instead of being inherited from the API process.
 
 Persist the workspace parent directory and SQLite database. Back them up
 together so ownership records and workspace directories remain consistent.
-Use HTTPS, keep the app and API on one origin, and disable reverse-proxy
-buffering for `text/event-stream`.
+Use HTTPS and keep the app and API on one origin. Forward WebSocket upgrades
+for `/.neorest`, allow held HTTP polls, and disable response buffering on that
+path. Start `server.mjs` rather than the adapter-generated `build/index.js`,
+which does not install Neorest transport handlers.
 
 The current event broker is in memory, so one Node process must own a user's
 live connections. Multiple server instances will require shared pub/sub.

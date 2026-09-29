@@ -14,9 +14,17 @@ See [dependencies](dependencies.md) for setup and updates.
 
 ## Latest release pass
 
-On September 28, Node.js 22.20: 211 tests pass, both frontend checks pass, and the production build passes with dependency warnings. Browser checks covered mobile navigation, settings, and saved tool history. Browser reconnect recovery still needs a controlled retest.
+On September 28, Node.js 22.20: 211 tests pass, both frontend checks pass, and the production build passes with dependency warnings. Browser checks covered mobile navigation, settings, and saved tool history. Browser reconnect recovery was subsequently verified on `feat/neorest`.
 
 See [the release review](release-review-2026-09-28.md) for details and decisions.
+
+## Neorest pilot
+
+The `feat/neorest` branch uses Neorest for authenticated live updates, WebSocket
+upgrade, HTTP fallback, and reconnect recovery. The existing HTTP API remains
+in place. All 218 app tests pass, along with fresh development and production
+installs. See the [integration notes](neorest-integration.md) for validation and
+deployment changes.
 
 ## Earlier results
 

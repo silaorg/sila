@@ -60,7 +60,8 @@ export class WorkspaceController implements WorkspaceUiContext {
 	start() {
 		this.refreshQueue = new RefreshQueue((error) => this.setError(error));
 		void this.load();
-		const unsubscribe = subscribeToWorkspaceChanges((change) => this.handleWorkspaceChange(change));
+		const unsubscribe = subscribeToWorkspaceChanges(this.user.id, (change) => this.handleWorkspaceChange(change),
+			() => this.setError(new Error('Live updates could not connect. Reload to try again.')));
 		return () => {
 			unsubscribe();
 			this.refreshQueue?.stop();

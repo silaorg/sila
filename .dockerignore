@@ -7,6 +7,7 @@
 **/build
 **/dist
 **/node_modules
+**/.env*
 **/test-land*
 **/test-workspace*
 *.log
