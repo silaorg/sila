@@ -22,7 +22,7 @@ using the existing SvelteKit HTTP endpoints. Voice and HTTP/3 are not enabled.
 - The development launcher already forwards WebSocket upgrades. Direct Vite
   launches default the auth origin to their local API port.
 
-Neorest is pinned to `cb70308` on `feat/heswe-source-integration`. The upstream
+Neorest is pinned to `3cf1133` on `feat/heswe-source-integration`. The upstream
 change moves the optional HTTP/3 test dependencies from Neorest's
 runtime package into its test workspace. This prevents local `file:` consumers
 from pulling native test build tools into their main dependency install.
@@ -33,7 +33,7 @@ once every subscription is restored; denied subscriptions consume the bounded
 retry budget rather than leaving a falsely healthy connection. Six regression
 cases reproduce these lifecycle failures.
 
-## Validation on September 28, 2026
+## Validation on September 28 and 29, 2026
 
 Using Node.js 22.20 on macOS:
 
@@ -49,7 +49,7 @@ Using Node.js 22.20 on macOS:
   with existing dependency and chunk-size warnings.
 - Fresh development and production (`--omit=dev`) installs build both source
   dependencies successfully. Production imports and native SQLite pass.
-- All 55 upstream Neorest tests pass, including the real native HTTP/3 test.
+- All 57 upstream Neorest tests pass, including the real native HTTP/3 test.
   The earlier missing-binary failure was resolved by explicitly building the
   optional provider before running the full upstream suite:
 
@@ -60,6 +60,9 @@ Using Node.js 22.20 on macOS:
 
   HTTP/3 remains disabled in Heswe; its normal dependency build skips native
   provider installation scripts.
+
+The [September 29 cleanup](tidy-review-2026-09-29.md) adds two regression cases
+and simplifies subscription and callback ownership.
 
 ## Deployment and decisions
 

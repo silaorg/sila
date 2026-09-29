@@ -1,5 +1,22 @@
-import type { Client } from 'neorest';
-import type { WorkspaceChange } from './api-client';
+import { Client } from 'neorest';
+
+export type WorkspaceChange = {
+	type: 'connected' | 'thread.created' | 'thread.changed' | 'workspace.changed' | 'workspace.files.changed';
+	workspaceId?: string;
+	threadId?: string;
+};
+
+export function subscribeToWorkspaceChanges(
+	userId: string,
+	onChange: (change: WorkspaceChange) => void,
+	onError: (error: unknown) => void
+) {
+	const client = new Client(window.location.origin, 'auto', {
+		transports: ['websocket'],
+		timeout: 15_000,
+	});
+	return subscribeToChanges(client, userId, onChange, onError);
+}
 
 type EventClient = Pick<Client, 'connect' | 'subscribe' | 'onConnectionChange' | 'close'>;
 
@@ -16,6 +33,12 @@ export function subscribeToChanges(
 		// snapshots as well, since broadcasts are not durable history.
 		if (connected && subscribed && !closed) onChange({ type: 'connected' });
 	});
+	const stop = () => {
+		if (closed) return;
+		closed = true;
+		removeListener();
+		client.close();
+	};
 	void (async () => {
 		await client.connect();
 		if (closed) return;
@@ -27,15 +50,10 @@ export function subscribeToChanges(
 		onChange({ type: 'connected' });
 	})().catch((error) => {
 		if (closed) return;
-		removeListener();
-		client.close();
+		stop();
 		onError(error);
 	});
-	return () => {
-		closed = true;
-		removeListener();
-		client.close();
-	};
+	return stop;
 }
 
 function isWorkspaceChange(value: unknown): value is WorkspaceChange {

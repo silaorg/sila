@@ -3,7 +3,9 @@
 The shared Svelte UI and typed HTTP client for Heswe frontends.
 
 It contains authentication screens, the workspace interface, and the
-same-origin API client used by `packages/web`. Tailwind builds
+same-origin API client used by `packages/web`. HTTP requests live in
+`api-client.ts`; live updates and their connection lifecycle live in
+`workspace-events.ts`. Tailwind builds
 `src/lib/compiled-style.css`.
 
 ## Dev

@@ -8,6 +8,7 @@ function fakeClient() {
     listener: null,
     receive: null,
     closed: false,
+    closeCalls: 0,
     onConnectionChange(callback) {
       this.listener = callback;
       return () => {
@@ -23,6 +24,7 @@ function fakeClient() {
     },
     close() {
       this.closed = true;
+      this.closeCalls++;
     },
   };
 }
@@ -73,7 +75,8 @@ test('closing during connect prevents a late subscription', async () => {
 
 test('subscription failures are reported', async () => {
   const client = fakeClient();
-  client.subscribe = async () => {
+  client.subscribe = async (_route, receive) => {
+    client.receive = receive;
     throw new Error('forbidden');
   };
   const errors = [];
@@ -84,5 +87,7 @@ test('subscription failures are reported', async () => {
   assert.deepEqual(errors, ['forbidden']);
   assert.equal(client.closed, true);
   assert.equal(client.listener, null);
+  client.receive({ data: { type: 'workspace.changed' } });
   stop();
+  assert.equal(client.closeCalls, 1);
 });

@@ -15,16 +15,15 @@ import {
 	renameWorkspaceEntry as renameWorkspaceEntryRequest,
 	selectWorkspace as selectWorkspaceRequest,
 	sendMessage as sendMessageRequest,
-	subscribeToWorkspaceChanges,
 	uploadThreadFiles,
 	uploadWorkspaceFiles as uploadWorkspaceFilesRequest,
 	type ThreadDetail,
 	type ThreadSummary,
-	type WorkspaceChange,
 	type WorkspaceFile,
 	type WorkspaceFsEntry,
 	type WorkspaceSummary
 } from './api-client';
+import { subscribeToWorkspaceChanges, type WorkspaceChange } from './workspace-events';
 import { RefreshQueue } from './refresh-queue';
 import { authClient } from './auth-client';
 import { AssetViewer } from './asset-viewer/asset-viewer.svelte';
@@ -60,8 +59,11 @@ export class WorkspaceController implements WorkspaceUiContext {
 	start() {
 		this.refreshQueue = new RefreshQueue((error) => this.setError(error));
 		void this.load();
-		const unsubscribe = subscribeToWorkspaceChanges(this.user.id, (change) => this.handleWorkspaceChange(change),
-			() => this.setError(new Error('Live updates could not connect. Reload to try again.')));
+		const unsubscribe = subscribeToWorkspaceChanges(
+			this.user.id,
+			(change) => this.handleWorkspaceChange(change),
+			() => this.setError(new Error('Live updates could not connect. Reload to try again.'))
+		);
 		return () => {
 			unsubscribe();
 			this.refreshQueue?.stop();

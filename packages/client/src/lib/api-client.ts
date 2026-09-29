@@ -1,6 +1,3 @@
-import { Client } from 'neorest';
-import { subscribeToChanges } from './workspace-events';
-
 export type WorkspaceSummary = {
 	id: string;
 	name: string;
@@ -64,12 +61,6 @@ export type WorkspaceFsEntry =
 export type ThreadDetail = ThreadSummary & {
 	messages: ThreadMessage[];
 	progress: ThreadProgress | null;
-};
-
-export type WorkspaceChange = {
-	type: 'connected' | 'thread.created' | 'thread.changed' | 'workspace.changed' | 'workspace.files.changed';
-	workspaceId?: string;
-	threadId?: string;
 };
 
 export type WorkspaceProviderSetting = {
@@ -276,18 +267,6 @@ export function sendMessage(
 
 function workspaceUrl(workspaceId: string, suffix = '') {
 	return `/api/workspaces/${encodeURIComponent(workspaceId)}${suffix}`;
-}
-
-export function subscribeToWorkspaceChanges(
-	userId: string,
-	onChange: (change: WorkspaceChange) => void,
-	onError: (error: unknown) => void
-) {
-	const client = new Client(window.location.origin, 'auto', {
-		transports: ['websocket'],
-		timeout: 15_000,
-	});
-	return subscribeToChanges(client, userId, onChange, onError);
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
