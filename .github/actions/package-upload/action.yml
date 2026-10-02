@@ -39,16 +39,6 @@ runs:
           *) echo "Unknown platform: $PLATFORM" >&2; exit 1 ;;
         esac
 
-    - name: Create desktop build zip
-      if: ${{ inputs.platform == 'macos' }}
-      shell: bash
-      env:
-        NODE_AUTH_TOKEN: ${{ env.NODE_AUTH_TOKEN }}
-      run: |
-        set -euo pipefail
-        cd packages/desktop
-        npm run create-desktop-build
-
     - name: Upload artifacts to draft release
       shell: bash
       env:
@@ -72,5 +62,4 @@ runs:
         for f in "${files[@]}"; do
           gh release upload "$TAG" "$f" --clobber
         done
-
 

@@ -45,11 +45,14 @@ Here are the stages of a release: pushing a tag creates a draft release, CI buil
 - Trigger: automatically triggered by "release-1-draft" workflow
 - Workflow: "release-2-build-upload"
 - Builds and uploads macOS (signed + notarized), Windows, and Linux artifacts to the same draft release
+- Builds the front-end patch ZIP in a separate Linux job, without native packaging
 - Uses Git LFS for asset handling (provider images, icons, etc.)
 
 ### Publish the draft
 - Workflow: "release-3-finalize" (manual, input the tag)
 - Sets `draft=false` so users and auto-updaters see the new version
+- Requires the front-end ZIP and, by default, all platform update manifests
+- Disable `latest` when publishing a patch without a complete set of installers
 
 ## Github actions
 See `.github/workflows/` in the root
@@ -70,3 +73,33 @@ We ship updates via **GitHub Releases** in two forms:
 Update strategy (see `packages/desktop/src-electron/updates/updater.js`):
 - If the available update is a **patch** bump and a matching `desktop-v{version}.zip` exists, prefer the desktop build update.
 - Otherwise (minor/major, or no matching zip), download the full Electron app update.
+
+### Publish a front-end patch without new macOS installers
+
+Use this only when the patch works with the installed Electron code and dependencies.
+Keep the latest complete installer release marked as GitHub's **Latest** release.
+Existing apps need its platform manifests for their Electron update check.
+If that check fails, the app cannot proceed to the front-end update.
+
+Build the patch from an existing tag into its draft release:
+
+```sh
+gh workflow run release-upload.yml --ref main \
+  -f tag=desktop-v1.7.2 -f client=true \
+  -f linux=false -f windows=false -f macos=false
+```
+
+After checking the ZIP and compatibility, publish without changing the installer release:
+
+```sh
+gh workflow run release-finalize.yml --ref main \
+  -f tag=desktop-v1.7.2 -f latest=false
+```
+
+Apps whose executable matches the latest installer release can download the new client ZIP.
+They show **Reload to update**, and keep their installed Electron executable.
+Older executables may need the latest complete installer first.
+The normal download link continues to serve that complete release.
+Any newer Windows or Linux installers remain available on the patch release page.
+
+Once all platform installers are ready, run the finalizer with `latest=true`.

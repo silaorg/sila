@@ -6,6 +6,10 @@ on:
       tag:
         description: Tag to publish (e.g., desktop-v1.2.3)
         required: true
+      latest:
+        description: Mark as latest installer release (disable for front-end patches)
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -18,10 +22,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Publish release (set draft=false)
+      - name: Validate assets and publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ inputs.tag }}
+          MAKE_LATEST: ${{ inputs.latest }}
         run: |
-          TAG_NAME="${{ inputs.tag }}"
-          gh release edit "$TAG_NAME" --draft=false --prerelease=false
-
+          set -euo pipefail
+          [[ "$TAG_NAME" =~ ^desktop-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          ASSETS="$(gh release view "$TAG_NAME" --json assets --jq '[.assets[].name]')"
+          jq -e --arg name "$TAG_NAME.zip" 'index($name) != null' <<< "$ASSETS"
+          if [ "$MAKE_LATEST" = true ]; then
+            for manifest in latest-mac.yml latest.yml latest-linux.yml latest-linux-arm64.yml; do
+              jq -e --arg name "$manifest" 'index($name) != null' <<< "$ASSETS"
+            done
+          fi
+          gh release edit "$TAG_NAME" --draft=false --prerelease=false --latest="$MAKE_LATEST"
