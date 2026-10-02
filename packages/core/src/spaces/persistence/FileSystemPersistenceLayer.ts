@@ -312,7 +312,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     for (const file of jsonlFiles) {
       try {
         const lines = await this.fs.readTextFileLines(file);
-        const fileName = file.split('/').pop()!;
+        const fileName = file.split(/[\\/]/).pop()!;
         const fileInfo = this.getOpsFileInfo(fileName);
         if (!fileInfo) {
           continue;
@@ -665,7 +665,7 @@ export class FileSystemPersistenceLayer extends ConnectedPersistenceLayer {
     let treeId: string | null = null;
 
     try {
-      const splitPath = path.split('/');
+      const splitPath = path.split(/[\\/]/);
 
       // Extract peer ID from the filename (remove .jsonl extension)
       const fileName = splitPath.pop()!;
