@@ -131,7 +131,7 @@
     const unobserve = vertex.observe((events) => {
       const shouldReload = events.some(
         (event) =>
-          event.type === "property" &&
+          event.type === "property" && "key" in event &&
           (event.key === "updatedAt" ||
             event.key === "id" ||
             event.key === "hash" ||

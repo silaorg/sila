@@ -10,10 +10,6 @@
   let { provider }: { provider: ModelProvider } = $props();
   let isValidatingKey = $state(false);
 
-  $effect(() => {
-    console.log("provider: ", provider);
-  });
-
   const setupMarkdown = $derived.by(() => {
     switch (provider.id) {
       case "openai":
@@ -27,7 +23,7 @@
       case "google":
         return i18n.texts.modelProviderSetup.google;
       case "kimi":
-        return i18n.texts.modelProviderSetup.kimi ?? englishTexts.modelProviderSetup.kimi;
+        return i18n.texts.modelProviderSetup.kimi ?? englishTexts.modelProviderSetup.kimi ?? i18n.texts.modelProviderSetup.noInstructions;
       case "xai":
         return i18n.texts.modelProviderSetup.xai;
       case "cohere":

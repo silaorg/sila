@@ -2,7 +2,6 @@
   import { Tooltip } from "@skeletonlabs/skeleton-svelte";
 
   let { createdAt }: { createdAt: number } = $props();
-  let openState = $state(false);
 
   function formatChatDateToTime(dateInMs: number) {
     const date = new Date(dateInMs);
@@ -24,7 +23,6 @@
 </script>
 
 <Tooltip
-  bind:open={openState}
   positioning={{ placement: "bottom" }}
   contentBase="card bg-surface-200-800 p-2"
   openDelay={200}

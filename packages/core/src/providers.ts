@@ -7,7 +7,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openrouter.ai/",
     logoUrl: "/providers/openrouter.png",
-    defaultModel: "openai/gpt-5.4"
+    defaultModel: "openai/gpt-6.1-sol"
   },
   {
     id: "openai",
@@ -15,7 +15,7 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://openai.com/",
     logoUrl: "/providers/openai.png",
-    defaultModel: "gpt-5.4"
+    defaultModel: "gpt-6.1-sol"
   },
   {
     id: "anthropic",
@@ -23,25 +23,15 @@ export const providers: ModelProvider[] = [
     access: "cloud",
     url: "https://anthropic.com/",
     logoUrl: "/providers/anthropic.png",
-    defaultModel: "claude-sonnet-4-6"
+    defaultModel: "claude-sonnet-5-5"
   },
-  /*
-  {
-    id: "deepseek",
-    name: "DeepSeek",
-    access: "cloud",
-    url: "https://deepseek.com/",
-    logoUrl: "/providers/deepseek.png",
-    defaultModel: "deepseek-chat"
-  },
-  */
   {
     id: "google",
     name: "Google Gemini",
     access: "cloud",
     url: "https://gemini.google.com/",
     logoUrl: "/providers/google.png",
-    defaultModel: "gemini-2.5-pro"
+    defaultModel: "gemini-3.8-flash"
   },
   {
     id: "kimi",
@@ -51,16 +41,6 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/kimi.svg",
     defaultModel: "kimi-k2.5"
   },
-  /*
-  {
-    id: "groq",
-    name: "Groq",
-    access: "cloud",
-    url: "https://groq.com/",
-    logoUrl: "/providers/groq.png",
-    defaultModel: "llama-3.3-70b-versatile"
-  },
-  */
   {
     id: "xai",
     name: "xAI",
@@ -69,35 +49,6 @@ export const providers: ModelProvider[] = [
     logoUrl: "/providers/xai.png",
     defaultModel: "grok-4-1-fast"
   },
-  /*
-  {
-    id: "cohere",
-    name: "Cohere",
-    access: "cloud",
-    url: "https://cohere.com/",
-    logoUrl: "/providers/cohere.png",
-    defaultModel: "command-r-plus"
-  },
-  */
-  /*
-  {
-    id: "mistral",
-    name: "Mistral",
-    access: "cloud",
-    url: "https://mistral.ai/",
-    logoUrl: "/providers/mistral.png",
-    defaultModel: "mistral-large-latest"
-  },
-  */
-  /*
-   {
-     id: "ollama",
-     name: "Ollama",
-     access: "local",
-     url: "https://ollama.com/",
-     logoUrl: "/providers/ollama.png",
-   },
-   */
   {
     id: "falai",
     name: "Fal.ai",

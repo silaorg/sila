@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ResolvedFileInfo } from "../../utils/fileResolver";
+  import type { ResolvedFileInfo } from "@sila/core";
 
   let {
     fileInfo,

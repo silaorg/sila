@@ -1,8 +1,18 @@
 # Quick start for devs
 
-1. Clone the repository `git clone git@github.com:silaorg/sila.git`
-2. Run in your terminal at the root of the repository - `cd sila && npm install && npm run dev` to install all the necessary npm packages and launch a desktop build.
-3. To build for production - `npm run build`
+Use Node.js 22.20 or later. On Windows, install Git Bash and add it to `PATH`;
+the repository runs npm scripts with Bash.
+
+```sh
+git clone --recurse-submodules git@github.com:silaorg/sila.git
+cd sila
+npm ci
+npm run dev
+```
+
+For an existing checkout, run `git submodule update --init --recursive` before installation.
+Build the desktop client with `npm -w packages/desktop run build`.
+See [AI source dependencies](aiwrapper-linking.md) for updates and OpenRouter checks.
 
 ## Building for macOS
 

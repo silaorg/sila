@@ -11,6 +11,7 @@ describe('File Store Integration', () => {
   let space: Space;
   let tempDir: string;
   let fs: NodeFileSystem;
+  let manager: SpaceManager;
 
   beforeAll(async () => {
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-file-store-test-'));
@@ -31,7 +32,7 @@ describe('File Store Integration', () => {
 
     // Set up file store properly
     const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
+    manager = new SpaceManager({
       setupSyncLayers: () => [layer],
       setupFileLayer: () => layer
     });
@@ -39,7 +40,7 @@ describe('File Store Integration', () => {
   });
 
   afterEach(async () => {
-    // Clean up
+    await manager.closeSpace(space.getId());
   });
 
   describe('Text File Storage', () => {

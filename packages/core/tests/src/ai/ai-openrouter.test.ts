@@ -1,347 +1,101 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { Space, SpaceManager, FileSystemPersistenceLayer, ChatAppData, Backend } from '@sila/core';
+import {
+  AgentServices, ChatAppData, Space, WrapChatAgent, providers,
+  type ThreadMessage,
+} from '@sila/core';
+import { ThreadTitleAgent } from '../../../src/agents/ThreadTitleAgent';
 import { NodeFileSystem } from '../setup/setup-node-file-system';
 import { getEnvVar } from '../setup/env';
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const openrouterApiKey = getEnvVar('OPENROUTER_API_KEY', 'your_openrouter_api_key_here');
-const openrouterIntegrationTest = openrouterApiKey ? it : it.skip;
+const apiKey = getEnvVar('OPENROUTER_API_KEY', 'your_openrouter_api_key_here');
+const defaultModel = providers.find(p => p.id === 'openrouter')!.defaultModel!;
+const targets = [
+  { target: 'auto', model: defaultModel },
+  { target: 'openrouter/anthropic/claude-sonnet-5.5', model: 'anthropic/claude-sonnet-5.5' },
+  { target: 'openrouter/google/gemini-3.8-flash', model: 'google/gemini-3.8-flash' },
+];
 
-if (!openrouterApiKey) {
-  console.warn(
-    '[tests] Skipping OpenRouter integration tests: set OPENROUTER_API_KEY in your environment or .env file to enable them.'
-  );
-}
+// Real requests: skipped without a key. Use a temporary workspace per case.
+describe.skipIf(!apiKey)('OpenRouter desktop chat integration', () => {
+  let tempDir: string | undefined;
+  let chat: ChatAppData | undefined;
 
-describe('OpenRouter AI Integration', () => {
-  let tempDir: string;
-
-  beforeAll(async () => {
-    tempDir = await mkdtemp(path.join(tmpdir(), 'sila-openrouter-test-'));
+  afterEach(async () => {
+    chat?.triggerEvent('stop-message', {});
+    if (tempDir) await rm(tempDir, { recursive: true, force: true });
   });
 
-  afterAll(async () => {
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true });
-    }
-  });
-
-  openrouterIntegrationTest('should work with OpenRouter using auto model selection', async () => {
-    const apiKey = openrouterApiKey!;
-    const fs = new NodeFileSystem();
+  it.each(targets)('$target streams, runs tools, and continues the conversation', async ({ target, model }) => {
+    tempDir = await mkdtemp(path.join(tmpdir(), 'sila-openrouter-'));
     const space = Space.newSpace(crypto.randomUUID());
-    const spaceId = space.getId();
-
-    // Set up file store
     space.setFileStoreProvider({
-      getSpaceRootPath: () => tempDir,
-      getFs: () => fs
+      getSpaceRootPath: () => tempDir!,
+      getFs: () => new NodeFileSystem(),
     });
-
-    // Set up persistence
-    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
-      setupSyncLayers: () => [layer]
-    });
-    await manager.addSpace(space, spaceId);
-
-    // Add OpenRouter provider
-    space.saveModelProviderConfig({
-      id: 'openrouter',
-      type: 'cloud',
-      apiKey
-    });
-
-    // Add a chat assistant config using "auto" model
-    const assistantId = 'openrouter-assistant';
+    space.saveModelProviderConfig({ id: 'openrouter', type: 'cloud', apiKey: apiKey! });
     space.addAppConfig({
-      id: assistantId,
-      name: 'OpenRouter Assistant',
-      button: 'New query',
-      visible: true,
-      description: 'Assistant using OpenRouter with auto model selection',
-      instructions: 'You are a helpful assistant. Respond with exactly "Hello from OpenRouter!" to confirm you are working.',
-      targetLLM: 'auto' // This should resolve to openai/gpt-4o
-    } as any);
+      id: 'smoke', name: 'OpenRouter smoke test', button: 'New query', visible: true,
+      description: 'Temporary integration test', targetLLM: target,
+      instructions: 'Follow the user instructions exactly. Keep replies short.',
+    });
+    const tree = ChatAppData.createNewChatTree(space, 'smoke');
+    chat = new ChatAppData(space, tree);
+    const services = new AgentServices(space);
+    const agent = new WrapChatAgent(chat, services, tree);
+    await agent.run();
 
-    // Set up backend to handle AI responses
-    const backend = new Backend(space, true);
+    let sawStreaming = false;
+    const unsubscribe = tree.tree.observeOpApplied(op => {
+      if ('transient' in op && op.transient && 'key' in op && op.key === 'text') {
+        sawStreaming = true;
+      }
+    });
 
-    // Create chat tree
-    const chatTree = ChatAppData.createNewChatTree(space, assistantId);
-    const chatData = new ChatAppData(space, chatTree);
+    try {
+      await chat.newMessage({
+        role: 'user',
+        text: 'Use the mkdir tool to create file:smoke-check, then reply exactly SILA_OK.',
+      });
+      const first = await waitForReply(chat, 0);
+      expect(first.text).toContain('SILA_OK');
+      expect(first.modelProvider).toBe('openrouter');
+      expect(first.modelId).toBe(model);
+      expect(first.inProgress).toBeFalsy();
+      expect(sawStreaming).toBe(true);
+      const messages = chat.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>());
+      expect(messages.some(m => m.toolRequests?.some(t => t.name === 'mkdir'))).toBe(true);
+      expect(messages.some(m => m.toolResults?.some(t => t.name === 'mkdir' && String(t.result).includes('Created directory')))).toBe(true);
 
-    // Wait for backend to initialize
-    await wait(1000);
+      const before = chat.messageVertices.length;
+      await chat.newMessage({ role: 'user', text: 'What directory did you just create? Reply with only its name.' });
+      const second = await waitForReply(chat, before);
+      expect(second.text).toContain('smoke-check');
 
-    // Create a user message
-    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Hello from OpenRouter!"' });
-
-    // Wait for AI response
-    await wait(15000);
-
-    // Get the response
-    const messages = chatData.messageVertices;
-    const response = messages[messages.length - 1];
-
-    if (!response) {
-      throw new Error('No response found');
+      if (target === 'auto') {
+        const titleAgent = new ThreadTitleAgent(services, { targetLLM: target });
+        const result = await titleAgent.run({
+          messages: chat.messageVertices.map(v => v.getAsTypedObject<ThreadMessage>()),
+        });
+        expect(result.title.trim().length).toBeGreaterThan(0);
+      }
+    } finally {
+      if (typeof unsubscribe === 'function') unsubscribe();
     }
-
-    const responseData = response.getAsTypedObject<any>();
-    if (responseData.role !== 'assistant') {
-      throw new Error('No assistant response generated');
-    }
-
-    console.log('OpenRouter AI Response:', responseData.text);
-
-    // Should contain the expected response
-    expect(responseData.text).toContain('Hello from OpenRouter!');
-  }, 30000);
-
-  openrouterIntegrationTest('should work with OpenRouter using specific model (openai/gpt-4o)', async () => {
-    const apiKey = openrouterApiKey!;
-    const fs = new NodeFileSystem();
-    const space = Space.newSpace(crypto.randomUUID());
-    const spaceId = space.getId();
-
-    // Set up file store
-    space.setFileStoreProvider({
-      getSpaceRootPath: () => tempDir,
-      getFs: () => fs
-    });
-
-    // Set up persistence
-    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
-      setupSyncLayers: () => [layer]
-    });
-    await manager.addSpace(space, spaceId);
-
-    // Add OpenRouter provider
-    space.saveModelProviderConfig({
-      id: 'openrouter',
-      type: 'cloud',
-      apiKey
-    });
-
-    // Add a chat assistant config using specific model
-    const assistantId = 'openrouter-specific-model';
-    space.addAppConfig({
-      id: assistantId,
-      name: 'OpenRouter Specific Model',
-      button: 'New query',
-      visible: true,
-      description: 'Assistant using OpenRouter with specific model',
-      instructions: 'You are a helpful assistant. Respond with exactly "Using GPT-4o via OpenRouter!" to confirm the specific model is working.',
-      targetLLM: 'openrouter/openai/gpt-4o' // Specific model via OpenRouter
-    } as any);
-
-    // Set up backend
-    const backend = new Backend(space, true);
-
-    // Create chat tree
-    const chatTree = ChatAppData.createNewChatTree(space, assistantId);
-    const chatData = new ChatAppData(space, chatTree);
-
-    // Wait for backend to initialize
-    await wait(1000);
-
-    // Create a user message
-    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Using GPT-4o via OpenRouter!"' });
-
-    // Wait for AI response
-    await wait(15000);
-
-    // Get the response
-    const messages = chatData.messageVertices;
-    const response = messages[messages.length - 1];
-
-    if (!response) {
-      throw new Error('No response found');
-    }
-
-    const responseData = response.getAsTypedObject<any>();
-    if (responseData.role !== 'assistant') {
-      throw new Error('No assistant response generated');
-    }
-
-    console.log('OpenRouter Specific Model Response:', responseData.text);
-
-    // Should contain the expected response
-    expect(responseData.text).toContain('Using GPT-4o via OpenRouter!');
-  }, 30000);
-
-  openrouterIntegrationTest('should work with OpenRouter using different models (anthropic/claude-3-5-sonnet)', async () => {
-    const apiKey = openrouterApiKey!;
-    const fs = new NodeFileSystem();
-    const space = Space.newSpace(crypto.randomUUID());
-    const spaceId = space.getId();
-
-    // Set up file store
-    space.setFileStoreProvider({
-      getSpaceRootPath: () => tempDir,
-      getFs: () => fs
-    });
-
-    // Set up persistence
-    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
-      setupSyncLayers: () => [layer]
-    });
-    await manager.addSpace(space, spaceId);
-
-    // Add OpenRouter provider
-    space.saveModelProviderConfig({
-      id: 'openrouter',
-      type: 'cloud',
-      apiKey
-    });
-
-    // Add a chat assistant config using Claude model
-    const assistantId = 'openrouter-claude';
-    space.addAppConfig({
-      id: assistantId,
-      name: 'OpenRouter Claude',
-      button: 'New query',
-      visible: true,
-      description: 'Assistant using OpenRouter with Claude model',
-      instructions: 'You are a helpful assistant. Respond with exactly "Hello from Claude via OpenRouter!" to confirm the Claude model is working.',
-      targetLLM: 'openrouter/anthropic/claude-3-5-sonnet-20241022' // Claude model via OpenRouter
-    } as any);
-
-    // Set up backend
-    const backend = new Backend(space, true);
-
-    // Create chat tree
-    const chatTree = ChatAppData.createNewChatTree(space, assistantId);
-    const chatData = new ChatAppData(space, chatTree);
-
-    // Wait for backend to initialize
-    await wait(1000);
-
-    // Create a user message
-    const userMessage = await chatData.newMessage({ role: 'user', text: 'Hello! Please respond with exactly "Hello from Claude via OpenRouter!"' });
-
-    // Wait for AI response
-    await wait(15000);
-
-    // Get the response
-    const messages = chatData.messageVertices;
-    const response = messages[messages.length - 1];
-
-    if (!response) {
-      throw new Error('No response found');
-    }
-
-    const responseData = response.getAsTypedObject<any>();
-    if (responseData.role !== 'assistant') {
-      throw new Error('No assistant response generated');
-    }
-
-    console.log('OpenRouter Claude Response:', responseData.text);
-
-    // Should contain the expected response
-    expect(responseData.text).toContain('Hello from Claude via OpenRouter!');
-  }, 30000);
-
-  it('should handle OpenRouter auto model resolution correctly', async () => {
-    const fs = new NodeFileSystem();
-    const space = Space.newSpace(crypto.randomUUID());
-    const spaceId = space.getId();
-
-    // Set up file store
-    space.setFileStoreProvider({
-      getSpaceRootPath: () => tempDir,
-      getFs: () => fs
-    });
-
-    // Set up persistence
-    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
-      setupSyncLayers: () => [layer]
-    });
-    await manager.addSpace(space, spaceId);
-
-    // Add OpenRouter provider
-    space.saveModelProviderConfig({
-      id: 'openrouter',
-      type: 'cloud',
-      apiKey: openrouterApiKey ?? 'test-openrouter-key'
-    });
-
-    // Test the AgentServices directly to verify auto model resolution
-    const { AgentServices } = await import('@sila/core');
-    const { providers } = await import('@sila/core');
-    const openrouterDefault = providers.find(p => p.id === 'openrouter')?.defaultModel;
-    expect(openrouterDefault).toBeTruthy();
-    const agentServices = new AgentServices(space);
-
-    // Test getMostCapableModel with OpenRouter
-    const mostCapableModel = await agentServices.getMostCapableModel();
-
-    expect(mostCapableModel).not.toBeNull();
-    expect(mostCapableModel?.provider).toBe('openrouter');
-    expect(mostCapableModel?.model).toBe(openrouterDefault); // Should use the default model
-
-    console.log('Most capable model resolved to:', mostCapableModel);
-
-    // Test lang() method with "auto"
-    const langProvider = await agentServices.lang('auto');
-    expect(langProvider).toBeDefined();
-
-    const lastResolved = agentServices.getLastResolvedModel();
-    expect(lastResolved).not.toBeNull();
-    expect(lastResolved?.provider).toBe('openrouter');
-    expect(lastResolved?.model).toBe(openrouterDefault);
-
-    console.log('Last resolved model:', lastResolved);
-  }, 10000);
-
-  it('should handle OpenRouter provider/auto model resolution', async () => {
-    const fs = new NodeFileSystem();
-    const space = Space.newSpace(crypto.randomUUID());
-    const spaceId = space.getId();
-
-    // Set up file store
-    space.setFileStoreProvider({
-      getSpaceRootPath: () => tempDir,
-      getFs: () => fs
-    });
-
-    // Set up persistence
-    const layer = new FileSystemPersistenceLayer(tempDir, spaceId, fs);
-    const manager = new SpaceManager({
-      setupSyncLayers: () => [layer]
-    });
-    await manager.addSpace(space, spaceId);
-
-    // Add OpenRouter provider
-    space.saveModelProviderConfig({
-      id: 'openrouter',
-      type: 'cloud',
-      apiKey: openrouterApiKey ?? 'test-openrouter-key'
-    });
-
-    // Test the AgentServices directly to verify openrouter/auto resolution
-    const { AgentServices } = await import('@sila/core');
-    const { providers } = await import('@sila/core');
-    const openrouterDefault = providers.find(p => p.id === 'openrouter')?.defaultModel;
-    expect(openrouterDefault).toBeTruthy();
-    const agentServices = new AgentServices(space);
-
-    // Test lang() method with "openrouter/auto"
-    const langProvider = await agentServices.lang('openrouter/auto');
-    expect(langProvider).toBeDefined();
-
-    const lastResolved = agentServices.getLastResolvedModel();
-    expect(lastResolved).not.toBeNull();
-    expect(lastResolved?.provider).toBe('openrouter');
-    expect(lastResolved?.model).toBe(openrouterDefault); // Should use the default model
-
-    console.log('OpenRouter/auto resolved to:', lastResolved);
-  }, 10000);
+  }, 180_000);
 });
+
+async function waitForReply(chat: ChatAppData, after: number): Promise<ThreadMessage> {
+  const deadline = Date.now() + 75_000;
+  while (Date.now() < deadline) {
+    const messages = chat.messageVertices.slice(after).map(v => v.getAsTypedObject<ThreadMessage>());
+    const error = messages.find(m => m.role === 'error');
+    if (error) throw new Error(error.text ?? 'OpenRouter returned an error');
+    const last = messages.at(-1);
+    if (last?.role === 'assistant' && !last.inProgress && last.text?.trim() && last.modelId) return last;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  throw new Error('Timed out waiting for the OpenRouter assistant reply');
+}

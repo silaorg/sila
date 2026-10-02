@@ -1,8 +1,7 @@
-import { Lang, LanguageProvider } from 'aiwrapper';
+import { Lang, type LanguageProvider, type LangTool } from 'aiwrapper';
 import { Space } from '../spaces/Space';
 import { splitModelString } from '../utils/modelUtils';
 import { resolveAutoModelIdForProvider, resolveMostCapableLanguageModel } from '../utils/autoModel';
-import { LangTool } from 'aiwrapper/dist/lang/messages';
 import type { AppTree } from "../spaces/AppTree";
 import { toolRead } from "./tools/toolRead";
 import { toolLs } from "./tools/toolLs";
@@ -16,6 +15,20 @@ import { toolGenerateVideo } from "./tools/toolGenerateVideo";
 import { toolLook } from "./tools/toolLook";
 import { toolWebSearch } from "./tools/toolWebSearch";
 import type { AgentTool } from "./tools/AgentTool";
+
+const languageProviders = {
+  openai: Lang.openai,
+  anthropic: Lang.anthropic,
+  google: Lang.google,
+  openrouter: Lang.openrouter,
+  kimi: Lang.kimi,
+  xai: Lang.xai,
+  deepseek: Lang.deepseek,
+  groq: Lang.groq,
+  mistral: Lang.mistral,
+  cohere: Lang.cohere,
+  ollama: Lang.ollama,
+};
 
 export class AgentServices {
   readonly space: Space;
@@ -139,12 +152,7 @@ export class AgentServices {
 
   async createLanguageProvider(provider: string, model: string): Promise<LanguageProvider> {
     // Common configuration for API-based providers
-    const options: Record<string, any> = { model };
-
-    // Add API key for providers that require it (all except ollama)
-    if (provider !== "ollama") {
-      options.apiKey = await this.getKey(provider);
-    }
+    const options = { model, apiKey: provider === "ollama" ? "" : await this.getKey(provider) };
 
     // Handle custom OpenAI-like providers
     if (provider.startsWith('custom-')) {
@@ -162,10 +170,8 @@ export class AgentServices {
       });
     }
 
-    // Check if the provider method exists on Lang
-    if (typeof Lang[provider as keyof typeof Lang] === 'function') {
-      // Dynamically call the provider method with the options
-      return Lang[provider as keyof typeof Lang](options);
+    if (Object.prototype.hasOwnProperty.call(languageProviders, provider)) {
+      return languageProviders[provider as keyof typeof languageProviders](options);
     }
 
     throw new Error(`Invalid model provider: ${provider}`);

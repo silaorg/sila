@@ -60,7 +60,7 @@
   }
 
   onMount(() => {
-    isRoot = vertexId === tree.rootVertexId;
+    isRoot = vertexId === tree.root!.id;
     updateChildren();
     const unobserve = tree.observe(vertexId, handleTreeChange);
     return () => unobserve();

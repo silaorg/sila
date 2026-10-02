@@ -6,14 +6,16 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '22'
         cache: 'npm'
+
+    - name: Initialize source dependencies
+      shell: bash
+      run: git submodule update --init --recursive
 
     - name: Install dependencies
       shell: bash
       run: |
-        # aiwrapper runs `npx airul gen` in preinstall. Running lifecycle scripts
-        # in the foreground avoids concurrent npx cache races on Windows.
         npm ci --foreground-scripts
 
     - name: Build desktop application
@@ -21,4 +23,3 @@ runs:
       run: |
         cd packages/desktop
         npm run build
-

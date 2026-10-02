@@ -84,7 +84,7 @@ export class RemoteSpacePersistenceLayer extends ConnectedPersistenceLayer {
 
     let spaceTreeVector: Record<string, number[][]> | null = null;
 
-    const space = this.spaceRunner?.getSpace();
+    const space = this.spaceRunner?.space;
     if (space) {
       spaceTreeVector = space.tree.getStateVector();
     }
@@ -105,7 +105,7 @@ export class RemoteSpacePersistenceLayer extends ConnectedPersistenceLayer {
 
     // check if we have the tree to get its vector
     let treeVector: Record<string, number[][]> | null = null;
-    const space = this.spaceRunner?.getSpace();
+    const space = this.spaceRunner?.space;
     if (space) {
       const appTree = space.getAppTree(treeId);
       if (appTree) {

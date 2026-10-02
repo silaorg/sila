@@ -2,7 +2,14 @@
 
 We use GitHub Actions workflows to automate the entire release process.
 
-Main idea: code is the source of truth. We bump `packages/desktop/package.json` with `npm version`, which creates a `desktop-vX.Y.Z` tag. CI triggers on that tag and validates the tag equals the code version before building.
+The desktop version in `packages/desktop/package.json` is the source of truth.
+A matching `desktop-vX.Y.Z` Git tag starts the release workflow.
+
+Pushes to `main` and `maintenance/**`, plus pull requests into `main`, run
+**Desktop checks**: recursive source dependencies, desktop build, core/client
+type checks, offline core tests, and unsigned packaging on macOS, Windows,
+and Linux. These checks do not create or publish releases. Changes under
+`docs/` on `main` also trigger the existing Amplify website deployment.
 
 We release in three steps:
 1) Create a draft release on Github
@@ -14,14 +21,14 @@ We release in three steps:
 ### Patch release
 Run `npm run release:desktop:patch` from the repo root. This script:
 1. Checks you are on `main` and up to date
-2. Bumps the patch version in `packages/desktop/package.json`
+2. Bumps the patch version in `packages/desktop/package.json` and updates `package-lock.json`
 3. Creates a git tag `desktop-vX.Y.Z`
-4. Pushes the commit and tag to origin
+4. Pushes the commit and tag to origin atomically
 
 ### Minor / Major release
 1. Run `npm -w packages/desktop version minor --no-git-tag-version` (or `major`) from the repo root.
-2. Commit `packages/desktop/package.json` with `git commit -am "ci: bump desktop to X.Y.Z"`.
-3. Create and push the release tag with `git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z`.
+2. Stage `packages/desktop/package.json` and `package-lock.json`, then commit with `git commit -m "ci: bump desktop to X.Y.Z"`.
+3. Create an annotated tag with `git tag -a desktop-vX.Y.Z -m "Sila X.Y.Z"`, then push both with `git push --atomic origin main desktop-vX.Y.Z`.
 
 ## CI Stages
 

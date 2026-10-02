@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getFilePreviewConfig, formatFileSize } from '@sila/client/utils/filePreview';
-  import type { ResolvedFileInfo } from '../../utils/fileResolver';
+  import type { ResolvedFileInfo } from '@sila/core';
   
   let {
     fileInfo,

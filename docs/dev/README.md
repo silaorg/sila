@@ -2,12 +2,12 @@
 
 ## Project structure 
 
-We have a package.json in the root of the repository that unites all the packages (from the /packages dir) in the npm workspace. We run `npm install`, `npm run dev` and `npm build` from the root directory.
+The root npm workspace connects the packages in `packages/`. Initialize the
+source dependencies with `git submodule update --init --recursive`, then run
+`npm ci` and `npm run dev` from the repository root.
 
-This should be enough to get started after cloning the repository:
-`npm install && npm run dev`
-
-See [Quick Start](./quick-start.md) for the instructions on running, debugging, and building.
+Build the desktop app with `npm -w packages/desktop run build`.
+See [Quick Start](./quick-start.md) for running, debugging, and packaging.
 
 ### Packages
 - **packages/core** is the core functionality shared with other packages.

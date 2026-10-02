@@ -16,10 +16,9 @@ const TEST_DIR = path.resolve(__dirname, '../..');
 
 // Load .env files in order: test dir first, then repo root
 const testDirEnvPath = path.join(TEST_DIR, '.env');
-const repoRootEnvPath = path.join(process.cwd(), '.env');
+const repoRootEnvPath = path.resolve(TEST_DIR, '../../..', '.env');
 
 // Load test directory .env first (higher priority)
 dotenvConfig({ path: testDirEnvPath });
 // Load repo root .env (lower priority, won't override already set vars)
 dotenvConfig({ path: repoRootEnvPath });
-

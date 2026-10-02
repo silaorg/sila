@@ -73,8 +73,7 @@ export async function buildChatSearchEntries(
     const chatData = new ChatAppData(space, appTree);
     const spaceVertex = space.getVertexReferencingAppTree(appTreeId);
     const title = chatData.title ?? spaceVertex?.name ?? "New chat";
-    const updatedAt = appTree.tree.root?.updatedAt?.getTime()
-      ?? appTree.tree.root?.createdAt?.getTime();
+    const updatedAt = appTree.createdAt.getTime();
 
     const cached = existingEntries.get(appTreeId);
     processed.add(appTreeId);

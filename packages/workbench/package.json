@@ -28,6 +28,6 @@
   "dependencies": {
     "@sila/client": "*",
     "@sila/core": "*",
-    "aiwrapper": "3.0.3"
+    "aiwrapper": "file:../../vendor/aiwrapper"
   }
 }

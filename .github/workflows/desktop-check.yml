@@ -1,0 +1,46 @@
+name: Desktop checks
+
+on:
+  push:
+    branches: [main, 'maintenance/**']
+    paths:
+      - 'packages/**'
+      - 'vendor/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - '.gitmodules'
+      - '.npmrc'
+      - '.github/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+      - uses: ./.github/actions/setup-build
+      - name: Check core and client types
+        shell: bash
+        run: npm -w packages/core run check && npm -w packages/client run check
+      - name: Run core tests without live API requests
+        shell: bash
+        run: npm -w packages/core run test -- --exclude '**/ai-openrouter.test.ts' --exclude '**/ai-image.test.ts'
+      - name: Package desktop without signing or publishing
+        shell: bash
+        working-directory: packages/desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --dir --publish=never -c.mac.identity=null -c.mac.notarize=false

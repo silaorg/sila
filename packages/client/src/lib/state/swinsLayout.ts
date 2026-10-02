@@ -29,7 +29,7 @@ import { type Component } from "svelte";
 
 interface SwinsComponent {
   key: string;
-  target: Component;
+  target: Component<any>;
 }
 
 export const swinsLayout = {
@@ -147,7 +147,7 @@ export function setupSwins(): SWins {
 
   // Break swinsLayout into values
   for (const swinsComp of Object.values(swinsLayout)) {
-    swins.register(swinsComp.key, swinsComp.target);
+    swins.register<any>(swinsComp.key, swinsComp.target);
   }
 
   return swins;

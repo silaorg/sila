@@ -19,10 +19,11 @@
       return;
     }
 
-    clientState.updateSpaceName(spaceToRename.uri, newName);
+    const uri = spaceToRename.uri;
+    clientState.updateSpaceName(uri, newName);
 
     const updatedPointers = clientState.pointers.map((space) =>
-      space.uri === spaceToRename.uri
+      space.uri === uri
         ? { ...space, name: newName }
         : space,
     );

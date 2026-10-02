@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { VertexPropertyType } from "reptree/treeTypes";
+  import type { VertexPropertyType } from "reptree";
   import { i18n } from "@sila/client";
 
   let { onCreate, onCancel }: { 
