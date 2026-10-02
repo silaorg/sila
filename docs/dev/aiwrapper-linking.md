@@ -2,7 +2,8 @@
 
 Sila builds AIWrapper from the Git submodule at `vendor/aiwrapper`.
 AIModels lives inside it at `vendor/aiwrapper/aimodels`.
-Neither dependency is downloaded from npm.
+The app imports AIWrapper and its bundled catalog from these pinned sources,
+rather than published npm releases.
 
 ## Setup
 
