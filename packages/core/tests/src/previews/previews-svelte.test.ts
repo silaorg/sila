@@ -170,12 +170,9 @@ describe('Simplified File Previews (Svelte)', () => {
   });
 
   afterEach(async () => {
-    // Clean up
+    await spaceManager.closeSpace(testSpace.getId());
     if (tempDir) {
       await rm(tempDir, { recursive: true, force: true });
-    }
-    if (testSpace) {
-      await spaceManager.closeSpace(testSpace.getId());
     }
   });
 

@@ -64,27 +64,12 @@ describe('Simplified File Previews (Core)', () => {
     // Create temporary directory
     tempDir = await mkdtemp(path.join(tmpdir(), 'sila-simplified-previews-core-test-'));
 
-    // Create space manager and test space
-    // Create space manager and test space
-    spaceManager = new SpaceManager({
-      setupSyncLayers: (uri) => {
-        if (uri === testSpace.getId()) {
-          const fs = new NodeFileSystem();
-          return [new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs)];
-        }
-        return [];
-      }
-    });
     testSpace = Space.newSpace(crypto.randomUUID());
     testSpace.name = 'Simplified File Previews Core Test Space';
 
-    // Create file system persistence layer
-    // Note: Layer created inside setupSyncLayers to match pattern, or we can create it outside and capture it.
-    // Let's capture it.
     const fs = new NodeFileSystem();
     const layer = new FileSystemPersistenceLayer(tempDir, testSpace.getId(), fs);
 
-    // Re-create manager to use this layer
     spaceManager = new SpaceManager({
       setupSyncLayers: () => [layer],
       setupFileLayer: () => layer
@@ -138,11 +123,10 @@ describe('Simplified File Previews (Core)', () => {
   });
 
   afterEach(async () => {
-    // Clean up
+    await spaceManager.closeSpace(testSpace.getId());
     if (tempDir) {
       await rm(tempDir, { recursive: true, force: true });
     }
-    await spaceManager.closeSpace(testSpace.getId());
   });
 
   describe('Simple Attachments', () => {
