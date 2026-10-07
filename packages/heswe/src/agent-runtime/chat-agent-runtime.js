@@ -308,7 +308,7 @@ function subscribeToAgentLoopLogs(
     pendingAssistantIdx = null;
     pendingAssistantMessage = null;
 
-    if (!payload) {
+    if (!payload?.text) {
       return;
     }
 
@@ -346,7 +346,7 @@ function subscribeToAgentLoopLogs(
       progressPayload?.toolNames.length
       && typeof onAssistantProgress === "function"
     ) {
-      const signature = `${streamIdx}:${progressPayload.toolNames.join(",")}`;
+      const signature = `${streamIdx}:${JSON.stringify(progressPayload.tools)}`;
       if (signature !== lastProgressSignature) {
         lastProgressSignature = signature;
         pendingProgressSends = pendingProgressSends
@@ -372,10 +372,6 @@ function subscribeToAgentLoopLogs(
 
 function getIntermediateAssistantPayload(message) {
   const text = typeof message?.text === "string" ? message.text.trim() : "";
-  if (!text) {
-    return null;
-  }
-
   const toolNames = Array.isArray(message.toolRequests)
     ? message.toolRequests.map((tool) => tool?.name).filter(Boolean)
     : [];
@@ -387,6 +383,9 @@ function getIntermediateAssistantPayload(message) {
         arguments: tool.arguments,
       }))
     : [];
+  if (!text && !tools.length) {
+    return null;
+  }
   return { text, toolNames, tools };
 }
 

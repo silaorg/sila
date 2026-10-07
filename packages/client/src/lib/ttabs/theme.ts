@@ -1,25 +1,25 @@
 import type { TtabsTheme } from 'ttabs-svelte';
 
-// Kept in sync with the original Sila Skeleton theme.
+// Shared app chrome uses the same spacing and surfaces as the sidebar.
 export const SKELETON_THEME: TtabsTheme = {
 	name: 'skeleton',
 	variables: {
 		'--ttabs-panel-bg': 'var(--color-surface-50-950)',
-		'--ttabs-tab-bar-bg': 'color-mix(in oklab, var(--color-surface-50-950) 50%, var(--color-surface-100-900) 50%)',
+		'--ttabs-tab-bar-bg': 'var(--app-sidebar)',
 		'--ttabs-active-tab-bg': 'var(--color-surface-50-950)',
 		'--ttabs-active-tab-indicator': 'var(--color-primary-500)',
 		'--ttabs-grid-bg': 'var(--color-surface-200-800)',
 		'--ttabs-grid-border': 'none',
-		'--ttabs-column-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
+		'--ttabs-column-border': '1px solid var(--app-line)',
 		'--ttabs-tab-text-color': 'var(--color-surface-700-300)',
 		'--ttabs-tab-active-text-color': 'var(--color-surface-900-50)',
 		'--ttabs-content-bg': 'var(--color-surface-50-950)',
-		'--ttabs-content-border': 'var(--default-border-width, 1px) solid var(--color-surface-300-700)',
+		'--ttabs-content-border': 'none',
 		'--ttabs-content-text-color': 'var(--color-surface-900-50)',
 		'--ttabs-content-padding': 'var(--spacing, 1rem)',
-		'--ttabs-tab-header-padding': '0.65rem 0.75rem 0.6rem 0.75rem',
-		'--ttabs-tab-header-font-size': '0.85rem',
-		'--ttabs-tab-bar-border': '1px solid var(--color-surface-100-900)',
+		'--ttabs-tab-header-padding': '9px 12px 8px',
+		'--ttabs-tab-header-font-size': '13px',
+		'--ttabs-tab-bar-border': '1px solid var(--app-line)',
 		'--ttabs-tab-indicator-size': '1px',
 		'--ttabs-tab-indicator-offset': '0',
 		'--ttabs-transition-duration': '0',

@@ -220,7 +220,7 @@
 	}}
 >
 	<div class="relative flex w-full items-center">
-		<div class="flex w-full flex-col rounded-lg bg-surface-50-950 ring ring-surface-300-700 transition-colors">
+		<div class="flex w-full flex-col rounded-xl border border-surface-200-800 bg-surface-50-950 transition-colors focus-within:border-primary-400">
 			{#if attachments.length > 0}
 				<div class="flex flex-wrap gap-2 p-4">
 					{#each attachments as attachment (attachment.file.reference)}

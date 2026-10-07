@@ -34,16 +34,15 @@
 </script>
 
 <div
-	class="flex h-full items-center gap-3 rounded border border-surface-100-900 p-2"
-	class:border-token={configured}
+	class="provider-row"
 >
-	<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-white">
+	<div class="provider-logo bg-white">
 		<img class="max-h-full max-w-full p-2" src={presentation.logoUrl} alt={providerName} />
 	</div>
 
-	<div class="flex min-w-0 flex-grow items-center justify-between gap-3">
-		<div class="flex min-w-0 items-center gap-2">
-			<span class="truncate font-semibold">{providerName}</span>
+	<div class="provider-body">
+		<div class="provider-name">
+			<span class="font-medium">{providerName}</span>
 			<a
 				href={presentation.url}
 				target="_blank"
@@ -62,10 +61,11 @@
 		</div>
 
 		{#if editing}
-			<form class="flex min-w-0 flex-1 items-center justify-end gap-2" onsubmit={connect}>
+			<form class="provider-connect-form" onsubmit={connect}>
 				<input
 					class="input min-w-0 max-w-sm flex-1"
 					type="password"
+					aria-label={`${providerName} API key`}
 					autocomplete="new-password"
 					placeholder={`${providerName} API key`}
 					disabled={busy}
@@ -110,10 +110,10 @@
 				Override
 			</button>
 		{:else if !provider.local}
-			<div class="flex gap-2">
+			<div class="provider-actions">
 				<button
 					type="button"
-					class="btn btn-sm preset-filled-primary-500"
+					class="btn btn-sm border border-surface-200-800 hover:preset-tonal"
 					disabled={busy}
 					onclick={() => (editing = true)}
 				>
@@ -123,9 +123,10 @@
 					href={presentation.setupUrl}
 					target="_blank"
 					rel="noreferrer"
-					class="btn btn-sm preset-outlined-surface-500"
+					class="provider-help"
+					aria-label={`Get ${providerName} API key`}
 				>
-					How?
+					Get key
 				</a>
 			</div>
 		{/if}

@@ -8,18 +8,19 @@
 	import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
 
 	const workspaceUi = useWorkspaceUi();
+	let { mobile = false }: { mobile?: boolean } = $props();
 	const avatarLabel = $derived(
 		(workspaceUi.user.name || workspaceUi.user.email).slice(0, 1).toUpperCase()
 	);
 </script>
 
 <div
-	class="flex h-full flex-col overflow-hidden bg-surface-100-900/50"
-	class:hidden={!workspaceUi.layout.sidebar.isOpen}
+	class="workspace-sidebar flex h-full flex-col overflow-hidden"
+	class:hidden={!mobile && (workspaceUi.layout.isMobile || !workspaceUi.layout.sidebar.isOpen)}
 	data-testid="sidebar"
 >
-	<div class="min-h-min px-2 py-2">
-		<div class="flex w-full items-center pb-3">
+	<div class="min-h-min">
+		<div class="workspace-toolbar flex w-full items-center">
 			<div class="min-w-0 flex-1">
 				<WorkspaceSwitcher />
 			</div>
@@ -29,29 +30,37 @@
 			</div>
 		</div>
 
-		<button
-			type="button"
-			class="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
-			disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
-			onclick={() => void workspaceUi.createThread()}
-		>
-			<span class="flex h-6 w-6 shrink-0 items-center justify-center">
-				<SquarePen size={18} />
-			</span>
-			<span class="min-w-0 flex-1 truncate text-sm">New thread</span>
-			<span class="pr-1 text-[11px] text-surface-500">⌘T</span>
-		</button>
-		<button
-			type="button"
-			class="mt-1 flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
-			disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
-			onclick={workspaceUi.openFiles}
-		>
-			<span class="flex h-6 w-6 shrink-0 items-center justify-center">
-				<FolderOpen size={18} />
-			</span>
-			<span class="min-w-0 flex-1 truncate text-sm">Files</span>
-		</button>
+		<div class="sidebar-actions">
+			<button
+				type="button"
+				class="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
+				disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
+				onclick={() => {
+					workspaceUi.layout.mobileSidebarOpen = false;
+					void workspaceUi.createThread();
+				}}
+			>
+				<span class="flex h-6 w-6 shrink-0 items-center justify-center">
+					<SquarePen size={18} />
+				</span>
+				<span class="min-w-0 flex-1 truncate text-sm">New thread</span>
+				<span class="pr-1 text-[11px] text-surface-500">⌘T</span>
+			</button>
+			<button
+				type="button"
+				class="mt-1 flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
+				disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
+				onclick={() => {
+					workspaceUi.layout.mobileSidebarOpen = false;
+					workspaceUi.openFiles();
+				}}
+			>
+				<span class="flex h-6 w-6 shrink-0 items-center justify-center">
+					<FolderOpen size={18} />
+				</span>
+				<span class="min-w-0 flex-1 truncate text-sm">Files</span>
+			</button>
+		</div>
 	</div>
 
 	<div class="px-3 pb-2 pt-2">
@@ -66,7 +75,11 @@
 						type="button"
 						class="w-full truncate rounded px-2 py-1.5 text-left text-sm hover:preset-tonal"
 						title={thread.title}
-						onclick={() => void workspaceUi.openThread(thread.id)}
+						aria-current={workspaceUi.layout.activeThreadId === thread.id ? 'page' : undefined}
+						onclick={() => {
+							workspaceUi.layout.mobileSidebarOpen = false;
+							void workspaceUi.openThread(thread.id);
+						}}
 					>
 						{thread.title}
 					</button>

@@ -340,7 +340,7 @@
 	/>
 
 	<div
-		class="min-h-0 flex-1 cursor-default overflow-y-auto p-4"
+		class="files-scroll min-h-0 flex-1 cursor-default overflow-y-auto p-4"
 		class:bg-primary-50-950={externalDragOver}
 		class:border-2={externalDragOver}
 		class:border-dashed={externalDragOver}
@@ -349,7 +349,7 @@
 		<div class="mx-auto w-full max-w-4xl">
 			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<FileBrowserBreadcrumbs path={currentPath} onNavigate={(path) => void loadDirectory(path)} />
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-2">
 					<button
 						type="button"
 						class="btn btn-sm preset-outline gap-2"
@@ -370,7 +370,7 @@
 					</button>
 					<button
 						type="button"
-						class="rounded p-2 hover:preset-tonal"
+						class="chrome-icon-button"
 						aria-label="Refresh files"
 						onclick={() => void loadDirectory()}
 					>

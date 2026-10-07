@@ -3,6 +3,7 @@
 @source '../../../node_modules/@skeletonlabs/skeleton-svelte/dist';
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/themes/cerberus';
+@import './lib/ui-conventions.css';
 
 :root {
 	--base-font-family: 'Inter', system-ui, sans-serif;

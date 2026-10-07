@@ -17,11 +17,14 @@
 		threadId: string,
 		getFileUrl: (threadId: string, reference: string) => string
 	) {
-		const pattern = /\[([^\]]+)\]\(<((?:workspace|thread):[^>]+)>\)/g;
+		const pattern = /\[([^\]]+)\]\((?:<((?:workspace|thread):[^>]+|(?:\.\/)?assets\/[^>]+)>|((?:workspace|thread):[^\s)]+|(?:\.\/)?assets\/[^\s)]+))\)/g;
 		return text.replace(
 			pattern,
-			(_match, name: string, reference: string) =>
-				`[${name}](${getFileUrl(threadId, reference)})`
+			(_match, name: string, wrapped: string, plain: string) => {
+				const path = (wrapped || plain).replace(/^\.\//, '');
+				const reference = path.startsWith('assets/') ? `workspace:${path}` : path;
+				return `[${name}](${getFileUrl(threadId, reference)})`;
+			}
 		);
 	}
 </script>
@@ -38,6 +41,11 @@
 	:global(.chat-message ol),
 	:global(.chat-message blockquote) {
 		margin-top: 0.75rem;
+	}
+
+	:global(.chat-message a) {
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
 	}
 
 	:global(.chat-message ul) {

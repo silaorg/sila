@@ -36,7 +36,7 @@ function createPtyStub() {
   };
 }
 
-function createLoopingLang() {
+function createLoopingLang({ text = "I will check that first.", streamArguments = false } = {}) {
   return {
     async askForObject() {
       return { object: { respond: true } };
@@ -54,9 +54,15 @@ function createLoopingLang() {
       }
 
       result.addAssistantItems([
-        { type: "text", text: "I will check that first." },
+        ...(text ? [{ type: "text", text }] : []),
         { type: "tool", name: "execute_command", callId: "call-1", arguments: { command: "shell status" } },
       ]);
+      const assistant = result[result.length - 1];
+      if (streamArguments) {
+        assistant.toolRequests[0].arguments = {};
+        options.onResult?.(assistant);
+        assistant.toolRequests[0].arguments = { command: "shell status" };
+      }
       options.onResult?.(result[result.length - 1]);
 
       const toolResultsMessage = await result.executeRequestedTools();
@@ -234,6 +240,37 @@ describe("processThreadMessage", () => {
       }],
     }]);
     equal(respondStartCount, 1);
+  });
+
+  it("publishes textless tool calls and updates their streamed arguments", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
+    const progressMessages = [];
+    const loopMessages = [];
+    try {
+      const result = await processThreadMessage({
+        threadDir,
+        threadId: "thread-silent-tools",
+        lang: createLoopingLang({ text: "", streamArguments: true }),
+        ptyManager: createPtyStub(),
+        instructions: "Be helpful.",
+        onAssistantProgress: async (payload) => progressMessages.push(payload),
+        onAssistantLoopMessage: async (payload) => loopMessages.push(payload),
+      }, { userId: "user-tools", text: "check that" });
+
+      equal(result.answer, "final answer");
+      deepEqual(progressMessages, [{
+        text: "",
+        toolNames: ["execute_command"],
+        tools: [{ name: "execute_command", arguments: {} }],
+      }, {
+        text: "",
+        toolNames: ["execute_command"],
+        tools: [{ name: "execute_command", arguments: { command: "shell status" } }],
+      }]);
+      deepEqual(loopMessages, []);
+    } finally {
+      await fs.rm(threadDir, { recursive: true, force: true });
+    }
   });
 
   it("stores thread messages as append-only events", async () => {

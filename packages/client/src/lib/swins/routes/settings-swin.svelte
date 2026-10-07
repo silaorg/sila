@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Check from 'lucide-svelte/icons/check';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import { tick } from 'svelte';
 	import {
 		getWorkspaceModelSettings,
 		updateWorkspaceModelSettings,
@@ -12,6 +14,9 @@
 	const workspaceUi = useWorkspaceUi();
 	let settings = $state<WorkspaceModelSettings | null>(null);
 	let activePage = $state<'preferences' | 'providers'>('providers');
+	let mobileDetail = $state(false);
+	let pageHeading: HTMLHeadingElement | undefined = $state();
+	let categories: { focusActive: () => void } | undefined = $state();
 	let provider = $state('auto');
 	let model = $state('auto');
 	let loading = $state(true);
@@ -99,26 +104,40 @@
 	}
 </script>
 
-<div class="flex w-full gap-4">
+<div class="settings-layout" class:settings-detail={mobileDetail}>
 	<SettingsSidebar
+		bind:this={categories}
 		active={activePage}
-		onSelect={(page) => {
+		onSelect={async (page) => {
 			activePage = page;
+			mobileDetail = true;
 			errorMessage = '';
 			saved = false;
+			if (workspaceUi.layout.isMobile) {
+				await tick();
+				pageHeading?.focus();
+			}
 		}}
 	/>
 
-	<div class="min-h-72 flex-1 space-y-4">
+	<section class="settings-panel" aria-labelledby="settings-page-heading">
+		<button type="button" class="settings-back" onclick={async () => {
+			mobileDetail = false;
+			await tick();
+			categories?.focusActive();
+		}}>
+			<ChevronLeft size={18} /> Back to settings
+		</button>
+		<h2 id="settings-page-heading" tabindex="-1" bind:this={pageHeading}>
+			{activePage === 'providers' ? 'Model Providers' : 'Preferences'}
+		</h2>
 		{#if loading}
 			<p class="py-10 text-center text-sm text-surface-500">Loading settings…</p>
 		{:else if settings && activePage === 'providers'}
-			<p class="text-sm">Connect AI model providers to power your agents.</p>
-			<p class="text-xs text-surface-500">
-				You choose which AI services this workspace can use. Saved keys stay in the workspace
-				and are not returned to the browser.
+			<p class="settings-description">
+				Connect the AI services this workspace can use. Keys are stored in your workspace.
 			</p>
-			<div class="grid grid-cols-1 gap-2">
+			<div class="provider-list">
 				{#each providers as item (item.id)}
 					<ModelProviderCard
 						provider={item}
@@ -129,12 +148,11 @@
 				{/each}
 			</div>
 		{:else if settings}
-			<form class="space-y-4" onsubmit={savePreferences}>
-				<p class="text-sm">
-					Choose the default language model for new conversations. You can change providers
-					without moving your workspace or losing its files.
+			<form class="preferences-form" onsubmit={savePreferences}>
+				<p class="settings-description">
+					Choose the default provider and model for new conversations.
 				</p>
-				<label class="label">
+				<label class="settings-field">
 					<span>Provider</span>
 					<select
 						class="select"
@@ -155,7 +173,7 @@
 						{/each}
 					</select>
 				</label>
-				<label class="label">
+				<label class="settings-field">
 					<span>Model</span>
 					<input
 						class="input"
@@ -164,8 +182,8 @@
 						oninput={() => (saved = false)}
 					/>
 				</label>
-				<div class="flex items-center justify-between">
-					<span class="flex items-center gap-2 text-sm text-success-500">
+				<div class="settings-footer">
+					<span class="flex items-center gap-2 text-sm text-success-700-300" role="status">
 						{#if saved}<Check size={16} /> Saved{/if}
 					</span>
 					<button
@@ -184,5 +202,5 @@
 				{errorMessage}
 			</p>
 		{/if}
-	</div>
+	</section>
 </div>

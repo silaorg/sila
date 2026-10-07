@@ -15,6 +15,9 @@
 			.replaceAll('_', ' ')
 			.replace(/^\w/, (character) => character.toUpperCase())
 	);
+	const displayPreview = $derived(
+		activity.preview.replace(/^\/.*?\/((?:assets|files)\/.*)$/, '$1')
+	);
 	const ToolIcon = $derived.by(() => {
 		if (normalized.includes('edit') || normalized.includes('write') || normalized.includes('patch')) {
 			return FilePenLine;
@@ -29,16 +32,20 @@
 </script>
 
 <div class="rounded-md border border-surface-100-900 p-2 text-left">
-	<span class="inline-flex min-w-0 items-center gap-2">
-		{#if activity.status === 'running'}
-			<LoaderCircle size={14} class="animate-spin opacity-70" />
-		{:else}
-			<Check size={14} class="opacity-70" />
-		{/if}
-		<ToolIcon size={14} class="opacity-70" />
-		<span class="font-medium">{displayName}</span>
-		{#if activity.preview}
-			<span class="max-w-80 truncate opacity-60">"{activity.preview}"</span>
-		{/if}
-	</span>
+	<div class="flex min-w-0 items-start gap-2">
+		<span class="mt-1 shrink-0" aria-label={activity.status === 'running' ? 'Running' : 'Completed'}>
+			{#if activity.status === 'running'}
+				<LoaderCircle size={14} class="animate-spin opacity-70" />
+			{:else}
+				<Check size={14} class="opacity-70" />
+			{/if}
+		</span>
+		<ToolIcon size={14} class="mt-1 shrink-0 opacity-70" />
+		<div class="min-w-0 flex-1">
+			<div class="font-medium">{displayName}</div>
+			{#if activity.preview}
+				<div class="truncate text-xs opacity-60" title={activity.preview}>{displayPreview}</div>
+			{/if}
+		</div>
+	</div>
 </div>

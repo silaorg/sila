@@ -27,15 +27,28 @@ export class WorkspaceLayout {
 	private layoutRefs: LayoutRefs = {};
 	private workspaceId: string | null = null;
 	private applyingLayout = false;
+	isMobile = $state(false);
+	mobileSidebarOpen = $state(false);
 
 	sidebar = $state({
 		isOpen: true,
-		widthWhenOpen: 300,
+		widthWhenOpen: 272,
 		toggle: () => {
+			if (this.isMobile) {
+				this.mobileSidebarOpen = !this.mobileSidebarOpen;
+				return;
+			}
 			this.sidebar.isOpen = !this.sidebar.isOpen;
 			this.updateSidebarLayout();
 		}
 	});
+
+	setMobile(isMobile: boolean) {
+		if (this.isMobile === isMobile) return;
+		this.isMobile = isMobile;
+		this.mobileSidebarOpen = false;
+		this.syncLayout();
+	}
 
 	constructor() {
 		this.ttabs = createTtabs({
@@ -84,6 +97,12 @@ export class WorkspaceLayout {
 
 	openChatTab(threadId: string, name: string, targetPanelId?: string) {
 		this.openThreadTab(threadId, name, targetPanelId, false);
+	}
+
+	get activeThreadId() {
+		const tab = this.ttabs.getFocusedActiveTabTile();
+		const content = tab ? this.ttabs.getTabContent(tab.id) : null;
+		return content?.componentId === 'chat' ? content.data?.componentProps?.threadId : null;
 	}
 
 	openChatTabInNewTab(threadId: string, name: string, targetPanelId?: string) {
@@ -173,7 +192,7 @@ export class WorkspaceLayout {
 		ttabs.resetTiles();
 		const root = ttabs.addGrid();
 		const row = ttabs.addRow(root);
-		this.layoutRefs.sidebarColumn = ttabs.addColumn(row, '300px');
+		this.layoutRefs.sidebarColumn = ttabs.addColumn(row, '272px');
 		ttabs.setComponent(this.layoutRefs.sidebarColumn, 'sidebar');
 		const contentColumn = ttabs.addColumn(row);
 		this.layoutRefs.contentGrid = ttabs.addGrid(contentColumn);
@@ -261,7 +280,7 @@ export class WorkspaceLayout {
 				});
 			}
 			const shouldShowToggle =
-				!this.sidebar.isOpen && panel.id === topLeftPanelId;
+				(this.isMobile || !this.sidebar.isOpen) && panel.id === topLeftPanelId;
 			const leftComponents = shouldShowToggle
 				? [
 						{ componentId: 'sidebarSettings' },

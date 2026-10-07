@@ -4,16 +4,18 @@
 	import { useWorkspaceUi } from '../workspace-ui-context';
 
 	const workspaceUi = useWorkspaceUi();
+	const expanded = $derived(workspaceUi.layout.isMobile ? workspaceUi.layout.mobileSidebarOpen : workspaceUi.layout.sidebar.isOpen);
 </script>
 
 <button
 	type="button"
-	class="rounded p-2 hover:preset-tonal"
+	class="chrome-icon-button"
 	onclick={() => workspaceUi.layout.sidebar.toggle()}
-	title={workspaceUi.layout.sidebar.isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-	aria-label={workspaceUi.layout.sidebar.isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+	title={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+	aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+	aria-expanded={expanded}
 >
-	{#if workspaceUi.layout.sidebar.isOpen}
+	{#if expanded}
 		<PanelLeftClose size={18} />
 	{:else}
 		<PanelLeftOpen size={18} />

@@ -3,6 +3,14 @@
 **/node_modules
 **/.svelte-kit
 **/.data/
+**/playwright-report/
+**/test-results/
+
+# Generated leftovers from the retired desktop, workbench, and vendor builds.
+/packages/desktop/static-compiled/
+/packages/workbench/screenshots/
+/vendor/aiwrapper/aimodels/
+/vendor/aiwrapper/src/aimodels/
 
 .env*
 !*.env.example

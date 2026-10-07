@@ -7,11 +7,14 @@
 
 <button
 	type="button"
-	class="rounded p-2 hover:preset-tonal disabled:opacity-40"
+	class="chrome-icon-button disabled:opacity-40"
 	aria-label="Workspace settings"
 	title="Workspace settings"
 	disabled={!workspaceUi.currentWorkspaceId}
-	onclick={workspaceUi.openSettings}
+	onclick={() => {
+		workspaceUi.layout.mobileSidebarOpen = false;
+		workspaceUi.openSettings();
+	}}
 >
 	<Settings size={18} />
 </button>

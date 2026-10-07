@@ -66,7 +66,7 @@ export class WorkspaceController implements WorkspaceUiContext {
 
 	openSettings = () => {
 		if (this.currentWorkspaceId) {
-			this.swins.open(swinsLayout.settings.key, {}, 'Model Providers');
+			this.swins.open(swinsLayout.settings.key, {}, 'Workspace settings');
 		}
 	};
 
