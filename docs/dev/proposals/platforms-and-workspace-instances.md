@@ -1,362 +1,113 @@
 # Platforms and workspace instances
 
-Status: proposal.
+Status: proposal. The current app has one API server and local workers.
 
-## Decision
+## Direction
 
-A Heswe platform is an independent service that owns:
+Keep local development simple. Use small VMs for hosted agents when practical.
+Choose one launcher first. Keep provider details out of the agent runtime.
 
-- its public API origin
-- its user accounts and sessions
-- its workspace membership and placement registry
-- one or more instances that host workspace sandboxes
-
-A desktop app can connect to multiple platforms. Users sign in to each platform
-separately and switch between their workspaces from all connected platforms.
-
-An instance is a machine or service process registered with one platform. Each
-workspace is assigned to exactly one instance. The public API authenticates and
-authorizes every request, looks up the assigned instance, and routes the
-workspace operation there.
-
-The public API is a thin control plane. It does not run the agent's model loop,
-load its instructions or tools, or decide which tools it should call. The
-complete agent runtime and its durable behavioral state live in the assigned
-workspace sandbox. The platform launches or resumes that runtime, delivers
-input events, streams output events, and enforces external capabilities.
-
-Workspace sandboxes follow
-[the workspace sandboxing proposal](workspace-agent-sandboxing.md).
-
-## Terms
-
-- **Platform**: one identity and administration domain exposed at a public API
-  origin
-- **API node**: a process serving the platform's public API
-- **Instance**: a trusted process capable of creating and running workspace
-  sandboxes
-- **Workspace sandbox**: the isolated runtime for one workspace
-- **Agent capability**: short-lived platform authority for inference, secrets,
-  integrations, approvals, or another external operation
-
-One process can act as both an API node and an instance. This is the default for
-development and a single-server installation. The distinction becomes a
-network boundary only when the platform expands to several machines.
-
-## Desktop connections
-
-The desktop app stores a list of platform connections. Each connection has:
-
-- a stable platform ID returned by the server
-- a user-facing name
-- an API origin
-- a separate authenticated session
-
-Expose a small unauthenticated discovery endpoint such as:
+A platform is one Heswe installation with its own accounts and API.
+An instance is a trusted host or service that launches workspace computers.
+A workspace computer runs the agent and its tools.
 
 ```text
-GET /.well-known/heswe-platform
+browser, Slack, or Telegram
+  -> Heswe API
+    -> workspace launcher
+      -> workspace computer
+        -> agent, CLI tools, and granted files
 ```
 
-It returns the stable platform ID, name, API version, and supported
-capabilities. The desktop verifies this response before starting sign-in.
+The launcher can live in the API process until deployment requires separation.
+A remote instance receives an authenticated request for one assigned workspace.
+The browser never supplies a host address, image, command, or storage path.
 
-Workspace identities are always qualified by their platform:
+## Local development
 
-```text
-(platform_id, workspace_id)
-```
-
-The desktop must not assume that accounts or workspace IDs are shared between
-platforms. The same email address on two platforms represents two independent
-accounts.
-
-The desktop talks only to public platform APIs. It never learns an instance
-address or connects directly to a workspace host.
-
-## Platform registry
-
-The platform database is the source of truth for users, membership, and
-placement. Its relevant relations are:
+`npm run dev` already starts the app and launches agents locally:
 
 ```text
-instances(
-  id,
-  internal_url,
-  state,
-  last_seen_at
-)
-
-workspaces(
-  id,
-  name,
-  instance_id,
-  storage_key,
-  state,
-  created_at
-)
-
-workspace_members(
-  workspace_id,
-  user_id
-)
-```
-
-`storage_key` is an opaque relative identifier, normally the workspace ID. Do
-not store a client-provided absolute path.
-
-The first version continues to use membership without roles. Every member
-passes the same workspace authorization policy.
-
-## Instance registration
-
-An instance starts with:
-
-- a stable instance ID
-- its private URL
-- a platform bootstrap credential
-- its workspace storage root
-- its sandbox driver and capacity limits
-
-It registers with the platform and sends a small heartbeat. Only trusted
-deployment credentials may register or change instances. The public workspace
-API cannot supply or modify an instance URL.
-
-The platform marks instances as available, draining, or offline. Draining
-instances keep serving assigned workspaces but receive no new ones.
-
-Do not put user authentication data on instances. They trust only
-short-lived, platform-signed internal requests naming an exact workspace,
-request, and user.
-
-## Workspace placement
-
-Workspace placement is stable:
-
-```text
-workspace_id -> instance_id
-```
-
-When creating a workspace, the platform:
-
-1. authenticates the user
-2. selects one available instance
-3. records the workspace in `provisioning` state
-4. asks that instance to create the workspace idempotently
-5. adds the creator as the first member
-6. marks the workspace `ready`
-
-With one instance, selection is automatic. With several instances, choose the
-healthy instance with the lowest configured load. Keep placement policy small;
-do not add general scheduling rules in the first version.
-
-An instance only starts sandboxes assigned to its own ID. It verifies the
-assignment with the signed platform request and the workspace configuration.
-
-Do not automatically reassign a workspace when an instance heartbeat stops.
-Return a clear temporary-unavailable response. Automatic failover requires
-shared storage, fencing, and a lease that prevents two instances from running
-the same workspace. Add those only when the product needs automatic failover.
-
-Manual migration can be added first:
-
-1. drain and stop the workspace
-2. copy or expose its storage on the destination
-3. update the placement record
-4. start and verify the destination sandbox
-
-## Request routing
-
-All public workspace routes keep their current shape:
-
-```text
-/api/workspaces/:workspaceId/...
-```
-
-For every request, an API node:
-
-1. authenticates the platform user
-2. verifies workspace membership
-3. reads the workspace placement
-4. forwards a short-lived signed request to the assigned instance
-5. returns the normalized result
-
-The signed request includes the platform ID, workspace ID, user ID, request ID,
-expiry, and allowed operation. An instance rejects requests for other
-workspaces or operations.
-
-The agent-facing instance interface should remain narrow: ensure or stop a
-runtime, deliver an event, stream events, cancel work, checkpoint, and report
-status. Model-selected file, shell, browser, and tool operations stay inside
-the workspace runtime. They are not remotely orchestrated by the API.
-
-Separate user-facing interfaces may expose authorized files, threads, viewer
-sessions, runtime revisions, and settings. Do not expose arbitrary filesystem
-paths, shell commands, or generic proxy destinations to API clients.
-
-An instance publishes workspace changes back to the platform. In combined mode
-this can be an in-process call. In clustered mode it uses the authenticated
-internal interface.
-
-## Capability brokerage
-
-The platform issues short-lived capabilities to a specific workspace, logical
-agent, runtime lease, operation, and expiry. The workspace runtime remains free
-to decide when and how to request a capability, but the platform decides
-whether the operation is authorized.
-
-Inference uses a platform broker. The runtime constructs its own model request;
-the broker holds provider credentials and enforces allowed models, budgets,
-rate limits, cancellation, and accounting. User-supplied provider credentials
-belong in encrypted platform storage rather than in a workspace `.env` file
-visible to arbitrary workspace code.
-
-The same pattern can protect approvals and integrations. Editing an agent's
-runtime must never expand the authority encoded by its external capabilities.
-
-## Deployment modes
-
-Use one configuration value to select the process role:
-
-```text
-HESWE_MODE=all
-HESWE_MODE=api
-HESWE_MODE=instance
-```
-
-### Development
-
-`npm run dev` uses `all` mode:
-
-```text
-one process
-  -> public API
-  -> local instance
+developer's machine
+  -> SvelteKit API
+    -> Node worker for each active workspace
   -> .data/workspaces
-  -> SQLite registry
-  -> in-memory events
+  -> SQLite accounts and workspace registry
 ```
 
-The development sandbox driver may be an explicitly insecure local process
-driver so development works on macOS and Windows. On Linux, developers can
-select `runsc`. Production startup must reject the insecure driver.
+These are separate processes on the same system. No VM is required.
+Local workers have the developer's filesystem permissions.
+Linux developers can select the existing `runsc` driver to test isolation.
 
-### Single server
+Keep the local worker and remote worker on the same request/event contract.
+Do not require cloud credentials or a local cluster for normal development.
 
-The first production installation also uses `all` mode:
+## Hosting choices
 
-```text
-one Linux server
-  -> HTTPS proxy
-  -> Heswe API and instance
-  -> gVisor workspace sandboxes
-  -> local or mounted workspace storage
-  -> SQLite platform database
-```
+| Option | What it needs | Place in the plan |
+| --- | --- | --- |
+| Docker with gVisor | Linux host, Docker, configured network | Current production launcher |
+| Small VM or managed sandbox | Launch API, image, disk, authenticated worker connection | Preferred next direction |
+| Self-hosted Firecracker | KVM hosts, guest image, networking, disk and snapshot management | Evaluate if running the hosts ourselves is worthwhile |
+| Kubernetes | Cluster, sandbox runtime, storage and lifecycle controller | Use if operating a cluster is already justified |
 
-This requires no distributed services. Back up the platform database and
-workspace storage together.
+Compare E2B or another managed sandbox with a small self-hosted VM runner.
+Measure startup, CLI support, file persistence, pause/resume, and operating cost.
+No provider is selected by this proposal.
 
-### Several instances
+[EBS is block storage for EC2](https://docs.aws.amazon.com/ebs/latest/userguide/what-is-ebs.html).
+It can hold a VM's working filesystem; it does not launch or pause agents.
 
-A larger platform uses:
+Kubernetes schedules pods. Choose a sandboxed
+[RuntimeClass](https://kubernetes.io/docs/concepts/containers/runtime-class/)
+when using it for agent code. A pod alone is not the VM boundary described here.
 
-```text
-public load balancer
-  -> one or more API nodes
-  -> shared PostgreSQL platform database
-  -> workspace instance A
-  -> workspace instance B
-  -> workspace instance C
-```
+Use [Terraform](https://developer.hashicorp.com/terraform/intro) for the shared
+infrastructure: networks, hosts or clusters, buckets, and service permissions.
+Heswe's launcher uses the provider API for each computer's lifecycle.
+Do not run Terraform for every chat message or idle timeout.
 
-Instances can use their own local storage. In that configuration, workspaces
-remain tied to their assigned instance until explicitly copied.
+## Placement
 
-Use EFS, NFS, or another shared filesystem when easy migration or failover is
-more important than local filesystem performance. Shared storage does not
-change placement: only the assigned instance may run the workspace.
+Keep a registry entry with the workspace ID, access policy, storage location,
+assigned computer, and current state. The provider's computer ID belongs here.
+The current ownership check can remain until shared workspaces are implemented.
 
-PostgreSQL replaces SQLite when more than one API process must write the
-platform registry. Use PostgreSQL notifications for cross-node invalidation
-before adding a separate pub/sub service. Keep one shared coordination system
-until a concrete requirement needs another.
+For a message, the API:
 
-## Configuration
+1. Checks the user's access to the workspace.
+2. Ensures its assigned computer is running.
+3. Delivers the message and relays events.
 
-Keep deployment choices behind a few explicit settings:
+On restart, inspect the assigned computer before creating another one.
+A failed health check must not start a second writer against the same files.
+Manual recovery is enough for the first deployment.
 
-```text
-HESWE_MODE
-HESWE_PLATFORM_ID
-HESWE_PLATFORM_NAME
-HESWE_PUBLIC_URL
-HESWE_DATABASE_URL
-HESWE_INSTANCE_ID
-HESWE_INSTANCE_URL
-HESWE_WORKSPACE_STORAGE_ROOT
-HESWE_SANDBOX_DRIVER
-```
+With several launchers, use an externally enforced lease for each writable
+workspace. The old writer must lose access before a replacement starts.
+Route every workspace request through its assignment, including file access.
+The API currently reads local files; remote computers need a scoped file API
+or a deliberately shared filesystem.
 
-Development supplies defaults under `.data`. Production requires stable
-platform and instance IDs, public and private URLs, storage, secrets, and a
-production sandbox driver.
+Keep one SQLite-backed API initially. Multiple API writers need a shared
+database and event delivery. Add those when scaling requires them.
 
-Do not spread mode checks throughout application routes. Select implementations
-at startup for:
+## Independent platforms
 
-- platform database
-- workspace router
-- instance client
-- sandbox manager
-- event publisher
+A future desktop client can store several platform connections.
+Each has its own origin, platform ID, and sign-in session.
+Workspace identity becomes `(platform_id, workspace_id)`.
+Accounts and files are not automatically shared across platforms.
 
-The public API and workspace operation interfaces remain the same in every
-mode.
+This does not need to be implemented before remote agent computers.
+Neither do workspace roles, automatic migration, or multi-region failover.
 
-## Growth path
+## Next step
 
-Grow a platform without changing the workspace model:
+Prototype one remote computer with the existing worker and ordinary CLI tools.
+Prove message delivery, cancellation, file recovery, and complete removal.
+Then add the idle and pause behavior in
+[agent computers](agent-computer-runtime.md).
 
-1. Run `npm run dev` with embedded local components.
-2. Deploy the same application in `all` mode on one Linux server.
-3. Move the platform database to PostgreSQL.
-4. Add instance machines and place new workspaces on them.
-5. Add API replicas behind a load balancer.
-6. Add shared workspace storage only if migration or failover needs it.
-7. Add leases and automatic failover only after shared storage is proven.
-
-Steps should be driven by measured capacity or availability needs.
-
-## Migration from the current server
-
-The current server already resembles combined mode: it uses one SQLite
-database, one workspace root, and in-process `AppWorkspaceService` objects.
-
-Evolve it in this order:
-
-1. Add a stable platform ID and discovery endpoint.
-2. Replace workspace ownership with membership.
-3. Add `instance_id`, `storage_key`, and workspace state to the registry.
-4. Register one built-in `local` instance for existing workspaces.
-5. Reduce `AppWorkspaceService` to authorization, delivery, event projection,
-   capability brokerage, and a workspace-runtime client.
-6. Put the complete current agent worker behind the workspace-instance
-   lifecycle and event interface.
-7. Route through the recorded instance even when it is local.
-8. Move the complete workspace runtime into gVisor sandboxes.
-9. Add remote instance registration and signed internal requests.
-10. Add PostgreSQL support before running multiple API nodes.
-
-Do not add remote routing before local routing uses the same placement model.
-
-## Out of scope for the first version
-
-- global accounts shared between platforms
-- roles within a workspace
-- cross-platform workspace discovery by a server
-- automatic workspace rebalancing
-- automatic failover or split-brain recovery
-- live workspace migration
-- multi-region replication
-- Kubernetes or a general-purpose scheduler
+[Workspace sandboxing](workspace-agent-sandboxing.md) defines storage grants
+and the isolation checks every launcher must pass.

@@ -51,8 +51,9 @@ channel under `channels/`.
 ## Threads and persistence
 
 Slack and Telegram threads live below their channel directory. Hosted app
-threads live below a hashed user ID so one user cannot access another user's
-threads.
+threads live below a hashed user ID. The API checks the authenticated user
+before returning a thread. Agents can access the whole workspace filesystem;
+these directories do not isolate users from agent shell commands.
 
 `messages.jsonl` is an append-only event log. Heswe never rewrites existing log
 bytes. Old `messages.json` arrays are migrated when first read. `state.json`
@@ -84,3 +85,8 @@ concurrent workspaces cannot overwrite each other's command context.
 `Workspace.run()` loads configuration and starts channel runtimes.
 `Workspace.stop()` stops accepting provider events, waits for current thread
 work to finish, closes agent sessions, and stops provider clients.
+
+The current workspace requires a filesystem with append and atomic rename.
+Do not point `WORKSPACES_PATH` at a raw S3 mount without testing those operations.
+The [storage proposal](proposals/workspace-agent-sandboxing.md) covers scoped
+S3 files and remote workspace computers.

@@ -98,6 +98,11 @@ content.
 
 ## Deployment
 
+This describes the current single-server gVisor launcher.
+VMs, pause/resume, and scoped S3 storage remain
+[proposed](proposals/platforms-and-workspace-instances.md).
+
+
 Install Docker and configure gVisor as Docker's `runsc` runtime. Build the
 reviewed workspace image:
 
