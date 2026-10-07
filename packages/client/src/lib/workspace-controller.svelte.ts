@@ -61,10 +61,12 @@ export class WorkspaceController implements WorkspaceUiContext {
 	}
 
 	openCreateWorkspace = () => {
+		this.layout.mobileSidebarOpen = false;
 		this.swins.open(swinsLayout.createWorkspace.key, {}, 'Create workspace');
 	};
 
 	openSettings = () => {
+		this.layout.mobileSidebarOpen = false;
 		if (this.currentWorkspaceId) {
 			this.swins.open(swinsLayout.settings.key, {}, 'Workspace settings');
 		}
@@ -85,6 +87,7 @@ export class WorkspaceController implements WorkspaceUiContext {
 	};
 
 	openThread = async (threadId: string) => {
+		this.layout.mobileSidebarOpen = false;
 		const summary = this.threads.find((thread) => thread.id === threadId);
 		if (!summary) return;
 		this.layout.openChatTab(threadId, summary.title);
@@ -92,6 +95,7 @@ export class WorkspaceController implements WorkspaceUiContext {
 	};
 
 	createThread = async (targetPanelId?: string) => {
+		this.layout.mobileSidebarOpen = false;
 		const workspaceId = this.currentWorkspaceId;
 		if (!workspaceId) {
 			this.openCreateWorkspace();
@@ -114,6 +118,7 @@ export class WorkspaceController implements WorkspaceUiContext {
 	};
 
 	openFiles = () => {
+		this.layout.mobileSidebarOpen = false;
 		if (this.currentWorkspaceId && !this.swins.current) {
 			this.swins.open(swinsLayout.files.key, {}, 'Files');
 		}

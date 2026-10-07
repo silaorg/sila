@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
 import { BUILT_IN_TOOL_NAMES } from "./agent-runtime/chat-agent.js";
 
 const TOOLS_DIR_NAME = "tools";
@@ -159,17 +160,6 @@ function validateToolShape(tool, packageDirPath) {
 
   if (path.basename(packageDirPath) !== path.basename(packageDirPath).trim()) {
     throw new Error("tool package directory name must not have leading or trailing whitespace");
-  }
-}
-
-async function readDirectoryEntriesOrEmpty(directoryPath) {
-  try {
-    return await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
   }
 }
 

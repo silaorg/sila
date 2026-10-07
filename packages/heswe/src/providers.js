@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
+import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
 import {
   readEnvValue,
   readWorkspaceEnvironment,
@@ -465,17 +466,6 @@ function normalizeModelId(value) {
     return null;
   }
   return normalized;
-}
-
-async function readDirectoryEntriesOrEmpty(directoryPath) {
-  try {
-    return await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
 }
 
 async function readJsonFileOrNull(filePath) {

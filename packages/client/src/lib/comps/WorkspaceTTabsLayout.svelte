@@ -2,6 +2,7 @@
 	import { TTabsRoot } from 'ttabs-svelte';
 	import { onMount, tick } from 'svelte';
 	import { useWorkspaceUi } from '../workspace-ui-context';
+	import { trapFocus } from '../utils/trap-focus';
 	import WorkspaceSidebar from './WorkspaceSidebar.svelte';
 
 	const workspaceUi = useWorkspaceUi();
@@ -30,17 +31,7 @@
 			event.preventDefault();
 			layout.mobileSidebarOpen = false;
 		}
-		if (event.key !== 'Tab' || !navigation) return;
-		const buttons = Array.from(navigation.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input'));
-		const first = buttons[0];
-		const last = buttons.at(-1);
-		if (event.shiftKey && (document.activeElement === first || document.activeElement === navigation)) {
-			event.preventDefault();
-			last?.focus();
-		} else if (!event.shiftKey && document.activeElement === last) {
-			event.preventDefault();
-			first?.focus();
-		}
+		trapFocus(event);
 	}
 </script>
 
@@ -50,8 +41,22 @@
 
 {#if layout.isMobile && layout.mobileSidebarOpen}
 	<div class="mobile-navigation-layer">
-		<button class="app-backdrop" type="button" aria-label="Close navigation" tabindex="-1" onclick={() => layout.mobileSidebarOpen = false}></button>
-		<div class="mobile-navigation" role="dialog" aria-modal="true" aria-label="Workspace navigation" tabindex="-1" bind:this={navigation} onkeydown={handleNavigationKey}>
+		<button
+			class="app-backdrop"
+			type="button"
+			aria-label="Close navigation"
+			tabindex="-1"
+			onclick={() => layout.mobileSidebarOpen = false}
+		></button>
+		<div
+			class="mobile-navigation"
+			role="dialog"
+			aria-modal="true"
+			aria-label="Workspace navigation"
+			tabindex="-1"
+			bind:this={navigation}
+			onkeydown={handleNavigationKey}
+		>
 			<WorkspaceSidebar mobile />
 		</div>
 	</div>

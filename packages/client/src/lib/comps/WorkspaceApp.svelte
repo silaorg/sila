@@ -16,7 +16,10 @@
 
 <svelte:window onkeydown={(event) => workspace.handleShortcut(event)} />
 
-<main class="h-dvh overflow-hidden bg-surface-50-950" inert={workspace.swins.windows.length > 0 || Boolean(workspace.assetViewer.activeFile)}>
+<main
+	class="h-dvh overflow-hidden bg-surface-50-950"
+	inert={workspace.swins.windows.length > 0 || Boolean(workspace.assetViewer.activeFile)}
+>
 	<WorkspaceTTabsLayout />
 </main>
 

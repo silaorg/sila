@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
 import { SlackChannel } from "./channels/slack-channel.js";
 import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
@@ -112,17 +113,6 @@ export class Workspace {
     } catch (error) {
       console.log(`Default agent language model unavailable: ${error.message}`);
     }
-  }
-}
-
-async function readDirectoryEntriesOrEmpty(directoryPath) {
-  try {
-    return await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
   }
 }
 

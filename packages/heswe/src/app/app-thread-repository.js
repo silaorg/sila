@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { readDirectoryEntriesOrEmpty } from "../directory-entries.js";
 import { ThreadStore } from "../thread-store.js";
 import { writeJsonFile } from "../json-file.js";
 import { getPublicMessageText } from "./app-message.js";
@@ -157,15 +158,4 @@ function validateThreadState(state, threadId) {
     );
   }
   return state;
-}
-
-async function readDirectoryEntriesOrEmpty(directoryPath) {
-  try {
-    return await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error?.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
 }

@@ -4,6 +4,7 @@
 	import SquareArrowOutUpRight from 'lucide-svelte/icons/square-arrow-out-up-right';
 	import X from 'lucide-svelte/icons/x';
 	import { useWorkspaceUi } from '../workspace-ui-context';
+	import TextPreview from './text-preview.svelte';
 
 	const workspaceUi = useWorkspaceUi();
 	const viewer = $derived(workspaceUi.assetViewer);
@@ -17,36 +18,6 @@
 		if (mimeType === 'application/pdf') return 'pdf';
 		if (mimeType.startsWith('text/') || mimeType === 'application/json') return 'text';
 		return 'download';
-	});
-	let text = $state('');
-	let textError = $state('');
-
-	$effect(() => {
-		const file = activeFile;
-		if (!file || previewType !== 'text') {
-			text = '';
-			textError = '';
-			return;
-		}
-		if (file.size > 2 * 1024 * 1024) {
-			textError = 'This file is too large to preview.';
-			return;
-		}
-		const controller = new AbortController();
-		text = '';
-		textError = '';
-		void fetch(url, { signal: controller.signal })
-			.then((response) => {
-				if (!response.ok) throw new Error(`Preview failed with HTTP ${response.status}.`);
-				return response.text();
-			})
-			.then((value) => (text = value))
-			.catch((error) => {
-				if (error?.name !== 'AbortError') {
-					textError = error instanceof Error ? error.message : 'Could not preview file.';
-				}
-			});
-		return () => controller.abort();
 	});
 
 	function handleKeydown(event: KeyboardEvent) {
@@ -149,11 +120,7 @@
 						<h3 class="break-words text-sm font-medium">{activeFile.name}</h3>
 					</header>
 					<div class="overflow-y-auto p-4">
-						{#if textError}
-							<p class="text-sm text-surface-500">{textError}</p>
-						{:else}
-							<pre class="whitespace-pre-wrap break-words font-mono text-sm">{text || 'Loading preview…'}</pre>
-						{/if}
+						<TextPreview {url} size={activeFile.size} />
 					</div>
 				</div>
 			{:else}

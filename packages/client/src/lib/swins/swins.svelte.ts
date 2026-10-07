@@ -22,7 +22,6 @@ export type SwinWindow = {
 export class Swins {
 	componentRegistry = $state<Record<string, SwinComponentEntry>>({});
 	windows = $state<SwinWindow[]>([]);
-	overlayEnabled = $state(true);
 
 	register(
 		id: string,
@@ -44,14 +43,12 @@ export class Swins {
 		}
 
 		const id = `${componentId}-${crypto.randomUUID()}`;
-		this.overlayEnabled = true;
 		this.windows = [...this.windows, { id, componentId, props, title }];
 		return this;
 	}
 
 	pop() {
 		this.windows = this.windows.slice(0, -1);
-		if (this.windows.length === 0) this.overlayEnabled = true;
 		return this;
 	}
 
@@ -64,12 +61,6 @@ export class Swins {
 
 	clear() {
 		this.windows = [];
-		this.overlayEnabled = true;
-		return this;
-	}
-
-	setOverlayEnabled(enabled: boolean) {
-		this.overlayEnabled = enabled;
 		return this;
 	}
 

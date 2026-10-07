@@ -1,11 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import {
   apiError,
+  createFileResponse,
   readJsonObject,
   readMultipartFiles,
   requireUser,
 } from "../src/lib/server/api.ts";
+
+test("streams workspace files with private, sandboxed response headers", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-file-response-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const absolutePath = path.join(directory, "report.txt");
+  await fs.writeFile(absolutePath, "hello");
+  const response = createFileResponse({
+    absolutePath,
+    name: "my report.txt",
+    mimeType: "text/plain",
+    size: 5,
+  });
+
+  assert.equal(await response.text(), "hello");
+  assert.equal(response.headers.get("content-type"), "text/plain");
+  assert.equal(response.headers.get("content-length"), "5");
+  assert.equal(response.headers.get("content-disposition"), "inline; filename*=UTF-8''my%20report.txt");
+  assert.equal(response.headers.get("cache-control"), "private, max-age=60");
+  assert.equal(response.headers.get("content-security-policy"), "sandbox");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+});
 
 /** @param {unknown} error @returns {error is { status: number }} */
 function hasStatus(error) {

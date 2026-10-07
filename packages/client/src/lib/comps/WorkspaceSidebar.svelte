@@ -35,10 +35,7 @@
 				type="button"
 				class="flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
 				disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
-				onclick={() => {
-					workspaceUi.layout.mobileSidebarOpen = false;
-					void workspaceUi.createThread();
-				}}
+				onclick={() => void workspaceUi.createThread()}
 			>
 				<span class="flex h-6 w-6 shrink-0 items-center justify-center">
 					<SquarePen size={18} />
@@ -50,10 +47,7 @@
 				type="button"
 				class="mt-1 flex w-full items-center gap-2 rounded px-1 py-1 text-left hover:preset-tonal disabled:opacity-40"
 				disabled={!workspaceUi.currentWorkspaceId || workspaceUi.switchingWorkspace}
-				onclick={() => {
-					workspaceUi.layout.mobileSidebarOpen = false;
-					workspaceUi.openFiles();
-				}}
+				onclick={workspaceUi.openFiles}
 			>
 				<span class="flex h-6 w-6 shrink-0 items-center justify-center">
 					<FolderOpen size={18} />
@@ -76,10 +70,7 @@
 						class="w-full truncate rounded px-2 py-1.5 text-left text-sm hover:preset-tonal"
 						title={thread.title}
 						aria-current={workspaceUi.layout.activeThreadId === thread.id ? 'page' : undefined}
-						onclick={() => {
-							workspaceUi.layout.mobileSidebarOpen = false;
-							void workspaceUi.openThread(thread.id);
-						}}
+						onclick={() => void workspaceUi.openThread(thread.id)}
 					>
 						{thread.title}
 					</button>

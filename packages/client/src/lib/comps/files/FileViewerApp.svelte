@@ -3,6 +3,7 @@
 	import FileIcon from 'lucide-svelte/icons/file';
 	import { useWorkspaceUi } from '../../workspace-ui-context';
 	import { formatFileSize } from '../chat/format-file-size';
+	import TextPreview from '../../asset-viewer/text-preview.svelte';
 
 	let {
 		path,
@@ -18,31 +19,6 @@
 
 	const workspaceUi = useWorkspaceUi();
 	const url = $derived(workspaceUi.getWorkspaceAssetUrl(path));
-	let text = $state('');
-	let textError = $state('');
-
-	$effect(() => {
-		if (!mimeType.startsWith('text/') && mimeType !== 'application/json') return;
-		if (size > 2 * 1024 * 1024) {
-			textError = 'This file is too large to preview.';
-			return;
-		}
-		const controller = new AbortController();
-		text = '';
-		textError = '';
-		void fetch(url, { signal: controller.signal })
-			.then((response) => {
-				if (!response.ok) throw new Error(`Preview failed with HTTP ${response.status}.`);
-				return response.text();
-			})
-			.then((value) => (text = value))
-			.catch((error) => {
-				if (error?.name !== 'AbortError') {
-					textError = error instanceof Error ? error.message : 'Could not preview file.';
-				}
-			});
-		return () => controller.abort();
-	});
 </script>
 
 <div class="flex size-full flex-col overflow-hidden">
@@ -63,11 +39,7 @@
 		{:else if mimeType === 'application/pdf'}
 			<iframe src={url} title={name} class="size-full border-0"></iframe>
 		{:else if mimeType.startsWith('text/') || mimeType === 'application/json'}
-			{#if textError}
-				<p class="text-sm text-surface-500">{textError}</p>
-			{:else}
-				<pre class="whitespace-pre-wrap break-words font-mono text-sm">{text || 'Loading preview…'}</pre>
-			{/if}
+			<TextPreview {url} {size} />
 		{:else}
 			<div class="flex h-full flex-col items-center justify-center text-center">
 				<FileIcon size={64} class="text-surface-500" />

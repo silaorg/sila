@@ -1,8 +1,28 @@
 import { error, isHttpError } from '@sveltejs/kit';
 import { AppWorkspaceError } from 'heswe/app-workspace-service';
+import { createReadStream } from 'node:fs';
+import { Readable } from 'node:stream';
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 const MAX_MULTIPART_BODY_BYTES = 42 * 1024 * 1024;
+
+export function createFileResponse(file: {
+	absolutePath: string;
+	mimeType: string;
+	size: number;
+	name: string;
+}) {
+	return new Response(Readable.toWeb(createReadStream(file.absolutePath)) as ReadableStream, {
+		headers: {
+			'content-type': file.mimeType,
+			'content-length': String(file.size),
+			'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+			'cache-control': 'private, max-age=60',
+			'content-security-policy': 'sandbox',
+			'x-content-type-options': 'nosniff'
+		}
+	});
+}
 
 export function requireUser(locals: App.Locals) {
 	if (!locals.user) {

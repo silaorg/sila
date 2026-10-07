@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
 
 const SKILLS_DIR_NAME = "skills";
 const SKILL_FILE_NAME = "SKILL.md";
@@ -182,17 +183,6 @@ function validateSkillName(name, directoryName) {
 function validateSkillDescription(description) {
   if (!description.length || description.length > 1024) {
     throw new Error("description must be between 1 and 1024 characters");
-  }
-}
-
-async function readDirectoryEntriesOrEmpty(directoryPath) {
-  try {
-    return await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
   }
 }
 

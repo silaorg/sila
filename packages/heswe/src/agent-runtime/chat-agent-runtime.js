@@ -372,9 +372,6 @@ function subscribeToAgentLoopLogs(
 
 function getIntermediateAssistantPayload(message) {
   const text = typeof message?.text === "string" ? message.text.trim() : "";
-  const toolNames = Array.isArray(message.toolRequests)
-    ? message.toolRequests.map((tool) => tool?.name).filter(Boolean)
-    : [];
   const tools = Array.isArray(message.toolRequests)
     ? message.toolRequests
       .filter((tool) => typeof tool?.name === "string")
@@ -386,7 +383,7 @@ function getIntermediateAssistantPayload(message) {
   if (!text && !tools.length) {
     return null;
   }
-  return { text, toolNames, tools };
+  return { text, toolNames: tools.map((tool) => tool.name).filter(Boolean), tools };
 }
 
 function formatIntermediateAssistantLog(threadId, payload) {

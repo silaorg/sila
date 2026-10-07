@@ -4,7 +4,11 @@
 	import { useWorkspaceUi } from '../workspace-ui-context';
 
 	const workspaceUi = useWorkspaceUi();
-	const expanded = $derived(workspaceUi.layout.isMobile ? workspaceUi.layout.mobileSidebarOpen : workspaceUi.layout.sidebar.isOpen);
+	const expanded = $derived(
+		workspaceUi.layout.isMobile
+			? workspaceUi.layout.mobileSidebarOpen
+			: workspaceUi.layout.sidebar.isOpen
+	);
 </script>
 
 <button

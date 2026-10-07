@@ -3,6 +3,7 @@
 	import X from 'lucide-svelte/icons/x';
 	import { tick } from 'svelte';
 	import { useWorkspaceUi } from '../workspace-ui-context';
+	import { trapFocus } from '../utils/trap-focus';
 
 	const workspaceUi = useWorkspaceUi();
 	const swins = $derived(workspaceUi.swins);
@@ -29,25 +30,12 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.defaultPrevented || event.key !== 'Escape' || swins.windows.length === 0 || workspaceUi.assetViewer.activeFile) return;
+		if (
+			event.defaultPrevented || event.key !== 'Escape'
+			|| !swins.current || workspaceUi.assetViewer.activeFile
+		) return;
 		event.preventDefault();
 		swins.pop();
-	}
-
-	function trapFocus(event: KeyboardEvent) {
-		if (event.key !== 'Tab') return;
-		const dialog = event.currentTarget as HTMLElement;
-		const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]'))
-			.filter((element) => element.getClientRects().length > 0);
-		const first = controls[0];
-		const last = controls.at(-1);
-		if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
-			event.preventDefault();
-			last?.focus();
-		} else if (!event.shiftKey && document.activeElement === last) {
-			event.preventDefault();
-			first?.focus();
-		}
 	}
 </script>
 
@@ -58,7 +46,6 @@
 		<button
 			type="button"
 			class="app-backdrop"
-			class:opacity-0={!swins.overlayEnabled}
 			aria-label="Close windows"
 			onclick={closeAll}
 		></button>

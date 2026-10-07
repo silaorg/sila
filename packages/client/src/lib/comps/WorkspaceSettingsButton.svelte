@@ -11,10 +11,7 @@
 	aria-label="Workspace settings"
 	title="Workspace settings"
 	disabled={!workspaceUi.currentWorkspaceId}
-	onclick={() => {
-		workspaceUi.layout.mobileSidebarOpen = false;
-		workspaceUi.openSettings();
-	}}
+	onclick={workspaceUi.openSettings}
 >
 	<Settings size={18} />
 </button>

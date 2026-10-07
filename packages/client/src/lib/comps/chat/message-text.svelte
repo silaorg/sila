@@ -1,33 +1,32 @@
 <script lang="ts">
-	import { Markdown } from '@markpage/svelte';
+	import { Markdown, MarkpageOptions } from '@markpage/svelte';
+	import { setContext, type Component } from 'svelte';
 	import { useWorkspaceUi } from '../../workspace-ui-context';
+	import MessageResource, { MESSAGE_RESOURCE_URL } from './message-resource.svelte';
 
 	let { text, threadId }: { text: string; threadId: string } = $props();
 	const workspaceUi = useWorkspaceUi();
-	let source = $derived(rewriteFileMentions(text, threadId, workspaceUi.getFileUrl));
+	// Markpage's registration type omits the token props it supplies.
+	const resourceComponent = MessageResource as Component;
+	const options = new MarkpageOptions()
+		.overrideBuiltinToken('link', resourceComponent)
+		.overrideBuiltinToken('image', resourceComponent);
+
+	setContext(MESSAGE_RESOURCE_URL, (href: string) => {
+		const path = href.startsWith('./') ? href.slice(2) : href;
+		if (path.startsWith('assets/')) {
+			return workspaceUi.getFileUrl(threadId, `workspace:${path}`);
+		}
+		if (path.startsWith('workspace:') || path.startsWith('thread:')) {
+			return workspaceUi.getFileUrl(threadId, path);
+		}
+		return href;
+	});
 </script>
 
 <div class="chat-message">
-	<Markdown {source} />
+	<Markdown source={text} {options} />
 </div>
-
-<script module lang="ts">
-	function rewriteFileMentions(
-		text: string,
-		threadId: string,
-		getFileUrl: (threadId: string, reference: string) => string
-	) {
-		const pattern = /\[([^\]]+)\]\((?:<((?:workspace|thread):[^>]+|(?:\.\/)?assets\/[^>]+)>|((?:workspace|thread):[^\s)]+|(?:\.\/)?assets\/[^\s)]+))\)/g;
-		return text.replace(
-			pattern,
-			(_match, name: string, wrapped: string, plain: string) => {
-				const path = (wrapped || plain).replace(/^\.\//, '');
-				const reference = path.startsWith('assets/') ? `workspace:${path}` : path;
-				return `[${name}](${getFileUrl(threadId, reference)})`;
-			}
-		);
-	}
-</script>
 
 <style>
 	:global(.chat-message) {
