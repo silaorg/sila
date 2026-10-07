@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_WORKER_PATH = fileURLToPath(new URL("./worker.js", import.meta.url));
@@ -48,7 +49,6 @@ export class ProcessAgentRuntime {
   #launchWorker;
   #child = null;
   #exitPromise = null;
-  #stdoutBuffer = "";
   #nextRequestId = 1;
   #pending = new Map();
   #stopping = false;
@@ -112,9 +112,11 @@ export class ProcessAgentRuntime {
     const child = this.#child;
     const exitPromise = this.#exitPromise;
     try {
-      await this.#request("stop", {});
-      child.stdin.end();
-      await withTimeout(exitPromise, STOP_TIMEOUT_MS, "Agent worker did not stop.");
+      const shutdown = this.#request("stop", {}).then(() => {
+        child.stdin.end();
+        return exitPromise;
+      });
+      await withTimeout(shutdown, STOP_TIMEOUT_MS, "Agent worker did not stop.");
     } catch (error) {
       child.kill("SIGKILL");
       await exitPromise.catch(() => {});
@@ -144,13 +146,7 @@ export class ProcessAgentRuntime {
         method,
         input,
       })}\n`;
-      child.stdin.write(message, "utf8", (error) => {
-        if (!error) return;
-        const pending = this.#pending.get(id);
-        if (!pending) return;
-        this.#pending.delete(id);
-        pending.reject(error);
-      });
+      child.stdin.write(message, "utf8");
     });
   }
 
@@ -159,58 +155,50 @@ export class ProcessAgentRuntime {
       return this.#child;
     }
 
-    this.#stdoutBuffer = "";
     const child = this.#launchWorker({
       environment: this.#environment,
       workerPath: this.#workerPath,
       workspacePath: this.#workerWorkspacePath,
     });
-    child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => this.#handleStdout(chunk));
+    let workerError;
+    const lines = createInterface({ input: child.stdout, crlfDelay: Infinity });
+    lines.on("line", (line) => {
+      if (workerError || !line.trim()) return;
+      let message;
+      try {
+        message = JSON.parse(line);
+      } catch (error) {
+        workerError = new Error(`Agent worker sent invalid JSON: ${error.message}`);
+        child.kill("SIGKILL");
+        return;
+      }
+      this.#handleMessage(message);
+    });
     child.stderr.on("data", (chunk) => {
       process.stderr.write(`[agent ${path.basename(this.#workspacePath)}] ${chunk}`);
     });
-    child.on("error", (error) => this.#fail(error));
+    child.on("error", (error) => { workerError = error; });
+    child.stdin.on("error", (error) => {
+      workerError ??= error;
+      child.kill("SIGKILL");
+    });
     this.#exitPromise = new Promise((resolve) => {
-      child.once("exit", (code, signal) => {
+      child.once("close", (code, signal) => {
+        lines.close();
         if (this.#child === child) {
           this.#child = null;
           this.#exitPromise = null;
         }
         if (this.#pending.size) {
           const detail = signal ? `signal ${signal}` : `code ${code}`;
-          this.#fail(new Error(`Agent worker exited with ${detail}.`));
+          this.#fail(workerError ?? new Error(`Agent worker exited with ${detail}.`));
         }
         resolve({ code, signal });
       });
     });
     this.#child = child;
     return child;
-  }
-
-  #handleStdout(chunk) {
-    this.#stdoutBuffer += chunk;
-    while (true) {
-      const newlineIndex = this.#stdoutBuffer.indexOf("\n");
-      if (newlineIndex < 0) {
-        return;
-      }
-      const line = this.#stdoutBuffer.slice(0, newlineIndex);
-      this.#stdoutBuffer = this.#stdoutBuffer.slice(newlineIndex + 1);
-      if (!line.trim()) {
-        continue;
-      }
-      let message;
-      try {
-        message = JSON.parse(line);
-      } catch (error) {
-        this.#fail(new Error(`Agent worker sent invalid JSON: ${error.message}`));
-        this.#child?.kill("SIGKILL");
-        return;
-      }
-      this.#handleMessage(message);
-    }
   }
 
   #handleMessage(message) {

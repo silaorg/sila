@@ -7,9 +7,21 @@ const lines = createInterface({
   crlfDelay: Infinity,
 });
 
+let ignoreStop = false;
+
 lines.on("line", (line) => {
   const request = JSON.parse(line);
   if (request.method === "handleThreadMessage") {
+    if (request.input.text === "__ignore_stop__") ignoreStop = true;
+    if (request.input.text === "__final_output__") {
+      process.stdout.write(JSON.stringify({
+        type: "response",
+        requestId: request.id,
+        ok: true,
+        result: { responded: true, answer: "Last response" },
+      }), () => process.exit(0));
+      return;
+    }
     if (request.input.text === "__crash__") {
       process.stdout.write('{"incomplete":', () => process.exit(17));
       return;
@@ -60,6 +72,7 @@ lines.on("line", (line) => {
   }
 
   if (request.method === "stop") {
+    if (ignoreStop) return;
     write({
       type: "response",
       requestId: request.id,

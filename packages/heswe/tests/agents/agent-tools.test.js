@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import { deepEqual, ok, strictEqual } from "node:assert";
 import { Lang } from "aiwrapper";
 import { createChatAgent } from "../../src/agent-runtime/chat-agent.js";
-import { createSlackChatAgent } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
   return {
@@ -33,12 +32,6 @@ function createPtyStub() {
     },
   };
 }
-
-describe("createSlackChatAgent", () => {
-  it("is a direct compatibility alias for createChatAgent", () => {
-    strictEqual(createSlackChatAgent, createChatAgent);
-  });
-});
 
 describe("createChatAgent", () => {
   it("includes web_search and local tools", () => {

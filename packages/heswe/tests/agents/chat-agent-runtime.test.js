@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
-import { deepEqual, equal, throws } from "node:assert/strict";
+import { deepEqual, equal, rejects, throws } from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Lang, LangMessages } from "aiwrapper";
-import { InProcessChatAgentRuntime, ThreadAgent } from "../../src/agent-runtime/index.js";
+import { InProcessChatAgentRuntime, processThreadMessage } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
   return {
@@ -79,18 +79,15 @@ describe("InProcessChatAgentRuntime", () => {
   });
 });
 
-describe("ThreadAgent", () => {
-  it("requires explicit instructions", () => {
-    const lang = Lang.mockOpenAI();
-    throws(
-      () =>
-        new ThreadAgent({
-          threadDir: process.cwd(),
-          threadId: "thread-1",
-          lang,
-          ptyManager: createPtyStub(),
-          defaultCwd: process.cwd(),
-        }),
+describe("processThreadMessage", () => {
+  it("requires explicit instructions", async () => {
+    await rejects(
+      processThreadMessage({
+        threadDir: process.cwd(),
+        threadId: "thread-1",
+        lang: Lang.mockOpenAI(),
+        ptyManager: createPtyStub(),
+      }, { userId: "user-1", text: "hello" }),
       /requires explicit non-empty instructions/i,
     );
   });
@@ -99,14 +96,14 @@ describe("ThreadAgent", () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const lang = Lang.mockOpenAI({ mockResponseText: "assistant reply" });
     lang.askForObject = async () => ({ object: { respond: true } });
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-1",
       lang,
       ptyManager: createPtyStub(),
       defaultCwd: process.cwd(),
       instructions: "Be helpful.",
-    });
+    };
     const logs = [];
     const originalConsoleLog = console.log;
     console.log = (message) => {
@@ -114,7 +111,7 @@ describe("ThreadAgent", () => {
     };
 
     try {
-      const result = await agent.processUserMessage({ userId: "user-1", text: "hello there" });
+      const result = await processThreadMessage(options, { userId: "user-1", text: "hello there" });
       equal(result.responded, true);
       equal(result.answer, "assistant reply");
     } finally {
@@ -131,14 +128,14 @@ describe("ThreadAgent", () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const lang = Lang.mockOpenAI();
     lang.askForObject = async () => ({ object: { respond: false } });
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-2",
       lang,
       ptyManager: createPtyStub(),
       defaultCwd: process.cwd(),
       instructions: "Be helpful.",
-    });
+    };
     const logs = [];
     const originalConsoleLog = console.log;
     console.log = (message) => {
@@ -146,7 +143,7 @@ describe("ThreadAgent", () => {
     };
 
     try {
-      const result = await agent.processUserMessage({ userId: "user-2", text: "thanks" });
+      const result = await processThreadMessage(options, { userId: "user-2", text: "thanks" });
       equal(result.responded, false);
       equal(result.answer, "");
     } finally {
@@ -165,7 +162,7 @@ describe("ThreadAgent", () => {
     lang.askForObject = async () => {
       throw new Error("response gate should not run");
     };
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-direct-chat",
       lang,
@@ -173,9 +170,9 @@ describe("ThreadAgent", () => {
       defaultCwd: process.cwd(),
       instructions: "Be helpful.",
       alwaysRespond: true,
-    });
+    };
 
-    const result = await agent.processUserMessage({
+    const result = await processThreadMessage(options, {
       userId: "user-direct",
       text: "thanks",
     });
@@ -189,7 +186,7 @@ describe("ThreadAgent", () => {
     const loopMessages = [];
     const progressMessages = [];
     let respondStartCount = 0;
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-tools",
       lang: createLoopingLang(),
@@ -205,7 +202,7 @@ describe("ThreadAgent", () => {
         progressMessages.push(payload);
       },
       instructions: "Be helpful.",
-    });
+    };
     const logs = [];
     const originalConsoleLog = console.log;
     console.log = (message) => {
@@ -213,7 +210,7 @@ describe("ThreadAgent", () => {
     };
 
     try {
-      const result = await agent.processUserMessage({ userId: "user-tools", text: "check that" });
+      const result = await processThreadMessage(options, { userId: "user-tools", text: "check that" });
       equal(result.responded, true);
       equal(result.answer, "final answer");
     } finally {
@@ -243,16 +240,16 @@ describe("ThreadAgent", () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-agent-"));
     const lang = Lang.mockOpenAI();
     lang.askForObject = async () => ({ object: { respond: false } });
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-jsonl",
       lang,
       ptyManager: createPtyStub(),
       defaultCwd: process.cwd(),
       instructions: "Be helpful.",
-    });
+    };
 
-    await agent.processUserMessage({ userId: "user-3", text: "hello jsonl" });
+    await processThreadMessage(options, { userId: "user-3", text: "hello jsonl" });
 
     const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
     const lines = raw.trim().split("\n").map((line) => JSON.parse(line));
@@ -274,16 +271,16 @@ describe("ThreadAgent", () => {
 
     const lang = Lang.mockOpenAI();
     lang.askForObject = async () => ({ object: { respond: false } });
-    const agent = new ThreadAgent({
+    const options = {
       threadDir,
       threadId: "thread-legacy",
       lang,
       ptyManager: createPtyStub(),
       defaultCwd: process.cwd(),
       instructions: "Be helpful.",
-    });
+    };
 
-    await agent.processUserMessage({ userId: "user-4", text: "new message" });
+    await processThreadMessage(options, { userId: "user-4", text: "new message" });
 
     const raw = await fs.readFile(path.join(threadDir, "messages.jsonl"), "utf8");
     const lines = raw.trim().split("\n").map((line) => JSON.parse(line));

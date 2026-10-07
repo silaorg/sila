@@ -2,7 +2,8 @@
 
 App agents run in a separate worker process from the public API. The API sends
 requests and receives progress events over newline-framed JSON on the worker's
-standard input and output.
+standard input and output. One worker serves each active workspace.
+The API starts it on the first message and can restart it after a crash.
 
 ```text
 SvelteKit API
@@ -10,17 +11,18 @@ SvelteKit API
     -> ProcessAgentRuntime
       -> agent worker process
         -> InProcessChatAgentRuntime
-          -> ThreadAgent
+          -> processThreadMessage
             -> aiwrapper ChatAgent
 ```
 
 The worker process loads the provider, instructions, workspace tools, and
 workspace environment. It does not receive authentication, database, or other
-control-plane secrets. Provider keys from the server environment are explicitly
-allowed for development compatibility; workspace `.env` values are preferred.
+API secrets. Provider keys from the server environment are explicitly
+allowed during development. Production keys belong in workspace settings.
 
-Development starts the worker directly with Node and does not provide a
-filesystem sandbox. Production starts the same worker in a locked-down Docker
+`npm run dev` starts workers directly with Node on the same machine.
+They are child processes of the API, not a separate service to start.
+The workspace is their working directory, not a filesystem boundary. Production starts the same worker in a locked-down Docker
 container using gVisor's `runsc` runtime. The API validates the fixed workspace
 mount and translates host paths to `/workspace` before sending them over the
 same protocol.

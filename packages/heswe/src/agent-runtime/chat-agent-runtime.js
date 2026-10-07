@@ -3,157 +3,105 @@ import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
 import { createChatAgent } from "./chat-agent.js";
 import { ThreadStore } from "../thread-store.js";
 
-export class ThreadAgent {
-  /** @type {string} */
-  #threadDir;
-  /** @type {import("aiwrapper").LanguageProvider} */
-  #lang;
-  /** @type {string} */
-  #instructions;
-  /** @type {string} */
-  #threadId;
-  /** @type {PTYShellSessionManager} */
-  #ptyManager;
-  /** @type {string} */
-  #defaultCwd;
-  /** @type {Array<any>} */
-  #customTools;
-  /** @type {Record<string, string>} */
-  #environment;
-  /** @type {ThreadStore} */
-  #threadStore;
-  /** @type {undefined | ((payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>)} */
-  #sendTelegramFile;
-  /** @type {undefined | ((payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>)} */
-  #sendSlackFile;
-  /** @type {undefined | ((payload: { text: string; toolNames: string[] }) => Promise<void>)} */
-  #onAssistantLoopMessage;
-  /** @type {undefined | ((payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>)} */
-  #onAssistantProgress;
-  /** @type {undefined | (() => Promise<void>)} */
-  #onAssistantResponding;
-  /** @type {boolean} */
-  #alwaysRespond;
-
-  /**
-   * @param {{
-   *  threadDir: string;
-   *  threadId: string;
-   *  lang: import("aiwrapper").LanguageProvider;
-   *  ptyManager: PTYShellSessionManager;
-   *  defaultCwd?: string;
-   *  customTools?: Array<any>;
-   *  environment?: Record<string, string>;
-   *  threadStore?: ThreadStore;
-   *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
-   *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
-   *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
-   *  onAssistantProgress?: (payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>;
-   *  onAssistantResponding?: () => Promise<void>;
-   *  alwaysRespond?: boolean;
-   *  instructions: string;
-   * }} options
-   */
-  constructor(options) {
-    this.#threadDir = options.threadDir;
-    this.#threadId = options.threadId;
-    this.#lang = options.lang;
-    this.#ptyManager = options.ptyManager;
-    this.#defaultCwd = options.defaultCwd ?? process.cwd();
-    this.#customTools = Array.isArray(options.customTools) ? options.customTools : [];
-    this.#environment = normalizeEnvironment(options.environment);
-    this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
-    this.#sendTelegramFile = options.sendTelegramFile;
-    this.#sendSlackFile = options.sendSlackFile;
-    this.#onAssistantLoopMessage = typeof options.onAssistantLoopMessage === "function"
-      ? options.onAssistantLoopMessage
-      : undefined;
-    this.#onAssistantProgress = typeof options.onAssistantProgress === "function"
-      ? options.onAssistantProgress
-      : undefined;
-    this.#onAssistantResponding = typeof options.onAssistantResponding === "function"
-      ? options.onAssistantResponding
-      : undefined;
-    this.#alwaysRespond = options.alwaysRespond === true;
-    this.#instructions = requireInstructions(options.instructions, "ThreadAgent");
-  }
-
-  /**
-   * @param {{ userId: string; text: string; publicText?: string; attachments?: Array<Record<string, unknown>> }} input
-   * @returns {Promise<{ responded: boolean; answer: string }>}
-   */
-  async processUserMessage(input) {
-    const agent = await loadThreadAgent(this.#threadDir, this.#lang, {
-      threadId: this.#threadId,
-      ptyManager: this.#ptyManager,
-      defaultCwd: this.#defaultCwd,
-      customTools: this.#customTools,
-      environment: this.#environment,
-      threadStore: this.#threadStore,
-      sendTelegramFile: this.#sendTelegramFile,
-      sendSlackFile: this.#sendSlackFile,
-    });
-    agent.messages.instructions = this.#instructions;
-    console.log(
-      `[thread ${this.#threadId}] user message received (${input.text.length} chars)`,
-    );
-    agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
-    const userMessage = agent.messages[agent.messages.length - 1];
-    if (input.publicText !== undefined || input.attachments?.length) {
-      userMessage.meta = {
-        ...(userMessage.meta ?? {}),
-        app: {
-          text: input.publicText ?? input.text,
-          attachments: Array.isArray(input.attachments) ? input.attachments : [],
-        },
-      };
-    }
-    await this.#threadStore.appendMessages(this.#threadDir, [
-      userMessage,
-    ]);
-
-    const shouldSendReply = this.#alwaysRespond
-      || await decideShouldRespond(this.#lang, agent);
-    if (!shouldSendReply) {
-      console.log(`[thread ${this.#threadId}] assistant: [no response]`);
-      return { responded: false, answer: "" };
-    }
-
-    if (this.#onAssistantResponding) {
-      await this.#onAssistantResponding();
-    }
-
-    const loopLogger = subscribeToAgentLoopLogs(
-      this.#threadId,
-      agent,
-      this.#onAssistantLoopMessage,
-      this.#onAssistantProgress,
-    );
-    const persistedMessageCount = agent.messages.length;
-    let result;
-    try {
-      result = await agent.run([]);
-    } catch (error) {
-      loopLogger.flushPending();
-      throw error;
-    } finally {
-      loopLogger.unsubscribe();
-      await this.#threadStore.appendMessages(
-        this.#threadDir,
-        agent.messages.slice(persistedMessageCount),
-      );
-    }
-    await loopLogger.waitForPending();
-    const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
-    console.log(
-      `[thread ${this.#threadId}] assistant response completed (${answer.length} chars)`,
-    );
-
-    return {
-      responded: true,
-      answer,
+/**
+ * @param {{
+ *  threadDir: string;
+ *  threadId: string;
+ *  lang: import("aiwrapper").LanguageProvider;
+ *  ptyManager: PTYShellSessionManager;
+ *  defaultCwd?: string;
+ *  customTools?: Array<any>;
+ *  environment?: Record<string, string>;
+ *  threadStore?: ThreadStore;
+ *  sendTelegramFile?: (payload: { path: string; kind: "photo" | "video" | "audio" | "voice" | "document"; caption?: string }) => Promise<any>;
+ *  sendSlackFile?: (payload: { path?: string; files?: Array<{ path: string; filename?: string; title?: string }>; title?: string; comment?: string }) => Promise<any>;
+ *  onAssistantLoopMessage?: (payload: { text: string; toolNames: string[] }) => Promise<void>;
+ *  onAssistantProgress?: (payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>;
+ *  onAssistantResponding?: () => Promise<void>;
+ *  alwaysRespond?: boolean;
+ *  instructions: string;
+ * }} options
+ * @param {{ userId: string; text: string; publicText?: string; attachments?: Array<Record<string, unknown>> }} input
+ * @returns {Promise<{ responded: boolean; answer: string }>}
+ */
+export async function processThreadMessage(options, input) {
+  const {
+    threadDir,
+    threadId,
+    lang,
+    onAssistantResponding,
+    onAssistantLoopMessage,
+    onAssistantProgress,
+  } = options;
+  const instructions = requireInstructions(options.instructions, "processThreadMessage");
+  const threadStore = options.threadStore ?? new ThreadStore();
+  const alwaysRespond = options.alwaysRespond === true;
+  const agent = createChatAgent(lang, {
+    ...options,
+    defaultCwd: options.defaultCwd ?? process.cwd(),
+    environment: normalizeEnvironment(options.environment),
+  });
+  agent.messages.push(...await threadStore.loadMessages(threadDir));
+  agent.messages.instructions = instructions;
+  console.log(
+    `[thread ${threadId}] user message received (${input.text.length} chars)`,
+  );
+  agent.messages.addUserMessage(`<@${input.userId}>: ${input.text}`);
+  const userMessage = agent.messages[agent.messages.length - 1];
+  if (input.publicText !== undefined || input.attachments?.length) {
+    userMessage.meta = {
+      ...(userMessage.meta ?? {}),
+      app: {
+        text: input.publicText ?? input.text,
+        attachments: Array.isArray(input.attachments) ? input.attachments : [],
+      },
     };
   }
+  await threadStore.appendMessages(threadDir, [
+    userMessage,
+  ]);
+
+  const shouldSendReply = alwaysRespond
+    || await decideShouldRespond(lang, agent);
+  if (!shouldSendReply) {
+    console.log(`[thread ${threadId}] assistant: [no response]`);
+    return { responded: false, answer: "" };
+  }
+
+  if (onAssistantResponding) {
+    await onAssistantResponding();
+  }
+
+  const loopLogger = subscribeToAgentLoopLogs(
+    threadId,
+    agent,
+    onAssistantLoopMessage,
+    onAssistantProgress,
+  );
+  const persistedMessageCount = agent.messages.length;
+  let result;
+  try {
+    result = await agent.run([]);
+  } catch (error) {
+    loopLogger.flushPending();
+    throw error;
+  } finally {
+    loopLogger.unsubscribe();
+    await threadStore.appendMessages(
+      threadDir,
+      agent.messages.slice(persistedMessageCount),
+    );
+  }
+  await loopLogger.waitForPending();
+  const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
+  console.log(
+    `[thread ${threadId}] assistant response completed (${answer.length} chars)`,
+  );
+
+  return {
+    responded: true,
+    answer,
+  };
 }
 
 export class InProcessChatAgentRuntime {
@@ -239,7 +187,7 @@ export class InProcessChatAgentRuntime {
     );
 
     try {
-      const agent = new ThreadAgent({
+      return await processThreadMessage({
         threadId: input.threadId,
         threadDir: input.threadDir,
         lang: this.#lang,
@@ -255,13 +203,7 @@ export class InProcessChatAgentRuntime {
         onAssistantResponding: input.onAssistantResponding,
         alwaysRespond: this.#alwaysRespond,
         instructions,
-      });
-      return await agent.processUserMessage({
-        userId: input.userId,
-        text: input.text,
-        publicText: input.publicText,
-        attachments: input.attachments,
-      });
+      }, input);
     } finally {
       if (
         !ptyManager.hasActiveSessions()
@@ -487,14 +429,4 @@ ${historyText}
     console.error("Failed to run respond/no-respond decision; defaulting to respond:", error);
     return true;
   }
-}
-
-async function loadThreadAgent(threadDir, lang, options) {
-  const agent = createChatAgent(lang, options);
-  const threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
-  const messages = await threadStore.loadMessages(threadDir);
-  if (messages.length > 0) {
-    agent.messages.push(...messages);
-  }
-  return agent;
 }

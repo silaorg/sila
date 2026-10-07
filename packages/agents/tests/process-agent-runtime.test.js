@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -138,7 +139,7 @@ test("ProcessAgentRuntime restarts cleanly after partial output and a worker cra
 
   await assert.rejects(
     runtime.handleThreadMessage({ ...input, text: "__crash__" }),
-    /exited with code 17/,
+    /Agent worker sent invalid JSON/,
   );
   const result = await runtime.handleThreadMessage({
     ...input,
@@ -146,5 +147,71 @@ test("ProcessAgentRuntime restarts cleanly after partial output and a worker cra
   });
 
   assert.equal(result.answer, "After restart");
+  await runtime.stop();
+});
+
+
+test("ProcessAgentRuntime receives final output before the worker closes", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const runtime = new ProcessAgentRuntime({ workspacePath, workerPath: TEST_WORKER_PATH });
+  t.after(() => runtime.stop());
+
+  const result = await runtime.handleThreadMessage({
+    threadId: "thread-1",
+    threadDir: path.join(workspacePath, "thread-1"),
+    userId: "user-1",
+    text: "__final_output__",
+  });
+  assert.equal(result.answer, "Last response");
+});
+
+test("ProcessAgentRuntime can retry after a launch failure", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  let launches = 0;
+  const runtime = new ProcessAgentRuntime({
+    workspacePath,
+    workerPath: TEST_WORKER_PATH,
+    spawnProcess(command, args, options) {
+      launches += 1;
+      return spawn(launches === 1 ? path.join(workspacePath, "missing-node") : command, args, options);
+    },
+  });
+  t.after(() => runtime.stop());
+  const input = {
+    threadId: "thread-1",
+    threadDir: path.join(workspacePath, "thread-1"),
+    userId: "user-1",
+    text: "Hello",
+  };
+
+  await assert.rejects(runtime.handleThreadMessage(input), { code: "ENOENT" });
+  assert.equal((await runtime.handleThreadMessage(input)).answer, "Hello");
+});
+
+test("ProcessAgentRuntime kills a worker that never acknowledges stop", { timeout: 10_000 }, async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  let child;
+  const runtime = new ProcessAgentRuntime({
+    workspacePath,
+    workerPath: TEST_WORKER_PATH,
+    spawnProcess(...args) {
+      child = spawn(...args);
+      return child;
+    },
+  });
+  t.after(() => child?.kill("SIGKILL"));
+  const input = {
+    threadId: "thread-1",
+    threadDir: path.join(workspacePath, "thread-1"),
+    userId: "user-1",
+  };
+  await runtime.handleThreadMessage({ ...input, text: "__ignore_stop__" });
+
+  await assert.rejects(runtime.stop(), /Agent worker did not stop/);
+  assert.equal(child.signalCode, "SIGKILL");
+  assert.equal((await runtime.handleThreadMessage({ ...input, text: "After stop" })).answer, "After stop");
   await runtime.stop();
 });

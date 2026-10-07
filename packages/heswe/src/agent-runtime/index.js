@@ -1,6 +1,6 @@
 export {
   InProcessChatAgentRuntime,
-  ThreadAgent,
+  processThreadMessage,
 } from "./chat-agent-runtime.js";
 export {
   LEGACY_THREAD_MESSAGES_FILE_NAME,
@@ -10,7 +10,6 @@ export {
 export {
   BUILT_IN_TOOL_NAMES,
   createChatAgent,
-  createChatAgent as createSlackChatAgent,
 } from "./chat-agent.js";
 export {
   buildManagedInstructionBlocks,

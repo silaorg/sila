@@ -1,16 +1,7 @@
-# heswe
+# Heswe workspace runtime
 
-Heswe runs AI agents inside portable workspaces. A workspace keeps
-conversations, shared files, agent instructions, skills, tools, provider
-settings, and results together in one directory that can be backed up or moved
-as a unit.
-
-Agents can work with files, run commands, call tools, and report progress
-through the hosted app, Slack, or Telegram. This package contains the workspace
-configuration, storage, channels, CLI, and agent runtime that make that
-possible.
-
-Website: [heswe.com](https://heswe.com)
+This package loads workspace settings and runs agents, tools, and channels.
+It also stores conversations and files, and provides the workspace CLI.
 
 ## CLI
 
