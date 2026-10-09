@@ -9,6 +9,62 @@ import {
   ProcessAgentRuntime,
   createAgentWorkerEnvironment,
 } from "../src/index.js";
+import { MOCK_REPLIES } from "../../heswe/src/mock-language-provider.js";
+
+test("the real worker uses mock without keys and preserves each thread's cycle across restarts", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-mock-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const runtime = new ProcessAgentRuntime({ workspacePath, environment: { PATH: process.env.PATH } });
+  t.after(() => runtime.stop());
+  const input = { threadId: "cycle", threadDir: path.join(workspacePath, "cycle"), userId: "tester" };
+  for (let turn = 0; turn < 12; turn += 1) {
+    const reply = await runtime.handleThreadMessage({ ...input, text: turn % 2 ? "thanks" : "hello" });
+    assert.equal(reply.responded, true);
+    assert.equal(reply.answer, MOCK_REPLIES[turn % 10]);
+    if (turn === 4) await runtime.stop();
+  }
+  const [first, second] = await Promise.all(["other-a", "other-b"].map((threadId) =>
+    runtime.handleThreadMessage({ threadId, threadDir: path.join(workspacePath, threadId), userId: "tester", text: "hello" }),
+  ));
+  assert.equal(first.answer, "Hey!");
+  assert.equal(second.answer, "Hey!");
+});
+
+test("mock runs real file tools once and persists requests and results across worker restarts", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-mock-tools-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const runtime = new ProcessAgentRuntime({ workspacePath, environment: { PATH: process.env.PATH } });
+  t.after(() => runtime.stop());
+  const input = { threadId: "mock-thread", threadDir: path.join(workspacePath, "mock-thread"), userId: "tester" };
+  const run = (name, inputs) => runtime.handleThreadMessage({
+    ...input, text: `tool: ${name}\n${JSON.stringify(inputs)}`,
+  });
+  const progress = [];
+  const operation = { type: "create_file", path: "notes with spaces.md", diff: "+Mock tool file content\n" };
+  const created = await runtime.handleThreadMessage({
+    ...input, text: `tool: apply_patch\n${JSON.stringify({ operation })}`,
+    onAssistantProgress(payload) { progress.push(...payload.tools); },
+  });
+  assert.match(created.answer, /Tool result: apply_patch/);
+  assert.equal(await fs.readFile(path.join(input.threadDir, "notes with spaces.md"), "utf8"), "Mock tool file content");
+  assert.ok(progress.some((tool) => tool.name === "apply_patch" && tool.arguments.operation?.path === operation.path));
+  await runtime.stop();
+  const read = await run("read_document", { path: "notes with spaces.md" });
+  assert.match(read.answer, /Mock tool file content/);
+  await run("execute_command", { command: "mkdir -p archive && mv 'notes with spaces.md' 'archive/renamed notes.md'" });
+  assert.match((await run("read_document", { path: "archive/renamed notes.md" })).answer, /Mock tool file content/);
+  assert.match((await run("read_document", { path: "notes with spaces.md" })).answer, /File not found/);
+  await runtime.stop();
+  assert.equal((await runtime.handleThreadMessage({ ...input, text: "hello" })).answer, "Hey!");
+  const events = (await fs.readFile(path.join(input.threadDir, "messages.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const items = events.flatMap((event) => event.message?.items ?? []);
+  const calls = items.filter((item) => item.type === "tool");
+  const results = items.filter((item) => item.type === "tool-result");
+  assert.equal(calls.length, 5);
+  assert.equal(results.length, 5);
+  assert.deepEqual(results.map((item) => item.callId), calls.map((item) => item.callId));
+  assert.equal(new Set(calls.map((item) => item.callId)).size, 5);
+});
 
 const TEST_WORKER_PATH = fileURLToPath(
   new URL("./fixtures/test-worker.js", import.meta.url),

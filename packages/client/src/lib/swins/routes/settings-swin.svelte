@@ -151,6 +151,7 @@
 			<form class="preferences-form" onsubmit={savePreferences}>
 				<p class="settings-description">
 					Choose the default provider and model for new conversations.
+					Automatic uses Mock when no other provider is configured.
 				</p>
 				<label class="settings-field">
 					<span>Provider</span>
@@ -159,6 +160,7 @@
 						value={provider}
 						disabled={busy}
 						onchange={(event) => {
+							saved = false;
 							provider = event.currentTarget.value;
 							if (provider === 'auto') model = 'auto';
 							else {
@@ -177,7 +179,7 @@
 					<span>Model</span>
 					<input
 						class="input"
-						disabled={busy || provider === 'auto'}
+						disabled={busy || provider === 'auto' || provider === 'mock'}
 						bind:value={model}
 						oninput={() => (saved = false)}
 					/>

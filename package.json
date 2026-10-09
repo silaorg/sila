@@ -8,8 +8,12 @@
   "scripts": {
     "workspace": "node packages/heswe/src/cli.js",
     "dev": "node scripts/dev.mjs",
+    "dev:desktop": "node scripts/dev.mjs --desktop",
+    "build:desktop": "npm run build -w @heswe/desktop",
+    "start:desktop": "node scripts/dev.mjs --desktop-built",
     "dev:api-only": "node scripts/dev.mjs --api-only",
     "dev:services": "concurrently --kill-others-on-fail -n api,dashboard -c yellow,cyan \"npm run dev:api\" \"npm run dev:dashboard\"",
+    "dev:desktop:services": "concurrently --kill-others --success first -n api,desktop -c yellow,cyan \"npm run dev:api\" \"npm run dev -w @heswe/desktop\"",
     "dev:api": "npm run dev -w web",
     "dev:dashboard": "npm run dev:dashboard -w web",
     "dev:ports": "node scripts/dev.mjs --ports",

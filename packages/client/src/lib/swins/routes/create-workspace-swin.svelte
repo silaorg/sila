@@ -24,7 +24,6 @@
 </script>
 
 <div class="space-y-4">
-	<h3 class="text-lg font-semibold">Create workspace</h3>
 	<form class="space-y-4" onsubmit={submit}>
 		<div class="form-control">
 			<label class="label" for="workspace-name">
@@ -54,8 +53,7 @@
 				{#each presets as preset}
 					<button
 						type="button"
-						class="btn btn-sm preset-outlined"
-						class:preset-filled={name === preset}
+						class="btn btn-sm {name === preset ? 'preset-tonal-primary' : 'preset-outlined-surface-500'}"
 						disabled={creating}
 						onclick={() => (name = preset)}
 					>
@@ -68,7 +66,7 @@
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<button
 				type="button"
-				class="btn preset-ghost"
+				class="btn preset-outlined-surface-500"
 				disabled={creating}
 				onclick={() => workspaceUi.swins.pop()}
 			>

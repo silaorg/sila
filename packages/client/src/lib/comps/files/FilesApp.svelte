@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import FolderPlus from 'lucide-svelte/icons/folder-plus';
+	import FolderOpen from 'lucide-svelte/icons/folder-open';
 	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
 	import Upload from 'lucide-svelte/icons/upload';
 	import type { WorkspaceFsEntry } from '../../api-client';
@@ -226,7 +227,7 @@
 	}
 
 	async function createFolder() {
-		if (creatingFolderPending) return;
+		if (!creatingFolder || creatingFolderPending) return;
 		const name = newFolderName.trim();
 		if (!name) {
 			creatingFolder = false;
@@ -347,12 +348,12 @@
 		class:border-primary-500={externalDragOver}
 	>
 		<div class="mx-auto w-full max-w-4xl">
-			<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<div class="files-toolbar">
 				<FileBrowserBreadcrumbs path={currentPath} onNavigate={(path) => void loadDirectory(path)} />
 				<div class="flex flex-wrap items-center gap-2">
 					<button
 						type="button"
-						class="btn btn-sm preset-outline gap-2"
+						class="btn btn-sm preset-outlined-surface-500 gap-2"
 						disabled={uploading}
 						onclick={() => fileInput?.click()}
 					>
@@ -364,7 +365,7 @@
 							Upload files
 						{/if}
 					</button>
-					<button type="button" class="btn btn-sm preset-outline gap-2" onclick={beginCreateFolder}>
+					<button type="button" class="btn btn-sm preset-outlined-surface-500 gap-2" onclick={beginCreateFolder}>
 						<FolderPlus size={16} />
 						New folder
 					</button>
@@ -385,6 +386,14 @@
 
 			{#if loading && entries.length === 0}
 				<p class="py-8 text-sm text-surface-500">Loading files…</p>
+			{:else if entries.length === 0 && !creatingFolder}
+				<div class="files-empty">
+					<FolderOpen size={32} class="text-surface-500" />
+					<div>
+						<p class="text-sm font-medium">This folder is empty</p>
+						<p class="mt-1 text-sm text-surface-600-400">Upload files or drop them here to get started.</p>
+					</div>
+				</div>
 			{:else}
 				<div
 					class="flex min-h-32 flex-wrap content-start gap-3 select-none focus:outline-none"
@@ -403,17 +412,21 @@
 					{#if creatingFolder}
 						<div class="flex w-32 flex-col items-center rounded-lg bg-surface-100-900 p-3">
 							<div class="mb-2 flex size-20 items-center justify-center">
-								<FolderPlus size={64} class="text-blue-500" />
+								<FolderPlus size={64} class="text-primary-500" />
 							</div>
 							<input
 								class="w-full border-0 bg-transparent p-0 text-center text-xs outline-none ring-0"
 								bind:this={newFolderInput}
 								bind:value={newFolderName}
 								onkeydown={(event) => {
+									event.stopPropagation();
 									if (event.key === 'Enter') {
 										event.preventDefault();
 										void createFolder();
-									} else if (event.key === 'Escape') creatingFolder = false;
+									} else if (event.key === 'Escape') {
+										event.preventDefault();
+										creatingFolder = false;
+									}
 								}}
 								onblur={() => void createFolder()}
 							/>
@@ -436,14 +449,6 @@
 						/>
 					{/each}
 				</div>
-
-				{#if !loading && entries.length === 0 && !creatingFolder}
-					<p class="py-8 text-sm text-surface-500">
-						This folder is empty.
-						<button type="button" class="anchor" onclick={() => fileInput?.click()}>Upload a file</button>
-						or move files here.
-					</p>
-				{/if}
 			{/if}
 		</div>
 	</div>

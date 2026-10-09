@@ -142,7 +142,7 @@
 	height: min(560px, calc(100dvh - 48px));
 }
 
-.settings-window .swins-content {
+.settings-window .swins-content, .files-window .swins-content {
 	display: flex;
 	padding: 0;
 	overflow: hidden;
@@ -230,7 +230,7 @@
 	color: var(--color-surface-600-400);
 }
 
-.settings-panel :is(.btn, .input, .select) {
+.swins-window :is(.btn, .input, .select) {
 	min-height: 32px;
 	font-size: 13px;
 	border-radius: 5px;
@@ -254,7 +254,66 @@
 	place-items: center;
 	width: 36px;
 	height: 36px;
+	padding: 7px;
+	overflow: hidden;
 	border-radius: 7px;
+}
+
+.provider-logo img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+
+.files-window {
+	height: min(520px, calc(100dvh - 48px));
+}
+
+.files-swin {
+	width: 100%;
+	min-height: 0;
+	flex: 1;
+}
+
+.file-picker-swin {
+	display: flex;
+	flex-direction: column;
+}
+
+.file-picker-body {
+	min-height: 0;
+	flex: 1;
+}
+
+.file-picker-footer {
+	display: flex;
+	flex: none;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 16px;
+	border-top: 1px solid var(--app-line);
+}
+
+.files-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+	font-size: 13px;
+}
+
+.files-empty {
+	display: flex;
+	min-height: 280px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 32px 16px;
+	text-align: center;
 }
 
 .provider-body {
@@ -414,12 +473,12 @@
 		overscroll-behavior-y: contain;
 	}
 
-	.swins-content .files-scroll {
-		padding: 0;
+	.settings-window, .files-window {
+		height: 100%;
 	}
 
-	.settings-window {
-		height: 100%;
+	.files-toolbar {
+		font-size: 15px;
 	}
 
 	.settings-layout {

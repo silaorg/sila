@@ -3,6 +3,7 @@ import path from "node:path";
 import { Lang } from "aiwrapper";
 import { z } from "zod";
 import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
+import { createMockLanguageProvider } from "./mock-language-provider.js";
 import {
   readEnvValue,
   readWorkspaceEnvironment,
@@ -13,9 +14,10 @@ import {
 const PROVIDERS_DIR_NAME = "providers";
 const DEFAULT_AGENT_CONFIG_RELATIVE_PATH = path.join("agents", "default", "config.json");
 const PROVIDER_CONFIG_FILE_NAME = "config.json";
-const DEFAULT_PROVIDER_ID = "openai";
+const DEFAULT_PROVIDER_ID = "mock";
 export const PROVIDER_CONFIG_ERROR_CODE = "provider_config";
 const PROVIDER_LABELS = Object.freeze({
+  mock: "Mock",
   openai: "OpenAI",
   anthropic: "Anthropic",
   google: "Google Gemini",
@@ -32,6 +34,13 @@ const PROVIDER_LABELS = Object.freeze({
 });
 
 const PROVIDER_SPECS = Object.freeze({
+  mock: Object.freeze({
+    envVarName: null,
+    defaultModel: "mock-cycle",
+    priority: 100,
+    kind: "language",
+    local: true,
+  }),
   openai: Object.freeze({
     envVarName: "OPENAI_API_KEY",
     defaultModel: "gpt-5.4",
@@ -258,7 +267,7 @@ export async function readWorkspaceModelSettings(workspacePath) {
         local: Boolean(spec.local),
         defaultModel: spec.defaultModel,
         model: config?.model ?? null,
-        enabled: config?.enabled ?? null,
+        enabled: config?.enabled ?? (id === "mock" ? true : null),
         apiKeySource: workspaceKey ? "workspace" : serverKey ? "server" : "none",
       };
     }),
@@ -370,7 +379,10 @@ function resolveAutoProviderId(providerConfigs, workspaceEnvironment) {
   const providerIds = new Set();
 
   for (const config of providerConfigs) {
-    if (config.enabled !== false) {
+    const spec = getProviderSpec(config.id);
+    const available = spec?.local
+      || isProviderImplicitlyEnabled(config.id, providerConfigs, workspaceEnvironment);
+    if (config.enabled !== false && available) {
       providerIds.add(config.id);
     }
   }
@@ -405,6 +417,10 @@ function getProviderSpec(providerId) {
 }
 
 function createLanguageProvider(providerId, model, apiKey, providerSpec) {
+  if (providerId === "mock") {
+    return createMockLanguageProvider(model);
+  }
+
   if (providerId === "kimi") {
     return Lang.openaiLike({
       apiKey,
@@ -430,7 +446,7 @@ function createLanguageProvider(providerId, model, apiKey, providerSpec) {
 
 function isProviderImplicitlyEnabled(providerId, providerConfigs, workspaceEnvironment) {
   const providerSpec = getProviderSpec(providerId);
-  if (!providerSpec || !providerSpec.envVarName) {
+  if (!providerSpec) {
     return false;
   }
 
@@ -438,6 +454,9 @@ function isProviderImplicitlyEnabled(providerId, providerConfigs, workspaceEnvir
   if (configuredProvider && configuredProvider.enabled === false) {
     return false;
   }
+
+  if (providerId === "mock") return true;
+  if (!providerSpec.envVarName) return false;
 
   return Boolean(
     readEnvValue(providerSpec.envVarName)

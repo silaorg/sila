@@ -42,7 +42,12 @@ workspace/
 `config.json` contains the workspace name and format version. `.env` contains
 provider and integration secrets. `agents/default/config.json` selects a
 language provider and model; `auto` chooses the first configured provider with
-an available key.
+an available key, or the built-in Mock provider when none is available. Mock
+cycles through ten fixed replies independently in each thread. Its position
+is stored with assistant messages, so it survives runtime restarts. It needs
+no model API or key. Messages beginning with `tool: <name>` followed by JSON
+object inputs call the named tool through the normal agent runtime and return
+its result or error. Tool commands do not advance the fixed reply cycle.
 
 `heswe create <path>` scaffolds the root config, provider config, `.env`, and
 one Slack or Telegram channel. `heswe run <path>` starts every recognized

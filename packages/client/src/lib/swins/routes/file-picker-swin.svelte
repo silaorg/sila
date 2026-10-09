@@ -19,8 +19,8 @@
 	}
 </script>
 
-<div class="flex flex-col gap-3">
-	<div class="h-[min(36rem,calc(100vh-17rem))] min-h-72">
+<div class="files-swin file-picker-swin">
+	<div class="file-picker-body">
 		<FilesApp
 			onFileOpen={(file) => pickAndClose([file])}
 			onSelectionChange={(entries) => {
@@ -31,8 +31,8 @@
 			}}
 		/>
 	</div>
-	<div class="flex justify-end gap-2">
-		<button type="button" class="btn preset-ghost" onclick={() => workspaceUi.swins.pop()}>
+	<div class="file-picker-footer">
+		<button type="button" class="btn preset-outlined-surface-500" onclick={() => workspaceUi.swins.pop()}>
 			Cancel
 		</button>
 		<button

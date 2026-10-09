@@ -53,7 +53,7 @@
 
 <div
 	bind:this={menuElement}
-	class="card fixed z-50 flex rounded-md border border-surface-100-900 bg-surface-50-950 text-sm shadow-lg"
+	class="file-mention-menu card fixed z-50 flex rounded-md border border-surface-100-900 bg-surface-50-950 text-sm shadow-lg"
 	role="menu"
 	tabindex="-1"
 	onmousedown={(event) => event.stopPropagation()}
@@ -71,10 +71,8 @@
 					class:bg-surface-100-900={index === selectedIndex}
 					onmouseenter={() => hoveredIndex = index}
 					onmouseleave={() => hoveredIndex = null}
-					onmousedown={(event) => {
-						event.preventDefault();
-						onFilePick(file, event);
-					}}
+					onmousedown={(event) => event.preventDefault()}
+					onclick={(event) => onFilePick(file, event)}
 				>
 					<FileText size={15} class="shrink-0 opacity-60" />
 					<span class="min-w-0">
@@ -90,7 +88,7 @@
 	</div>
 
 	{#if previewFile}
-		<div class="flex w-[280px] items-center justify-center border-l border-surface-100-900 p-3">
+		<div class="file-mention-preview flex w-[280px] items-center justify-center border-l border-surface-100-900 p-3">
 			{#if previewFile.kind === 'image'}
 				<img
 					src={previewFile.url}
@@ -107,3 +105,19 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.file-mention-menu {
+		max-width: calc(100vw - 16px);
+	}
+
+	@media (max-width: 720px) {
+		.file-mention-preview {
+			display: none;
+		}
+
+		.file-mention-menu button {
+			min-height: 44px;
+		}
+	}
+</style>

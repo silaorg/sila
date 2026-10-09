@@ -220,7 +220,11 @@ export function createDevEnvironment({
   };
 }
 
-export async function runDev({ dashboardEnabled = true } = {}) {
+export async function runDev({
+  dashboardEnabled = true,
+  desktopEnabled = false,
+  desktopBuilt = false,
+} = {}) {
   const reservation = await reserveAvailablePortPair({ dashboardEnabled });
   const { apiPort, dashboardPort } = reservation;
   const apiUrl = `http://${DEV_HOST}:${apiPort}`;
@@ -230,7 +234,7 @@ export async function runDev({ dashboardEnabled = true } = {}) {
   console.log("Heswe dev stack");
   console.log(`  API:       ${apiUrl}`);
   if (dashboardEnabled) {
-    console.log(`  Dashboard: ${dashboardUrl}`);
+    console.log(`  ${desktopEnabled ? "Desktop" : "Dashboard"}: ${dashboardUrl}`);
   }
   if (apiPort !== DEFAULT_API_PORT) {
     console.log(`  Ports ${DEFAULT_API_PORT}/${DEFAULT_API_PORT + 1} were unavailable.`);
@@ -240,9 +244,14 @@ export async function runDev({ dashboardEnabled = true } = {}) {
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   const child = spawn(
     npmCommand,
-    ["run", dashboardEnabled ? "dev:services" : "dev:api"],
+    ["run", desktopEnabled
+      ? "dev:desktop:services"
+      : dashboardEnabled ? "dev:services" : "dev:api"],
     {
-      env: createDevEnvironment(reservation),
+      env: {
+        ...createDevEnvironment(reservation),
+        ...(desktopBuilt ? { HESWE_DESKTOP_BUILT: "1" } : {}),
+      },
       stdio: "inherit",
     },
   );
@@ -306,7 +315,11 @@ if (isMainModule) {
   if (process.argv[2] === "--ports") {
     printDevPorts();
   } else {
-    runDev({ dashboardEnabled: process.argv[2] !== "--api-only" }).catch((error) => {
+    runDev({
+      dashboardEnabled: process.argv[2] !== "--api-only",
+      desktopEnabled: ["--desktop", "--desktop-built"].includes(process.argv[2]),
+      desktopBuilt: process.argv[2] === "--desktop-built",
+    }).catch((error) => {
       console.error(`Unable to start Heswe: ${error.message}`);
       process.exitCode = 1;
     });

@@ -16,6 +16,7 @@ Website: [heswe.com](https://heswe.com)
   the current agent runtime implementation.
 - `packages/client` contains the shared Svelte UI and API client.
 - `packages/web` contains the SvelteKit server, authentication, and web routes.
+- `packages/desktop` contains the thin Electron shell for the shared client.
 
 Read [how workspaces work](docs/dev/how-workspaces-work.md), [how agents work](docs/dev/how-agents-work.md), and [how the hosted app works](docs/dev/how-the-hosted-app-works.md).
 
@@ -38,7 +39,30 @@ filesystem permissions as the user running the server.
 
 Use `npm run dev:api-only` when the dashboard entry point is not needed.
 
-Sign up, create a workspace, and add a provider key in its settings.
+To launch the native desktop app, run `npm run dev:desktop`. It uses the same
+client package and local API as the web app. Quit the desktop app to stop its
+services. To launch a built client, run `npm run build:desktop` followed by
+`npm run start:desktop`. See [desktop setup](packages/desktop/README.md).
+
+Sign up and create a workspace. Automatic provider selection uses the built-in
+Mock provider when no real provider is configured. It cycles through ten fixed
+replies of different lengths in each thread, starting with `Hey!` and repeating
+after reply ten. The cycle survives app restarts. Mock is available in every
+build and can be selected in Workspace settings → Preferences.
+Add a provider key in settings to use a real model.
+Mock can also run real tools using a tool name and JSON inputs:
+
+```text
+tool: read_document
+{"path":"notes.md"}
+```
+
+Put the command at the start of the message. Inputs must be a JSON object;
+they can follow the tool name on the same line or the next line. The tool runs
+once through the normal agent runtime, and Mock shows its result or error.
+Tool commands do not advance the reply cycle.
+Relative file paths start in the thread directory; use an absolute path for
+other workspace files.
 For development, you can also set a key such as `OPENAI_API_KEY` in the
 server environment.
 The workspace CLI remains available for standalone Slack and Telegram

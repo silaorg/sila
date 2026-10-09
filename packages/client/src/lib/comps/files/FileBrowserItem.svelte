@@ -76,6 +76,7 @@
 	onclick={onSelect}
 	onmousedown={onMouseDown}
 	onkeydown={(event) => {
+		if (renaming || event.target !== event.currentTarget) return;
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			onOpen();
@@ -86,7 +87,7 @@
 >
 	<div class="mb-2 flex size-20 items-center justify-center overflow-hidden rounded">
 		{#if entry.type === 'directory'}
-			<Folder size={64} class="text-blue-500" />
+			<Folder size={64} class="text-primary-500" />
 		{:else if isImage}
 			<img
 				src={fileUrl}
@@ -106,11 +107,13 @@
 			bind:value={editName}
 			onclick={(event) => event.stopPropagation()}
 			onkeydown={(event) => {
+				event.stopPropagation();
 				if (event.key === 'Enter') {
 					event.preventDefault();
 					void commitRename();
 				} else if (event.key === 'Escape') {
 					event.preventDefault();
+					editName = entry.name;
 					onCancelRename();
 				}
 			}}

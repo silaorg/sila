@@ -67,7 +67,7 @@
 	<Popover
 		{open}
 		{onOpenChange}
-		positioning={{ placement }}
+		positioning={{ placement, strategy: 'fixed' }}
 		{closeOnInteractOutside}
 		{closeOnEscape}
 	>

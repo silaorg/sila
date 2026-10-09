@@ -79,7 +79,19 @@ export async function startDashboardProxy(input = {}) {
       },
     },
   });
-  await server.listen();
+  if (options.dashboardPort === 0 && server.httpServer) {
+    // Vite treats port 0 as its default port. Let Node allocate the test port.
+    const httpServer = server.httpServer;
+    await new Promise((resolveListen, rejectListen) => {
+      httpServer.once("error", rejectListen);
+      httpServer.listen(0, options.host, () => {
+        httpServer.removeListener("error", rejectListen);
+        resolveListen(undefined);
+      });
+    });
+  } else {
+    await server.listen();
+  }
   return server;
 }
 

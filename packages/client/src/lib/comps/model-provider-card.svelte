@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ExternalLink from 'lucide-svelte/icons/external-link';
 	import XCircle from 'lucide-svelte/icons/circle-x';
+	import Cpu from 'lucide-svelte/icons/cpu';
 	import type { WorkspaceProviderSetting } from '../api-client';
 
 	let {
@@ -19,8 +20,7 @@
 	let apiKey = $state('');
 
 	const configured = $derived(provider.apiKeySource !== 'none');
-	const presentation = $derived(getProviderPresentation(provider.id));
-	const providerName = $derived(presentation.name ?? provider.name);
+	const presentation: ProviderPresentation = $derived(PRESENTATION[provider.id] ?? {});
 
 	async function connect(event: SubmitEvent) {
 		event.preventDefault();
@@ -33,41 +33,48 @@
 	}
 </script>
 
-<div
-	class="provider-row"
->
+<div class="provider-row">
 	<div class="provider-logo bg-white">
-		<img class="max-h-full max-w-full p-2" src={presentation.logoUrl} alt={providerName} />
+		{#if presentation.logoUrl}
+			<img src={presentation.logoUrl} alt="" width="22" height="22" />
+		{:else}
+			<Cpu size={22} class="text-surface-900" />
+		{/if}
 	</div>
 
 	<div class="provider-body">
 		<div class="provider-name">
-			<span class="font-medium">{providerName}</span>
-			<a
-				href={presentation.url}
-				target="_blank"
-				rel="noreferrer"
-				class="text-surface-500 transition-colors hover:text-surface-700"
-				title={`Visit ${providerName}`}
-			>
-				<ExternalLink size={14} />
-			</a>
+			<span class="font-medium">{provider.name}</span>
+			{#if presentation.url}
+				<a
+					href={presentation.url}
+					target="_blank"
+					rel="noreferrer"
+					class="text-surface-500 transition-colors hover:text-surface-700"
+					title={`Visit ${provider.name}`}
+				>
+					<ExternalLink size={14} />
+				</a>
+			{/if}
 
 			{#if configured}
 				<span class="badge badge-sm preset-filled-success-500">Connected</span>
 			{:else if provider.local}
-				<span class="badge badge-sm preset-tonal">Local</span>
+				<span class="badge badge-sm preset-tonal">{provider.id === 'mock' ? 'Built-in' : 'Local'}</span>
 			{/if}
 		</div>
+		{#if provider.id === 'mock'}
+			<span class="text-xs text-surface-600-400">10 predictable replies. No API key.</span>
+		{/if}
 
 		{#if editing}
 			<form class="provider-connect-form" onsubmit={connect}>
 				<input
 					class="input min-w-0 max-w-sm flex-1"
 					type="password"
-					aria-label={`${providerName} API key`}
+					aria-label={`${provider.name} API key`}
 					autocomplete="new-password"
-					placeholder={`${providerName} API key`}
+					placeholder={`${provider.name} API key`}
 					disabled={busy}
 					bind:value={apiKey}
 				/>
@@ -80,8 +87,8 @@
 				</button>
 				<button
 					type="button"
-					class="p-1"
-					aria-label={`Cancel connecting ${providerName}`}
+					class="chrome-icon-button"
+					aria-label={`Cancel connecting ${provider.name}`}
 					disabled={busy}
 					onclick={() => {
 						apiKey = '';
@@ -113,21 +120,23 @@
 			<div class="provider-actions">
 				<button
 					type="button"
-					class="btn btn-sm border border-surface-200-800 hover:preset-tonal"
+					class="btn btn-sm preset-outlined-surface-500"
 					disabled={busy}
 					onclick={() => (editing = true)}
 				>
 					Connect
 				</button>
-				<a
-					href={presentation.setupUrl}
-					target="_blank"
-					rel="noreferrer"
-					class="provider-help"
-					aria-label={`Get ${providerName} API key`}
-				>
-					Get key
-				</a>
+				{#if presentation.setupUrl}
+					<a
+						href={presentation.setupUrl}
+						target="_blank"
+						rel="noreferrer"
+						class="provider-help"
+						aria-label={`Get ${provider.name} API key`}
+					>
+						Get key
+					</a>
+				{/if}
 			</div>
 		{/if}
 	</div>
@@ -135,89 +144,76 @@
 
 <script lang="ts" module>
 	type ProviderPresentation = {
-		name?: string;
-		logoUrl: string;
-		url: string;
-		setupUrl: string;
+		logoUrl?: string;
+		url?: string;
+		setupUrl?: string;
 	};
 
 	const PRESENTATION: Record<string, ProviderPresentation> = {
 		openrouter: {
-			logoUrl: '/providers/openrouter.png',
+			logoUrl: new URL('../assets/providers/openrouter.png', import.meta.url).href,
 			url: 'https://openrouter.ai/',
 			setupUrl: 'https://openrouter.ai/settings/keys'
 		},
 		openai: {
-			logoUrl: '/providers/openai.png',
+			logoUrl: new URL('../assets/providers/openai.png', import.meta.url).href,
 			url: 'https://openai.com/',
 			setupUrl: 'https://platform.openai.com/api-keys'
 		},
 		anthropic: {
-			logoUrl: '/providers/anthropic.png',
+			logoUrl: new URL('../assets/providers/anthropic.png', import.meta.url).href,
 			url: 'https://anthropic.com/',
 			setupUrl: 'https://console.anthropic.com/settings/keys'
 		},
 		google: {
-			name: 'Google Gemini',
-			logoUrl: '/providers/google.png',
+			logoUrl: new URL('../assets/providers/google.png', import.meta.url).href,
 			url: 'https://gemini.google.com/',
 			setupUrl: 'https://aistudio.google.com/app/apikey'
 		},
 		kimi: {
-			logoUrl: '/providers/kimi.svg',
+			logoUrl: new URL('../assets/providers/kimi.svg', import.meta.url).href,
 			url: 'https://platform.moonshot.ai/',
 			setupUrl: 'https://platform.moonshot.ai/console/api-keys'
 		},
 		xai: {
-			logoUrl: '/providers/xai.png',
+			logoUrl: new URL('../assets/providers/xai.png', import.meta.url).href,
 			url: 'https://x.ai/',
 			setupUrl: 'https://console.x.ai/'
 		},
 		deepseek: {
-			logoUrl: '/providers/deepseek.png',
+			logoUrl: new URL('../assets/providers/deepseek.png', import.meta.url).href,
 			url: 'https://deepseek.com/',
 			setupUrl: 'https://platform.deepseek.com/api_keys'
 		},
 		groq: {
-			logoUrl: '/providers/groq.png',
+			logoUrl: new URL('../assets/providers/groq.png', import.meta.url).href,
 			url: 'https://groq.com/',
 			setupUrl: 'https://console.groq.com/keys'
 		},
 		cohere: {
-			logoUrl: '/providers/cohere.png',
+			logoUrl: new URL('../assets/providers/cohere.png', import.meta.url).href,
 			url: 'https://cohere.com/',
 			setupUrl: 'https://dashboard.cohere.com/api-keys'
 		},
 		mistral: {
-			logoUrl: '/providers/mistral.png',
+			logoUrl: new URL('../assets/providers/mistral.png', import.meta.url).href,
 			url: 'https://mistral.ai/',
 			setupUrl: 'https://console.mistral.ai/api-keys'
 		},
 		ollama: {
-			logoUrl: '/providers/ollama.png',
+			logoUrl: new URL('../assets/providers/ollama.png', import.meta.url).href,
 			url: 'https://ollama.com/',
 			setupUrl: 'https://ollama.com/download'
 		},
 		falai: {
-			name: 'Fal.ai',
-			logoUrl: '/providers/falai.png',
+			logoUrl: new URL('../assets/providers/falai.png', import.meta.url).href,
 			url: 'https://fal.ai/',
 			setupUrl: 'https://fal.ai/dashboard/keys'
 		},
 		exa: {
-			logoUrl: '/providers/exa.png',
+			logoUrl: new URL('../assets/providers/exa.png', import.meta.url).href,
 			url: 'https://exa.ai/',
 			setupUrl: 'https://dashboard.exa.ai/api-keys'
 		}
 	};
-
-	function getProviderPresentation(providerId: string) {
-		return (
-			PRESENTATION[providerId] ?? {
-				logoUrl: '/providers/openai-like.png',
-				url: '#',
-				setupUrl: '#'
-			}
-		);
-	}
 </script>

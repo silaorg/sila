@@ -5,7 +5,7 @@
 	const workspaceUi = useWorkspaceUi();
 </script>
 
-<div class="h-[min(40rem,calc(100dvh-13rem))] min-h-80">
+<div class="files-swin">
 	<FilesApp
 		onFileOpen={(entry) => {
 			workspaceUi.openWorkspaceFile(entry);

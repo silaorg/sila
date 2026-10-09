@@ -55,6 +55,7 @@
 			<div
 				class="swins-window"
 				class:settings-window={window.componentId === 'settings'}
+				class:files-window={window.componentId === 'files' || window.componentId === 'file-picker'}
 				class:hidden={index !== swins.windows.length - 1}
 				role="dialog"
 				aria-modal="true"
@@ -64,7 +65,7 @@
 			>
 				{#if entry}
 					<header class="swins-header">
-						<div class="w-9">
+						<div>
 							{#if index > 0}
 								<button
 									type="button"
@@ -98,7 +99,7 @@
 							{/each}
 						</ol>
 
-						<div class="w-9">
+						<div>
 							<button
 								type="button"
 								class="chrome-icon-button"

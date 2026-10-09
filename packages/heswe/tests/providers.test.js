@@ -47,16 +47,16 @@ afterEach(() => {
   }
 });
 
-test("resolveWorkspaceLanguageSelection falls back to openai for legacy workspaces", async () => {
+test("resolveWorkspaceLanguageSelection falls back to mock without provider keys", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
   const workspacePath = path.join(tempRoot, "workspace");
   await fs.mkdir(workspacePath, { recursive: true });
 
   const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
-    provider: "openai",
-    model: "gpt-5.4",
-    apiKeyEnvName: "OPENAI_API_KEY",
+    provider: "mock",
+    model: "mock-cycle",
+    apiKeyEnvName: null,
   });
 });
 
@@ -66,6 +66,7 @@ test("resolveWorkspaceLanguageSelection uses the legacy auto priority order", as
   await createDefaultAgentConfig(workspacePath);
   await createProviderConfig(workspacePath, "openrouter");
   await createProviderConfig(workspacePath, "anthropic");
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENROUTER_API_KEY=test-key\nANTHROPIC_API_KEY=test-key\n");
 
   const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
@@ -96,6 +97,7 @@ test("resolveWorkspaceLanguageSelection includes kimi in auto priority", async (
   await createDefaultAgentConfig(workspacePath);
   await createProviderConfig(workspacePath, "kimi");
   await createProviderConfig(workspacePath, "openrouter");
+  await fs.writeFile(path.join(workspacePath, ".env"), "KIMI_API_KEY=test-key\nOPENROUTER_API_KEY=test-key\n");
 
   const selection = await resolveWorkspaceLanguageSelection(workspacePath);
   assert.deepEqual(selection, {
@@ -103,6 +105,46 @@ test("resolveWorkspaceLanguageSelection includes kimi in auto priority", async (
     model: "kimi-k2.5",
     apiKeyEnvName: "KIMI_API_KEY",
   });
+});
+
+test("automatic selection skips provider configs with no key and still prefers real providers", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  await createDefaultAgentConfig(workspacePath);
+  await createProviderConfig(workspacePath, "openai");
+  await createProviderConfig(workspacePath, "mock");
+  assert.equal((await resolveWorkspaceLanguageSelection(workspacePath)).provider, "mock");
+
+  await fs.writeFile(path.join(workspacePath, ".env"), "ANTHROPIC_API_KEY=test-key\n");
+  assert.equal((await resolveWorkspaceLanguageSelection(workspacePath)).provider, "anthropic");
+  await createProviderConfig(workspacePath, "anthropic", { enabled: false });
+  assert.equal((await resolveWorkspaceLanguageSelection(workspacePath)).provider, "mock");
+});
+
+test("mock is selectable and loads without an API key even when a real provider is ready", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  await fs.writeFile(path.join(workspacePath, ".env"), "OPENAI_API_KEY=test-key\n");
+  const settings = await updateWorkspaceModelSettings(workspacePath, {
+    provider: "mock", model: "mock-cycle",
+  });
+  const mock = settings.providers.find((provider) => provider.id === "mock");
+  assert.equal(mock.local, true);
+  assert.equal(mock.enabled, true);
+  assert.equal(mock.apiKeySource, "none");
+  const provider = await loadWorkspaceLanguageProvider(workspacePath);
+  assert.equal(provider.provider, "mock");
+  assert.equal((await provider.lang.ask("hello")).answer, "Hey!");
+  await assert.rejects(updateWorkspaceModelSettings(workspacePath, {
+    provider: "mock", model: "mock-cycle", apiKeys: { mock: "not-needed" },
+  }), /does not accept an API key/);
+});
+
+test("explicit real provider selection still reports a missing API key", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  await createDefaultAgentConfig(workspacePath, { provider: "openai" });
+  await assert.rejects(loadWorkspaceLanguageProvider(workspacePath), /missing OPENAI_API_KEY/);
 });
 
 test("loadWorkspaceLanguageProvider supports kimi via openai-like adapter", async () => {

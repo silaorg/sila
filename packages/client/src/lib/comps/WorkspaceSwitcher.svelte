@@ -26,6 +26,7 @@
 	onOpenChange={(event) => (openState = event.open)}
 	placement="bottom"
 	triggerClassNames="w-full"
+	maxWidth="min(21rem, calc(100vw - 1rem))"
 >
 	{#snippet trigger(attributes)}
 		<button
@@ -47,12 +48,8 @@
 				{#each workspaceUi.workspaces as workspace (workspace.id)}
 					<button
 						type="button"
-						class={[
-							'btn btn-sm w-full justify-start text-left',
-							workspace.id === workspaceUi.currentWorkspaceId
-								? 'preset-filled-secondary-500'
-								: 'preset-ghost'
-						]}
+						class="btn btn-sm w-full justify-start text-left preset-ghost"
+						aria-current={workspace.id === workspaceUi.currentWorkspaceId ? 'page' : undefined}
 						aria-label={`Switch to ${workspace.name}`}
 						onclick={() => chooseWorkspace(workspace.id)}
 					>
