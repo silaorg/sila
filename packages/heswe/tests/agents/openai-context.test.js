@@ -2,7 +2,6 @@ import { test } from "node:test";
 import { deepEqual, equal, ok } from "node:assert/strict";
 import { Lang, LangMessages, setHttpRequestImpl } from "aiwrapper";
 import { createCompressedLanguageProvider } from "../../src/agent-runtime/context-compression.js";
-import { withOpenAIContext } from "../../src/agent-runtime/openai-context.js";
 
 function sseResponse(text) {
   const events = [
@@ -105,16 +104,23 @@ test("recognizes an actual OpenAI adapter overflow error and retries with the co
   }
 });
 
-test("replay keeps image inputs and failed tool outcomes, and leaves other providers alone", () => {
+test("OpenAI replay keeps image inputs and failed tool outcomes", async () => {
+  let body;
+  setHttpRequestImpl(async (_url, options) => {
+    body = JSON.parse(options.body);
+    return sseResponse("Done.");
+  });
   const messages = new LangMessages();
   messages.addUserItems([{ type: "image", base64: "test-image", mimeType: "image/jpeg" }]);
+  messages.addAssistantItems([{ type: "tool", name: "apply_patch", callId: "failed", arguments: { operation: { type: "delete_file", path: "missing.txt" } } }]);
   messages.addToolResultsMessage([{ type: "tool-result", name: "apply_patch", callId: "failed", result: { status: "failed", output: "Missing file" } }]);
   const options = { providerSpecificBody: { max_output_tokens: 123 } };
-  equal(withOpenAIContext({ name: "another-provider" }, messages, options), options);
-  const body = withOpenAIContext({ name: "OpenAI Responses" }, messages, options).providerSpecificBody;
-  equal(body.max_output_tokens, 123);
-  deepEqual(body.input, [
-    { role: "user", content: [{ type: "input_image", image_url: "data:image/jpeg;base64,test-image" }] },
-    { type: "apply_patch_call_output", call_id: "failed", status: "failed", output: "Missing file" },
-  ]);
+  try {
+    await Lang.openai({ apiKey: "test" }).chat(messages, options);
+    equal(body.max_output_tokens, 123);
+    deepEqual(body.input[0], { role: "user", content: [{ type: "input_image", image_url: "data:image/jpeg;base64,test-image" }] });
+    deepEqual(body.input.at(-1), { type: "apply_patch_call_output", call_id: "failed", status: "failed", output: "Missing file" });
+  } finally {
+    setHttpRequestImpl((url, options) => fetch(url, options));
+  }
 });

@@ -1,5 +1,4 @@
 import { LangMessage, LangMessages, models } from "aiwrapper";
-import { withOpenAIContext } from "./openai-context.js";
 
 const DEFAULT_WINDOW_TOKENS = 100_000;
 const SUMMARY_INSTRUCTIONS = `Summarize historical conversation so an assistant can continue the work.
@@ -135,13 +134,13 @@ export function createCompressedLanguageProvider({ lang, checkpoint = null, wind
         let result = context;
         let streamed = false;
         try {
-          result = await lang.chat(context, withOpenAIContext(lang, context, {
+          result = await lang.chat(context, {
             ...options,
             onResult(message) {
               streamed = true;
               options.onResult?.(message);
             },
-          }));
+          });
           return messages;
         } catch (error) {
           result = error.partialResult ?? context;
@@ -184,7 +183,7 @@ async function summarize(lang, transcript, budget, signal) {
     request.addUserMessage(`${summary ? `Summary so far:\n${summary}\n\n` : ""}Historical transcript (may continue in another piece):\n${chunk}`);
     let result;
     try {
-      result = await lang.chat(request, withOpenAIContext(lang, request, { signal: summarySignal }));
+      result = await lang.chat(request, { signal: summarySignal });
     } catch (error) {
       // This internal request must never surface as an aborted task's partial answer.
       if (error.partialResult) delete error.partialResult;

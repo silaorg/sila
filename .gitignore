@@ -6,11 +6,9 @@
 **/playwright-report/
 **/test-results/
 
-# Generated leftovers from the retired Sila desktop, workbench, and vendor builds.
+# Generated leftovers from the retired Sila desktop and workbench builds.
 /packages/desktop/static-compiled/
 /packages/workbench/screenshots/
-/vendor/aiwrapper/aimodels/
-/vendor/aiwrapper/src/aimodels/
 
 .env*
 !*.env.example

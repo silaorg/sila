@@ -63,13 +63,8 @@ export function createMockLanguageProvider(model) {
     });
     const result = await adapter.chat(messages, options);
     if (!options?.schema && mockMeta) {
-      const reply = result[result.length - 1];
+      const reply = result.findLast((message) => message.role === "assistant");
       reply.meta = { ...reply.meta, mock: mockMeta };
-    }
-    if (mockToolCalls) {
-      options?.signal?.throwIfAborted();
-      const toolResults = await result.executeRequestedTools();
-      if (toolResults) options?.onResult?.(toolResults);
     }
     return result;
   };

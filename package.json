@@ -6,6 +6,9 @@
     "packages/*"
   ],
   "scripts": {
+    "setup": "git submodule update --init --recursive && npm install && npm ci --prefix vendor/aiwrapper && npm run build:aiwrapper",
+    "build:aiwrapper": "npm run build --prefix vendor/aiwrapper",
+    "update:aiwrapper": "git submodule update --remote vendor/aiwrapper && git -C vendor/aiwrapper submodule update --init --recursive && npm install && npm ci --prefix vendor/aiwrapper && npm run build:aiwrapper",
     "workspace": "node packages/heswe/src/cli.js",
     "dev": "node scripts/dev.mjs",
     "dev:desktop": "node scripts/dev.mjs --desktop",

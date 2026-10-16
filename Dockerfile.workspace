@@ -1,3 +1,11 @@
+FROM node:22.20-bookworm-slim AS aiwrapper-build
+
+WORKDIR /build
+COPY vendor/aiwrapper ./
+RUN npm ci --ignore-scripts --no-audit --no-fund \
+    && npm run build \
+    && npm prune --omit=dev --ignore-scripts --no-audit --no-fund
+
 FROM node:22.20-bookworm-slim
 
 RUN apt-get update \
@@ -11,8 +19,12 @@ WORKDIR /opt/heswe
 COPY package.json package-lock.json ./
 COPY packages/agents/package.json packages/agents/package.json
 COPY packages/client/package.json packages/client/package.json
+COPY packages/desktop/package.json packages/desktop/package.json
 COPY packages/heswe/package.json packages/heswe/package.json
 COPY packages/web/package.json packages/web/package.json
+COPY vendor/aiwrapper/package.json vendor/aiwrapper/package.json
+COPY --from=aiwrapper-build /build/dist vendor/aiwrapper/dist
+COPY --from=aiwrapper-build /build/node_modules vendor/aiwrapper/node_modules
 RUN npm ci --omit=dev
 
 COPY packages/agents/src packages/agents/src

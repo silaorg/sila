@@ -17,15 +17,24 @@ Website: [heswe.com](https://heswe.com)
 - `packages/client` contains the shared Svelte UI and API client.
 - `packages/web` contains the SvelteKit server, authentication, and web routes.
 - `packages/desktop` contains the thin Electron shell for the shared client.
+- `vendor/aiwrapper` is the AI Wrapper Git submodule, linked as a local dependency.
 
 Read [how workspaces work](docs/dev/how-workspaces-work.md), [how agents work](docs/dev/how-agents-work.md), and [how the hosted app works](docs/dev/how-the-hosted-app-works.md).
 
 To run the hosted app locally:
 
 ```sh
-npm install
+npm run setup
 npm run dev
 ```
+
+Setup initializes the pinned submodules, installs dependencies, and builds
+AI Wrapper and its model catalog.
+AI Wrapper keeps its own dependencies and lockfile inside the submodule.
+After editing `vendor/aiwrapper`, run `npm run build:aiwrapper` and restart the
+app to use the changes. No npm publication is needed. `npm run update:aiwrapper`
+updates to its tracked branch and rebuilds it. Commit upstream changes before
+committing the submodule pointer here.
 
 The first instance uses `http://127.0.0.1:39900` for the API and
 `http://127.0.0.1:39901` for the dashboard. If either port is busy, the
