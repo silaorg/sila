@@ -17,6 +17,7 @@ export const MOCK_REPLIES = Object.freeze([
 
 export function createMockLanguageProvider(model) {
   const lang = Lang.mockOpenAI({ model, mockResponseObject: { respond: true } });
+  lang.supportsContextCompression = false;
   lang.chat = async (messages, options) => {
     options?.signal?.throwIfAborted();
     const replyCount = messages.filter((message) =>

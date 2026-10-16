@@ -7,6 +7,38 @@ import { LangMessage } from "aiwrapper";
 import { ThreadStore } from "../../src/thread-store.js";
 
 describe("ThreadStore", () => {
+  it("loads the latest compression checkpoint without altering display history", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-store-compression-"));
+    const store = new ThreadStore();
+    try {
+      await store.appendMessages(threadDir, [new LangMessage("user", "first"), new LangMessage("assistant", "done")]);
+      await store.appendEvent(threadDir, { type: "compression", summary: "First task done.", throughMessageCount: 2 });
+      await store.appendEvent(threadDir, { type: "delivery", status: "sent" });
+      await store.appendMessages(threadDir, [new LangMessage("user", "next")]);
+      await store.appendEvent(threadDir, { type: "compression", summary: "Next task pending.", throughMessageCount: 3 });
+      await store.appendEvent(threadDir, { type: "compression", summary: "Shorter summary for a smaller model.", throughMessageCount: 3 });
+      const { messages, checkpoint } = await store.loadAgentHistory(threadDir);
+      deepEqual(messages.map((message) => message.text), ["first", "done", "next"]);
+      deepEqual(checkpoint, { summary: "Shorter summary for a smaller model.", throughMessageCount: 3 });
+      equal((await store.loadMessages(threadDir)).length, 3);
+    } finally {
+      await fs.rm(threadDir, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a checkpoint that covers unsaved messages", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-store-checkpoint-"));
+    const store = new ThreadStore();
+    try {
+      await store.appendEvent(threadDir, { type: "compression", summary: "Cannot cover future messages.", throughMessageCount: 1 });
+      await store.appendMessages(threadDir, [new LangMessage("user", "later")]);
+      await rejects(store.loadAgentHistory(threadDir), /Invalid compression checkpoint/);
+      equal((await store.loadMessages(threadDir)).length, 1);
+    } finally {
+      await fs.rm(threadDir, { recursive: true, force: true });
+    }
+  });
+
   it("appends and loads message events", async () => {
     const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-store-"));
     const store = new ThreadStore();

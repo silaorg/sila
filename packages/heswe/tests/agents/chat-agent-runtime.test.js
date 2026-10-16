@@ -1,10 +1,10 @@
 import { describe, it } from "node:test";
-import { deepEqual, equal, rejects, throws } from "node:assert/strict";
+import { deepEqual, equal, ok, rejects, throws } from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Lang, LangMessages } from "aiwrapper";
-import { InProcessChatAgentRuntime, processThreadMessage } from "../../src/agent-runtime/index.js";
+import { InProcessChatAgentRuntime, processThreadMessage, ThreadStore } from "../../src/agent-runtime/index.js";
 
 function createPtyStub() {
   return {
@@ -86,6 +86,94 @@ describe("InProcessChatAgentRuntime", () => {
 });
 
 describe("processThreadMessage", () => {
+  it("compresses between tool steps, persists full messages before checkpoints, and resumes after restart", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-compression-"));
+    const store = new ThreadStore();
+    const progress = [];
+    let taskCalls = 0;
+    let summaryCalls = 0;
+    let toolCalls = 0;
+    const lang = {
+      name: "test-model",
+      async chat(messages, options) {
+        if (messages.instructions.startsWith("Summarize historical")) {
+          summaryCalls++;
+          equal(messages.availableTools, undefined);
+          return messages.addAssistantMessage("<summary>The inspect tool completed successfully. Continue without calling it again.</summary>");
+        }
+        if (taskCalls++ === 0) {
+          messages.addAssistantItems([{ type: "tool", name: "inspect", callId: "call-inspect", arguments: {} }]);
+          options.onResult(messages.at(-1));
+          const result = await messages.executeRequestedTools();
+          options.onResult(result);
+          return messages;
+        }
+        ok(messages[0].text.includes("Earlier conversation summary"));
+        equal(messages.instructions, "Current workspace instructions.");
+        messages.addAssistantMessage("Done.");
+        options.onResult(messages.at(-1));
+        return messages;
+      },
+    };
+    const options = {
+      lang, instructions: "Current workspace instructions.", alwaysRespond: true,
+      compressionWindowTokens: 12_000, threadStore: store,
+      loadTools: async () => [{
+        name: "inspect", description: "Inspect once.", parameters: {},
+        handler() { toolCalls++; return "result ".repeat(15_000); },
+      }],
+    };
+    const input = {
+      threadDir, threadId: "compression-test", userId: "user", text: "Inspect once.",
+      onAssistantProgress: async (payload) => progress.push(payload),
+    };
+    const runtime = new InProcessChatAgentRuntime(options);
+    const restarted = new InProcessChatAgentRuntime(options);
+    try {
+      equal((await runtime.handleThreadMessage(input)).answer, "Done.");
+      equal(toolCalls, 1);
+      const events = await store.loadEvents(threadDir);
+      deepEqual(events.map((event) => event.type), ["message", "message", "message", "compression", "message"]);
+      equal(events[3].throughMessageCount, 3);
+      const messages = await store.loadMessages(threadDir);
+      equal(messages.length, 4);
+      equal(messages[2].toolResults[0].result, "result ".repeat(15_000));
+      equal(progress.length, 1);
+      const summariesBeforeRestart = summaryCalls;
+      equal((await restarted.handleThreadMessage({ ...input, text: "Next step." })).answer, "Done.");
+      equal(summaryCalls, summariesBeforeRestart);
+      equal(toolCalls, 1);
+      equal((await store.loadMessages(threadDir)).length, 6);
+    } finally {
+      await runtime.stop();
+      await restarted.stop();
+      await fs.rm(threadDir, { recursive: true, force: true });
+    }
+  });
+
+  it("persists completed tool results even when compression fails", async () => {
+    const threadDir = await fs.mkdtemp(path.join(os.tmpdir(), "thread-compression-failure-"));
+    const lang = createLoopingLang();
+    const chat = lang.chat;
+    lang.chat = async (messages, options) => {
+      if (messages.instructions.startsWith("Summarize historical")) throw new Error("summary unavailable");
+      const result = await chat(messages, options);
+      if (result.at(-1).role === "tool-results") result.at(-1).items[0].result = "x".repeat(50_000);
+      return result;
+    };
+    try {
+      await rejects(processThreadMessage({
+        threadDir, threadId: "compression-failure", lang, ptyManager: createPtyStub(),
+        instructions: "Be helpful.", alwaysRespond: true, compressionWindowTokens: 12_000,
+      }, { userId: "user", text: "Check." }), /summary unavailable/);
+      const events = await new ThreadStore().loadEvents(threadDir);
+      deepEqual(events.map((event) => event.type), ["message", "message", "message"]);
+      equal(events[2].message.items[0].result.length, 50_000);
+    } finally {
+      await fs.rm(threadDir, { recursive: true, force: true });
+    }
+  });
+
   it("requires explicit instructions", async () => {
     await rejects(
       processThreadMessage({

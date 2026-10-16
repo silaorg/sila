@@ -7,6 +7,25 @@ export const THREAD_MESSAGES_FILE_NAME = "messages.jsonl";
 export const LEGACY_THREAD_MESSAGES_FILE_NAME = "messages.json";
 
 export class ThreadStore {
+  async loadAgentHistory(threadDir) {
+    const messages = [];
+    let checkpoint = null;
+    for (const event of await this.loadEvents(threadDir)) {
+      if (event.type === "message") messages.push(deserializeThreadMessage(event.message));
+      if (event.type === "compression") {
+        if (typeof event.summary !== "string" || !event.summary.trim()
+          || !Number.isSafeInteger(event.throughMessageCount)
+          || event.throughMessageCount < 1
+          || event.throughMessageCount < (checkpoint?.throughMessageCount ?? 0)
+          || event.throughMessageCount > messages.length) {
+          throw new Error(`Invalid compression checkpoint in ${path.join(threadDir, THREAD_MESSAGES_FILE_NAME)}.`);
+        }
+        checkpoint = { summary: event.summary, throughMessageCount: event.throughMessageCount };
+      }
+    }
+    return { messages, checkpoint };
+  }
+
   async loadMessages(threadDir) {
     const events = await this.loadEvents(threadDir);
     return events

@@ -1,6 +1,7 @@
 import { z as aiZ } from "aiwrapper";
 import { PTYShellSessionManager } from "./pty-shell-session-manager.js";
 import { createChatAgent } from "./chat-agent.js";
+import { createCompressedLanguageProvider } from "./context-compression.js";
 import { ThreadStore } from "../thread-store.js";
 
 /**
@@ -19,6 +20,7 @@ import { ThreadStore } from "../thread-store.js";
  *  onAssistantProgress?: (payload: { text: string; toolNames: string[]; tools: Array<{ name: string; arguments?: Record<string, unknown> }> }) => Promise<void>;
  *  onAssistantResponding?: () => Promise<void>;
  *  alwaysRespond?: boolean;
+ *  compressionWindowTokens?: number;
  *  instructions: string;
  * }} options
  * @param {{ userId: string; text: string; publicText?: string; attachments?: Array<Record<string, unknown>> }} input
@@ -41,7 +43,8 @@ export async function processThreadMessage(options, input) {
     defaultCwd: options.defaultCwd ?? process.cwd(),
     environment: normalizeEnvironment(options.environment),
   });
-  agent.messages.push(...await threadStore.loadMessages(threadDir));
+  const history = await threadStore.loadAgentHistory(threadDir);
+  agent.messages.push(...history.messages);
   agent.messages.instructions = instructions;
   console.log(
     `[thread ${threadId}] user message received (${input.text.length} chars)`,
@@ -72,13 +75,28 @@ export async function processThreadMessage(options, input) {
     await onAssistantResponding();
   }
 
+  let persistedMessageCount = agent.messages.length;
+  async function persistMessages() {
+    await threadStore.appendMessages(threadDir, agent.messages.slice(persistedMessageCount));
+    persistedMessageCount = agent.messages.length;
+  }
+  agent.setLanguageProvider(createCompressedLanguageProvider({
+    lang,
+    checkpoint: history.checkpoint,
+    windowTokens: options.compressionWindowTokens,
+    async onCheckpoint(checkpoint) {
+      // Tool steps covered by a checkpoint must reach disk before the checkpoint does.
+      await persistMessages();
+      await threadStore.appendEvent(threadDir, { type: "compression", ...checkpoint });
+      console.log(`[thread ${threadId}] context compressed (${checkpoint.tokensBefore} -> ${checkpoint.tokensAfter} estimated tokens)`);
+    },
+  }));
   const loopLogger = subscribeToAgentLoopLogs(
     threadId,
     agent,
     onAssistantLoopMessage,
     onAssistantProgress,
   );
-  const persistedMessageCount = agent.messages.length;
   let result;
   try {
     result = await agent.run([]);
@@ -87,10 +105,7 @@ export async function processThreadMessage(options, input) {
     throw error;
   } finally {
     loopLogger.unsubscribe();
-    await threadStore.appendMessages(
-      threadDir,
-      agent.messages.slice(persistedMessageCount),
-    );
+    await persistMessages();
   }
   await loopLogger.waitForPending();
   const answer = typeof result?.answer === "string" ? result.answer.trim() : "";
@@ -121,6 +136,8 @@ export class InProcessChatAgentRuntime {
   #threadStore;
   /** @type {boolean} */
   #alwaysRespond;
+  /** @type {number | undefined} */
+  #compressionWindowTokens;
   /** @type {Map<string, PTYShellSessionManager>} */
   #ptyManagersByThread = new Map();
 
@@ -134,6 +151,7 @@ export class InProcessChatAgentRuntime {
    *  defaultCwd?: string;
    *  threadStore?: ThreadStore;
    *  alwaysRespond?: boolean;
+   *  compressionWindowTokens?: number;
    * }} options
    */
   constructor(options) {
@@ -141,6 +159,7 @@ export class InProcessChatAgentRuntime {
     this.#defaultCwd = options.defaultCwd ?? process.cwd();
     this.#threadStore = options.threadStore instanceof ThreadStore ? options.threadStore : new ThreadStore();
     this.#alwaysRespond = options.alwaysRespond === true;
+    this.#compressionWindowTokens = options.compressionWindowTokens;
     this.#instructions = requireInstructions(options.instructions, "InProcessChatAgentRuntime");
     if (typeof options.loadInstructions === "function") {
       this.#loadInstructions = options.loadInstructions;
@@ -202,6 +221,7 @@ export class InProcessChatAgentRuntime {
         onAssistantProgress: input.onAssistantProgress,
         onAssistantResponding: input.onAssistantResponding,
         alwaysRespond: this.#alwaysRespond,
+        compressionWindowTokens: this.#compressionWindowTokens,
         instructions,
       }, input);
     } finally {
@@ -398,7 +418,12 @@ async function decideShouldRespond(lang, agent) {
   }
 
   const history = agent.messages.slice(-6);
-  const historyText = history.map((message) => `${message.role}: ${message.text}`).join("\n\n");
+  // This classification needs only a preview, even when the last message is huge.
+  const historyText = history.map((message) => {
+    const text = message.text;
+    const preview = text.length > 1_000 ? `${text.slice(0, 500)}\n[…]\n${text.slice(-500)}` : text;
+    return `${message.role}: ${preview}`;
+  }).join("\n\n");
 
   const decisionSchema = aiZ.object({
     respond: aiZ

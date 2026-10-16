@@ -65,3 +65,34 @@ pending, successful, and failed sends.
 
 The runtime persists complete messages, not token deltas. A crash can lose an
 unfinished model response, but it does not rewrite earlier history.
+
+## Context compression
+
+Before each agent model call, including tool-loop steps, the runtime estimates
+the input size from instructions, tool definitions, and message content. The
+default window is 100,000 tokens, capped by the selected model's token context
+in the bundled model catalog. Unknown models use the default. Compression starts
+at 80% of that window, leaving headroom for output and estimation error.
+`InProcessChatAgentRuntime` also accepts `compressionWindowTokens` to lower or
+raise the default; the model cap still applies.
+
+The selected model summarizes older history without tools. Recent messages stay
+verbatim, tool calls stay with their results, and the latest user request stays
+verbatim even during long tool loops. Oversized histories are summarized in
+bounded pieces. Current workspace instructions are always supplied separately.
+
+A `compression` event in `messages.jsonl` stores the summary and the number of
+original messages it covers. Covered messages are saved before that checkpoint.
+Future calls and worker restarts use the summary plus recent history. The full
+transcript remains available to the app and channels; summaries are not chat
+messages. The local Mock provider keeps its full history and reply cycle.
+
+OpenAI requests replay this local snapshot without a previous response ID or
+automatic provider truncation. Tool calls and results use separate Responses
+input items, including native patch calls.
+
+Empty, incomplete, oversized, or failed summaries stop the turn without replacing
+history. A provider context-overflow rejection gets one compression retry, only
+if no response has started. Oversized instructions or a latest user message that
+cannot fit produce an explicit error. Token counts are estimates, not provider
+usage measurements.
