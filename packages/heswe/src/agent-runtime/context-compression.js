@@ -72,9 +72,10 @@ export function createCompressedLanguageProvider({ lang, checkpoint = null, wind
     return context;
   }
 
-  async function compress(messages, signal, force = false) {
-    const before = estimateContextTokens(project(messages));
-    if (!force && before < budget.inputTokens) return;
+  async function prepareContext(messages, signal, force = false) {
+    const context = project(messages);
+    const before = estimateContextTokens(context);
+    if (!force && before < budget.inputTokens) return context;
 
     const latestUser = messages.findLastIndex((message) => message.role === "user");
     const fixed = new LangMessages(latestUser < 0 ? [] : [messages[latestUser]], {
@@ -115,24 +116,24 @@ export function createCompressedLanguageProvider({ lang, checkpoint = null, wind
     ].join("\n");
     const summary = await summarize(lang, transcript, budget, signal);
     const next = { summary, throughMessageCount: cut };
-    const after = estimateContextTokens(project(messages, next));
+    const compressed = project(messages, next);
+    const after = estimateContextTokens(compressed);
     if (after >= before || after >= budget.inputTokens) {
       throw new Error("Compression did not reduce the conversation enough. Saved history is unchanged.");
     }
     // Persist first. A failed write must not advance the in-memory checkpoint.
     await onCheckpoint({ ...next, tokensBefore: before, tokensAfter: after });
     checkpoint = next;
+    return compressed;
   }
 
   return {
     async chat(messages, options = {}) {
-      await compress(messages, options.signal);
+      let context = await prepareContext(messages, options.signal);
       for (let attempt = 0; ; attempt++) {
-        const context = project(messages);
         const inputCount = context.length;
         let result = context;
         let streamed = false;
-        let retry = false;
         try {
           result = await lang.chat(context, withOpenAIContext(lang, context, {
             ...options,
@@ -144,15 +145,17 @@ export function createCompressedLanguageProvider({ lang, checkpoint = null, wind
           return messages;
         } catch (error) {
           result = error.partialResult ?? context;
+          // Agent.run returns partialResult on cancellation; it must contain the full transcript.
+          if (error.partialResult) error.partialResult = messages;
           // Retry only a rejected input, never a response that may have executed tools.
-          retry = attempt === 0 && !streamed && result.length === inputCount && isContextOverflow(error);
-          if (!retry) throw error;
+          const canRetry = attempt === 0 && !streamed && result.length === inputCount && isContextOverflow(error);
+          if (!canRetry) throw error;
         } finally {
           messages.push(...result.slice(inputCount));
           messages.finished = result.finished;
           messages.aborted = result.aborted;
         }
-        if (retry) await compress(messages, options.signal, true);
+        context = await prepareContext(messages, options.signal, true);
       }
     },
   };
@@ -179,7 +182,14 @@ async function summarize(lang, transcript, budget, signal) {
     const request = new LangMessages();
     request.instructions = instructions;
     request.addUserMessage(`${summary ? `Summary so far:\n${summary}\n\n` : ""}Historical transcript (may continue in another piece):\n${chunk}`);
-    const result = await lang.chat(request, withOpenAIContext(lang, request, { signal: summarySignal }));
+    let result;
+    try {
+      result = await lang.chat(request, withOpenAIContext(lang, request, { signal: summarySignal }));
+    } catch (error) {
+      // This internal request must never surface as an aborted task's partial answer.
+      if (error.partialResult) delete error.partialResult;
+      throw error;
+    }
     summarySignal.throwIfAborted();
     const answer = result.answer?.trim() ?? "";
     const match = answer.match(/^<summary>\s*([\s\S]*?)\s*<\/summary>$/);

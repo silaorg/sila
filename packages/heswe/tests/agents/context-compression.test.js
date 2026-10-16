@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { deepEqual, equal, ok, rejects, throws } from "node:assert/strict";
-import { LangMessages, models } from "aiwrapper";
+import { ChatAgent, LangMessages, models } from "aiwrapper";
 import { createMockLanguageProvider } from "../../src/mock-language-provider.js";
 import {
   createCompressedLanguageProvider,
@@ -263,6 +263,54 @@ test("an error after streaming or tool execution preserves new messages and cann
   equal(run.requests.length, 1);
   equal(messages.length, 3);
   equal(messages.at(-1).toolResults[0].result, "done");
+});
+
+test("an interrupted task returns the full transcript with its partial answer", async () => {
+  const run = setup({ chat(input, options) {
+    const partial = new LangMessages(input);
+    partial.addAssistantMessage("Partial task answer.");
+    partial.aborted = true;
+    options.onResult(partial.at(-1));
+    const error = new DOMException("Stopped", "AbortError");
+    error.partialResult = partial;
+    throw error;
+  } });
+  const original = JSON.stringify(run.messages);
+  const count = run.messages.length;
+  const agent = new ChatAgent(run.provider);
+  const result = await agent.run(run.messages);
+  equal(result, run.messages);
+  equal(agent.messages, result);
+  equal(JSON.stringify(result.slice(0, count)), original);
+  equal(result.length, count + 1);
+  equal(result.answer, "Partial task answer.");
+  equal(result.aborted, true);
+  equal(run.requests.length, 1);
+});
+
+test("an interrupted summary never becomes the agent's partial answer", async () => {
+  const messages = history();
+  const original = JSON.stringify(messages);
+  let calls = 0;
+  const provider = createCompressedLanguageProvider({
+    windowTokens: 12_000,
+    lang: {
+      async chat(input) {
+        calls++;
+        ok(input.instructions.startsWith("Summarize historical"));
+        input.addAssistantMessage("<summary>Internal unfinished summary");
+        input.aborted = true;
+        const error = new DOMException("Stopped", "AbortError");
+        error.partialResult = input;
+        throw error;
+      },
+    },
+    onCheckpoint() { throw new Error("An unfinished summary must not be saved."); },
+  });
+  const agent = new ChatAgent(provider);
+  await rejects(agent.run(messages), { name: "AbortError" });
+  equal(JSON.stringify(agent.messages), original);
+  equal(calls, 1);
 });
 
 test("aborted compression and failed checkpoint writes never advance context", async () => {

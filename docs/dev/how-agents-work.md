@@ -92,7 +92,8 @@ automatic provider truncation. Tool calls and results use separate Responses
 input items, including native patch calls.
 
 Empty, incomplete, oversized, or failed summaries stop the turn without replacing
-history. A provider context-overflow rejection gets one compression retry, only
+history. Interrupted summaries are never returned as assistant answers.
+A provider context-overflow rejection gets one compression retry, only
 if no response has started. Oversized instructions or a latest user message that
 cannot fit produce an explicit error. Token counts are estimates, not provider
 usage measurements.
