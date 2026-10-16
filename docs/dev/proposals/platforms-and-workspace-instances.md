@@ -53,7 +53,9 @@ Do not require cloud credentials or a local cluster for normal development.
 
 Compare E2B or another managed sandbox with a small self-hosted VM runner.
 Measure startup, CLI support, file persistence, pause/resume, and operating cost.
-No provider is selected by this proposal.
+The [hosted infrastructure proposal](hosted-infrastructure.md) starts with an
+AWS host running the existing gVisor launcher and S3 Files for shared user
+files. A VM provider for individual workspace computers is still undecided.
 
 [EBS is block storage for EC2](https://docs.aws.amazon.com/ebs/latest/userguide/what-is-ebs.html).
 It can hold a VM's working filesystem; it does not launch or pause agents.
@@ -66,6 +68,8 @@ Use [Terraform](https://developer.hashicorp.com/terraform/intro) for the shared
 infrastructure: networks, hosts or clusters, buckets, and service permissions.
 Heswe's launcher uses the provider API for each computer's lifecycle.
 Do not run Terraform for every chat message or idle timeout.
+The hosted infrastructure proposal defines bootstrap, release deployment,
+backups, and infrastructure visualization.
 
 ## Placement
 
@@ -86,8 +90,9 @@ Manual recovery is enough for the first deployment.
 With several launchers, use an externally enforced lease for each writable
 workspace. The old writer must lose access before a replacement starts.
 Route every workspace request through its assignment, including file access.
-The API currently reads local files; remote computers need a scoped file API
-or a deliberately shared filesystem.
+The API currently reads local files. Remote runtime state needs a scoped file
+API; shared user files use the same S3 Files filesystem under the storage grants
+in [workspace sandboxing](workspace-agent-sandboxing.md).
 
 Keep one SQLite-backed API initially. Multiple API writers need a shared
 database and event delivery. Add those when scaling requires them.

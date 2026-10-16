@@ -1,7 +1,7 @@
 # Workspace sandboxing and storage
 
 Status: partly implemented. The current hosted app uses Docker with gVisor.
-VM launchers, scoped S3 access, and durable checkpoints remain proposed.
+VM launchers, scoped S3 Files mounts, and durable checkpoints remain proposed.
 
 ## Current code
 
@@ -38,6 +38,12 @@ and cloud metadata. Allow the public network access needed for tools.
 
 ## User files in S3
 
+Use [S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html)
+for shared user files in the AWS deployment. It provides a shared NFS filesystem
+with managed synchronization to S3. The
+[hosted infrastructure proposal](hosted-infrastructure.md) chooses this storage
+path; it is not implemented by the current launcher.
+
 Give each user a file prefix, using an opaque ID from the API registry:
 
 ```text
@@ -72,14 +78,24 @@ Use canonical prefix boundaries, including the trailing slash.
 Reject overlapping destinations and paths that escape the approved roots.
 Only the launcher changes the mount list.
 
-Enforce the same scope in storage permissions. A mount flag alone is not enough.
-For direct S3 access, scope object actions to the exact prefix and limit
-`ListBucket` with `s3:prefix`. Use read-only or read/write actions as granted.
-[AWS documents prefix-based permissions](https://aws.amazon.com/blogs/security/writing-iam-policies-grant-access-to-user-specific-folders-in-an-amazon-s3-bucket/).
+Enforce grants with access-point roots, enforced POSIX identities, mount
+permissions, and network controls. Mount on the trusted host and bind only the
+granted directories into the sandbox. Read-only grants require both read-only
+storage authorization and a read-only bind mount.
 
-Use short-lived credentials or a trusted file service with the same scope.
-Never give a computer bucket-wide credentials and rely on its code to behave.
-Refresh credentials only while its assignment and grants remain valid.
+Access points alone do not restrict who can mount them. Use scoped mounting
+credentials and explicit policy denies for unapproved access points and direct
+root mounts by workload sessions. Keep a separate operator recovery identity.
+Terraform owns the shared policy baseline; the launcher creates grant access
+points, records their IDs, and issues constrained mounting sessions.
+Keep per-grant restrictions in those sessions; the launcher must not rewrite
+the Terraform-managed filesystem policy when users or workspaces change.
+See [AWS access-point isolation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-access-point-policy-examples.html).
+
+Keep mounting and infrastructure credentials on the trusted host. Agents must
+not reach NFS endpoints directly or receive bucket-wide credentials. Host-side
+mounting is separate from the sandbox's blocked private-network egress.
+Refresh grants only while the computer's assignment remains valid.
 When reducing access, discard old memory, disks, and snapshots before restarting.
 Revocation cannot erase files an agent has already read or copied elsewhere.
 
@@ -94,18 +110,26 @@ does not provide full filesystem behavior. General-purpose buckets lack its
 append and rename support; symbolic links and file locking are unsupported.
 Mountpoint can expose selected inputs, but it is not a drop-in workspace disk.
 
-Start with a Linux filesystem on the computer's disk or persistent volume.
-Restore the workspace from its last checkpoint and fetch the granted files.
-Save approved output changes back to their S3 prefixes.
-Keep downloads, exports, and deletes within the same grant.
-A failed upload must leave the local copy available for retry.
+Keep `/workspace` on a persistent Linux filesystem with one active writer and
+restore it from a complete checkpoint after recovery. Mount granted S3 Files
+directories under `/files`; shared computers must use the same filesystem.
+Keep builds, dependency caches, and disposable checkouts on local scratch.
+S3 Files has no hard-link support, so verify tools against its
+[filesystem limits](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-quotas.html).
 
-For AWS hosting, also evaluate
-[S3 Files](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html).
-It offers an NFS filesystem backed by S3 with managed synchronization.
-This is a separate option from Mountpoint. Check its access controls,
-synchronization behavior, failure recovery, and cost with our workload before
-choosing it. Keep these provider details in the storage implementation.
+Route browser uploads, downloads, edits, and deletes through the same mounted
+filesystem and grant checks. Import external objects into a separate staging
+prefix before publishing through the filesystem. Do not run an independent
+two-way sync client or write directly to active objects through the S3 API.
+
+S3 Files requires bucket versioning and starts exporting after 60 seconds of
+write inactivity; export completion is asynchronous. Writes committed to the
+filesystem can be durable before their S3 object version appears. The bucket
+is not a synchronous checkpoint of the filesystem.
+On conflicting direct S3 writes, the bucket version wins and the filesystem
+copy goes to a lost-and-found directory. Monitor sync errors and conflicts;
+recovery must include that directory, which scoped mounts may not expose.
+See [synchronization behavior](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-synchronization.html).
 
 ## Persistence and concurrent writes
 
@@ -113,7 +137,7 @@ A persistent disk can survive stopping a VM, depending on the provider.
 A VM memory snapshot is separate from a durable file checkpoint.
 Saved user data must survive removing the compute that produced it.
 
-For the initial disk-and-checkpoint implementation:
+For `/workspace` and other local durable state:
 
 1. Stop new writes and finish or cancel active work, including child processes.
 2. Save a consistent workspace checkpoint under a new generation.
@@ -121,33 +145,54 @@ For the initial disk-and-checkpoint implementation:
 4. Retain the previous complete checkpoint for recovery.
 5. Remove the writable disk only after the new checkpoint is confirmed.
 
+The API database stays outside workspace mounts. It uses Litestream replication
+to private S3 storage and SQLite-native snapshots paired with these checkpoints.
+Independent database and workspace uploads are not a complete platform recovery
+set. The [hosted infrastructure proposal](hosted-infrastructure.md) defines the
+storage inventory and matching recovery generations. Do not back up SQLite by
+copying only its live database file while WAL writes continue.
+
 Use periodic checkpoints as well as checkpoints on orderly stop.
 State the recovery point: a machine failure can lose work since the last one.
 Do not promise per-write S3 durability for a local working copy.
 If file uploads or checkpoint publication fail, report unsaved work and retain
 the disk. A forced removal must be a separate, explicit data-loss operation.
 
-Initially, allow only one writer per workspace and writable file prefix.
-Whole-user writable grants overlap project grants and must follow that rule.
-Other computers can receive read-only inputs or separate output directories.
-Browser edits and uploads also go through the active writer.
-Do not run independent two-way sync clients against the same files.
+Removing a workspace computer must leave the shared S3 Files filesystem intact.
+Flush and confirm filesystem writes before stopping. Do not delete shared
+storage as part of compute cleanup or treat delayed object export as data loss.
+Destruction or migration of the filesystem itself needs verified synchronization
+and a tested recovery path for pending changes and POSIX metadata.
 
-For imported files, record object versions and refuse to overwrite a version
-changed elsewhere. Surface a conflict instead of silently picking a winner.
-Use versioning and retention for recovery from overwrites and deletes.
-Never treat a missing local file as permission to delete an unmounted S3 object.
+Keep one active writer for each `/workspace`. Several computers can read the
+same `/files` project and write disjoint run-output directories. Start with
+read-only shared inputs and one publisher for shared project mutations,
+including browser edits. Whole-user writable grants overlap narrower project
+grants and must follow the same coordination rule.
+
+NFS locks are advisory and do not merge changes or serialize an entire Git
+operation. Publishing and replacement writers need externally enforced fencing
+when several launchers exist. Confirm termination and unmounting, or isolate
+the old host's network access before replacement. A missed heartbeat or an IAM
+policy change alone does not prove an existing mount has stopped writing.
+Surface stale publication conflicts instead of overwriting a changed file.
+Use versioning and retention for recovery.
 
 ## First checks
 
 Before hosting user agents, verify that:
 
 - Two users cannot read or write each other's markers through shell or SDK calls.
-- A partial grant cannot list sibling prefixes, even with the mount bypassed.
-- Read-only grants reject writes, deletes, and write-back from local caches.
+- A partial grant cannot list sibling prefixes, mount another access point, or
+  bypass its root through shell or SDK calls.
+- Read-only grants reject writes and deletes through every available path.
+- Computers on different hosts share reads and disjoint output writes through
+  the same filesystem; conflicting publications are rejected or serialized.
 - Restart restores files, history, and tools from a complete checkpoint.
 - Failed uploads, process crashes, and duplicate launches preserve one writer.
 - Reduced grants cannot resume an older, wider snapshot.
+- NFS interruption, delayed exports, and sync conflicts preserve recoverable
+  data and become visible to operators.
 - Stop and removal terminate the actual computer and its child processes.
 - Disk, process, network, and output limits work under load.
 
