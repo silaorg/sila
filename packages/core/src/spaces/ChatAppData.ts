@@ -536,6 +536,11 @@ export class ChatAppData {
       main: true,
     };
 
+    // Keep attachments if any
+    if (props.files && Array.isArray(props.files)) {
+      newProps.files = [...props.files];
+    }
+
     const newVertex = vertex.parent.newChild(newProps);
     const siblings = parent.children;
 
