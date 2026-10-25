@@ -176,6 +176,16 @@ export async function checkForUpdates() {
 
     // If no Electron update, still allow latest desktop build to be fetched (optional)
     if (desktopBuilds && desktopBuilds.length > 0) {
+      const currentVersion = semverCoerce(app.getVersion());
+      const latestDesktopVersion = semverCoerce(desktopBuilds[0].version);
+      const diff = currentVersion && latestDesktopVersion ? semverDiff(currentVersion, latestDesktopVersion) : null;
+
+      if (!diff) {
+        console.log('Updater / Latest desktop build is same as current version; skipping.', { version: desktopBuilds[0].version });
+        emitUpdateProgress({ stage: 'idle', percent: null });
+        return;
+      }
+
       // Prime and download the latest
       console.log('Updater / Downloading latest desktop build (no Electron update)', {
         version: desktopBuilds[0].version
