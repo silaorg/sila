@@ -558,8 +558,8 @@
   .mb-5 {
     margin-bottom: calc(var(--spacing) * 5);
   }
-  .mb-12 {
-    margin-bottom: calc(var(--spacing) * 12);
+  .mb-10 {
+    margin-bottom: calc(var(--spacing) * 10);
   }
   .ml-4 {
     margin-left: calc(var(--spacing) * 4);
@@ -814,6 +814,9 @@
   .w-\[min\(75rem\,calc\(100vw-5rem\)\)\] {
     width: min(75rem, calc(100vw - 5rem));
   }
+  .w-fit {
+    width: fit-content;
+  }
   .w-full {
     width: 100%;
   }
@@ -870,6 +873,9 @@
   }
   .flex-1 {
     flex: 1;
+  }
+  .flex-shrink {
+    flex-shrink: 1;
   }
   .shrink-0 {
     flex-shrink: 0;
@@ -1401,6 +1407,9 @@
   }
   .text-surface-600-400 {
     color: light-dark(var(--color-surface-600), var(--color-surface-400));
+  }
+  .text-surface-700-300 {
+    color: light-dark(var(--color-surface-700), var(--color-surface-300));
   }
   .text-surface-900 {
     color: var(--color-surface-900);

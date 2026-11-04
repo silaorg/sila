@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { authClient } from '../auth-client';
+	import HesweAiLogo from './heswe-ai-logo.svelte';
 
 	let mode = $state<'sign-in' | 'sign-up'>('sign-in');
 	let name = $state('');
@@ -32,7 +33,9 @@
 	<section
 		class="hidden flex-col justify-between bg-surface-950 p-12 text-surface-50 lg:flex"
 	>
-		<a href="https://heswe.com" class="text-xl font-semibold tracking-tight">heswe</a>
+		<a href="https://heswe.com" class="brand-link inline-flex w-fit" aria-label="Heswe AI home">
+			<HesweAiLogo />
+		</a>
 		<div class="max-w-xl">
 			<p class="mb-5 text-sm font-semibold uppercase tracking-[0.22em] text-primary-400">
 				AI workspaces you control
@@ -50,12 +53,14 @@
 
 	<section class="flex items-center justify-center bg-surface-50-950 px-6 py-12">
 		<div class="w-full max-w-md">
-			<a href="https://heswe.com" class="mb-12 block text-xl font-semibold lg:hidden">heswe</a>
+			<a href="https://heswe.com" class="brand-link mb-10 block w-fit lg:hidden" aria-label="Heswe AI home">
+				<HesweAiLogo />
+			</a>
 			<p class="text-sm font-medium text-primary-600-400">
 				{mode === 'sign-in' ? 'Welcome back' : 'Create your account'}
 			</p>
 			<h2 class="mt-2 text-3xl font-semibold tracking-tight">
-				{mode === 'sign-in' ? 'Sign in to Heswe' : 'Start using Heswe'}
+				{mode === 'sign-in' ? 'Sign in to Heswe AI' : 'Start using Heswe AI'}
 			</h2>
 			<p class="mt-3 text-surface-600-400">
 				{mode === 'sign-in'
@@ -126,3 +131,16 @@
 		</div>
 	</section>
 </main>
+
+<style>
+	.brand-link {
+		padding: 8px;
+		margin-left: -8px;
+		border-radius: 4px;
+	}
+
+	.brand-link:focus-visible {
+		outline: 2px solid currentColor;
+		outline-offset: 2px;
+	}
+</style>
