@@ -103,10 +103,12 @@ VMs, pause/resume, and scoped S3 storage remain
 [proposed](proposals/platforms-and-workspace-instances.md).
 
 
-Install Docker and configure gVisor as Docker's `runsc` runtime. Build the
-reviewed workspace image:
+Install Docker and configure gVisor as Docker's `runsc` runtime. The workspace
+image builds AI Wrapper and its model catalog from pinned submodules, so
+initialize them before building the image.
 
 ```sh
+git submodule update --init --recursive
 docker build -f Dockerfile.workspace -t heswe-workspace-runtime:0.1.0 .
 docker network create \
   --driver bridge \

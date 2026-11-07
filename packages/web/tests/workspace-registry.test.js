@@ -6,9 +6,11 @@ import { test } from "node:test";
 import Database from "better-sqlite3";
 import { WorkspaceRegistry } from "../src/lib/server/workspace-registry.js";
 
-async function createRegistry() {
+async function createRegistry(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-registry-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
   const database = new Database(":memory:");
+  t.after(() => database.close());
   database.pragma("foreign_keys = ON");
   return {
     root,
@@ -19,8 +21,8 @@ async function createRegistry() {
   };
 }
 
-test("users start without a workspace and cannot see another user's workspaces", async () => {
-  const { registry } = await createRegistry();
+test("users start without a workspace and cannot see another user's workspaces", async (t) => {
+  const { registry } = await createRegistry(t);
 
   assert.deepEqual(await registry.list("user-a"), []);
 
@@ -34,8 +36,8 @@ test("users start without a workspace and cannot see another user's workspaces",
   );
 });
 
-test("creating a workspace scaffolds it and selects it for that user", async () => {
-  const { registry } = await createRegistry();
+test("creating a workspace scaffolds it and selects it for that user", async (t) => {
+  const { registry } = await createRegistry(t);
 
   const first = await registry.create("user-a", { name: "Personal" });
   const firstCurrent = await registry.get("user-a", first.id);
@@ -80,8 +82,8 @@ test("creating a workspace scaffolds it and selects it for that user", async () 
   assert.equal(selected.find((workspace) => workspace.isCurrent)?.id, first.id);
 });
 
-test("workspace creation validates names and rejects duplicates per user", async () => {
-  const { registry } = await createRegistry();
+test("workspace creation validates names and rejects duplicates per user", async (t) => {
+  const { registry } = await createRegistry(t);
 
   await assert.rejects(
     registry.create("user-a", { name: "  " }),
