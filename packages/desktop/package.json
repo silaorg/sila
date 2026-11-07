@@ -2,8 +2,8 @@
   "name": "@heswe/desktop",
   "private": true,
   "version": "0.0.1",
-  "description": "Thin Electron shell for the shared Heswe client",
-  "productName": "Heswe",
+  "description": "Thin Electron shell for the shared Heswe AI client",
+  "productName": "Heswe AI",
   "type": "module",
   "main": "src-electron/main.js",
   "scripts": {

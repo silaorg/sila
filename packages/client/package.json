@@ -2,7 +2,7 @@
   "name": "@heswe/client",
   "private": true,
   "version": "0.0.1",
-  "description": "Shared Svelte client package for Heswe frontends",
+  "description": "Shared Svelte client package for Heswe AI frontends",
   "type": "module",
   "main": "./src/lib/index.ts",
   "types": "./src/lib/index.ts",

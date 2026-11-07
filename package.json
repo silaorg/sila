@@ -1,6 +1,6 @@
 {
   "name": "heswe",
-  "description": "Root package for Heswe's monorepo",
+  "description": "Root package for Heswe AI's monorepo",
   "private": true,
   "workspaces": [
     "packages/*"

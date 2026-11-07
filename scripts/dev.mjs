@@ -231,7 +231,7 @@ export async function runDev({
   const dashboardUrl = `http://${DEV_HOST}:${dashboardPort}`;
 
   console.log("");
-  console.log("Heswe dev stack");
+  console.log("Heswe AI dev stack");
   console.log(`  API:       ${apiUrl}`);
   if (dashboardEnabled) {
     console.log(`  ${desktopEnabled ? "Desktop" : "Dashboard"}: ${dashboardUrl}`);
@@ -292,13 +292,13 @@ export async function runDev({
 function printDevPorts() {
   const stacks = listRunningDevStacks();
   if (stacks.length === 0) {
-    console.error(`No running Heswe dev stack found for ${process.cwd()}.`);
+    console.error(`No running Heswe AI dev stack found for ${process.cwd()}.`);
     process.exitCode = 1;
     return;
   }
 
   for (const stack of stacks) {
-    console.log("Heswe dev stack");
+    console.log("Heswe AI dev stack");
     console.log(`  API:       ${stack.apiUrl}`);
     if (stack.dashboardUrl) {
       console.log(`  Dashboard: ${stack.dashboardUrl}`);
@@ -320,7 +320,7 @@ if (isMainModule) {
       desktopEnabled: ["--desktop", "--desktop-built"].includes(process.argv[2]),
       desktopBuilt: process.argv[2] === "--desktop-built",
     }).catch((error) => {
-      console.error(`Unable to start Heswe: ${error.message}`);
+      console.error(`Unable to start Heswe AI: ${error.message}`);
       process.exitCode = 1;
     });
   }

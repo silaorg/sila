@@ -60,7 +60,7 @@ threads live below a hashed user ID. The API checks the authenticated user
 before returning a thread. Agents can access the whole workspace filesystem;
 these directories do not isolate users from agent shell commands.
 
-`messages.jsonl` is an append-only event log. Heswe never rewrites existing log
+`messages.jsonl` is an append-only event log. Heswe AI never rewrites existing log
 bytes. Old `messages.json` arrays are migrated when first read. `state.json`
 contains mutable metadata and is replaced atomically.
 
@@ -81,7 +81,7 @@ Agent subprocesses receive these environment paths:
 - `SOURCE_PATH`: `SOURCE_PATH` or `REPO_ROOT` from the environment, otherwise
   the nearest Git root above the workspace.
 
-Heswe builds this environment per thread. It does not write runtime paths or
+Heswe AI builds this environment per thread. It does not write runtime paths or
 workspace `.env` values into the server's global process environment, so
 concurrent workspaces cannot overwrite each other's command context.
 

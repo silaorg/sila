@@ -6,7 +6,7 @@ Important dev rules to follow:
 - Do not treat the direct links below as a replacement for listing that directory. They are the rules that are easiest to miss and most likely to matter.
 - Read [how to commit](docs/dev/rules/how-to-commit.md) before making commits or pushing.
 - Read [how to code](docs/dev/rules/how-to-code.md) before substantial code changes.
-- If referencing or porting behavior from the old Sila v1 codebase, read [how to reference old Sila](docs/dev/rules/how-to-reference-old-sila.md).
+- If referencing or porting behavior from the earlier AI implementation, read [how to reference the earlier implementation](docs/dev/rules/how-to-reference-earlier-implementation.md).
 - For frontend work in `packages/web` or `packages/client`, also check [the app rules](docs/dev/rules/how-to-work-with-app).
 - Before adding workspace-local extensions, check [how to create tools](packages/heswe/builtin-skills/how-to-create-tools/SKILL.md) and [how to create skills](packages/heswe/builtin-skills/how-to-create-skills/SKILL.md).
 

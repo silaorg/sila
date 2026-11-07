@@ -32,9 +32,9 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
               type: "text",
               text: "internal tool output",
             }]),
-            new LangMessage("assistant", [{ type: "text", text: "Hello from Heswe" }]),
+            new LangMessage("assistant", [{ type: "text", text: "Hello from Heswe AI" }]),
           ]);
-          return { responded: true, answer: "Hello from Heswe" };
+          return { responded: true, answer: "Hello from Heswe AI" };
         },
       };
     },
@@ -46,12 +46,12 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
   assert.equal((await service.listThreads("user-b")).length, 0);
 
   const result = await service.sendMessage("user-a", created.id, "Hello");
-  assert.equal(result.answer, "Hello from Heswe");
+  assert.equal(result.answer, "Hello from Heswe AI");
 
   const thread = await service.getThread("user-a", created.id);
   assert.deepEqual(thread.messages.map((message) => message.text), [
     "Hello",
-    "Hello from Heswe",
+    "Hello from Heswe AI",
   ]);
   assert.equal("events" in thread, false);
   assert.deepEqual(

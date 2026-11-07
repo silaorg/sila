@@ -25,7 +25,7 @@ flowchart TB
     TF -.-> BACKUP
 
     subgraph HOST["EC2 Linux host"]
-        API["Heswe API and launcher"] --> AGENTS["Workspace agents: Docker and gVisor"]
+        API["Heswe AI API and launcher"] --> AGENTS["Workspace agents: Docker and gVisor"]
         API --> DB["EBS: live SQLite database"]
         API --> WORKSPACES["EBS: workspace directories"]
         AGENTS -->|"own workspace only"| WORKSPACES
@@ -53,9 +53,9 @@ behind the same launcher remains work in [agent computers](agent-computer-runtim
 | --- | --- |
 | Terraform | Network, host, disks, buckets, S3 Files, mount targets, common permissions, DNS, backup resources, dashboards and alerts |
 | Deployment tooling | Build images, configure services, mount storage, load secrets, deploy a selected release, verify readiness |
-| Heswe API and launcher | Authorize users, create file grants and their access points, assign workspace computers, deliver work, stop and clean up compute |
+| Heswe AI API and launcher | Authorize users, create file grants and their access points, assign workspace computers, deliver work, stop and clean up compute |
 
-Terraform owns shared infrastructure. Heswe owns resources created for user
+Terraform owns shared infrastructure. Heswe AI owns resources created for user
 and workspace lifecycles, including scoped access points recorded in the
 registry. Do not manage the same resource through both paths or run Terraform
 for each agent start. The browser cannot supply a mount path or access point.
@@ -211,7 +211,7 @@ the application host fails.
 
 [Terraform graph](https://developer.hashicorp.com/terraform/cli/commands/graph)
 can supply a configuration dependency view. Live status comes from telemetry
-and Heswe's registry. Keep dashboard definitions in Git and provision them
+and Heswe AI's registry. Keep dashboard definitions in Git and provision them
 with the installation. Publish selected resource IDs and relationships rather
 than raw Terraform state, which can contain secrets.
 

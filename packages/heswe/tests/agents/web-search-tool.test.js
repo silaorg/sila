@@ -38,10 +38,10 @@ describe("createToolWebSearch", () => {
         JSON.stringify({
           results: [
             {
-              title: "Heswe Architecture",
+              title: "Heswe AI Architecture",
               url: "https://example.com/heswe",
               publishedDate: "2026-02-20",
-              author: "Heswe Team",
+              author: "Heswe AI Team",
               score: 0.91,
               summary: "Short summary.",
               text: "Detailed article body.",
@@ -65,7 +65,7 @@ describe("createToolWebSearch", () => {
 
       assert.equal(result.status, "ok");
       assert.equal(result.resultCount, 1);
-      assert.equal(result.results[0].title, "Heswe Architecture");
+      assert.equal(result.results[0].title, "Heswe AI Architecture");
       assert.equal(result.results[0].url, "https://example.com/heswe");
       assert.equal(result.results[0].summary, "Short summary.");
       assert.equal(result.results[0].excerpt, "Detailed article body.");

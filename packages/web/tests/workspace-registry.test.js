@@ -6,6 +6,7 @@ import { test } from "node:test";
 import Database from "better-sqlite3";
 import { WorkspaceRegistry } from "../src/lib/server/workspace-registry.js";
 
+/** @param {import("node:test").TestContext} t */
 async function createRegistry(t) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-registry-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));

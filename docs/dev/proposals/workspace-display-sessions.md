@@ -10,7 +10,7 @@ Use one display and one input controller at a time.
 
 Run a virtual display, browser, and small window manager inside the computer.
 Use a private VNC server and an embedded noVNC viewer.
-Route its WebSocket through the authenticated Heswe API.
+Route its WebSocket through the authenticated Heswe AI API.
 The browser cannot choose an internal address to connect to.
 
 ```text

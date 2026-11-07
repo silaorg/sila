@@ -125,7 +125,7 @@
 				}}
 			>
 				{mode === 'sign-in'
-					? 'New to Heswe? Create an account'
+					? 'New to Heswe AI? Create an account'
 					: 'Already have an account? Sign in'}
 			</button>
 		</div>

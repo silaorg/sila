@@ -7,13 +7,13 @@ Status: proposal. The current app has one API server and local workers.
 Keep local development simple. Use small VMs for hosted agents when practical.
 Choose one launcher first. Keep provider details out of the agent runtime.
 
-A platform is one Heswe installation with its own accounts and API.
+A platform is one Heswe AI installation with its own accounts and API.
 An instance is a trusted host or service that launches workspace computers.
 A workspace computer runs the agent and its tools.
 
 ```text
 browser, Slack, or Telegram
-  -> Heswe API
+  -> Heswe AI API
     -> workspace launcher
       -> workspace computer
         -> agent, CLI tools, and granted files
@@ -66,7 +66,7 @@ when using it for agent code. A pod alone is not the VM boundary described here.
 
 Use [Terraform](https://developer.hashicorp.com/terraform/intro) for the shared
 infrastructure: networks, hosts or clusters, buckets, and service permissions.
-Heswe's launcher uses the provider API for each computer's lifecycle.
+Heswe AI's launcher uses the provider API for each computer's lifecycle.
 Do not run Terraform for every chat message or idle timeout.
 The hosted infrastructure proposal defines bootstrap, release deployment,
 backups, and infrastructure visualization.

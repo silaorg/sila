@@ -1,6 +1,6 @@
-# Heswe agents
+# Heswe AI agents
 
-This package owns the process boundary between the Heswe API and agent
+This package owns the process boundary between the Heswe AI API and agent
 execution.
 
 `ProcessAgentRuntime` starts the agent worker with Node, sends thread messages

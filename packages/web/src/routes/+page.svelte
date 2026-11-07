@@ -7,7 +7,7 @@
 </svelte:head>
 
 <script lang="ts">
-	import { HesweApp } from '@heswe/client';
+	import { HesweAiApp } from '@heswe/client';
 </script>
 
-<HesweApp />
+<HesweAiApp />

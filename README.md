@@ -1,6 +1,6 @@
-# Heswe
+# Heswe AI
 
-Heswe runs AI agents that work with files, tools, and shell commands.
+Heswe AI runs AI agents that work with files, tools, and shell commands.
 You can use them through the web app, Slack, or Telegram.
 
 A workspace is a directory with conversations, files, instructions, skills,

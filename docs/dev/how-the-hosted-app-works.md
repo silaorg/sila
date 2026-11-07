@@ -1,6 +1,6 @@
 # How the hosted app works
 
-The Heswe app is a SvelteKit server and browser client. The browser uses
+The Heswe AI app is a SvelteKit server and browser client. The browser uses
 same-origin HTTP endpoints and one server-sent events connection. It never
 reads a workspace directory or runs an agent locally.
 
@@ -35,7 +35,7 @@ instance uses API port `39900` and dashboard port `39901`. Later instances try
 whole pair is skipped. `npm run dev:ports` prints the selected URLs for every
 running instance in the current checkout.
 
-Heswe still has one SvelteKit application server. It owns the API port and
+Heswe AI still has one SvelteKit application server. It owns the API port and
 serves the UI, API, authentication, and event stream. The local dashboard port
 is a proxy to that server, which keeps browser requests same-origin without
 duplicating application state. Run `npm run dev:api-only` to omit the dashboard

@@ -1,6 +1,6 @@
-# Heswe Web - SvelteKit app
+# Heswe AI Web - SvelteKit app
 
-The Heswe SvelteKit server.
+The Heswe AI SvelteKit server.
 
 It serves the shared UI from `@heswe/client`, Better Auth routes, the workspace
 API, and server-sent events.

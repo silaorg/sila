@@ -2,7 +2,7 @@
   "name": "@heswe/agents",
   "version": "0.1.0",
   "type": "module",
-  "description": "Process client and worker entry point for Heswe agents",
+  "description": "Process client and worker entry point for Heswe AI agents",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "exports": {

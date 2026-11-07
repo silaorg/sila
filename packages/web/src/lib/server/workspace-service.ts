@@ -42,7 +42,7 @@ function getWorkspaceRegistry() {
 
 	const workspacesPath = process.env.WORKSPACES_PATH;
 	if (!workspacesPath) {
-		throw new Error('WORKSPACES_PATH is required for the Heswe server.');
+		throw new Error('WORKSPACES_PATH is required for the Heswe AI server.');
 	}
 	registry = new WorkspaceRegistry({
 		database: getDatabase(),

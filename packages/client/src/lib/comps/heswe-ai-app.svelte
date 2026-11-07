@@ -13,7 +13,7 @@
 
 {#if $session.isPending}
 	<main class="flex min-h-screen items-center justify-center bg-surface-50-950 text-surface-500">
-		Connecting to Heswe…
+		Connecting to Heswe AI…
 	</main>
 {:else if $session.data?.user}
 	<WorkspaceApp user={$session.data.user} />

@@ -102,7 +102,7 @@ Revocation cannot erase files an agent has already read or copied elsewhere.
 ## Working filesystem
 
 An agent needs ordinary file operations for Git, package managers, and tools.
-Heswe also appends `messages.jsonl` and replaces JSON files with atomic rename.
+Heswe AI also appends `messages.jsonl` and replaces JSON files with atomic rename.
 Keep those on a filesystem that supports these operations.
 
 [Mountpoint for S3](https://github.com/awslabs/mountpoint-s3/blob/main/doc/SEMANTICS.md)

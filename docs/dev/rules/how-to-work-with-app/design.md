@@ -1,7 +1,7 @@
 # App design
 
-Use Mindb's compact desktop chrome and mobile navigation conventions. Keep
-Heswe's Skeleton theme as the source of color tokens.
+Use Heswe Notes' compact desktop chrome and mobile navigation conventions. Keep
+Heswe AI's Skeleton theme as the source of color tokens.
 
 - Shared chrome and settings styles live in
   `packages/client/src/lib/ui-conventions.css`.

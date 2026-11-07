@@ -1,4 +1,4 @@
-# Heswe workspace runtime
+# Heswe AI workspace runtime
 
 This package loads workspace settings and runs agents, tools, and channels.
 It also stores conversations and files, and provides the workspace CLI.

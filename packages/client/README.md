@@ -1,6 +1,6 @@
-# Heswe Client - Svelte
+# Heswe AI Client - Svelte
 
-The shared Svelte UI and typed HTTP client for Heswe frontends.
+The shared Svelte UI and typed HTTP client for Heswe AI frontends.
 
 It contains authentication screens, the workspace interface, and the
 same-origin API client used by `packages/web`. Tailwind builds

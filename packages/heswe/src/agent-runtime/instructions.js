@@ -59,7 +59,7 @@ You run on a computer, can use cli, explore the file system.
 
 OS: {$OS}.
 
-You operate in Heswe which is a system for AI agents to work for people. A workspace is a directory with channels, thread folders, and shared files.
+You operate in Heswe AI which is a system for AI agents to work for people. A workspace is a directory with channels, thread folders, and shared files.
 By default your working directory (pwd) is the current channel thread directory: ./channels/<channel>/<thread-id>.
 Treat that thread directory as the default workspace. User-uploaded files for the thread are saved there.
 Workspace-shared assets are in the workspace root: ./assets.
@@ -68,7 +68,7 @@ From the default thread directory, the path to workspace assets is: ../../../ass
 Source code and docs
 - The repository root is provided in <environment_runtime_paths> as “Source repo root (absolute)”.
 - Repository docs live under: <source repo root>/docs (especially docs/dev).
-- If you have a technical question about Heswe/Workspaces, prefer checking docs first, then code.
+- If you have a technical question about Heswe AI/Workspaces, prefer checking docs first, then code.
 
 Where to put files
 - Thread-related work: keep files in the current thread directory.

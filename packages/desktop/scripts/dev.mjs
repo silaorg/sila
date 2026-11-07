@@ -64,7 +64,7 @@ async function waitForApi() {
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
   }
-  if (!startup.signal.aborted) throw new Error("The Heswe API did not become ready within 60 seconds.");
+  if (!startup.signal.aborted) throw new Error("The Heswe AI API did not become ready within 60 seconds.");
 }
 
 try {
@@ -90,15 +90,15 @@ try {
       stdio: ["inherit", "inherit", "inherit", "ipc"],
     });
     child.once("error", (error) => {
-      console.error(`Unable to launch Heswe desktop: ${error.message}`);
+      console.error(`Unable to launch Heswe AI desktop: ${error.message}`);
       void close(1);
     });
     child.once("exit", (code) => {
       if (!closing) void close(code ?? 1);
     });
-    console.log(`Heswe desktop started${built ? " from the built client" : " with live reload"}. Quit the app to stop its local API.`);
+    console.log(`Heswe AI desktop started${built ? " from the built client" : " with live reload"}. Quit the app to stop its local API.`);
   }
 } catch (error) {
-  console.error(`Unable to start Heswe desktop: ${error.message}`);
+  console.error(`Unable to start Heswe AI desktop: ${error.message}`);
   await close(1);
 }
