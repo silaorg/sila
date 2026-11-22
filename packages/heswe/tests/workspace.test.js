@@ -24,10 +24,15 @@ test("Workspace.run rejects malformed channel config instead of silently skippin
     `${JSON.stringify({ version: 1, name: "broken-channel" })}\n`,
     "utf8",
   );
-  await fs.writeFile(path.join(channelPath, "config.json"), "{invalid", "utf8");
+  const channelConfigPath = path.join(channelPath, "config.json");
+  await fs.writeFile(channelConfigPath, "example-token", "utf8");
 
   const workspace = new Workspace(workspacePath);
-  await assert.rejects(workspace.run(), /Invalid JSON.*channels.*slack/);
+  await assert.rejects(workspace.run(), (error) => {
+    assert.equal(error.message, `Invalid JSON in ${channelConfigPath}`);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
 });
 
 test("Workspace.stop releases channels and allows a clean restart", async () => {

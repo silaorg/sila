@@ -129,7 +129,7 @@ async function readJsonFileOrNull(filePath) {
 
   try {
     return JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Invalid JSON in ${filePath}: ${error.message}`, { cause: error });
+  } catch {
+    throw new Error(`Invalid JSON in ${filePath}`);
   }
 }
