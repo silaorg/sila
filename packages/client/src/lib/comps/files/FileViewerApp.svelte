@@ -3,6 +3,7 @@
 	import FileIcon from 'lucide-svelte/icons/file';
 	import { useWorkspaceUi } from '../../workspace-ui-context';
 	import { formatFileSize } from '../chat/format-file-size';
+	import { getPreviewType } from '../../asset-viewer/asset-viewer.svelte';
 	import TextPreview from '../../asset-viewer/text-preview.svelte';
 
 	let {
@@ -18,6 +19,7 @@
 	} = $props();
 
 	const workspaceUi = useWorkspaceUi();
+	const previewType = $derived(getPreviewType(mimeType));
 	const url = $derived(workspaceUi.getWorkspaceAssetUrl(path));
 </script>
 
@@ -34,11 +36,17 @@
 	</div>
 
 	<div class="min-h-0 flex-1 overflow-auto bg-surface-50-950 p-4">
-		{#if mimeType.startsWith('image/')}
+		{#if previewType === 'image'}
 			<img src={url} alt={name} class="mx-auto max-h-full max-w-full object-contain" />
-		{:else if mimeType === 'application/pdf'}
+		{:else if previewType === 'video'}
+			<video src={url} controls class="mx-auto max-h-full max-w-full">
+				<track kind="captions" />
+			</video>
+		{:else if previewType === 'audio'}
+			<audio src={url} controls class="w-full"><track kind="captions" /></audio>
+		{:else if previewType === 'pdf'}
 			<iframe src={url} title={name} class="size-full border-0"></iframe>
-		{:else if mimeType.startsWith('text/') || mimeType === 'application/json'}
+		{:else if previewType === 'text'}
 			<TextPreview {url} {size} />
 		{:else}
 			<div class="flex h-full flex-col items-center justify-center text-center">

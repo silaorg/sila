@@ -4,21 +4,14 @@
 	import SquareArrowOutUpRight from 'lucide-svelte/icons/square-arrow-out-up-right';
 	import X from 'lucide-svelte/icons/x';
 	import { useWorkspaceUi } from '../workspace-ui-context';
+	import { getPreviewType } from './asset-viewer.svelte';
 	import TextPreview from './text-preview.svelte';
 
 	const workspaceUi = useWorkspaceUi();
 	const viewer = $derived(workspaceUi.assetViewer);
 	const activeFile = $derived(viewer.activeFile);
 	const url = $derived(activeFile ? workspaceUi.getWorkspaceAssetUrl(activeFile.path) : '');
-	const previewType = $derived.by(() => {
-		const mimeType = activeFile?.mimeType ?? '';
-		if (mimeType.startsWith('image/')) return 'image';
-		if (mimeType.startsWith('video/')) return 'video';
-		if (mimeType.startsWith('audio/')) return 'audio';
-		if (mimeType === 'application/pdf') return 'pdf';
-		if (mimeType.startsWith('text/') || mimeType === 'application/json') return 'text';
-		return 'download';
-	});
+	const previewType = $derived(getPreviewType(activeFile?.mimeType ?? ''));
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key !== 'Escape' || !activeFile) return;
