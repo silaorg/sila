@@ -224,6 +224,9 @@ export class ProcessAgentRuntime {
           await pending.callbacks.onAssistantLoopMessage?.(message.payload);
         }
       });
+      // The worker may take several turns of the event loop to send its response.
+      // Observe callback failures now; the response handler forwards them in order.
+      void pending.eventQueue.catch(() => {});
       return;
     }
 

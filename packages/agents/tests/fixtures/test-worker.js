@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createInterface } from "node:readline";
+import { setTimeout as delay } from "node:timers/promises";
 
 const lines = createInterface({
   input: process.stdin,
@@ -9,7 +10,7 @@ const lines = createInterface({
 
 let ignoreStop = false;
 
-lines.on("line", (line) => {
+lines.on("line", async (line) => {
   const request = JSON.parse(line);
   if (request.method === "handleThreadMessage") {
     if (request.input.text === "__ignore_stop__") ignoreStop = true;
@@ -44,6 +45,7 @@ lines.on("line", (line) => {
       requestId: request.id,
       name: "assistant-responding",
     });
+    if (request.input.text === "__delayed_response__") await delay(80);
     write({
       type: "event",
       requestId: request.id,

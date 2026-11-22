@@ -106,6 +106,26 @@ test("ProcessAgentRuntime sends messages and forwards worker events", async () =
   await runtime.stop();
 });
 
+test("a failed callback rejects its own request when the worker eventually replies", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "agent-process-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const runtime = new ProcessAgentRuntime({ workspacePath, workerPath: TEST_WORKER_PATH });
+  t.after(() => runtime.stop());
+  const input = { threadId: "thread", threadDir: path.join(workspacePath, "thread"), userId: "user" };
+  const failure = new Error("Could not publish progress");
+  let progressCalls = 0;
+
+  await assert.rejects(runtime.handleThreadMessage({
+    ...input,
+    text: "__delayed_response__",
+    onAssistantResponding() { throw failure; },
+    onAssistantProgress() { progressCalls++; },
+  }), (error) => error === failure);
+  assert.equal(progressCalls, 0);
+  const next = await runtime.handleThreadMessage({ ...input, text: "hello" });
+  assert.equal(next.answer, "hello");
+});
+
 test("createAgentWorkerEnvironment passes only system and provider values", () => {
   assert.deepEqual(
     createAgentWorkerEnvironment({
