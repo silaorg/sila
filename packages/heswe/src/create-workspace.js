@@ -60,11 +60,11 @@ export async function createWorkspace(options) {
 
   await createDefaultAgentConfig(workspacePath);
   await createProviderConfig(workspacePath, "openai");
-  await writeJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
-  await fs.writeFile(getWorkspaceEnvPath(workspacePath), buildWorkspaceEnv(parsedOptions), "utf8");
+  await writePrivateJsonFile(path.join(channelPath, CONFIG_FILE_NAME), buildChannelConfig(parsedOptions.channel));
+  await fs.writeFile(getWorkspaceEnvPath(workspacePath), buildWorkspaceEnv(parsedOptions), { mode: 0o600, flag: "wx" });
 
   if (parsedOptions.secrets?.length) {
-    await writeJsonFile(path.join(workspacePath, "secrets.json"), parsedOptions.secrets);
+    await writePrivateJsonFile(path.join(workspacePath, "secrets.json"), parsedOptions.secrets);
   }
 
   return {
@@ -75,8 +75,8 @@ export async function createWorkspace(options) {
   };
 }
 
-async function writeJsonFile(filePath, data) {
-  await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+async function writePrivateJsonFile(filePath, data) {
+  await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600, flag: "wx" });
 }
 
 function buildChannelConfig(channel) {

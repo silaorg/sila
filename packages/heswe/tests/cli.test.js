@@ -37,6 +37,8 @@ test("create then run workspace succeeds", async () => {
     "slack",
     "--openai-api-key",
     "sk-test",
+    "--secret",
+    "EXAMPLE=test-value",
   ]);
   assert.equal(createResult.code, 0);
   assert.match(createResult.stdout, /Created workspace at:/);
@@ -53,6 +55,13 @@ test("create then run workspace succeeds", async () => {
   assert.match(workspaceEnv, /MISTRAL_API_KEY=/);
   assert.match(workspaceEnv, /FAL_KEY=/);
   assert.match(workspaceEnv, /EXA_API_KEY=/);
+  const secrets = JSON.parse(await fs.readFile(path.join(workspaceDir, "secrets.json"), "utf8"));
+  assert.deepEqual(secrets, [{ name: "EXAMPLE", value: "test-value" }]);
+  if (process.platform !== "win32") {
+    for (const file of [".env", "secrets.json", "channels/slack/config.json"]) {
+      assert.equal((await fs.stat(path.join(workspaceDir, file))).mode & 0o777, 0o600, file);
+    }
+  }
   const skillsStat = await fs.stat(path.join(workspaceDir, "skills"));
   assert.equal(skillsStat.isDirectory(), true);
   const defaultAgentConfig = JSON.parse(await fs.readFile(path.join(workspaceDir, "agents", "default", "config.json"), "utf8"));
