@@ -94,6 +94,13 @@ test("create then run workspace with default Telegram channel succeeds", async (
   assert.match(runResult.stdout, /Running workspace:/);
 });
 
+test("create explains the secret format without echoing the supplied value", async () => {
+  const result = await runCli(["create", "--secret", "private-test-value"]);
+  assert.equal(result.code, 2);
+  assert.match(result.stderr, /--secret.*NAME=VALUE/);
+  assert.doesNotMatch(result.stderr + result.stdout, /private-test-value/);
+});
+
 test("create and run return errors for invalid paths", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
 

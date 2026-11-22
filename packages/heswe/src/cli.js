@@ -171,7 +171,7 @@ function parseSecretOptions(secretArgs) {
   return secretArgs.map((secretArg) => {
     const separator = secretArg.indexOf("=");
     if (separator <= 0) {
-      throw usageError(`Invalid --secret value "${secretArg}". Expected NAME=VALUE.`);
+      throw usageError("Invalid --secret argument. Expected NAME=VALUE.");
     }
     return {
       name: secretArg.slice(0, separator),
