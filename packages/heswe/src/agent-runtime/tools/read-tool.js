@@ -155,8 +155,7 @@ function buildHeaders(worksheet, headerRowIndex) {
   const values = Array.isArray(row.values) ? row.values : [];
   const headers = [];
   for (let columnIndex = 1; columnIndex < values.length; columnIndex += 1) {
-    const raw = values[columnIndex];
-    const key = String(raw ?? "").trim();
+    const key = String(toResultCellValue(values[columnIndex]) ?? "").trim();
     headers[columnIndex] = key || `col_${columnIndex}`;
   }
   return headers;
@@ -323,18 +322,8 @@ async function readSpreadsheet(fullPath, args) {
   const data = [];
   for (const row of rowsToRead) {
     if (shouldAsObjects && headers) {
-      const objectRow = {};
-      if (shouldFillMissingCells) {
-        for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
-          const key = headers[columnIndex];
-          if (key) {
-            objectRow[key] = null;
-          }
-        }
-      }
-
-      const maxColumns = Math.max(row.cellCount, row.actualCellCount, headers.length - 1);
-      for (let columnIndex = 1; columnIndex <= maxColumns; columnIndex += 1) {
+      const entries = [];
+      for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
         const key = headers[columnIndex];
         if (!key) continue;
 
@@ -350,9 +339,9 @@ async function readSpreadsheet(fullPath, args) {
         if (!shouldFillMissingCells && !isMeaningfulCellValue(value)) {
           continue;
         }
-        objectRow[key] = value ?? null;
+        entries.push([key, value ?? null]);
       }
-      data.push(objectRow);
+      data.push(Object.fromEntries(entries));
       continue;
     }
 

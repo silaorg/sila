@@ -67,6 +67,32 @@ describe("spreadsheetTools", () => {
     strictEqual(summaryRead.data[0].Value, 1);
   });
 
+  it("uses displayed header labels when returning rows as objects", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Report");
+    sheet.addRow([
+      { richText: [{ text: "First " }, { font: { bold: true }, text: "name" }] },
+      { text: "Website", hyperlink: "https://example.test" },
+      { formula: '"Score"', result: "Score" },
+      "__proto__",
+      "Empty",
+    ]);
+    sheet.addRow(["Ada", "example.test", 0, "literal column"]);
+    await workbook.xlsx.writeFile(path.join(tempDir, "header-labels.xlsx"));
+
+    const read = createToolReadDocument({ baseDir: tempDir });
+    const result = await read.handler({ path: "header-labels.xlsx", asObjects: true });
+    deepStrictEqual(result.data, [{
+      "First name": "Ada",
+      Website: "example.test",
+      Score: 0,
+      ["__proto__"]: "literal column",
+      Empty: null,
+    }]);
+    const sparse = await read.handler({ path: "header-labels.xlsx", asObjects: true, fillMissingCells: false });
+    strictEqual(Object.hasOwn(sparse.data[0], "Empty"), false);
+  });
+
   it("auto-detects headers and handles result/compute value modes", async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Report");
