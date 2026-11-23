@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { buildManagedInstructionBlocks, defaultAgentInstructions } from "./agent-runtime/index.js";
+import { readDirectoryEntriesOrEmpty } from "./directory-entries.js";
 
 const DEFAULT_INSTRUCTIONS_DIR = path.join("agents", "default", "instructions");
 const NULL_BYTE = "\u0000";
@@ -12,10 +13,9 @@ const NULL_BYTE = "\u0000";
  */
 export async function loadWorkspaceAgentInstructions(workspacePath, channel) {
   const normalizedChannel = normalizeChannel(channel);
-  const defaults = defaultAgentInstructions({ channel: normalizedChannel });
   const customInstructionBlocks = await loadCustomInstructionBlocks(workspacePath);
   if (!customInstructionBlocks.length) {
-    return defaults;
+    return defaultAgentInstructions({ channel: normalizedChannel });
   }
 
   return [customInstructionBlocks.join("\n\n"), buildManagedInstructionBlocks(normalizedChannel).trim()].join("\n\n");
@@ -27,11 +27,7 @@ function normalizeChannel(channel) {
 
 async function loadCustomInstructionBlocks(workspacePath) {
   const directoryPath = path.join(workspacePath, DEFAULT_INSTRUCTIONS_DIR);
-  const filePaths = await listFilesRecursivelyOrNull(directoryPath);
-  if (!filePaths || !filePaths.length) {
-    return [];
-  }
-
+  const filePaths = await listInstructionFiles(directoryPath);
   const instructionBlocks = await Promise.all(
     filePaths.map(async (filePath) => {
       const content = await readTextFileOrNull(filePath);
@@ -45,30 +41,17 @@ async function loadCustomInstructionBlocks(workspacePath) {
   return instructionBlocks.filter(Boolean);
 }
 
-async function listFilesRecursivelyOrNull(directoryPath) {
-  let entries;
-  try {
-    entries = await fs.readdir(directoryPath, { withFileTypes: true });
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
-
+async function listInstructionFiles(directoryPath) {
+  const entries = await readDirectoryEntriesOrEmpty(directoryPath);
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
   const filePaths = [];
   for (const entry of entries) {
     const entryPath = path.join(directoryPath, entry.name);
     if (entry.isDirectory()) {
-      const nestedPaths = await listFilesRecursivelyOrNull(entryPath);
-      if (nestedPaths && nestedPaths.length) {
-        filePaths.push(...nestedPaths);
-      }
-      continue;
-    }
-    if (entry.isFile()) {
+      const nestedFiles = await listInstructionFiles(entryPath);
+      filePaths.push(...nestedFiles);
+    } else if (entry.isFile()) {
       filePaths.push(entryPath);
     }
   }
