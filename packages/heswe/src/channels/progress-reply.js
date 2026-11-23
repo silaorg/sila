@@ -9,51 +9,30 @@ import { formatWorkingMessage } from "./channel-utils.js";
  * }} transport
  */
 export function createProgressReply(transport) {
-  /** @type {string | number | null} */
-  let messageId = null;
   /** @type {Promise<string | number | null> | null} */
-  let starting = null;
+  let initialMessage = null;
 
   async function start() {
-    if (messageId !== null) {
-      return messageId;
-    }
-    if (!starting) {
-      starting = transport.send("🤔 Thinking...").then((id) => {
-        messageId = id;
-        return id;
-      });
-    }
-    return starting;
+    initialMessage ??= transport.send("🤔 Thinking...");
+    return initialMessage;
   }
 
-  async function replaceOrSend(text) {
-    const id = await start();
+  async function updateOrSend(text, initialPost) {
+    const id = await initialPost;
     if (id !== null) {
       await transport.update(id, text);
-      return;
+    } else {
+      await transport.send(text);
     }
-    await transport.send(text);
   }
 
   return {
     start,
     async sendWorking(payload) {
-      await replaceOrSend(formatWorkingMessage(payload.text));
+      return updateOrSend(formatWorkingMessage(payload.text), start());
     },
-    async sendFinal(answer) {
-      if (messageId !== null) {
-        await transport.update(messageId, answer);
-        return;
-      }
-      if (starting) {
-        const id = await starting;
-        if (id !== null) {
-          await transport.update(id, answer);
-          return;
-        }
-      }
-      await transport.send(answer);
+    sendFinal(answer) {
+      return updateOrSend(answer, initialMessage);
     },
   };
 }

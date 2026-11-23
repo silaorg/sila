@@ -57,3 +57,24 @@ test("createProgressReply sends the final answer directly when progress never st
 
   assert.deepEqual(sent, ["Done"]);
 });
+
+test("a final reply waits for an initial post that is still in flight", async () => {
+  const posted = Promise.withResolvers();
+  const calls = [];
+  const reply = createProgressReply({
+    send(text) {
+      calls.push(["send", text]);
+      return posted.promise;
+    },
+    async update(id, text) {
+      calls.push(["update", id, text]);
+    },
+  });
+
+  const starting = reply.start();
+  const finishing = reply.sendFinal("Done");
+  posted.resolve(17);
+  await Promise.all([starting, finishing]);
+
+  assert.deepEqual(calls, [["send", "🤔 Thinking..."], ["update", 17, "Done"]]);
+});
