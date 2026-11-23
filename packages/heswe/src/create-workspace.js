@@ -31,31 +31,25 @@ function parseWorkspaceOptions(input) {
 export async function createWorkspace(options) {
   const parsedOptions = parseWorkspaceOptions(options);
   const workspacePath = path.resolve(parsedOptions.path);
-  const existing = await statIfExists(workspacePath);
 
-  if (existing && !existing.isDirectory()) {
-    throw new CreateWorkspaceError(`Path exists and is not a directory: ${workspacePath}`);
-  }
-
-  if (existing) {
+  await fs.mkdir(path.dirname(workspacePath), { recursive: true });
+  try {
+    await fs.mkdir(workspacePath);
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+    if (!(await fs.lstat(workspacePath)).isDirectory()) {
+      throw new CreateWorkspaceError(`Path exists and is not a directory: ${workspacePath}`);
+    }
     throw new CreateWorkspaceError(`Workspace already exists at ${workspacePath}.`);
   }
-
-  await fs.mkdir(workspacePath, { recursive: true });
   await createDefaultConfig(workspacePath);
 
-  const agentsPath = path.join(workspacePath, "agents");
-  const defaultAgentPath = path.join(agentsPath, "default");
   const skillsPath = path.join(workspacePath, "skills");
   const assetsPath = path.join(workspacePath, "assets");
-  const providersPath = path.join(workspacePath, "providers");
   const channelPath = path.join(workspacePath, "channels", parsedOptions.channel);
 
-  await fs.mkdir(agentsPath, { recursive: true });
-  await fs.mkdir(defaultAgentPath, { recursive: true });
   await fs.mkdir(skillsPath, { recursive: true });
   await fs.mkdir(assetsPath, { recursive: true });
-  await fs.mkdir(providersPath, { recursive: true });
   await fs.mkdir(channelPath, { recursive: true });
 
   await createDefaultAgentConfig(workspacePath);
@@ -114,15 +108,4 @@ function buildWorkspaceEnv(options) {
     "EXA_API_KEY=",
     "",
   ].join("\n");
-}
-
-async function statIfExists(filePath) {
-  try {
-    return await fs.stat(filePath);
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  }
 }

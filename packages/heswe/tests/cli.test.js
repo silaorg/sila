@@ -6,6 +6,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { CreateWorkspaceError, createWorkspace } from "../src/create-workspace.js";
 
 const execFileAsync = promisify(execFile);
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,22 @@ async function runCli(args) {
     };
   }
 }
+
+test("concurrent workspace creators cannot mix their channel configurations", async (t) => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
+  t.after(() => fs.rm(tempRoot, { recursive: true, force: true }));
+  const workspacePath = path.join(tempRoot, "nested", "workspace");
+
+  const results = await Promise.allSettled(["slack", "telegram"].map(
+    (channel) => createWorkspace({ path: workspacePath, channel }),
+  ));
+  const created = results.filter((result) => result.status === "fulfilled");
+  const rejected = results.filter((result) => result.status === "rejected");
+  assert.equal(created.length, 1);
+  assert.equal(rejected.length, 1);
+  assert.ok(rejected[0].reason instanceof CreateWorkspaceError);
+  assert.deepEqual(await fs.readdir(path.join(workspacePath, "channels")), [created[0].value.channel]);
+});
 
 test("create then run workspace succeeds", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-test-"));
