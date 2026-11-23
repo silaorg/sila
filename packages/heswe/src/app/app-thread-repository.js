@@ -26,7 +26,8 @@ export class AppThreadRepository {
         continue;
       }
       try {
-        threads.push(await this.#readSummary(userId, entry.name));
+        const { summary } = await this.get(userId, entry.name);
+        threads.push(summary);
       } catch (error) {
         if (!(error instanceof AppWorkspaceError) || error.code !== "not_found") {
           throw error;
@@ -53,8 +54,24 @@ export class AppThreadRepository {
   }
 
   async get(userId, threadId) {
-    const summary = await this.#readSummary(userId, threadId);
+    const state = await this.#readState(userId, threadId);
     const events = await this.#threadStore.loadEvents(this.getThreadDir(userId, threadId));
+    let messageCount = 0;
+    let lastMessage;
+    for (const event of events) {
+      if (event.type === "message") {
+        messageCount++;
+        lastMessage = event.message;
+      }
+    }
+    const summary = {
+      id: threadId,
+      title: state.title,
+      createdAt: state.createdAt,
+      updatedAt: state.updatedAt,
+      messageCount,
+      preview: lastMessage ? getPublicMessageText(lastMessage).trim().slice(0, 120) : "",
+    };
     return { summary, events };
   }
 
@@ -74,22 +91,6 @@ export class AppThreadRepository {
   getThreadDir(userId, threadId) {
     assertThreadId(threadId);
     return path.join(this.#getUserAppPath(userId), threadId);
-  }
-
-  async #readSummary(userId, threadId) {
-    const state = await this.#readState(userId, threadId);
-    const messages = await this.#threadStore.loadMessages(this.getThreadDir(userId, threadId));
-    const lastMessage = messages[messages.length - 1];
-    return {
-      id: threadId,
-      title: state.title,
-      createdAt: state.createdAt,
-      updatedAt: state.updatedAt,
-      messageCount: messages.length,
-      preview: lastMessage
-        ? getPublicMessageText(lastMessage).trim().slice(0, 120)
-        : "",
-    };
   }
 
   async #readState(userId, threadId) {

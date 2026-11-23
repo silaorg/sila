@@ -10,12 +10,13 @@ import {
 } from "../src/app-workspace-service.js";
 import { ThreadStore } from "../src/thread-store.js";
 
-test("AppWorkspaceService scopes API threads to a user and emits changes", async () => {
+test("AppWorkspaceService scopes API threads to a user and emits changes", async (t) => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
   const store = new ThreadStore();
   const changes = [];
   const service = new AppWorkspaceService({
     workspacePath,
+    threadStore: store,
     onChange(change) {
       changes.push(change);
     },
@@ -48,7 +49,11 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
   const result = await service.sendMessage("user-a", created.id, "Hello");
   assert.equal(result.answer, "Hello from Heswe AI");
 
+  const reads = t.mock.method(store, "loadEvents");
   const thread = await service.getThread("user-a", created.id);
+  assert.equal(reads.mock.callCount(), 1);
+  assert.equal(thread.messageCount, 4);
+  assert.equal(thread.preview, "Hello from Heswe AI");
   assert.deepEqual(thread.messages.map((message) => message.text), [
     "Hello",
     "Hello from Heswe AI",
