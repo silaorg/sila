@@ -7,6 +7,7 @@ import {
   createDefaultAgentConfig,
   createProviderConfig,
   loadWorkspaceLanguageProvider,
+  readDefaultAgentConfig,
   readWorkspaceModelSettings,
   resolveWorkspaceLanguageSelection,
   updateWorkspaceModelSettings,
@@ -289,4 +290,16 @@ test("workspace model settings update selection without exposing API keys", asyn
     removed.providers.find((provider) => provider.id === "exa")?.apiKeySource,
     "workspace",
   );
+});
+
+test("selecting a provider preserves its configured model and other workspace settings", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-providers-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  await createDefaultAgentConfig(workspacePath, { label: "research agent" });
+  await createProviderConfig(workspacePath, "openai", { enabled: false, model: "workspace-model" });
+
+  await updateWorkspaceModelSettings(workspacePath, { provider: "openai", model: "auto" });
+  const selection = await resolveWorkspaceLanguageSelection(workspacePath);
+  assert.equal(selection.model, "workspace-model");
+  assert.equal((await readDefaultAgentConfig(workspacePath)).label, "research agent");
 });

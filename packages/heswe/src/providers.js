@@ -288,7 +288,6 @@ export async function updateWorkspaceModelSettings(workspacePath, input) {
     if (!providerSpec || providerSpec.kind !== "language") {
       throw new ProviderConfigError(`Unsupported language provider "${provider}".`);
     }
-    await createProviderConfig(workspacePath, provider);
   }
 
   const environmentChanges = {};
@@ -300,7 +299,13 @@ export async function updateWorkspaceModelSettings(workspacePath, input) {
     environmentChanges[providerSpec.envVarName] = value;
   }
 
+  const agentConfig = await readDefaultAgentConfig(workspacePath);
+  if (provider !== "auto") {
+    const config = await readJsonFileOrNull(getProviderConfigPath(workspacePath, provider));
+    await createProviderConfig(workspacePath, provider, { ...config, provider, enabled: true });
+  }
   await createDefaultAgentConfig(workspacePath, {
+    ...agentConfig,
     provider,
     model: provider === "auto" ? "auto" : model,
   });
