@@ -29,7 +29,7 @@ export class AppEventBroker {
 					if (closed) return;
 					closed = true;
 					if (heartbeat) clearInterval(heartbeat);
-					signal.removeEventListener('abort', cleanup);
+					signal.removeEventListener('abort', closeOnAbort);
 					const subscribers = this.subscribersByUser.get(userId);
 					subscribers?.delete(publish);
 					if (subscribers?.size === 0) {
@@ -55,12 +55,15 @@ export class AppEventBroker {
 				subscribers.add(publish);
 				this.subscribersByUser.set(userId, subscribers);
 
-				signal.addEventListener('abort', cleanup, { once: true });
-				if (signal.aborted) {
+				const closeOnAbort = () => {
 					cleanup();
 					controller.close();
+				};
+				if (signal.aborted) {
+					closeOnAbort();
 					return;
 				}
+				signal.addEventListener('abort', closeOnAbort, { once: true });
 
 				enqueue(encodeEvent('connected', { type: 'connected' }));
 				heartbeat = setInterval(() => enqueue(textEncoder.encode(': heartbeat\n\n')), 20_000);
