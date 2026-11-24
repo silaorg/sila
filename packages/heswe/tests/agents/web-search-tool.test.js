@@ -75,6 +75,26 @@ describe("createToolWebSearch", () => {
     }
   });
 
+  it("returns only the requested top results when the provider sends extra matches", async (t) => {
+    const matches = [{ title: "First" }, { title: "Second" }];
+    t.mock.method(globalThis, "fetch", async () => Response.json({ results: matches }));
+    const tool = createToolWebSearch({ environment: { EXA_API_KEY: "test" } });
+
+    const result = await tool.handler({ query: "example", numResults: 1 });
+    assert.equal(result.resultCount, 1);
+    assert.deepEqual(result.results.map((item) => item.title), ["First"]);
+  });
+
+  it("keeps the HTTP status and a short excerpt of provider errors", async (t) => {
+    t.mock.method(globalThis, "fetch", async () => new Response("Unavailable ".repeat(500), { status: 503 }));
+    const tool = createToolWebSearch({ environment: { EXA_API_KEY: "test" } });
+
+    const result = await tool.handler({ query: "example" });
+    assert.equal(result.status, "failed");
+    assert.match(result.error, /HTTP 503: Unavailable/);
+    assert.ok(result.error.length < 1000);
+  });
+
   it("accepts an isolated workspace API key", async () => {
     const previousKey = process.env.EXA_API_KEY;
     const originalFetch = globalThis.fetch;

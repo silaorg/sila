@@ -89,9 +89,10 @@ export function createToolWebSearch(options = {}) {
       }
 
       if (!response.ok) {
-        const details = await readResponseText(response, {
+        const body = await readResponseText(response, {
           maxBytes: MAX_SEARCH_RESPONSE_BYTES,
         }).catch(() => "");
+        const details = truncateText(body, EXCERPT_LIMIT);
         return {
           status: "failed",
           error: `Exa web search request failed with HTTP ${response.status}${details ? `: ${details}` : ""}`,
@@ -111,7 +112,7 @@ export function createToolWebSearch(options = {}) {
       }
 
       const results = Array.isArray(parsed?.results)
-        ? parsed.results.map((item) => ({
+        ? parsed.results.slice(0, payload.numResults).map((item) => ({
             title: toTextOrNull(item?.title),
             url: toTextOrNull(item?.url),
             publishedDate: toTextOrNull(item?.publishedDate),
