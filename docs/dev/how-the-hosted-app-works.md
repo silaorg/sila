@@ -42,6 +42,9 @@ duplicating application state. Run `npm run dev:api-only` to omit the dashboard
 proxy.
 
 The launcher keeps local workspaces and authentication data under `.data/`.
+It generates a random signing secret in `.data/auth-secret` unless
+`BETTER_AUTH_SECRET` is set. Existing development sessions using the old
+path-derived secret require one sign-in after upgrading.
 Set `WORKSPACES_PATH` or `HESWE_AUTH_DB_PATH` only when custom locations are
 needed.
 

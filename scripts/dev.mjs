@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
+  linkSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -188,6 +189,32 @@ export async function reserveAvailablePortPair({
   throw new Error(`No available API/dashboard port pair found from ${startingApiPort}.`);
 }
 
+function readOrCreateDevSecret(dataPath) {
+  const secretPath = join(dataPath, "auth-secret");
+  try {
+    return readFileSync(secretPath, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+
+  mkdirSync(dataPath, { recursive: true });
+  const temporaryPath = join(dataPath, `auth-secret-${randomUUID()}.tmp`);
+  const secret = randomBytes(32).toString("hex");
+  try {
+    writeFileSync(temporaryPath, secret, { flag: "wx", mode: 0o600 });
+    // A second launcher can only see the complete winning secret.
+    try {
+      linkSync(temporaryPath, secretPath);
+      return secret;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      return readFileSync(secretPath, "utf8");
+    }
+  } finally {
+    rmSync(temporaryPath, { force: true });
+  }
+}
+
 export function createDevEnvironment({
   apiPort,
   dashboardPort,
@@ -200,9 +227,6 @@ export function createDevEnvironment({
   const dashboardUrl = `http://${host}:${dashboardPort}`;
   const resolvedWorktree = resolve(worktree);
   const dataPath = join(resolvedWorktree, ".data");
-  const localAuthSecret = createHash("sha256")
-    .update(`heswe-dev:${resolvedWorktree}`)
-    .digest("hex");
 
   return {
     ...environment,
@@ -212,7 +236,7 @@ export function createDevEnvironment({
     HESWE_DASHBOARD_PORT: String(dashboardPort),
     HESWE_DASHBOARD_URL: dashboardUrl,
     BETTER_AUTH_URL: dashboardEnabled ? dashboardUrl : apiUrl,
-    BETTER_AUTH_SECRET: environment.BETTER_AUTH_SECRET || localAuthSecret,
+    BETTER_AUTH_SECRET: environment.BETTER_AUTH_SECRET || readOrCreateDevSecret(dataPath),
     WORKSPACES_PATH:
       environment.WORKSPACES_PATH || join(dataPath, "workspaces"),
     HESWE_AUTH_DB_PATH:

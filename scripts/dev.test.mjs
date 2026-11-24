@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, statSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,7 +27,7 @@ test("reserves an API-first port pair and exports matching URLs", async (context
   assert.equal(reservation.apiPort, 43300);
   assert.equal(reservation.dashboardPort, 43301);
 
-  const environment = createDevEnvironment(reservation);
+  const environment = createDevEnvironment({ ...reservation, worktree: lockRoot, environment: {} });
   assert.equal(environment.HESWE_DEV_HOST, "127.0.0.1");
   assert.equal(environment.HESWE_API_PORT, "43300");
   assert.equal(environment.HESWE_API_URL, "http://127.0.0.1:43300");
@@ -37,12 +37,28 @@ test("reserves an API-first port pair and exports matching URLs", async (context
   assert.equal(environment.BETTER_AUTH_SECRET.length, 64);
   assert.equal(
     environment.WORKSPACES_PATH,
-    join(process.cwd(), ".data", "workspaces"),
+    join(lockRoot, ".data", "workspaces"),
   );
   assert.equal(
     environment.HESWE_AUTH_DB_PATH,
-    join(process.cwd(), ".data", "heswe.sqlite"),
+    join(lockRoot, ".data", "heswe.sqlite"),
   );
+});
+
+test("reuses a private random development secret until its data is removed", (context) => {
+  const worktree = createLockRoot();
+  context.after(() => rmSync(worktree, { recursive: true, force: true }));
+  const localSecret = () => createDevEnvironment({
+    apiPort: 43300, dashboardPort: 43301, worktree, environment: {},
+  }).BETTER_AUTH_SECRET;
+  const first = localSecret();
+  assert.match(first, /^[a-f0-9]{64}$/);
+  assert.ok(first === localSecret());
+  if (process.platform !== "win32") {
+    assert.equal(statSync(join(worktree, ".data", "auth-secret")).mode & 0o777, 0o600);
+  }
+  rmSync(join(worktree, ".data"), { recursive: true, force: true });
+  assert.ok(first !== localSecret());
 });
 
 test("API-only mode uses the API origin for authentication", () => {
@@ -50,6 +66,7 @@ test("API-only mode uses the API origin for authentication", () => {
     apiPort: 43300,
     dashboardPort: 43301,
     dashboardEnabled: false,
+    environment: { BETTER_AUTH_SECRET: "explicit-local-auth-secret-123456789" },
   });
 
   assert.equal(environment.BETTER_AUTH_URL, "http://127.0.0.1:43300");
