@@ -135,7 +135,7 @@ async function resolveWorkbook(fullPath, operation) {
   return { workbook, extension };
 }
 function ensureWorksheet(workbook, sheetName) {
-  const normalizedName = typeof sheetName === "string" ? sheetName.trim() : "";
+  const normalizedName = normalizeWorksheetName(sheetName, "");
   if (normalizedName.length > 0) {
     const existing = workbook.getWorksheet(normalizedName);
     if (existing) return existing;
@@ -147,17 +147,6 @@ function ensureWorksheet(workbook, sheetName) {
     return worksheets[0];
   }
   return workbook.addWorksheet("Sheet1");
-}
-
-function replaceWorksheet(workbook, worksheet, sheetName) {
-  const name = normalizeWorksheetName(sheetName, worksheet?.name || "Sheet1");
-  const current = workbook.getWorksheet(name);
-  if (current) {
-    workbook.removeWorksheet(current.id);
-  } else if (worksheet) {
-    workbook.removeWorksheet(worksheet.id);
-  }
-  return workbook.addWorksheet(name);
 }
 
 async function saveWorkbook(workbook, fullPath, extension) {
@@ -204,11 +193,13 @@ async function handleExcelEdit(
   if (warning && detectedExtension === ".xlsx" && !allowLossySpreadsheetFallback) {
     return lossyFallbackBlockedResult(warning);
   }
-  let worksheet = ensureWorksheet(workbook, sheet);
+  let worksheet = ensureWorksheet(workbook, extension === ".csv" ? undefined : sheet);
 
   if (operation === "write") {
     const rows = parseSpreadsheetPayload(content);
-    worksheet = replaceWorksheet(workbook, worksheet, sheet);
+    const name = worksheet.name;
+    workbook.removeWorksheet(worksheet.id);
+    worksheet = workbook.addWorksheet(name);
     worksheet.addRows(rows);
     await saveWorkbook(workbook, fullPath, detectedExtension);
     return withWarning({ status: "completed", output: `Wrote spreadsheet ${inputPath}` }, warning);
@@ -324,7 +315,7 @@ export function createToolEditDocument(options = {}) {
         },
         sheet: {
           type: "string",
-          description: "Spreadsheet worksheet name. Defaults to first worksheet.",
+          description: "Worksheet name for Excel workbooks. Defaults to the first worksheet. CSV files always use their single table.",
         },
         allowLossySpreadsheetFallback: {
           type: "boolean",

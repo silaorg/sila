@@ -123,6 +123,21 @@ describe("editTool", () => {
     strictEqual(sheet.getCell("B4").value.formula, "B2+B3");
   });
 
+  it("edits the single CSV table even when a worksheet name is supplied", async () => {
+    const tool = createToolEditDocument({ baseDir: tempDir });
+    const csvPath = path.join(tempDir, "items.csv");
+    const edit = (input) => tool.handler({ path: "items.csv", sheet: "Inventory", ...input });
+    const read = () => fs.promises.readFile(csvPath, "utf8");
+    await fs.promises.writeFile(csvPath, "Item,Count\nPen,2", "utf8");
+
+    strictEqual((await edit({ operation: "update_cell", cell: "B2", content: "3" })).status, "completed");
+    strictEqual(await read(), "Item,Count\nPen,3");
+    strictEqual((await edit({ operation: "append_row", content: '["Pencil",4]' })).status, "completed");
+    strictEqual(await read(), "Item,Count\nPen,3\nPencil,4");
+    strictEqual((await edit({ operation: "write", content: '[["New"],["Data"]]' })).status, "completed");
+    strictEqual(await read(), "New\nData");
+  });
+
   it("writes, appends, and replaces content in Word documents", async () => {
     const tool = createToolEditDocument({ baseDir: tempDir });
     const wordPath = path.join(tempDir, "notes.docx");
