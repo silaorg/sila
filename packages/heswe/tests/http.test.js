@@ -82,3 +82,16 @@ test("downloadRemoteFile writes bounded downloads and removes partial files", as
   );
   await assert.rejects(fs.access(rejectedPath), { code: "ENOENT" });
 });
+
+test("downloadRemoteFile cancels the response when the destination already exists", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-download-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const destination = path.join(directory, "existing.txt");
+  await fs.writeFile(destination, "original");
+  const cancel = t.mock.fn();
+  t.mock.method(globalThis, "fetch", async () => new Response(new ReadableStream({ cancel })));
+
+  await assert.rejects(downloadRemoteFile(baseUrl, destination), { code: "EEXIST" });
+  assert.equal(cancel.mock.callCount(), 1);
+  assert.equal(await fs.readFile(destination, "utf8"), "original");
+});

@@ -88,29 +88,28 @@ export async function downloadRemoteFile(input, destinationPath, options = {}) {
     throw responseTooLargeError(maxBytes);
   }
 
-  const file = await fs.open(destinationPath, "wx");
   const reader = response.body.getReader();
-  let byteLength = 0;
-  let failure = null;
+  let file;
+  let completed = false;
   try {
+    file = await fs.open(destinationPath, "wx");
+    let byteLength = 0;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       byteLength += value.byteLength;
       if (byteLength > maxBytes) {
-        await reader.cancel();
         throw responseTooLargeError(maxBytes);
       }
       await writeAll(file, value);
     }
+    completed = true;
     return { byteLength };
-  } catch (error) {
-    failure = error;
-    throw error;
   } finally {
+    if (!completed) await reader.cancel().catch(() => {});
     reader.releaseLock();
-    await file.close();
-    if (failure) {
+    await file?.close();
+    if (file && !completed) {
       await fs.rm(destinationPath, { force: true }).catch(() => {});
     }
   }
