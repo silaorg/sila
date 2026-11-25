@@ -186,6 +186,7 @@
 	}
 
 	function openFilePicker() {
+		attachmentMenuOpen = false;
 		fileInput?.click();
 	}
 
