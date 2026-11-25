@@ -64,8 +64,7 @@ export class RunscAgentRuntime implements AppAgentRuntime {
 }
 
 export function assertRunscAvailable(
-  options: Pick<RunscConfiguration, "image" | "network">
-    & Partial<Omit<RunscConfiguration, "image" | "network">>,
+  options: Omit<RunscAgentRuntimeOptions, "workspaceId" | "workspacePath" | "workspaceRoot">,
 ): Promise<void>;
 
 export function readRunscConfiguration(

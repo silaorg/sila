@@ -105,12 +105,21 @@ test("validateWorkspaceMount accepts only the fixed direct workspace child", asy
   );
 });
 
-test("assertRunscAvailable checks both runsc and the runtime image", async () => {
+test("assertRunscAvailable checks the runtime, image and network with only the Docker client environment", async () => {
   const calls = [];
   await assertRunscAvailable({
     image: "heswe:test",
     network: "heswe-sandboxes",
-    async execFile(command, args) {
+    environment: {
+      DOCKER_HOST: "tcp://docker.example.test:2376",
+      DOCKER_CERT_PATH: "/example/certs",
+      BETTER_AUTH_SECRET: "test-only",
+    },
+    async execFile(command, args, options) {
+      assert.deepEqual(options?.env, {
+        DOCKER_HOST: "tcp://docker.example.test:2376",
+        DOCKER_CERT_PATH: "/example/certs",
+      });
       calls.push([command, args]);
       return args[0] === "info"
         ? { stdout: '{"io.containerd.runsc.v1":{},"runsc":{}}' }
@@ -150,6 +159,7 @@ test("RunscAgentRuntime maps paths and keeps API secrets out of Docker", async (
     environment: {
       PATH: process.env.PATH,
       HOME: process.env.HOME,
+      DOCKER_CERT_PATH: "/example/certs",
       OPENAI_API_KEY: "global-provider-key",
       BETTER_AUTH_SECRET: "platform-secret",
     },
@@ -180,6 +190,8 @@ test("RunscAgentRuntime maps paths and keeps API secrets out of Docker", async (
     launch.args.some((value) => value.includes("platform-secret")),
     false,
   );
+  assert.equal(launch.options.env.DOCKER_CERT_PATH, "/example/certs");
+  assert.ok(!launch.args.some((value) => value.includes("DOCKER_CERT_PATH")));
   assert.equal("OPENAI_API_KEY" in launch.options.env, false);
   assert.equal("BETTER_AUTH_SECRET" in launch.options.env, false);
   await runtime.stop();

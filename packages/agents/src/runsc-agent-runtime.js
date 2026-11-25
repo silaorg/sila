@@ -17,6 +17,7 @@ const SANDBOX_ENV_NAMES = Object.freeze([
   "TZ",
 ]);
 const DOCKER_ENV_NAMES = Object.freeze([
+  "DOCKER_CERT_PATH",
   "DOCKER_CONFIG",
   "DOCKER_CONTEXT",
   "DOCKER_HOST",
@@ -73,10 +74,12 @@ export class RunscAgentRuntime {
 
 export async function assertRunscAvailable(options = {}) {
   const configuration = normalizeRunscConfiguration(options);
-  const run = options.execFile ?? execFileAsync;
+  const exec = options.execFile ?? execFileAsync;
+  const env = createDockerClientEnvironment(options.environment ?? process.env);
+  const run = (args) => exec(configuration.dockerCommand, args, { env });
   let runtimes;
   try {
-    const result = await run(configuration.dockerCommand, [
+    const result = await run([
       "info",
       "--format",
       "{{json .Runtimes}}",
@@ -93,7 +96,7 @@ export async function assertRunscAvailable(options = {}) {
   }
 
   try {
-    await run(configuration.dockerCommand, [
+    await run([
       "image",
       "inspect",
       configuration.image,
@@ -106,7 +109,7 @@ export async function assertRunscAvailable(options = {}) {
   }
 
   try {
-    await run(configuration.dockerCommand, [
+    await run([
       "network",
       "inspect",
       configuration.network,
