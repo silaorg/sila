@@ -1,49 +1,27 @@
-import path from "node:path";
 import { sanitizeThreadId } from "../channel-utils.js";
 
-export function isTelegramUserTextMessage(ctx) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-  if (typeof ctx.message.text !== "string") {
-    return false;
+function getUserMessage(ctx) {
+  if (!ctx || typeof ctx !== "object" || !ctx.message || typeof ctx.message !== "object") {
+    return null;
   }
   if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
+    return null;
   }
-  return true;
+  return ctx.message;
+}
+
+export function isTelegramUserTextMessage(ctx) {
+  return typeof getUserMessage(ctx)?.text === "string";
 }
 
 export function isTelegramAttachmentMessage(ctx) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-  if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
-  }
-  return Boolean(ctx.message.document || ctx.message.photo || ctx.message.video);
+  const message = getUserMessage(ctx);
+  return Boolean(message && (message.document || message.photo || message.video));
 }
 
 export function isTelegramAudioMessage(ctx, kind) {
-  if (!ctx || typeof ctx !== "object") {
-    return false;
-  }
-  if (!ctx.message || typeof ctx.message !== "object") {
-    return false;
-  }
-  if (ctx.from && typeof ctx.from === "object" && ctx.from.is_bot) {
-    return false;
-  }
-  if (kind === "audio") {
-    return Boolean(ctx.message.audio);
-  }
-  return Boolean(ctx.message.voice);
+  const message = getUserMessage(ctx);
+  return Boolean(kind === "audio" ? message?.audio : message?.voice);
 }
 
 export function getMessageText(ctx) {
@@ -135,10 +113,9 @@ export function getAudioInfo(ctx, kind) {
 
   if (kind === "audio" && ctx.message.audio) {
     const fileName = String(ctx.message.audio.file_name || "").trim();
-    const extension = path.extname(fileName) || ".mp3";
     return {
       fileId: String(ctx.message.audio.file_id),
-      fileName: fileName || `audio_${Date.now()}${extension}`,
+      fileName: fileName || `audio_${Date.now()}.mp3`,
     };
   }
 
