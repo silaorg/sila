@@ -47,9 +47,9 @@ export function createToolApplyPatch(options = {}) {
         }
 
         if (operation.type === "create_file") {
-          await ensureFileParent(fullPath);
           const updated = applyDiff_v4a("", operation.diff, "create");
-          await fs.promises.writeFile(fullPath, updated, "utf8");
+          await ensureFileParent(fullPath);
+          await fs.promises.writeFile(fullPath, updated, { encoding: "utf8", flag: "wx" });
           return { status: "completed", output: `Created ${operation.path}` };
         }
 

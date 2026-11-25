@@ -34,6 +34,19 @@ describe("applyPatchTool", () => {
     strictEqual(content, "Hello\nWorld");
   });
 
+  it("preserves an existing file when create_file targets it", async () => {
+    const tool = createToolApplyPatch({ baseDir: tempDir });
+    const target = path.join(tempDir, "existing.txt");
+    await fs.promises.writeFile(target, "Original notes", "utf8");
+
+    const result = await tool.handler({
+      operation: { type: "create_file", path: "existing.txt", diff: "+Replacement" },
+    });
+
+    strictEqual(result.status, "failed");
+    strictEqual(await fs.promises.readFile(target, "utf8"), "Original notes");
+  });
+
   it("updates an existing file using update_file operation", async () => {
     const tool = createToolApplyPatch({ baseDir: tempDir });
     await fs.promises.writeFile(path.join(tempDir, "update.txt"), "Line 1\nLine 2\nLine 3", "utf8");
