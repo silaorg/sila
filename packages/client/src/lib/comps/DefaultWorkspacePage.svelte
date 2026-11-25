@@ -7,7 +7,7 @@
 </script>
 
 <div class="relative flex h-full w-full flex-col items-center justify-center">
-	{#if workspaceUi.layout.isMobile || !workspaceUi.layout.sidebar.isOpen}
+	{#if workspaceUi.layout.usesSidebarOverlay || !workspaceUi.layout.sidebar.isOpen}
 		<div class="absolute left-2 top-2">
 			<SidebarToggle />
 		</div>

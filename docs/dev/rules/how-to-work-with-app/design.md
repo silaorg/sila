@@ -9,8 +9,8 @@ Heswe AI's Skeleton theme as the source of color tokens.
   borders, and subtle surface changes. Reserve shadows for overlays.
 - Use one 720px breakpoint for mobile navigation and settings. Mobile controls
   need 44px touch targets; editable text needs at least 16px to avoid input zoom.
-- On mobile, navigation overlays the workspace. Keep desktop pane sizes and
-  open tabs intact when changing viewport size.
+- At 900px and below, navigation overlays the workspace. Keep desktop pane
+  sizes and open tabs intact when changing viewport size.
 - Settings use a category sidebar on desktop and a category list with back
   navigation on mobile. Dialogs become sheets within the dynamic viewport and
   respect safe-area insets.
