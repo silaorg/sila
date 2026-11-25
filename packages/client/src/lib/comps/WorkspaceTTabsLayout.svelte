@@ -10,15 +10,20 @@
 	let navigation: HTMLElement | undefined = $state();
 
 	onMount(() => {
-		const media = window.matchMedia('(max-width: 720px)');
-		const update = () => layout.setMobile(media.matches);
+		const mobile = window.matchMedia('(max-width: 720px)');
+		const compact = window.matchMedia('(max-width: 900px)');
+		const update = () => layout.setViewport(mobile.matches, compact.matches);
 		update();
-		media.addEventListener('change', update);
-		return () => media.removeEventListener('change', update);
+		mobile.addEventListener('change', update);
+		compact.addEventListener('change', update);
+		return () => {
+			mobile.removeEventListener('change', update);
+			compact.removeEventListener('change', update);
+		};
 	});
 
 	$effect(() => {
-		if (!layout.mobileSidebarOpen) return;
+		if (!layout.overlaySidebarOpen) return;
 		const previousFocus = document.activeElement;
 		void tick().then(() => navigation?.focus());
 		return () => {
@@ -29,24 +34,28 @@
 	function handleNavigationKey(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
-			layout.mobileSidebarOpen = false;
+			layout.overlaySidebarOpen = false;
 		}
 		trapFocus(event);
 	}
 </script>
 
-<div class="workspace-tiles" inert={layout.mobileSidebarOpen}>
+<div
+	class="workspace-tiles"
+	class:workspace-sidebar-overlay={layout.usesSidebarOverlay}
+	inert={layout.overlaySidebarOpen}
+>
 	<TTabsRoot ttabs={layout.ttabs} />
 </div>
 
-{#if layout.isMobile && layout.mobileSidebarOpen}
+{#if layout.overlaySidebarOpen}
 	<div class="mobile-navigation-layer">
 		<button
 			class="app-backdrop"
 			type="button"
 			aria-label="Close navigation"
 			tabindex="-1"
-			onclick={() => layout.mobileSidebarOpen = false}
+			onclick={() => layout.overlaySidebarOpen = false}
 		></button>
 		<div
 			class="mobile-navigation"
@@ -57,7 +66,7 @@
 			bind:this={navigation}
 			onkeydown={handleNavigationKey}
 		>
-			<WorkspaceSidebar mobile />
+			<WorkspaceSidebar overlay />
 		</div>
 	</div>
 {/if}

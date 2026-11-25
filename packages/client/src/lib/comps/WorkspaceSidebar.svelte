@@ -8,7 +8,7 @@
 	import WorkspaceSwitcher from './WorkspaceSwitcher.svelte';
 
 	const workspaceUi = useWorkspaceUi();
-	let { mobile = false }: { mobile?: boolean } = $props();
+	let { overlay = false }: { overlay?: boolean } = $props();
 	const avatarLabel = $derived(
 		(workspaceUi.user.name || workspaceUi.user.email).slice(0, 1).toUpperCase()
 	);
@@ -16,7 +16,7 @@
 
 <div
 	class="workspace-sidebar flex h-full flex-col overflow-hidden"
-	class:hidden={!mobile && (workspaceUi.layout.isMobile || !workspaceUi.layout.sidebar.isOpen)}
+	class:hidden={!overlay && (workspaceUi.layout.usesSidebarOverlay || !workspaceUi.layout.sidebar.isOpen)}
 	data-testid="sidebar"
 >
 	<div class="min-h-min">

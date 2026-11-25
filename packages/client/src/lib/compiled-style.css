@@ -1931,6 +1931,12 @@
   width: 100%;
   height: 100%;
 }
+.workspace-sidebar-overlay .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) {
+  display: none;
+}
+.workspace-sidebar-overlay .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) + .ttabs-column {
+  width: 100% !important;
+}
 .workspace-sidebar {
   background: var(--app-sidebar);
 }
@@ -2268,12 +2274,6 @@
 @media (max-width: 720px) {
   :root {
     --app-chrome-height: 52px;
-  }
-  .workspace-tiles .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) {
-    display: none;
-  }
-  .workspace-tiles .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) + .ttabs-column {
-    width: 100% !important;
   }
   .chrome-icon-button {
     width: 44px;

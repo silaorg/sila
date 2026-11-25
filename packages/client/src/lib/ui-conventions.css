@@ -16,6 +16,15 @@
 	height: 100%;
 }
 
+/* Keep the saved sidebar width in the desktop layout while navigation overlays it. */
+.workspace-sidebar-overlay .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) {
+	display: none;
+}
+
+.workspace-sidebar-overlay .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) + .ttabs-column {
+	width: 100% !important;
+}
+
 .workspace-sidebar {
 	background: var(--app-sidebar);
 }
@@ -404,16 +413,6 @@
 
 	:root {
 		--app-chrome-height: 52px;
-	}
-
-	/* Keep desktop pane sizes in the layout; only their presentation changes. */
-
-	.workspace-tiles .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) {
-		display: none;
-	}
-
-	.workspace-tiles .ttabs-column:has(> .ttabs-direct-content > [data-testid='sidebar']) + .ttabs-column {
-		width: 100% !important;
 	}
 
 	.chrome-icon-button {

@@ -28,14 +28,15 @@ export class WorkspaceLayout {
 	private workspaceId: string | null = null;
 	private applyingLayout = false;
 	isMobile = $state(false);
-	mobileSidebarOpen = $state(false);
+	usesSidebarOverlay = $state(false);
+	overlaySidebarOpen = $state(false);
 
 	sidebar = $state({
 		isOpen: true,
 		widthWhenOpen: 272,
 		toggle: () => {
-			if (this.isMobile) {
-				this.mobileSidebarOpen = !this.mobileSidebarOpen;
+			if (this.usesSidebarOverlay) {
+				this.overlaySidebarOpen = !this.overlaySidebarOpen;
 				return;
 			}
 			this.sidebar.isOpen = !this.sidebar.isOpen;
@@ -43,10 +44,11 @@ export class WorkspaceLayout {
 		}
 	});
 
-	setMobile(isMobile: boolean) {
-		if (this.isMobile === isMobile) return;
+	setViewport(isMobile: boolean, usesSidebarOverlay: boolean) {
 		this.isMobile = isMobile;
-		this.mobileSidebarOpen = false;
+		if (this.usesSidebarOverlay === usesSidebarOverlay) return;
+		this.usesSidebarOverlay = usesSidebarOverlay;
+		this.overlaySidebarOpen = false;
 		this.syncLayout();
 	}
 
@@ -280,7 +282,7 @@ export class WorkspaceLayout {
 				});
 			}
 			const shouldShowToggle =
-				(this.isMobile || !this.sidebar.isOpen) && panel.id === topLeftPanelId;
+				(this.usesSidebarOverlay || !this.sidebar.isOpen) && panel.id === topLeftPanelId;
 			const leftComponents = shouldShowToggle
 				? [
 						{ componentId: 'sidebarSettings' },

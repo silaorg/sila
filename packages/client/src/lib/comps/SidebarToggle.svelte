@@ -5,8 +5,8 @@
 
 	const workspaceUi = useWorkspaceUi();
 	const expanded = $derived(
-		workspaceUi.layout.isMobile
-			? workspaceUi.layout.mobileSidebarOpen
+		workspaceUi.layout.usesSidebarOverlay
+			? workspaceUi.layout.overlaySidebarOpen
 			: workspaceUi.layout.sidebar.isOpen
 	);
 </script>
