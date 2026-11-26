@@ -87,6 +87,7 @@ function buildSeeInstructions() {
 async function loadImageFromUrl(uri) {
   const response = await fetchRemote(uri);
   if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
     throw new Error(`Failed to fetch image URL: ${response.status} ${response.statusText}`);
   }
 

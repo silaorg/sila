@@ -77,6 +77,20 @@ describe("seeTool", () => {
     strictEqual(result.uri, `http://127.0.0.1:${port}/pixel.png`);
   });
 
+  it("releases a failed image response and reports its HTTP status", async (t) => {
+    const cancel = t.mock.fn();
+    const response = new Response(new ReadableStream({ cancel }), {
+      status: 404,
+      statusText: "Not Found",
+    });
+    t.mock.method(globalThis, "fetch", async () => response);
+    const tool = createToolSeeImage({ lang: createVisionLang() });
+
+    const result = await tool.handler({ uri: "https://example.test/missing.png" });
+    strictEqual(result.error, "Error seeing image: Failed to fetch image URL: 404 Not Found");
+    strictEqual(cancel.mock.callCount(), 1);
+  });
+
   it("returns error for non-image files", async () => {
     const tool = createToolSeeImage({ lang: createVisionLang(), baseDir: tempDir });
     await fs.promises.writeFile(path.join(tempDir, "not-image.txt"), "hello", "utf8");
