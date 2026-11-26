@@ -13,11 +13,12 @@
 	const url = $derived(activeFile ? workspaceUi.getWorkspaceAssetUrl(activeFile.path) : '');
 	const previewType = $derived(getPreviewType(activeFile?.mimeType ?? ''));
 
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Escape' || !activeFile) return;
-		event.preventDefault();
-		viewer.close();
-	}
+	let dialog: HTMLDialogElement;
+
+	$effect(() => {
+		if (activeFile) dialog.showModal();
+		else dialog.close();
+	});
 
 	function openInTab() {
 		if (!activeFile) return;
@@ -27,18 +28,16 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if activeFile}
-	<div
-		class="fixed inset-0 z-[70] flex cursor-default items-center justify-center bg-black/90"
-	>
-		<button
-			type="button"
-			class="absolute inset-0 size-full cursor-default"
-			aria-label="Close preview"
-			onclick={() => viewer.close()}
-		></button>
+<dialog
+	bind:this={dialog}
+	class="fixed inset-0 m-0 size-full max-h-none max-w-none cursor-default items-center justify-center border-0 bg-black/90 p-0 text-inherit open:flex backdrop:bg-transparent"
+	aria-label={activeFile?.name}
+	oncancel={(event) => {
+		event.preventDefault();
+		viewer.close();
+	}}
+>
+	{#if activeFile}
 		<div class="absolute right-4 top-4 z-10 flex flex-col gap-2">
 			<button
 				type="button"
@@ -69,13 +68,14 @@
 			{/if}
 		</div>
 
-		<div
-			class="relative max-h-full max-w-full p-8"
-			role="dialog"
-			aria-modal="true"
-			aria-label={activeFile.name}
+		<button
+			type="button"
+			class="absolute inset-0 size-full cursor-default"
 			tabindex="-1"
-		>
+			aria-label="Close preview"
+			onclick={() => viewer.close()}
+		></button>
+		<div class="relative max-h-full max-w-full p-8">
 			{#if previewType === 'image'}
 				<img
 					src={url}
@@ -124,5 +124,5 @@
 				</div>
 			{/if}
 		</div>
-	</div>
-{/if}
+	{/if}
+</dialog>

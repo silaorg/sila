@@ -42,7 +42,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if swins.windows.length > 0}
-	<div class="swins-layer" bind:this={layer} inert={Boolean(workspaceUi.assetViewer.activeFile)}>
+	<div class="swins-layer" bind:this={layer}>
 		<button
 			type="button"
 			class="app-backdrop"
