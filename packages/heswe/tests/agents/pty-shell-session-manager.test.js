@@ -35,4 +35,16 @@ describe("ptyShellSessionManager helpers", () => {
     strictEqual(manager.idleTtlMs > 0, true);
     strictEqual(manager.maxOutputBytes > 0, true);
   });
+
+  it("keeps a replacement shell when the previous shell exits after a reset", () => {
+    const manager = new PTYShellSessionManager();
+    const previous = { sessionId: "thread" };
+    const replacement = { sessionId: "thread" };
+    manager.sessions.set("thread", replacement);
+
+    manager.onPtyExit(previous);
+    strictEqual(manager.sessions.get("thread"), replacement);
+    manager.onPtyExit(replacement);
+    strictEqual(manager.hasSession("thread"), false);
+  });
 });

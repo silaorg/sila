@@ -353,7 +353,9 @@ export class PTYShellSessionManager {
       });
     }
     this.clearIdleTimer(session);
-    this.sessions.delete(session.sessionId);
+    if (this.sessions.get(session.sessionId) === session) {
+      this.sessions.delete(session.sessionId);
+    }
   }
 
   finishPending(session, result) {
