@@ -61,7 +61,7 @@ export async function loadWorkspaceTools(workspacePath, options = {}) {
       seenToolNames.add(tool.name);
       tools.push(tool);
     } catch (error) {
-      logger.warn(`Skipping tool package at ${packageDirPath}: ${error.message}`);
+      logger.warn(`Skipping tool package at ${packageDirPath}: ${error?.message ?? error ?? "no error details provided"}`);
     }
   }
 

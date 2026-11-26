@@ -78,6 +78,23 @@ test("loadWorkspaceTools skips duplicate and built-in tool names", async () => {
   assert.match(warnings.join("\n"), /collides with a built-in tool/);
 });
 
+test("a factory rejection without a reason leaves other tools available", async (t) => {
+  const workspacePath = await createWorkspaceWithTools();
+  t.after(() => fs.rm(path.dirname(workspacePath), { recursive: true, force: true }));
+  const broken = path.join(workspacePath, "tools", "broken");
+  await fs.mkdir(broken);
+  await fs.writeFile(path.join(broken, "package.json"), JSON.stringify({ type: "module" }));
+  await fs.writeFile(path.join(broken, "index.js"), "export default () => Promise.reject();");
+  await writeToolPackage(workspacePath, "healthy", "healthy");
+  const warn = t.mock.fn();
+
+  const tools = await loadWorkspaceTools(workspacePath, { logger: { warn } });
+
+  assert.deepEqual(tools.map((tool) => tool.name), ["healthy"]);
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /Skipping tool package .*broken/);
+});
+
 test("loadWorkspaceTools reloads tool modules after edits", async () => {
   const workspacePath = await createWorkspaceWithTools();
   const toolDirPath = path.join(workspacePath, "tools", "dynamic-tool");
