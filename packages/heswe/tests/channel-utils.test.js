@@ -211,7 +211,7 @@ test("channel tools receive isolated workspace environment", async () => {
   await fs.mkdir(toolPath, { recursive: true });
   await fs.writeFile(
     path.join(workspacePath, ".env"),
-    "WORKSPACE_ONLY_KEY=workspace-secret\n",
+    "WORKSPACE_ONLY_KEY=workspace-secret\nSOURCE_PATH=/stale/source\nTHREAD_PATH=/stale/thread\n",
     "utf8",
   );
   await fs.writeFile(
@@ -244,6 +244,8 @@ test("channel tools receive isolated workspace environment", async () => {
   assert.equal(environment.WORKSPACE_ONLY_KEY, "workspace-secret");
   assert.equal(environment.WORKSPACE_PATH, await fs.realpath(workspacePath));
   assert.equal(environment.THREAD_PATH, await fs.realpath(threadPath));
+  assert.equal(environment.SOURCE_PATH, undefined);
+  assert.equal((await loadChannelEnvironment(workspacePath)).THREAD_PATH, undefined);
   assert.equal(process.env.WORKSPACE_ONLY_KEY, undefined);
 });
 

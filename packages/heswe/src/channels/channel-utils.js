@@ -9,6 +9,7 @@ import { loadWorkspaceLanguageProvider } from "../providers.js";
 import {
   buildRuntimePathEnvironment,
   buildRuntimePathsInstructionBlock,
+  mergeRuntimePathEnvironment,
   resolveRuntimePaths,
 } from "../runtime-paths.js";
 import { appendSkillCatalogInstructions, loadSkillIndex } from "../skills.js";
@@ -82,13 +83,9 @@ export async function loadChannelEnvironment(workspacePath, threadPath) {
 
 async function buildChannelEnvironment(workspacePath, runtimePaths) {
   const workspaceEnvironment = await readWorkspaceEnvironment(workspacePath);
-  const inheritedNames = new Set(Object.keys(process.env));
   const localEnvironment = Object.fromEntries(
     Object.entries(workspaceEnvironment)
-      .filter(([name]) => !inheritedNames.has(name)),
+      .filter(([name]) => !Object.hasOwn(process.env, name)),
   );
-  return {
-    ...localEnvironment,
-    ...buildRuntimePathEnvironment(runtimePaths),
-  };
+  return mergeRuntimePathEnvironment(localEnvironment, buildRuntimePathEnvironment(runtimePaths));
 }
