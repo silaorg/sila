@@ -604,12 +604,16 @@ async function writeUniqueFile(directory, fileName, data) {
     let handle;
     try {
       handle = await fs.open(candidate, "wx");
+    } catch (error) {
+      if (error?.code === "EEXIST") continue;
+      throw error;
+    }
+    try {
       await handle.writeFile(data);
       await handle.close();
       return candidate;
     } catch (error) {
-      await handle?.close().catch(() => {});
-      if (error?.code === "EEXIST") continue;
+      await handle.close().catch(() => {});
       await fs.unlink(candidate).catch(() => {});
       throw error;
     }

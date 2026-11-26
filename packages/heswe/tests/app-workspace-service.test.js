@@ -409,6 +409,21 @@ test("app files use scoped references for uploads, shared assets, and agent cont
   );
 });
 
+test("upload open failure preserves an existing destination file", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const service = new AppWorkspaceService({ workspacePath });
+  await service.uploadWorkspaceFiles("user-a", "", [{ name: "notes.txt", data: Buffer.from("original") }]);
+
+  const openError = Object.assign(new Error("Too many open files"), { code: "EMFILE" });
+  t.mock.method(fs, "open", async () => { throw openError; });
+  await assert.rejects(
+    service.uploadWorkspaceFiles("user-a", "", [{ name: "notes.txt", data: Buffer.from("new") }]),
+    openError,
+  );
+  assert.equal(await fs.readFile(path.join(workspacePath, "assets", "notes.txt"), "utf8"), "original");
+});
+
 test("workspace file browser manages the real assets filesystem safely", async () => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-browser-"));
   await fs.mkdir(path.join(workspacePath, "assets"), { recursive: true });
