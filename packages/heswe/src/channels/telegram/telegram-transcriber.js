@@ -1,4 +1,4 @@
-import fsSync from "node:fs";
+import { createReadStream } from "node:fs";
 
 /**
  * @param {any} openAiClient
@@ -9,14 +9,14 @@ export async function transcribeAudioFile(openAiClient, localPath) {
     return "";
   }
 
-  const transcription = await openAiClient.audio.transcriptions.create({
-    file: fsSync.createReadStream(localPath),
-    model: "whisper-1",
-  });
-
-  if (!transcription || typeof transcription.text !== "string") {
-    return "";
+  const file = createReadStream(localPath);
+  try {
+    const transcription = await openAiClient.audio.transcriptions.create({
+      file,
+      model: "whisper-1",
+    });
+    return typeof transcription?.text === "string" ? transcription.text.trim() : "";
+  } finally {
+    file.destroy();
   }
-
-  return transcription.text.trim();
 }

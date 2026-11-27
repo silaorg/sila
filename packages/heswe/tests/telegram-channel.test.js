@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { TelegramChannel } from "../src/channels/telegram-channel.js";
+import { transcribeAudioFile } from "../src/channels/telegram/telegram-transcriber.js";
 
 test("telegram document upload is forwarded as relative dated path", async () => {
   const { channelPath } = await createWorkspaceFixture();
@@ -64,6 +66,24 @@ test("telegram document upload is forwarded as relative dated path", async () =>
     /files\/2026\/11\/20\/report\.pdf/,
   );
   assert.match(forwarded.text, /please review/);
+});
+
+test("audio transcription releases the file when the provider rejects before reading it", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "telegram-transcription-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const audioPath = path.join(root, "voice.ogg");
+  await fs.writeFile(audioPath, "audio fixture");
+  let stream;
+  const transcriptions = {
+    async create({ file }) {
+      stream = file;
+      await once(file, "open");
+      throw new Error("Transcription unavailable");
+    },
+  };
+
+  await assert.rejects(transcribeAudioFile({ audio: { transcriptions } }, audioPath), /Transcription unavailable/);
+  assert.equal(stream.destroyed, true);
 });
 
 test("telegram audio upload includes transcription and sends response", async () => {
