@@ -35,6 +35,22 @@ test("Workspace.run rejects malformed channel config instead of silently skippin
   });
 });
 
+test("Workspace.run skips an unregistered channel named after an object method", async (t) => {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-workspace-"));
+  t.after(() => fs.rm(workspacePath, { recursive: true, force: true }));
+  const channelPath = path.join(workspacePath, "channels", "custom");
+  await fs.mkdir(channelPath, { recursive: true });
+  await fs.writeFile(path.join(workspacePath, "config.json"), JSON.stringify({ version: 1, name: "mixed" }));
+  await fs.writeFile(path.join(channelPath, "config.json"), JSON.stringify({ channel: "toString" }));
+  const warn = t.mock.method(console, "warn", () => {});
+
+  const workspace = new Workspace(workspacePath);
+  await workspace.run();
+  await workspace.stop();
+  assert.equal(warn.mock.callCount(), 1);
+  assert.match(warn.mock.calls[0].arguments[0], /Skipping unsupported channel type "toString"/);
+});
+
 test("Workspace.stop releases channels and allows a clean restart", async () => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "heswe-workspace-"));
   const channelPath = path.join(workspacePath, "channels", "slack");

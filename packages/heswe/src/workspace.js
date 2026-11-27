@@ -6,10 +6,10 @@ import { TelegramChannel } from "./channels/telegram-channel.js";
 import { CONFIG_FILE_NAME, readConfig } from "./config.js";
 import { resolveWorkspaceLanguageSelection } from "./providers.js";
 
-const CHANNEL_RUNTIME_BY_TYPE = Object.freeze({
-  slack: SlackChannel,
-  telegram: TelegramChannel,
-});
+const CHANNEL_RUNTIME_BY_TYPE = new Map([
+  ["slack", SlackChannel],
+  ["telegram", TelegramChannel],
+]);
 
 export class Workspace {
   /** @type {string} */
@@ -92,7 +92,7 @@ export class Workspace {
       }
 
       const channelType = typeof channelConfig.channel === "string" ? channelConfig.channel : "";
-      const ChannelRuntime = CHANNEL_RUNTIME_BY_TYPE[channelType];
+      const ChannelRuntime = CHANNEL_RUNTIME_BY_TYPE.get(channelType);
       if (!ChannelRuntime) {
         console.warn(`Skipping unsupported channel type "${channelType || "unknown"}" at ${channelPath}.`);
         continue;
