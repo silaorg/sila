@@ -28,7 +28,7 @@
 					aria-expanded={expanded}
 					onclick={() => (expanded = !expanded)}
 				>
-					<span class="opacity-70 group-hover:opacity-100">Acted</span>
+					<span class="opacity-70 group-hover:opacity-100">Tool activity</span>
 					{#if expanded}
 						<ChevronDown size={12} class="opacity-70 group-hover:opacity-100" />
 					{:else}
