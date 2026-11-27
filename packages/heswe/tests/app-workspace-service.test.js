@@ -78,6 +78,7 @@ test("AppWorkspaceService scopes API threads to a user and emits changes", async
 test("AppWorkspaceService exposes live progress and groups tool use with the reply", async () => {
   const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), "app-workspace-progress-"));
   const store = new ThreadStore();
+  const connectTool = { name: "connect_service", arguments: { apiKey: "example-credential" } };
   let releaseRuntime;
   const runtimeReleased = new Promise((resolve) => {
     releaseRuntime = resolve;
@@ -100,11 +101,11 @@ test("AppWorkspaceService exposes live progress and groups tool use with the rep
           await input.onAssistantResponding();
           await input.onAssistantProgress({
             text: "I will inspect the workspace.",
-            toolNames: ["execute_command"],
+            toolNames: ["execute_command", connectTool.name],
             tools: [{
               name: "execute_command",
               arguments: { command: "ls -la" },
-            }],
+            }, connectTool],
           });
           await runtimeReleased;
           await store.appendMessages(input.threadDir, [
@@ -116,12 +117,21 @@ test("AppWorkspaceService exposes live progress and groups tool use with the rep
               name: "execute_command",
               callId: "call-1",
               arguments: { command: "ls -la" },
+            }, {
+              type: "tool",
+              callId: "call-2",
+              ...connectTool,
             }]),
             new LangMessage("tool-results", [{
               type: "tool-result",
               name: "execute_command",
               callId: "call-1",
               result: { stdout: "assets\n" },
+            }, {
+              type: "tool-result",
+              name: connectTool.name,
+              callId: "call-2",
+              result: "connected",
             }]),
             new LangMessage("assistant", [{ type: "text", text: "The workspace is ready." }]),
           ]);
@@ -139,6 +149,7 @@ test("AppWorkspaceService exposes live progress and groups tool use with the rep
   const inProgress = await service.getThread("user-a", thread.id);
   assert.equal(inProgress.progress.status, "acting");
   assert.equal(inProgress.progress.activities[0].name, "execute_command");
+  assert.equal(inProgress.progress.activities[1].preview, "");
   assert.equal(inProgress.messages[0].text, "Check the workspace");
 
   releaseRuntime();
@@ -150,7 +161,8 @@ test("AppWorkspaceService exposes live progress and groups tool use with the rep
     "Check the workspace",
     "The workspace is ready.",
   ]);
-  assert.equal(completed.messages[1].activities.length, 1);
+  assert.equal(completed.messages[1].activities.length, 2);
+  assert.equal(completed.messages[1].activities[1].preview, "");
   assert.match(completed.messages[1].activities[0].id, /:call-1$/);
   assert.deepEqual(
     {

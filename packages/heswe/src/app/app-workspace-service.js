@@ -474,8 +474,5 @@ function getToolPreview(value) {
       return value[key].trim().slice(0, 160);
     }
   }
-  const firstString = Object.values(value).find(
-    (entry) => typeof entry === "string" && entry.trim(),
-  );
-  return typeof firstString === "string" ? firstString.trim().slice(0, 160) : "";
+  return "";
 }
