@@ -60,7 +60,7 @@ describe("readTool", () => {
     ok(result.error.includes("File not found"));
   });
 
-  it("reads and strips basic HTML from a URL", async () => {
+  it("reads HTML when only the URL query mentions a PDF", async () => {
     const tool = createToolReadDocument({ baseDir: tempDir });
 
     const server = http.createServer((_, response) => {
@@ -71,7 +71,7 @@ describe("readTool", () => {
 
     const address = server.address();
     const port = typeof address === "object" && address ? address.port : 0;
-    const result = await tool.handler({ path: `http://127.0.0.1:${port}/` });
+    const result = await tool.handler({ path: `http://127.0.0.1:${port}/search?q=guide.pdf` });
 
     await new Promise((resolve) => server.close(resolve));
 

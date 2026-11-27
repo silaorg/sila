@@ -17,12 +17,12 @@ import {
   resolveWorksheet,
 } from "./spreadsheet-utils.js";
 
-function isHttpUrl(value) {
+function parseHttpUrl(value) {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
+    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -428,7 +428,7 @@ async function readFromUrl(url, start, limit) {
   }
 
   const contentType = String(response.headers.get("content-type") || "");
-  if (contentType.includes("application/pdf") || isPdfPath(url)) {
+  if (contentType.includes("application/pdf") || isPdfPath(url.pathname)) {
     const bytes = await readResponseBytes(response, {
       maxBytes: DEFAULT_BINARY_RESPONSE_BYTES,
     });
@@ -528,8 +528,9 @@ export function createToolReadDocument(options = {}) {
         const safeStart = toPositiveInteger(start, 0);
         const safeLimit = toLineLimit(limit, 200);
 
-        if (isHttpUrl(path)) {
-          return await readFromUrl(path, safeStart, safeLimit);
+        const url = parseHttpUrl(path);
+        if (url) {
+          return await readFromUrl(url, safeStart, safeLimit);
         }
 
         const fullPath = normalizePath(path, baseDir);
