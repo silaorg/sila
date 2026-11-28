@@ -286,7 +286,10 @@ test("ProcessAgentRuntime kills a worker that never acknowledges stop", { timeou
   };
   await runtime.handleThreadMessage({ ...input, text: "__ignore_stop__" });
 
-  await assert.rejects(runtime.stop(), /Agent worker did not stop/);
+  await Promise.all([
+    assert.rejects(runtime.stop(), /Agent worker did not stop/),
+    assert.rejects(runtime.stop(), /Agent worker did not stop/),
+  ]);
   assert.equal(child.signalCode, "SIGKILL");
   assert.equal((await runtime.handleThreadMessage({ ...input, text: "After stop" })).answer, "After stop");
   await runtime.stop();

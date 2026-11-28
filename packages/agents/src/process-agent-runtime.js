@@ -51,7 +51,7 @@ export class ProcessAgentRuntime {
   #exitPromise = null;
   #nextRequestId = 1;
   #pending = new Map();
-  #stopping = false;
+  #stopPromise = null;
 
   constructor(options = {}) {
     if (typeof options.workspacePath !== "string" || !options.workspacePath) {
@@ -99,18 +99,14 @@ export class ProcessAgentRuntime {
     }, callbacks);
   }
 
-  async stop() {
-    if (!this.#child) {
-      return;
+  stop() {
+    if (this.#child && !this.#stopPromise) {
+      this.#stopPromise = this.#stopChild(this.#child, this.#exitPromise);
     }
-    if (this.#stopping) {
-      await this.#exitPromise;
-      return;
-    }
+    return this.#stopPromise ?? Promise.resolve();
+  }
 
-    this.#stopping = true;
-    const child = this.#child;
-    const exitPromise = this.#exitPromise;
+  async #stopChild(child, exitPromise) {
     try {
       const shutdown = this.#request("stop", {}).then(() => {
         child.stdin.end();
@@ -122,12 +118,12 @@ export class ProcessAgentRuntime {
       await exitPromise.catch(() => {});
       throw error;
     } finally {
-      this.#stopping = false;
+      this.#stopPromise = null;
     }
   }
 
   #request(method, input, callbacks = {}) {
-    if (this.#stopping && method !== "stop") {
+    if (this.#stopPromise && method !== "stop") {
       return Promise.reject(new Error("Agent worker is stopping."));
     }
     const child = this.#ensureChild();
