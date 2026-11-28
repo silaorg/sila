@@ -55,6 +55,19 @@ Line Two
     strictEqual(content, "Line 1\nLine Two\nLine 3");
   });
 
+  it("removes matched text when the replacement block is empty", async () => {
+    const tool = createToolSearchReplacePatch({ baseDir: tempDir });
+    const target = path.join(tempDir, "remove.txt");
+    await fs.promises.writeFile(target, "Keep this. Remove this.", "utf8");
+
+    const result = await tool.handler({
+      patch: "remove.txt\n<<<<<<< SEARCH\n Remove this.\n=======\n>>>>>>> REPLACE",
+    });
+
+    strictEqual(result.status, "completed");
+    strictEqual(await fs.promises.readFile(target, "utf8"), "Keep this.");
+  });
+
   it("fails when search block is not found", async () => {
     const tool = createToolSearchReplacePatch({ baseDir: tempDir });
     await fs.promises.writeFile(path.join(tempDir, "fail.txt"), "Hello", "utf8");

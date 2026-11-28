@@ -15,11 +15,14 @@ export function stripCodeFence(raw) {
 export function parseSearchReplaceBlocks(patch) {
   const blocks = [];
   const regex =
-    /<<<<<<< SEARCH\r?\n([\s\S]*?)\r?\n?=======\r?\n([\s\S]*?)\r?\n>>>>>>> REPLACE/g;
+    /^<<<<<<< SEARCH\r?\n([\s\S]*?)^=======\r?\n([\s\S]*?)^>>>>>>> REPLACE\r?$/gm;
 
   let match;
   while ((match = regex.exec(patch)) !== null) {
-    blocks.push({ search: match[1], replace: match[2] });
+    blocks.push({
+      search: match[1].replace(/\r?\n$/, ""),
+      replace: match[2].replace(/\r?\n$/, ""),
+    });
   }
 
   if (blocks.length === 0) {
